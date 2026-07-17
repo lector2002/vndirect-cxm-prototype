@@ -1,0 +1,6 @@
+app/node_modules/
+app/dist/
+app/.pnpm-store/
+app/pnpm-lock.yaml
+output/standalone-build/
+*.log

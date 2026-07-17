@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 96%;
+    --card: 222 45% 9%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 45% 8%;
+    --popover-foreground: 210 40% 96%;
+    --primary: 45 100% 51%;
+    --primary-foreground: 222 47% 8%;
+    --secondary: 220 32% 14%;
+    --secondary-foreground: 210 40% 92%;
+    --muted: 220 30% 13%;
+    --muted-foreground: 218 15% 62%;
+    --accent: 220 32% 16%;
+    --accent-foreground: 210 40% 94%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 28% 16%;
+    --input: 220 28% 18%;
+    --ring: 45 100% 51%;
+    --radius: 0.625rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(220 28% 22%);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(220 28% 30%);
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: 0 0 24px hsla(45, 100%, 51%, 0.35);
+  }
+  .card-gradient {
+    background: linear-gradient(145deg, hsl(222 45% 10%), hsl(222 48% 7.5%));
+  }
+  .grid-lines {
+    background-image:
+      linear-gradient(hsl(220 28% 14% / 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(220 28% 14% / 0.5) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}
