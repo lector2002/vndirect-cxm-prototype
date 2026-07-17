@@ -18,13 +18,15 @@ import { cn } from '@/lib/utils';
 import { customerPhaseForPath } from '@/lib/journey-taxonomy';
 import { useCXM } from '@/store/CXMContext';
 import { customerPhaseIdForPath } from '@/lib/journey-taxonomy';
+import { timeFrameById, volumeForTimeFrame } from '@/lib/timeframe';
 
 function toneOf(score: number) {
   return score >= 75 ? '#34d399' : score >= 40 ? '#fbbf24' : '#fb7185';
 }
 
 export default function ImpactAnalysis() {
-  const { selectedCustomerPhaseId } = useCXM();
+  const { selectedCustomerPhaseId, selectedTimeFrameId } = useCXM();
+  const timeFrame = timeFrameById(selectedTimeFrameId);
   const tps = useMemo(
     () =>
       allTouchpoints().filter((t) => selectedCustomerPhaseId === 'all' || customerPhaseIdForPath(t) === selectedCustomerPhaseId).map((t) => ({
@@ -40,9 +42,9 @@ export default function ImpactAnalysis() {
   const sel = tps.find((t) => t.touchpoint.id === selectedId) ?? sorted[0];
 
   const scatterData = tps.map((t) => ({
-    x: t.touchpoint.dailyUsers,
+    x: volumeForTimeFrame(t.touchpoint.dailyUsers, selectedTimeFrameId),
     y: t.touchpoint.revenueImpact,
-    z: Math.max(t.touchpoint.dailyUsers / 1200, 6),
+    z: Math.max(volumeForTimeFrame(t.touchpoint.dailyUsers, selectedTimeFrameId) / 1200, 6),
     name: t.touchpoint.name,
     score: t.cov.score,
     id: t.touchpoint.id,
@@ -63,7 +65,7 @@ export default function ImpactAnalysis() {
       <div className="card-gradient rounded-xl border border-border p-5">
         <SectionTitle
           title="Bản đồ tác động: Reach × Revenue impact"
-          desc="Kích thước bong bóng = lượt KH/ngày · màu = coverage score (xanh ≥75, vàng ≥40, đỏ <40) · trục X log-scale"
+          desc={`Kích thước bong bóng = lượt KH trong ${timeFrame.label}${timeFrame.snapshot ? ' (Demo snapshot)' : ''} · màu = coverage score · trục X log-scale`}
         />
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
@@ -97,7 +99,7 @@ export default function ImpactAnalysis() {
                     <div className="rounded-lg border border-border bg-popover p-3 text-xs shadow-xl">
                       <div className="font-semibold text-foreground">{d.name}</div>
                       <div className="mt-1 text-muted-foreground">
-                        Reach: {fmtNum(d.x)} KH/ngày · Revenue impact: {d.y}/10
+                        Reach: {fmtNum(d.x)} KH · Revenue impact: {d.y}/10
                       </div>
                       <div style={{ color: toneOf(d.score) }}>Coverage: {d.score}%</div>
                     </div>
@@ -153,7 +155,7 @@ export default function ImpactAnalysis() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-xs font-medium text-foreground">{t.touchpoint.name}</div>
                   <div className="text-[10px] text-muted-foreground">
-                    {fmtNum(t.touchpoint.dailyUsers)} KH/ngày · {customerPhaseForPath(t).name}
+                    {fmtNum(volumeForTimeFrame(t.touchpoint.dailyUsers, selectedTimeFrameId))} KH · {customerPhaseForPath(t).name}
                   </div>
                 </div>
                 <span
@@ -190,9 +192,9 @@ export default function ImpactAnalysis() {
                 <div>
                   <div className="flex items-center gap-1 text-xl font-bold text-foreground">
                     <Users className="h-4 w-4 text-muted-foreground" />
-                    {fmtNum(sel.touchpoint.dailyUsers)}
+                     {fmtNum(volumeForTimeFrame(sel.touchpoint.dailyUsers, selectedTimeFrameId))}
                   </div>
-                  <div className="text-[10px] uppercase tracking-wider text-muted-foreground">KH/ngày</div>
+                   <div className="text-[10px] uppercase tracking-wider text-muted-foreground">KH / {timeFrame.label}</div>
                 </div>
                 <div>
                   <div className="flex items-center gap-1 text-xl font-bold text-foreground">
@@ -218,7 +220,7 @@ export default function ImpactAnalysis() {
                     <div className="min-w-0">
                       <div className="truncate font-mono text-[11px] font-medium text-foreground">{ev.name}</div>
                       <div className="text-[10px] text-muted-foreground">
-                        {ev.volumePerDay > 0 ? `${fmtNum(ev.volumePerDay)}/ngày` : 'chưa có dữ liệu'}
+                         {ev.volumePerDay > 0 ? `${fmtNum(volumeForTimeFrame(ev.volumePerDay, selectedTimeFrameId))} / ${timeFrame.label}` : 'chưa có dữ liệu'}
                       </div>
                     </div>
                     <StatusBadge status={ev.status} size="xs" />
@@ -284,7 +286,7 @@ export default function ImpactAnalysis() {
                   <li className="flex items-start gap-2">
                     <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
                     <span>
-                      {fmtNum(sel.touchpoint.dailyUsers)} KH/ngày đi qua điểm mù — mọi quyết định tối ưu tại đây đều là "đoán mò".
+                       {fmtNum(volumeForTimeFrame(sel.touchpoint.dailyUsers, selectedTimeFrameId))} KH đi qua điểm mù trong {timeFrame.label} — mọi quyết định tối ưu tại đây đều là "đoán mò".
                     </span>
                   </li>
                 </ul>

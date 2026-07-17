@@ -23,6 +23,7 @@ import { CoverageBar, SectionTitle, StatCard, TrendChip, KpiCategoryChip } from 
 import { KPI_CATEGORY_LABEL, PLATFORM_LABEL, type Platform } from '@/types/cxm';
 import { cn } from '@/lib/utils';
 import { useCXM } from '@/store/CXMContext';
+import { timeFrameById, volumeForTimeFrame } from '@/lib/timeframe';
 
 // Funnel mô phỏng từ event volume thật trong dataset
 const FUNNEL = [
@@ -37,7 +38,8 @@ const FUNNEL = [
 
 export default function Overview() {
   const cov = totalCoverage();
-  const { selectedCustomerPhaseId } = useCXM();
+  const { selectedCustomerPhaseId, selectedTimeFrameId } = useCXM();
+  const timeFrame = timeFrameById(selectedTimeFrameId);
   const paths = allEventPaths().filter((path) => selectedCustomerPhaseId === 'all' || customerPhaseIdForPath(path) === selectedCustomerPhaseId);
   const tps = allTouchpoints().filter((path) => selectedCustomerPhaseId === 'all' || customerPhaseIdForPath(path) === selectedCustomerPhaseId);
   const events = paths;
@@ -55,6 +57,7 @@ export default function Overview() {
     { name: 'Chưa đo', value: filteredCov.gap, color: '#fb7185' },
   ];
   const dailyVolume = events.reduce((s, p) => s + p.event.volumePerDay, 0);
+  const periodVolume = volumeForTimeFrame(dailyVolume, selectedTimeFrameId);
   const maxFunnel = FUNNEL[0].value;
 
   return (
@@ -99,9 +102,9 @@ export default function Overview() {
         />
         <StatCard
           icon={<Activity className="h-4 w-4" />}
-          label="Event volume / ngày"
-          value={fmtNum(dailyVolume)}
-           sub={`Từ ${filteredCov.live} event đang stream về CDP`}
+          label={`Event volume · ${timeFrame.label}`}
+          value={fmtNum(periodVolume)}
+          sub={`${filteredCov.live} event đang stream · ${timeFrame.snapshot ? 'Demo snapshot' : 'Realtime'}`}
         />
         <StatCard
           icon={<AlertTriangle className="h-4 w-4" />}
@@ -120,7 +123,7 @@ export default function Overview() {
         <div className="card-gradient rounded-xl border border-border p-5 xl:col-span-2">
           <SectionTitle
             title="Phễu hành trình nhà đầu tư"
-            desc="Chuyển đổi end-to-end theo ngày (mô phỏng từ event volume)"
+             desc={`Chuyển đổi end-to-end · ${timeFrame.label}${timeFrame.snapshot ? ' (Demo snapshot)' : ''}`}
             right={
               <span className="rounded-md bg-secondary px-2 py-1 text-[10px] text-muted-foreground">realtime</span>
             }
@@ -142,7 +145,7 @@ export default function Overview() {
                           ▲ {prevRate}% từ bước trước
                         </span>
                       )}
-                      <span className="font-semibold tabular-nums text-foreground">{fmtNum(f.value)}</span>
+                       <span className="font-semibold tabular-nums text-foreground">{fmtNum(volumeForTimeFrame(f.value, selectedTimeFrameId))}</span>
                     </span>
                   </div>
                   <div className="h-6 overflow-hidden rounded-md bg-muted/70">

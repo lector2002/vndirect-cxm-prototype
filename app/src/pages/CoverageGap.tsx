@@ -8,11 +8,13 @@ import { useCXM } from '@/store/CXMContext';
 import { PLATFORM_LABEL, type Platform } from '@/types/cxm';
 import { cn } from '@/lib/utils';
 import { CUSTOMER_PHASES, customerPhaseForPath, customerPhaseIdForPath, customerPhasePaths } from '@/lib/journey-taxonomy';
+import { timeFrameById, volumeForTimeFrame } from '@/lib/timeframe';
 
 const PLATFORMS: Platform[] = ['ios', 'android', 'web', 'server', 'crm'];
 
 export default function CoverageGap() {
-  const { addTaskFromGap, tasks, selectedCustomerPhaseId } = useCXM();
+  const { addTaskFromGap, tasks, selectedCustomerPhaseId, selectedTimeFrameId } = useCXM();
+  const timeFrame = timeFrameById(selectedTimeFrameId);
   const visiblePaths = allEventPaths().filter((path) => selectedCustomerPhaseId === 'all' || customerPhaseIdForPath(path) === selectedCustomerPhaseId);
   const cov = coverageOf(visiblePaths.map((path) => path.event));
   const tps = allTouchpoints().filter((path) => selectedCustomerPhaseId === 'all' || customerPhaseIdForPath(path) === selectedCustomerPhaseId);
@@ -243,7 +245,7 @@ export default function CoverageGap() {
           </div>
         )}
         <div className="mt-4 text-[11px] text-muted-foreground">
-          Hiển thị {fmtNum(gaps.reduce((s, g) => s + g.touchpoint.dailyUsers, 0))} lượt KH/ngày đang đi qua các điểm mù dữ liệu này.
+          Hiển thị {fmtNum(volumeForTimeFrame(gaps.reduce((s, g) => s + g.touchpoint.dailyUsers, 0), selectedTimeFrameId))} lượt KH đi qua các điểm mù trong {timeFrame.label}{timeFrame.snapshot ? ' (Demo snapshot)' : ''}.
         </div>
       </div>
     </div>

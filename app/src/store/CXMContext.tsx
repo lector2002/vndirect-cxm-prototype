@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { PO_TASKS } from '@/data/cxm';
 import type { POTask, TaskColumn } from '@/types/cxm';
 import type { CustomerPhaseId } from '@/lib/journey-taxonomy';
+import type { TimeFrameId } from '@/lib/timeframe';
 
 interface CXMStore {
   tasks: POTask[];
@@ -18,6 +19,8 @@ interface CXMStore {
   lastAddedId: string | null;
   selectedCustomerPhaseId: CustomerPhaseId | 'all';
   setSelectedCustomerPhaseId: (phaseId: CustomerPhaseId | 'all') => void;
+  selectedTimeFrameId: TimeFrameId;
+  setSelectedTimeFrameId: (timeFrameId: TimeFrameId) => void;
 }
 
 const Ctx = createContext<CXMStore | null>(null);
@@ -26,6 +29,7 @@ export function CXMProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<POTask[]>(PO_TASKS);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [selectedCustomerPhaseId, setSelectedCustomerPhaseId] = useState<CustomerPhaseId | 'all'>('all');
+  const [selectedTimeFrameId, setSelectedTimeFrameId] = useState<TimeFrameId>('today');
 
   const moveTask = useCallback((id: string, col: TaskColumn) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, column: col } : t)));
@@ -62,8 +66,8 @@ export function CXMProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ tasks, moveTask, addTaskFromGap, lastAddedId, selectedCustomerPhaseId, setSelectedCustomerPhaseId }),
-    [tasks, moveTask, addTaskFromGap, lastAddedId, selectedCustomerPhaseId],
+    () => ({ tasks, moveTask, addTaskFromGap, lastAddedId, selectedCustomerPhaseId, setSelectedCustomerPhaseId, selectedTimeFrameId, setSelectedTimeFrameId }),
+    [tasks, moveTask, addTaskFromGap, lastAddedId, selectedCustomerPhaseId, selectedTimeFrameId],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

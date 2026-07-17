@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { totalCoverage, allEventPaths } from '@/lib/cxm-utils';
 import { CUSTOMER_PHASES } from '@/lib/journey-taxonomy';
 import { useCXM } from '@/store/CXMContext';
+import { TIME_FRAMES, timeFrameById } from '@/lib/timeframe';
 
 const NAV = [
   { to: '/', label: 'Tổng quan', icon: LayoutDashboard, end: true },
@@ -31,7 +32,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const totalEvents = allEventPaths().length;
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { selectedCustomerPhaseId, setSelectedCustomerPhaseId } = useCXM();
+  const { selectedCustomerPhaseId, setSelectedCustomerPhaseId, selectedTimeFrameId, setSelectedTimeFrameId } = useCXM();
+  const timeFrame = timeFrameById(selectedTimeFrameId);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -142,6 +144,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <option value="all">Tất cả phase</option>
               {CUSTOMER_PHASES.map((phase) => <option key={phase.id} value={phase.id}>{phase.code} · {phase.name}</option>)}
             </select>
+            <select
+              value={selectedTimeFrameId}
+              onChange={(event) => setSelectedTimeFrameId(event.target.value as typeof selectedTimeFrameId)}
+              className="h-8 rounded-lg border border-border bg-secondary/60 px-3 text-xs text-secondary-foreground outline-none hover:bg-secondary"
+              title="Khoảng thời gian dữ liệu"
+            >
+              {TIME_FRAMES.map((frame) => <option key={frame.id} value={frame.id}>{frame.label}{frame.snapshot ? ' · Demo' : ''}</option>)}
+            </select>
+            {timeFrame.snapshot && <span className="hidden text-[10px] text-amber-300 xl:block">Demo snapshot</span>}
             <button className="relative rounded-lg border border-border bg-secondary/60 p-2 text-muted-foreground hover:text-foreground">
               <Bell className="h-3.5 w-3.5" />
               <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rose-400" />
