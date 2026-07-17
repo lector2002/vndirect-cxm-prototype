@@ -12,6 +12,7 @@ import {
   Activity,
   PanelLeftClose,
   PanelLeftOpen,
+  CalendarDays,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { totalCoverage, allEventPaths } from '@/lib/cxm-utils';
@@ -121,38 +122,42 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {/* ===== Main ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar */}
-        <header className="flex h-14 shrink-0 items-center gap-4 border-b border-border bg-[hsl(222,46%,8%)] px-6">
-          <div className="relative w-80">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-[hsl(222,46%,8%)] px-4 lg:px-6">
+          <div className="relative hidden w-80 xl:block">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               placeholder="Tìm touchpoint, event, KPI…"
               className="h-8 w-full rounded-lg border border-input bg-muted/50 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
-          <div className="ml-auto flex items-center gap-3">
-            <button className="flex items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 text-xs text-secondary-foreground hover:bg-secondary">
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            <button className="hidden items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 text-xs text-secondary-foreground hover:bg-secondary 2xl:flex">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
               Production
               <ChevronDown className="h-3 w-3 text-muted-foreground" />
             </button>
-            <select
-              value={selectedCustomerPhaseId}
-              onChange={(event) => setSelectedCustomerPhaseId(event.target.value as typeof selectedCustomerPhaseId)}
-              className="h-8 rounded-lg border border-border bg-secondary/60 px-3 text-xs text-secondary-foreground outline-none hover:bg-secondary"
-              title="Lọc dữ liệu theo phase CX"
-            >
-              <option value="all">Tất cả phase</option>
-              {CUSTOMER_PHASES.map((phase) => <option key={phase.id} value={phase.id}>{phase.code} · {phase.name}</option>)}
-            </select>
-            <select
-              value={selectedTimeFrameId}
-              onChange={(event) => setSelectedTimeFrameId(event.target.value as typeof selectedTimeFrameId)}
-              className="h-8 rounded-lg border border-border bg-secondary/60 px-3 text-xs text-secondary-foreground outline-none hover:bg-secondary"
-              title="Khoảng thời gian dữ liệu"
-            >
-              {TIME_FRAMES.map((frame) => <option key={frame.id} value={frame.id}>{frame.label}{frame.snapshot ? ' · Demo' : ''}</option>)}
-            </select>
-            {timeFrame.snapshot && <span className="hidden text-[10px] text-amber-300 xl:block">Demo snapshot</span>}
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-secondary/60 p-1">
+              <select
+                value={selectedCustomerPhaseId}
+                onChange={(event) => setSelectedCustomerPhaseId(event.target.value as typeof selectedCustomerPhaseId)}
+                className="h-6 max-w-32 bg-transparent px-2 text-xs text-secondary-foreground outline-none"
+                title="Lọc dữ liệu theo phase CX"
+              >
+                <option value="all">Tất cả phase</option>
+                {CUSTOMER_PHASES.map((phase) => <option key={phase.id} value={phase.id}>{phase.code} · {phase.name}</option>)}
+              </select>
+              <div className="h-4 w-px bg-border" />
+              <CalendarDays className="ml-1 h-3.5 w-3.5 shrink-0 text-primary" />
+              <select
+                value={selectedTimeFrameId}
+                onChange={(event) => setSelectedTimeFrameId(event.target.value as typeof selectedTimeFrameId)}
+                className="h-6 max-w-40 bg-transparent px-1 text-xs font-medium text-secondary-foreground outline-none"
+                title="Khoảng thời gian dữ liệu"
+              >
+                {TIME_FRAMES.map((frame) => <option key={frame.id} value={frame.id}>{frame.label}{frame.snapshot ? ' · Demo' : ''}</option>)}
+              </select>
+            </div>
+            {timeFrame.snapshot && <span className="hidden text-[10px] text-amber-300 2xl:block">Demo snapshot</span>}
             <button className="relative rounded-lg border border-border bg-secondary/60 p-2 text-muted-foreground hover:text-foreground">
               <Bell className="h-3.5 w-3.5" />
               <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rose-400" />
