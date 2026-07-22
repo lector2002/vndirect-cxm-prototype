@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 96%;
-    --card: 222 45% 9%;
-    --card-foreground: 210 40% 96%;
-    --popover: 222 45% 8%;
-    --popover-foreground: 210 40% 96%;
-    --primary: 45 100% 51%;
-    --primary-foreground: 222 47% 8%;
-    --secondary: 220 32% 14%;
-    --secondary-foreground: 210 40% 92%;
-    --muted: 220 30% 13%;
-    --muted-foreground: 218 15% 62%;
-    --accent: 220 32% 16%;
-    --accent-foreground: 210 40% 94%;
-    --destructive: 0 72% 55%;
+    --background: 210 40% 98%;
+    --foreground: 222 47% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 14%;
+    --primary: 221 83% 32%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 32% 94%;
+    --secondary-foreground: 222 47% 22%;
+    --muted: 214 32% 95%;
+    --muted-foreground: 215 16% 42%;
+    --accent: 214 50% 94%;
+    --accent-foreground: 221 83% 32%;
+    --destructive: 0 72% 46%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 28% 16%;
-    --input: 220 28% 18%;
-    --ring: 45 100% 51%;
-    --radius: 0.625rem;
+    --border: 214 28% 87%;
+    --input: 214 28% 87%;
+    --ring: 221 83% 32%;
+    --radius: 0.75rem;
   }
 }
 
@@ -34,7 +34,10 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "cv11";
+    background-image: linear-gradient(180deg, hsl(210 40% 99%) 0%, hsl(210 40% 97%) 100%);
   }
+  button, select, input { -webkit-tap-highlight-color: transparent; }
+  button, select { cursor: pointer; }
 }
 
 ::-webkit-scrollbar {
@@ -45,24 +48,50 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(220 28% 22%);
+  background: hsl(215 20% 78%);
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(220 28% 30%);
+  background: hsl(215 20% 65%);
 }
 
 @layer utilities {
-  .text-glow {
-    text-shadow: 0 0 24px hsla(45, 100%, 51%, 0.35);
-  }
   .card-gradient {
-    background: linear-gradient(145deg, hsl(222 45% 10%), hsl(222 48% 7.5%));
+    background: linear-gradient(145deg, hsl(0 0% 100%), hsl(213 45% 98%));
+    box-shadow: 0 1px 2px hsl(215 30% 20% / 0.04), 0 10px 30px hsl(215 30% 20% / 0.035);
   }
+  .page-enter { animation: page-enter 180ms ease-out both; }
   .grid-lines {
     background-image:
-      linear-gradient(hsl(220 28% 14% / 0.5) 1px, transparent 1px),
-      linear-gradient(90deg, hsl(220 28% 14% / 0.5) 1px, transparent 1px);
+      linear-gradient(hsl(214 28% 87% / 0.6) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(214 28% 87% / 0.6) 1px, transparent 1px);
     background-size: 32px 32px;
   }
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}
+
+/* Legacy Journey and drawer surfaces kept their prototype dark values. */
+[class*="bg-[hsl(222,45%,7%)]"],
+[class*="bg-[hsl(222,46%,9%)]"] { background-color: hsl(0 0% 100%) !important; }
+[class*="border-[hsl(222,45%,7%)]"] { border-color: hsl(210 40% 98%) !important; }
+
+@layer utilities {
+  .text-glow { text-shadow: none; }
+  .text-emerald-300, .text-emerald-200, .text-emerald-100 { color: rgb(4 120 87); }
+  .text-sky-300, .text-sky-200 { color: rgb(3 105 161); }
+  .text-amber-300, .text-amber-200 { color: rgb(180 83 9); }
+  .text-rose-300, .text-rose-200, .text-rose-100 { color: rgb(190 24 93); }
+  .text-violet-300 { color: rgb(109 40 217); }
+  .text-cyan-300 { color: rgb(14 116 144); }
+  .text-green-300 { color: rgb(21 128 61); }
+  .text-yellow-300 { color: rgb(161 98 7); }
+  .text-slate-300 { color: rgb(71 85 105); }
 }

@@ -46,9 +46,10 @@ export default function POBoard() {
     <div className="relative flex h-full flex-col p-6">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Điều phối triển khai</p>
+          <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight">
             <KanbanSquare className="h-5 w-5 text-primary" />
-            PO Board — backlog instrumentation
+            Công việc cần triển khai
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Kéo-thả để đổi trạng thái · click task để xem chi tiết liên kết với touchpoint, event và KPI
@@ -113,7 +114,7 @@ export default function POBoard() {
                 setDragOverCol(null);
               }}
               className={cn(
-                'flex min-h-0 flex-col rounded-xl border bg-[hsl(222,45%,8%)] transition-colors',
+                'flex min-h-0 flex-col rounded-xl border bg-white shadow-sm transition-colors',
                 dragOverCol === col.id ? 'border-primary/60 bg-primary/5' : 'border-border',
               )}
             >
@@ -156,7 +157,7 @@ function TaskCard({ task: t, selected, onSelect }: { task: POTask; selected: boo
       }}
       onClick={onSelect}
       className={cn(
-        'group cursor-grab rounded-lg border bg-card p-3 transition-all hover:border-primary/40 hover:shadow-[0_4px_20px_-8px_hsla(45,100%,51%,0.25)] active:cursor-grabbing',
+        'group cursor-grab rounded-lg border bg-card p-3 transition-all hover:border-primary/40 hover:shadow-[0_10px_24px_-12px_hsla(221,83%,32%,0.3)] active:cursor-grabbing',
         selected ? 'border-primary ring-1 ring-primary/30' : 'border-border',
       )}
     >
@@ -206,7 +207,7 @@ function TaskDetail({ task: t, onClose }: { task: POTask; onClose: () => void })
   const phase = customerPhaseForLegacyId(t.phaseId);
   const typeMeta = TASK_TYPE_META[t.type];
   return (
-    <div className="absolute inset-y-0 right-0 z-20 flex w-[430px] max-w-[92vw] flex-col border-l border-border bg-[hsl(222,46%,9%)] shadow-[-20px_0_50px_-24px_rgba(0,0,0,.8)]">
+    <div className="absolute inset-y-0 right-0 z-20 flex w-[430px] max-w-[92vw] flex-col border-l border-border bg-white shadow-[-20px_0_50px_-24px_rgba(15,23,42,.16)]">
       <div className="flex items-start gap-3 border-b border-border p-5">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2"><span className="font-mono text-[11px] text-muted-foreground">{t.id}</span><PriorityBadge p={t.priority} /></div>

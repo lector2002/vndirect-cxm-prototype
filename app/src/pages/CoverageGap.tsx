@@ -45,7 +45,8 @@ export default function CoverageGap() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-xl font-bold tracking-tight">Coverage Gap — ma trận bao phủ instrumentation</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Ưu tiên dữ liệu</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">Tìm điểm dữ liệu còn thiếu</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Xác định điểm mù dữ liệu theo touchpoint × platform, và đẩy thẳng vào PO Board để đóng gap.
         </p>
@@ -64,9 +65,9 @@ export default function CoverageGap() {
       </div>
 
       {/* ===== Heatmap matrix ===== */}
-      <div className="card-gradient rounded-xl border border-border p-5">
+      <div className="card-gradient rounded-2xl border border-border p-5">
         <SectionTitle
-          title="Ma trận coverage: Touchpoint × Platform"
+          title="Điểm nào đang thiếu dữ liệu?"
           desc="Màu ô = % event đang đo (live + ½ validating) trên platform đó · ô xám = không có event dự kiến"
         />
         <div className="overflow-x-auto">
@@ -143,9 +144,9 @@ export default function CoverageGap() {
       </div>
 
       {/* ===== Gap list ===== */}
-      <div className="card-gradient rounded-xl border border-border p-5">
+      <div className="card-gradient rounded-2xl border border-border p-5">
         <SectionTitle
-          title={`Danh sách gap cần đóng (${gaps.length})`}
+          title={`Việc cần làm để khép điểm mù (${gaps.length})`}
           desc="Event ở trạng thái 'chưa đo' hoặc 'đã thiết kế' — đẩy vào PO Board để lên kế hoạch"
           right={
             <div className="flex items-center gap-2">

@@ -14,6 +14,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   CalendarDays,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { totalCoverage, allEventPaths } from '@/lib/cxm-utils';
@@ -22,13 +23,22 @@ import { useCXM } from '@/store/CXMContext';
 import { TIME_FRAMES, timeFrameById } from '@/lib/timeframe';
 
 const NAV = [
-  { to: '/', label: 'Tổng quan', icon: LayoutDashboard, end: true },
-  { to: '/journey', label: 'Hành trình CX', icon: GitBranch },
-  { to: '/coverage', label: 'Coverage Gap', icon: Grid3X3 },
-  { to: '/impact', label: 'Impact Analysis', icon: Target },
-  { to: '/board', label: 'PO Board', icon: KanbanSquare },
-  { to: '/issues', label: 'CX Issue Hub', icon: MessagesSquare },
+  { to: '/', label: 'Bức tranh chung', icon: LayoutDashboard, end: true },
+  { to: '/journey', label: 'Xem hành trình', icon: GitBranch },
+  { to: '/coverage', label: 'Tìm điểm cần đo', icon: Grid3X3 },
+  { to: '/impact', label: 'Ưu tiên tác động', icon: Target },
+  { to: '/board', label: 'Theo dõi công việc', icon: KanbanSquare },
+  { to: '/issues', label: 'Xử lý vấn đề CX', icon: MessagesSquare },
 ];
+
+const PAGE_META = {
+  '/': { label: 'Tổng quan', note: 'Theo dõi sức khỏe hành trình' },
+  '/journey': { label: 'Hành trình khách hàng', note: 'Khám phá theo từng giai đoạn' },
+  '/coverage': { label: 'Độ phủ dữ liệu', note: 'Tìm và khép các điểm mù' },
+  '/impact': { label: 'Ưu tiên tác động', note: 'Tập trung vào điểm chạm quan trọng' },
+  '/board': { label: 'Kế hoạch triển khai', note: 'Điều phối các hạng mục cần làm' },
+  '/issues': { label: 'Vấn đề trải nghiệm', note: 'Đóng vòng phản hồi khách hàng' },
+} as const;
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const cov = totalCoverage();
@@ -37,19 +47,20 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { selectedCustomerPhaseId, setSelectedCustomerPhaseId, selectedTimeFrameId, setSelectedTimeFrameId } = useCXM();
   const timeFrame = timeFrameById(selectedTimeFrameId);
+  const page = PAGE_META[location.pathname as keyof typeof PAGE_META] ?? PAGE_META['/'];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="flex h-dvh overflow-hidden bg-background">
       {/* ===== Sidebar ===== */}
       <aside
         className={cn(
-          'flex shrink-0 flex-col overflow-hidden border-r border-border bg-[hsl(222,48%,7%)] transition-[width] duration-200',
+          'flex shrink-0 flex-col overflow-hidden border-r border-border bg-white transition-[width] duration-200',
           sidebarOpen ? 'w-60' : 'w-16',
         )}
       >
         {/* Logo */}
-        <div className={cn('flex items-center border-b border-border py-4', sidebarOpen ? 'gap-3 px-5' : 'justify-center px-2')}>
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-black text-primary-foreground">
+        <div className={cn('flex items-center border-b border-border py-5', sidebarOpen ? 'gap-3 px-5' : 'justify-center px-2')}>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary font-black text-primary-foreground shadow-sm">
             V
           </div>
           {sidebarOpen && <div>
@@ -57,13 +68,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
               VNDIRECT <span className="text-primary">CXM</span>
             </div>
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Experience Governance
+              Customer experience workspace
             </div>
           </div>}
         </div>
 
         {/* Nav */}
-        <nav className={cn('flex-1 space-y-1 py-4', sidebarOpen ? 'px-3' : 'px-2')}>
+        <nav aria-label="Điều hướng chính" className={cn('flex-1 space-y-1 py-5', sidebarOpen ? 'px-3' : 'px-2')}>
+          {sidebarOpen && <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Không gian làm việc</p>}
           {NAV.map((n) => (
             <NavLink
               key={n.to}
@@ -71,10 +83,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
               end={n.end}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center rounded-lg py-2.5 text-[13px] font-medium transition-colors',
+                  'flex items-center rounded-xl py-2.5 text-[13px] font-medium transition-colors',
                   sidebarOpen ? 'gap-3 px-3' : 'justify-center px-2',
                   isActive
-                    ? 'bg-primary/10 text-primary shadow-[inset_2px_0_0_0_hsl(45,100%,51%)]'
+                     ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
                 )
               }
@@ -87,10 +99,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
         {/* Coverage footer */}
         <div className={cn('border-t border-border', sidebarOpen ? 'p-4' : 'p-2')}>
-          {sidebarOpen && <div className="rounded-lg border border-border bg-card p-3">
+          {sidebarOpen && <div className="rounded-xl border border-border bg-slate-50 p-3">
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <Activity className="h-3.5 w-3.5 text-emerald-400" />
-              Instrumentation coverage
+               Dữ liệu hành trình
             </div>
             <div className="mt-1.5 flex items-baseline gap-1">
               <span className="text-xl font-bold text-primary">{cov.score}%</span>
@@ -117,15 +129,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
             {sidebarOpen ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
             {sidebarOpen && 'Thu gọn'}
           </button>
-          {sidebarOpen && <div className="mt-3 text-center text-[10px] text-muted-foreground/60">v0.9 · prototype · 17/07/2026</div>}
+          {sidebarOpen && <div className="mt-3 text-center text-[10px] text-muted-foreground/60">Cập nhật: 17/07/2026</div>}
         </div>
       </aside>
 
       {/* ===== Main ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar */}
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-[hsl(222,46%,8%)] px-4 lg:px-6">
-          <div className="relative hidden w-80 xl:block">
+        <header className="flex min-h-16 shrink-0 items-center gap-3 border-b border-border bg-white/95 px-6 backdrop-blur">
+          <div className="min-w-0"><div className="text-xs font-semibold text-foreground">{page.label}</div><div className="truncate text-[10px] text-muted-foreground">{page.note}</div></div>
+          <div className="relative ml-4 w-72">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               placeholder="Tìm touchpoint, event, KPI…"
@@ -138,7 +151,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
               Production
               <ChevronDown className="h-3 w-3 text-muted-foreground" />
             </button>
-            <div className="flex items-center gap-1 rounded-lg border border-border bg-secondary/60 p-1">
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-slate-50 p-1">
+              <SlidersHorizontal className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <select
                 value={selectedCustomerPhaseId}
                 onChange={(event) => setSelectedCustomerPhaseId(event.target.value as typeof selectedCustomerPhaseId)}
@@ -159,19 +173,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 {TIME_FRAMES.map((frame) => <option key={frame.id} value={frame.id}>{frame.label}{frame.snapshot ? ' · Demo' : ''}</option>)}
               </select>
             </div>
-            {timeFrame.snapshot && <span className="hidden text-[10px] text-amber-300 2xl:block">Demo snapshot</span>}
-            <button className="relative rounded-lg border border-border bg-secondary/60 p-2 text-muted-foreground hover:text-foreground">
+            {timeFrame.snapshot && <span className="text-[10px] text-amber-300">Demo snapshot</span>}
+            <button className="relative rounded-xl border border-border bg-slate-50 p-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
               <Bell className="h-3.5 w-3.5" />
               <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rose-400" />
             </button>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-amber-600 text-xs font-bold text-primary-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-500 text-xs font-bold text-primary-foreground">
               CX
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <main key={location.pathname} className="min-h-0 flex-1 overflow-y-auto">
+        <main key={location.pathname} className="page-enter min-h-0 flex-1 overflow-y-auto">
           {children}
         </main>
       </div>

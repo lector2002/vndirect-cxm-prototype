@@ -130,12 +130,12 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'card-gradient rounded-xl border p-4',
-        accent ? 'border-primary/40 shadow-[0_0_30px_-8px_hsla(45,100%,51%,0.35)]' : 'border-border',
+        'card-gradient rounded-2xl border p-4 transition-shadow hover:shadow-md',
+        accent ? 'border-primary/35 shadow-[0_12px_30px_-18px_hsla(221,83%,32%,0.35)]' : 'border-border',
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="text-[11px] font-medium text-muted-foreground">{label}</span>
         <span className={cn('rounded-lg p-1.5', accent ? 'bg-primary/15 text-primary' : 'bg-secondary text-muted-foreground')}>
           {icon}
         </span>
@@ -153,7 +153,7 @@ export function TrendChip({ trend, value, good }: { trend: 'up' | 'down' | 'flat
     <span
       className={cn(
         'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
-        good ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300',
+        good ? 'bg-emerald-500/10 text-emerald-700' : 'bg-rose-500/10 text-rose-700',
       )}
     >
       <Icon className="h-3 w-3" />
@@ -164,12 +164,12 @@ export function TrendChip({ trend, value, good }: { trend: 'up' | 'down' | 'flat
 
 // ---------- KPI category chip ----------
 const CAT_COLOR: Record<string, string> = {
-  conversion: 'text-violet-300 bg-violet-500/10 border-violet-500/30',
-  engagement: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30',
-  satisfaction: 'text-green-300 bg-green-500/10 border-green-500/30',
-  revenue: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30',
-  risk: 'text-rose-300 bg-rose-500/10 border-rose-500/30',
-  ops: 'text-slate-300 bg-slate-500/10 border-slate-500/30',
+  conversion: 'text-violet-700 bg-violet-500/10 border-violet-500/30',
+  engagement: 'text-cyan-700 bg-cyan-500/10 border-cyan-500/30',
+  satisfaction: 'text-green-700 bg-green-500/10 border-green-500/30',
+  revenue: 'text-yellow-700 bg-yellow-500/10 border-yellow-500/30',
+  risk: 'text-rose-700 bg-rose-500/10 border-rose-500/30',
+  ops: 'text-slate-700 bg-slate-500/10 border-slate-500/30',
 };
 
 export function KpiCategoryChip({ category, label }: { category: string; label: string }) {
@@ -185,7 +185,7 @@ export function SectionTitle({ title, desc, right }: { title: string; desc?: str
   return (
     <div className="mb-4 flex items-start justify-between gap-4">
       <div>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-foreground">{title}</h2>
+        <h2 className="text-sm font-semibold text-foreground">{title}</h2>
         {desc && <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>}
       </div>
       {right}
@@ -196,10 +196,10 @@ export function SectionTitle({ title, desc, right }: { title: string; desc?: str
 // ---------- misc ----------
 export function PriorityBadge({ p }: { p: 'P0' | 'P1' | 'P2' | 'P3' }) {
   const map = {
-    P0: 'bg-rose-500/15 text-rose-300 border-rose-500/40',
-    P1: 'bg-amber-500/15 text-amber-300 border-amber-500/40',
-    P2: 'bg-sky-500/15 text-sky-300 border-sky-500/40',
-    P3: 'bg-slate-500/15 text-slate-300 border-slate-500/40',
+    P0: 'bg-rose-500/15 text-rose-700 border-rose-500/40',
+    P1: 'bg-amber-500/15 text-amber-700 border-amber-500/40',
+    P2: 'bg-sky-500/15 text-sky-700 border-sky-500/40',
+    P3: 'bg-slate-500/15 text-slate-700 border-slate-500/40',
   } as const;
   return (
     <span className={cn('inline-flex rounded border px-1.5 py-0.5 text-[10px] font-bold', map[p])}>{p}</span>
@@ -207,11 +207,11 @@ export function PriorityBadge({ p }: { p: 'P0' | 'P1' | 'P2' | 'P3' }) {
 }
 
 export const TASK_TYPE_META: Record<string, { label: string; cls: string }> = {
-  'gap-closure': { label: 'Đóng gap', cls: 'text-rose-300 bg-rose-500/10' },
-  enhancement: { label: 'Nâng cấp', cls: 'text-sky-300 bg-sky-500/10' },
-  fix: { label: 'Sửa lỗi', cls: 'text-amber-300 bg-amber-500/10' },
-  governance: { label: 'Governance', cls: 'text-violet-300 bg-violet-500/10' },
-  experiment: { label: 'Thử nghiệm', cls: 'text-emerald-300 bg-emerald-500/10' },
+  'gap-closure': { label: 'Đóng gap', cls: 'text-rose-700 bg-rose-500/10' },
+  enhancement: { label: 'Nâng cấp', cls: 'text-sky-700 bg-sky-500/10' },
+  fix: { label: 'Sửa lỗi', cls: 'text-amber-700 bg-amber-500/10' },
+  governance: { label: 'Governance', cls: 'text-violet-700 bg-violet-500/10' },
+  experiment: { label: 'Thử nghiệm', cls: 'text-emerald-700 bg-emerald-500/10' },
 };
 
 export const CpuIcon = Cpu;

@@ -63,10 +63,11 @@ export default function Overview() {
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">
-            Trung tâm quản trị trải nghiệm khách hàng
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Tổng quan hôm nay</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">
+            Sức khỏe hành trình khách hàng
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Giai đoạn ▸ Flow ▸ Stage ▸ Touchpoint ▸ Event ▸ KPI · Mô hình instrumentation cho toàn bộ hành trình nhà đầu tư
@@ -74,7 +75,7 @@ export default function Overview() {
         </div>
         <Link
           to="/coverage"
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:brightness-110"
+          className="flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
         >
             Xem {filteredCov.gap + filteredCov.designed} gap cần đóng
           <ArrowRight className="h-3.5 w-3.5" />
@@ -120,7 +121,7 @@ export default function Overview() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Funnel */}
-        <div className="card-gradient rounded-xl border border-border p-5 xl:col-span-2">
+        <div className="card-gradient rounded-2xl border border-border p-5 xl:col-span-2">
           <SectionTitle
             title="Phễu hành trình nhà đầu tư"
              desc={`Chuyển đổi end-to-end · ${timeFrame.label}${timeFrame.snapshot ? ' (Demo snapshot)' : ''}`}
@@ -169,7 +170,7 @@ export default function Overview() {
 
         {/* Donut + platform */}
         <div className="space-y-6">
-          <div className="card-gradient rounded-xl border border-border p-5">
+          <div className="card-gradient rounded-2xl border border-border p-5">
             <SectionTitle title="Trạng thái instrument" desc={`${events.length} events trong taxonomy`} />
             <div className="flex items-center gap-4">
               <div className="h-36 w-36 shrink-0">
@@ -197,7 +198,7 @@ export default function Overview() {
             </div>
           </div>
 
-          <div className="card-gradient rounded-xl border border-border p-5">
+          <div className="card-gradient rounded-2xl border border-border p-5">
             <SectionTitle title="Coverage theo nền tảng" desc="Event có ít nhất 1 platform live" />
             <div className="space-y-3">
               {(Object.keys(platformCov) as Platform[]).map((pl) => (
@@ -213,7 +214,7 @@ export default function Overview() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Coverage by phase */}
-        <div className="card-gradient rounded-xl border border-border p-5 xl:col-span-2">
+        <div className="card-gradient rounded-2xl border border-border p-5 xl:col-span-2">
           <SectionTitle
             title="Coverage theo giai đoạn hành trình"
             desc="Tỷ trọng event theo trạng thái · click để mở cây hành trình"
@@ -251,7 +252,7 @@ export default function Overview() {
 
         {/* North-star KPIs + blind */}
         <div className="space-y-6">
-          <div className="card-gradient rounded-xl border border-border p-5">
+          <div className="card-gradient rounded-2xl border border-border p-5">
             <SectionTitle title="North-star KPI" desc="Theo từng giai đoạn" />
             <div className="space-y-3">
               {northStarKpis.slice(0, 5).map((k) => (

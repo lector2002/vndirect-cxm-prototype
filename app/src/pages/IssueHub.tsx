@@ -57,7 +57,7 @@ export default function IssueHub() {
 
   return <div className="relative space-y-6 p-6">
     <div className="flex flex-wrap items-start justify-between gap-4">
-      <div><h1 className="flex items-center gap-2 text-xl font-bold tracking-tight"><MessageSquareText className="h-5 w-5 text-primary" />CX Issue Hub</h1><p className="mt-1 text-sm text-muted-foreground">Closed-loop management: feedback đa kênh → điểm gãy → ticket có owner, SLA và KPI liên quan</p></div>
+      <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Phản hồi khách hàng</p><h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight"><MessageSquareText className="h-5 w-5 text-primary" />Vấn đề trải nghiệm cần xử lý</h1><p className="mt-1 text-sm text-muted-foreground">Gộp feedback, điểm gãy và ticket để đội ngũ xử lý đúng việc, đúng lúc.</p></div>
       <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:brightness-110"><TicketCheck className="h-3.5 w-3.5" />Tạo CX ticket</button>
     </div>
     <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">

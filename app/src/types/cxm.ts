@@ -131,25 +131,25 @@ export const STATUS_META: Record<
 > = {
   live: {
     label: 'Đang đo',
-    color: 'text-emerald-300',
+    color: 'text-emerald-700',
     bg: 'bg-emerald-500/10 border-emerald-500/30',
     dot: 'bg-emerald-400',
   },
   validating: {
     label: 'Đang validate',
-    color: 'text-sky-300',
+    color: 'text-sky-700',
     bg: 'bg-sky-500/10 border-sky-500/30',
     dot: 'bg-sky-400',
   },
   designed: {
     label: 'Đã thiết kế',
-    color: 'text-amber-300',
+    color: 'text-amber-700',
     bg: 'bg-amber-500/10 border-amber-500/30',
     dot: 'bg-amber-400',
   },
   gap: {
     label: 'Chưa đo (Gap)',
-    color: 'text-rose-300',
+    color: 'text-rose-700',
     bg: 'bg-rose-500/10 border-rose-500/30',
     dot: 'bg-rose-400',
   },

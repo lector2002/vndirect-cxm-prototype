@@ -55,14 +55,15 @@ export default function ImpactAnalysis() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-xl font-bold tracking-tight">Impact Analysis — blast radius của điểm chạm</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Ra quyết định</p>
+        <h1 className="mt-1 text-2xl font-bold tracking-tight">Ưu tiên điểm chạm tạo tác động lớn</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Đánh giá mức độ ảnh hưởng của từng touchpoint tới KPI & doanh thu, và hậu quả khi instrumentation tại đó bị mù.
         </p>
       </div>
 
       {/* Scatter */}
-      <div className="card-gradient rounded-xl border border-border p-5">
+      <div className="card-gradient rounded-2xl border border-border p-5">
         <SectionTitle
           title="Bản đồ tác động: Reach × Revenue impact"
           desc={`Kích thước bong bóng = lượt KH trong ${timeFrame.label}${timeFrame.snapshot ? ' (Demo snapshot)' : ''} · màu = coverage score · trục X log-scale`}
@@ -172,7 +173,7 @@ export default function ImpactAnalysis() {
         {/* Detail chain */}
         <div className="space-y-5 xl:col-span-2">
           {/* Touchpoint summary */}
-          <div className="card-gradient rounded-xl border border-primary/30 p-5 shadow-[0_0_40px_-12px_hsla(45,100%,51%,0.3)]">
+          <div className="card-gradient rounded-xl border border-primary/30 p-5 shadow-[0_12px_32px_-18px_hsla(221,83%,32%,0.3)]">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
