@@ -5,11 +5,8 @@ import {
   GitBranch,
   Grid3X3,
   Target,
-  KanbanSquare,
+  ListChecks,
   MessagesSquare,
-  Search,
-  Bell,
-  ChevronDown,
   Activity,
   PanelLeftClose,
   PanelLeftOpen,
@@ -23,21 +20,21 @@ import { useCXM } from '@/store/CXMContext';
 import { TIME_FRAMES, timeFrameById } from '@/lib/timeframe';
 
 const NAV = [
-  { to: '/', label: 'Bức tranh chung', icon: LayoutDashboard, end: true },
-  { to: '/journey', label: 'Xem hành trình', icon: GitBranch },
-  { to: '/coverage', label: 'Tìm điểm cần đo', icon: Grid3X3 },
-  { to: '/impact', label: 'Ưu tiên tác động', icon: Target },
-  { to: '/board', label: 'Theo dõi công việc', icon: KanbanSquare },
-  { to: '/issues', label: 'Xử lý vấn đề CX', icon: MessagesSquare },
+  { to: '/', label: 'Báo cáo điều hành', icon: LayoutDashboard, end: true, group: 'Bối cảnh hành trình' },
+  { to: '/journey', label: 'Hành trình khách hàng', icon: GitBranch, group: 'Bối cảnh hành trình' },
+  { to: '/coverage', label: 'Độ phủ dữ liệu', icon: Grid3X3, group: 'Chất lượng đo lường' },
+  { to: '/impact', label: 'Tác động thay đổi', icon: Target, group: 'Chất lượng đo lường' },
+  { to: '/issues', label: 'Báo cáo điểm gãy', icon: MessagesSquare, group: 'Vấn đề & hành động' },
+  { to: '/board', label: 'Danh mục hành động', icon: ListChecks, group: 'Vấn đề & hành động' },
 ];
 
 const PAGE_META = {
-  '/': { label: 'Tổng quan', note: 'Theo dõi sức khỏe hành trình' },
-  '/journey': { label: 'Hành trình khách hàng', note: 'Khám phá theo từng giai đoạn' },
-  '/coverage': { label: 'Độ phủ dữ liệu', note: 'Tìm và khép các điểm mù' },
-  '/impact': { label: 'Ưu tiên tác động', note: 'Tập trung vào điểm chạm quan trọng' },
-  '/board': { label: 'Kế hoạch triển khai', note: 'Điều phối các hạng mục cần làm' },
-  '/issues': { label: 'Vấn đề trải nghiệm', note: 'Đóng vòng phản hồi khách hàng' },
+  '/': { label: 'Báo cáo điều hành', note: 'Sức khỏe hành trình và ngoại lệ chính' },
+  '/journey': { label: 'Hành trình khách hàng', note: 'Phase, nhóm, flow và touchpoint' },
+  '/coverage': { label: 'Độ phủ dữ liệu', note: 'Signal, gap và mức sẵn sàng đo lường' },
+  '/impact': { label: 'Tác động thay đổi', note: 'Phạm vi ảnh hưởng tới KPI và hệ thống' },
+  '/board': { label: 'Danh mục hành động', note: 'Owner, ưu tiên và trạng thái triển khai' },
+  '/issues': { label: 'Báo cáo điểm gãy', note: 'Severity, SLA, evidence và tác động' },
 } as const;
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -74,16 +71,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         {/* Nav */}
-        <nav aria-label="Điều hướng chính" className={cn('flex-1 space-y-1 py-5', sidebarOpen ? 'px-3' : 'px-2')}>
-          {sidebarOpen && <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Không gian làm việc</p>}
-          {NAV.map((n) => (
+        <nav aria-label="Điều hướng báo cáo" className={cn('flex-1 py-4', sidebarOpen ? 'px-3' : 'space-y-1 px-2')}>
+          {NAV.map((n, index) => (
+            <div key={n.to}>
+              {sidebarOpen && (index === 0 || NAV[index - 1].group !== n.group) && <p className={cn('px-3 pb-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground', index > 0 && 'pt-4')}>{n.group}</p>}
             <NavLink
-              key={n.to}
               to={n.to}
               end={n.end}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center rounded-xl py-2.5 text-[13px] font-medium transition-colors',
+                  'flex items-center rounded-lg py-2 text-[12px] font-medium transition-colors',
                   sidebarOpen ? 'gap-3 px-3' : 'justify-center px-2',
                   isActive
                      ? 'bg-primary text-primary-foreground shadow-sm'
@@ -94,6 +91,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               <n.icon className="h-4 w-4 shrink-0" />
               {sidebarOpen && n.label}
             </NavLink>
+            </div>
           ))}
         </nav>
 
@@ -136,22 +134,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
       {/* ===== Main ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Topbar */}
-        <header className="flex min-h-16 shrink-0 items-center gap-3 border-b border-border bg-white/95 px-6 backdrop-blur">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-white/95 px-6 backdrop-blur">
           <div className="min-w-0"><div className="text-xs font-semibold text-foreground">{page.label}</div><div className="truncate text-[10px] text-muted-foreground">{page.note}</div></div>
-          <div className="relative ml-4 w-72">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <input
-              placeholder="Tìm touchpoint, event, KPI…"
-              className="h-8 w-full rounded-lg border border-input bg-muted/50 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
           <div className="ml-auto flex min-w-0 items-center gap-2">
-            <button className="hidden items-center gap-2 rounded-lg border border-border bg-secondary/60 px-3 py-1.5 text-xs text-secondary-foreground hover:bg-secondary 2xl:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              Production
-              <ChevronDown className="h-3 w-3 text-muted-foreground" />
-            </button>
-            <div className="flex items-center gap-1 rounded-xl border border-border bg-slate-50 p-1">
+            <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Reporting live</span>
+            <div className="flex items-center gap-1 rounded-lg border border-border bg-slate-50 p-1">
               <SlidersHorizontal className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <select
                 value={selectedCustomerPhaseId}
@@ -173,14 +160,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 {TIME_FRAMES.map((frame) => <option key={frame.id} value={frame.id}>{frame.label}{frame.snapshot ? ' · Demo' : ''}</option>)}
               </select>
             </div>
-            {timeFrame.snapshot && <span className="text-[10px] text-amber-300">Demo snapshot</span>}
-            <button className="relative rounded-xl border border-border bg-slate-50 p-2 text-muted-foreground hover:bg-secondary hover:text-foreground">
-              <Bell className="h-3.5 w-3.5" />
-              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rose-400" />
-            </button>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-500 text-xs font-bold text-primary-foreground">
-              CX
-            </div>
+            {timeFrame.snapshot && <span className="text-[10px] font-medium text-amber-700">Demo snapshot</span>}
           </div>
         </header>
 

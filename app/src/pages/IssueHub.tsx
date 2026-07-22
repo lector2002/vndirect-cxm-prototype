@@ -1,30 +1,13 @@
 import { useMemo, useState } from 'react';
-import { AlertOctagon, ArrowUpRight, CheckCircle2, Clock3, Filter, MessageSquareText, Siren, TicketCheck, X } from 'lucide-react';
-import { SectionTitle, StatCard } from '@/components/cxm-shared';
+import type { ReactNode } from 'react';
+import { AlertOctagon, ArrowUpRight, Clock3, Filter, MessageSquareText, Siren, TicketCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCXM } from '@/store/CXMContext';
 import { customerPhaseForLegacyId } from '@/lib/journey-taxonomy';
 
 type IssueStatus = 'new' | 'investigating' | 'in-progress' | 'resolved';
 type Severity = 'critical' | 'high' | 'medium';
-
-type Breakpoint = {
-  id: string;
-  title: string;
-  phaseId: string;
-  touchpoint: string;
-  theme: string;
-  severity: Severity;
-  volume: number;
-  trend: string;
-  signal: string;
-  owner: string;
-  ticketId: string;
-  status: IssueStatus;
-  kpi: string;
-  updated: string;
-  feedback: { channel: string; text: string; sentiment: 'negative' | 'neutral'; time: string }[];
-};
+type Breakpoint = { id: string; title: string; phaseId: string; touchpoint: string; theme: string; severity: Severity; volume: number; trend: string; signal: string; owner: string; ticketId: string; status: IssueStatus; kpi: string; updated: string; feedback: { channel: string; text: string; sentiment: 'negative' | 'neutral'; time: string }[] };
 
 const BREAKPOINTS: Breakpoint[] = [
   { id: 'BP-024', title: 'Nạp tiền treo sau callback ngân hàng', phaseId: 'p3', touchpoint: 'Cổng thanh toán & đối soát', theme: 'Nạp/rút tiền', severity: 'critical', volume: 87, trend: '+42% so với 7 ngày trước', signal: '87 ticket + 214 giao dịch timeout', owner: 'Payments', ticketId: 'CXM-142', status: 'in-progress', kpi: 'Tỷ lệ nạp tiền thành công', updated: '12 phút trước', feedback: [{ channel: 'Hotline', text: 'Tiền đã trừ nhưng hơn 30 phút chưa vào tiểu khoản.', sentiment: 'negative', time: '12 phút trước' }, { channel: 'App feedback', text: 'Không biết giao dịch treo thì cần chờ bao lâu.', sentiment: 'negative', time: '26 phút trước' }] },
@@ -34,60 +17,79 @@ const BREAKPOINTS: Breakpoint[] = [
 ];
 
 const STATUS_META: Record<IssueStatus, { label: string; cls: string }> = {
-  new: { label: 'Mới', cls: 'bg-slate-500/15 text-slate-300 border-slate-500/30' },
-  investigating: { label: 'Đang điều tra', cls: 'bg-violet-500/15 text-violet-300 border-violet-500/30' },
-  'in-progress': { label: 'Đang xử lý', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/30' },
-  resolved: { label: 'Đã xác nhận', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
+  new: { label: 'Mới', cls: 'bg-slate-100 text-slate-700 border-slate-300' }, investigating: { label: 'Đang điều tra', cls: 'bg-violet-50 text-violet-700 border-violet-200' }, 'in-progress': { label: 'Đang xử lý', cls: 'bg-amber-50 text-amber-700 border-amber-200' }, resolved: { label: 'Đã xác nhận', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
 };
-
 const SEVERITY_META: Record<Severity, { label: string; cls: string }> = {
-  critical: { label: 'Nghiêm trọng', cls: 'text-rose-300 bg-rose-500/10 border-rose-500/30' },
-  high: { label: 'Cao', cls: 'text-amber-300 bg-amber-500/10 border-amber-500/30' },
-  medium: { label: 'Trung bình', cls: 'text-sky-300 bg-sky-500/10 border-sky-500/30' },
+  critical: { label: 'Critical', cls: 'text-rose-700 bg-rose-50 border-rose-200' }, high: { label: 'High', cls: 'text-amber-700 bg-amber-50 border-amber-200' }, medium: { label: 'Medium', cls: 'text-sky-700 bg-sky-50 border-sky-200' },
 };
+const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2 };
 
 export default function IssueHub() {
   const { selectedCustomerPhaseId } = useCXM();
   const [theme, setTheme] = useState('Tất cả chủ đề');
-  const [selectedId, setSelectedId] = useState<string | null>('BP-024');
-  const issues = useMemo(() => BREAKPOINTS.filter((issue) => (theme === 'Tất cả chủ đề' || issue.theme === theme) && (selectedCustomerPhaseId === 'all' || customerPhaseForLegacyId(issue.phaseId).id === selectedCustomerPhaseId)), [theme, selectedCustomerPhaseId]);
-  const selected = BREAKPOINTS.find((issue) => issue.id === selectedId) ?? null;
-  const open = BREAKPOINTS.filter((issue) => issue.status !== 'resolved');
-  const breached = BREAKPOINTS.filter((issue) => issue.severity === 'critical' && issue.status !== 'resolved');
+  const [selectedId, setSelectedId] = useState('BP-024');
+  const issues = useMemo(() => BREAKPOINTS.filter((issue) => (theme === 'Tất cả chủ đề' || issue.theme === theme) && (selectedCustomerPhaseId === 'all' || customerPhaseForLegacyId(issue.phaseId).id === selectedCustomerPhaseId)).sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] || b.volume - a.volume), [theme, selectedCustomerPhaseId]);
+  const selected = issues.find((issue) => issue.id === selectedId) ?? issues[0] ?? null;
+  const scopedIssues = BREAKPOINTS.filter((issue) => selectedCustomerPhaseId === 'all' || customerPhaseForLegacyId(issue.phaseId).id === selectedCustomerPhaseId);
+  const open = scopedIssues.filter((issue) => issue.status !== 'resolved').length;
+  const breached = scopedIssues.filter((issue) => issue.severity === 'critical' && issue.status !== 'resolved').length;
+  const totalCases = scopedIssues.reduce((sum, issue) => sum + issue.volume, 0);
 
-  return <div className="relative space-y-6 p-6">
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Phản hồi khách hàng</p><h1 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight"><MessageSquareText className="h-5 w-5 text-primary" />Vấn đề trải nghiệm cần xử lý</h1><p className="mt-1 text-sm text-muted-foreground">Gộp feedback, điểm gãy và ticket để đội ngũ xử lý đúng việc, đúng lúc.</p></div>
-      <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:brightness-110"><TicketCheck className="h-3.5 w-3.5" />Tạo CX ticket</button>
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-slate-50/50 p-6">
+      <header className="flex shrink-0 items-end justify-between gap-6 border-b border-border pb-4">
+        <div><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">Issue reporting</p><h1 className="mt-1 text-xl font-bold tracking-tight">Breakpoint & issue report</h1><p className="mt-1 text-xs text-muted-foreground">Ưu tiên theo severity, SLA, evidence và tác động lên hành trình.</p></div>
+        <button type="button" className="flex h-8 items-center gap-2 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><TicketCheck className="h-3.5 w-3.5" />Tạo CX ticket</button>
+      </header>
+
+      <div className="flex shrink-0 items-center gap-5 border-b border-border py-3">
+        <Metric icon={<AlertOctagon className="h-3.5 w-3.5" />} label="Đang mở" value={String(open)} />
+        <Metric icon={<Siren className="h-3.5 w-3.5" />} label="Vi phạm SLA" value={String(breached)} critical />
+        <Metric icon={<MessageSquareText className="h-3.5 w-3.5" />} label="Cases đã gộp" value={String(totalCases)} />
+        <Metric icon={<Clock3 className="h-3.5 w-3.5" />} label="Closed-loop" value="76%" />
+        <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground"><Filter className="h-3.5 w-3.5" /><span className="sr-only">Lọc theo chủ đề</span><select value={theme} onChange={(event) => setTheme(event.target.value)} className="h-8 rounded-md border border-input bg-white px-2.5 text-xs text-foreground outline-none focus:ring-2 focus:ring-ring/30"><option>Tất cả chủ đề</option><option>eKYC</option><option>Nạp/rút tiền</option><option>Đặt lệnh</option></select></label>
+      </div>
+
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(660px,1fr)_380px] gap-4 pt-4">
+        <section aria-label="Danh sách breakpoint" className="min-w-0 overflow-hidden rounded-lg border border-border bg-white shadow-sm">
+          <div className="grid grid-cols-[minmax(250px,1.5fr)_100px_135px_minmax(170px,1fr)_125px] gap-3 border-b border-border bg-slate-50 px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"><span>Breakpoint</span><span>Severity / SLA</span><span>Impact</span><span>Evidence</span><span>Owner / status</span></div>
+          <div className="h-[calc(100%-37px)] overflow-y-auto divide-y divide-border">
+            {issues.map((issue) => <button type="button" key={issue.id} onClick={() => setSelectedId(issue.id)} className={cn('grid w-full grid-cols-[minmax(250px,1.5fr)_100px_135px_minmax(170px,1fr)_125px] items-center gap-3 px-4 py-4 text-left hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring', selected?.id === issue.id && 'bg-primary/5 shadow-[inset_3px_0_0_hsl(var(--primary))]')}>
+              <span className="min-w-0"><span className="font-mono text-[10px] text-muted-foreground">{issue.id} · {issue.updated}</span><span className="mt-1 block text-xs font-semibold text-foreground">{issue.title}</span><span className="mt-1 block truncate text-[10px] text-muted-foreground">{customerPhaseForLegacyId(issue.phaseId).code} · {issue.touchpoint}</span></span>
+              <span className="space-y-1.5"><Badge meta={SEVERITY_META[issue.severity]} />{issue.severity === 'critical' && issue.status !== 'resolved' ? <span className="block text-[10px] font-semibold text-rose-700">Quá 48 phút</span> : <span className="block text-[10px] text-muted-foreground">Trong SLA</span>}</span>
+              <span><span className="block text-sm font-bold tabular-nums">{issue.volume} cases</span><span className={cn('mt-1 block text-[10px]', issue.trend.startsWith('+') ? 'text-rose-700' : 'text-emerald-700')}>{issue.trend.split(' so với')[0]}</span><span className="mt-1 block truncate text-[10px] text-muted-foreground">{issue.kpi}</span></span>
+              <span className="text-[11px] leading-4 text-foreground">{issue.signal}</span>
+              <span className="min-w-0"><span className="block truncate text-xs font-medium">{issue.owner}</span><span className="my-1 block font-mono text-[10px] text-primary">{issue.ticketId}</span><Badge meta={STATUS_META[issue.status]} /></span>
+            </button>)}
+            {issues.length === 0 && <div className="p-10 text-center text-sm text-muted-foreground">Không có breakpoint phù hợp bộ lọc.</div>}
+          </div>
+        </section>
+        <IssueDetail issue={selected} />
+      </div>
     </div>
-    <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-      <StatCard icon={<AlertOctagon className="h-4 w-4" />} label="Điểm gãy đang mở" value={String(open.length)} accent sub="Đã gộp theo touchpoint và intent" />
-      <StatCard icon={<Siren className="h-4 w-4" />} label="Vi phạm SLA" value={String(breached.length)} sub="1 breakpoint cần phản hồi trong 4 giờ" />
-      <StatCard icon={<MessageSquareText className="h-4 w-4" />} label="Feedback tiêu cực" value="220" sub="7 ngày gần nhất · đa kênh" />
-      <StatCard icon={<CheckCircle2 className="h-4 w-4" />} label="Closed-loop rate" value="76%" sub="Feedback đã được phản hồi hoặc xử lý" />
-    </div>
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <section className="card-gradient rounded-xl border border-border p-5">
-        <SectionTitle title="Điểm gãy ưu tiên" desc="Gộp feedback, ticket vận hành và tín hiệu hành vi theo cùng touchpoint" right={<div className="flex items-center gap-2"><Filter className="h-3.5 w-3.5 text-muted-foreground" /><select value={theme} onChange={(event) => setTheme(event.target.value)} className="rounded-lg border border-input bg-muted/60 px-3 py-1.5 text-xs outline-none"><option>Tất cả chủ đề</option><option>eKYC</option><option>Nạp/rút tiền</option><option>Đặt lệnh</option></select></div>} />
-        <div className="overflow-x-auto"><div className="min-w-[780px]">
-          <div className="grid grid-cols-[1.7fr_.8fr_.85fr_1fr_.8fr] gap-3 border-b border-border px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"><span>Điểm gãy / evidence</span><span>Mức độ</span><span>Tín hiệu</span><span>Owner / ticket</span><span>Trạng thái</span></div>
-          <div className="divide-y divide-border">{issues.map((issue) => <button type="button" key={issue.id} onClick={() => setSelectedId(issue.id)} className={cn('grid w-full grid-cols-[1.7fr_.8fr_.85fr_1fr_.8fr] gap-3 px-3 py-4 text-left transition-colors hover:bg-secondary/50', selectedId === issue.id && 'bg-primary/5')}>
-            <span><span className="font-mono text-[10px] text-muted-foreground">{issue.id}</span><span className="mt-1 block text-xs font-semibold text-foreground">{issue.title}</span><span className="mt-1 block text-[10px] text-muted-foreground">{customerPhaseForLegacyId(issue.phaseId).code} · {issue.touchpoint}</span></span>
-            <span><Badge meta={SEVERITY_META[issue.severity]} /></span><span><span className="block text-xs font-semibold text-foreground">{issue.volume} cases</span><span className={cn('mt-1 block text-[10px]', issue.trend.startsWith('+') ? 'text-rose-300' : 'text-emerald-300')}>{issue.trend}</span></span><span><span className="block text-xs text-foreground">{issue.owner}</span><span className="mt-1 block font-mono text-[10px] text-primary">{issue.ticketId}</span></span><span><Badge meta={STATUS_META[issue.status]} /></span>
-          </button>)}</div>
-        </div></div>
-      </section>
-      <section className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-5"><SectionTitle title="SLA cần chú ý" desc="Ưu tiên theo tác động khách hàng" /><div className="space-y-3"><div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3"><div className="flex items-center gap-2 text-xs font-semibold text-rose-200"><Siren className="h-3.5 w-3.5" />CXM-142 quá SLA 48 phút</div><p className="mt-1 text-[11px] leading-5 text-muted-foreground">Chưa có phản hồi đầu tiên cho cụm nạp tiền treo.</p></div><div className="rounded-lg border border-border bg-card p-3"><div className="flex items-center gap-2 text-xs font-semibold"><Clock3 className="h-3.5 w-3.5 text-primary" />6 ticket chờ triage</div><p className="mt-1 text-[11px] leading-5 text-muted-foreground">Tự động route theo intent, touchpoint và squad sở hữu.</p></div><div className="rounded-lg border border-border bg-card p-3"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Quy tắc đóng vòng lặp</div><p className="mt-1 text-xs leading-5 text-foreground">Ticket chỉ đóng khi đã xác nhận fix và gửi phản hồi cho khách hàng.</p></div></div></section>
-    </div>
-    {selected && <IssueDetail issue={selected} onClose={() => setSelectedId(null)} />}
-  </div>;
+  );
 }
 
+function Metric({ icon, label, value, critical }: { icon: ReactNode; label: string; value: string; critical?: boolean }) { return <div className="flex items-center gap-2"><span className={critical ? 'text-rose-700' : 'text-primary'}>{icon}</span><span className="text-[10px] text-muted-foreground">{label}</span><span className={cn('text-sm font-bold tabular-nums', critical && 'text-rose-700')}>{value}</span></div>; }
 function Badge({ meta }: { meta: { label: string; cls: string } }) { return <span className={cn('inline-flex rounded border px-2 py-0.5 text-[10px] font-medium', meta.cls)}>{meta.label}</span>; }
 
-function IssueDetail({ issue, onClose }: { issue: Breakpoint; onClose: () => void }) {
+function IssueDetail({ issue }: { issue: Breakpoint | null }) {
+  if (!issue) return <aside className="flex items-center justify-center rounded-lg border border-dashed border-border bg-white text-sm text-muted-foreground">Chọn breakpoint để xem báo cáo.</aside>;
   const phase = customerPhaseForLegacyId(issue.phaseId);
-  return <aside className="absolute inset-y-0 right-0 z-20 flex w-[430px] max-w-[94vw] flex-col border-l border-border bg-[hsl(222,46%,9%)] shadow-[-20px_0_50px_-24px_rgba(0,0,0,.8)]"><div className="flex items-start gap-3 border-b border-border p-5"><div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="font-mono text-[11px] text-muted-foreground">{issue.id}</span><Badge meta={SEVERITY_META[issue.severity]} /></div><h2 className="mt-2 text-base font-semibold leading-snug">{issue.title}</h2></div><button type="button" onClick={onClose} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"><X className="h-4 w-4" /></button></div><div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5"><section className="grid grid-cols-2 gap-2"><Info label="Owner" value={issue.owner} /><Info label="CX ticket" value={issue.ticketId} /><Info label="Trạng thái" value={STATUS_META[issue.status].label} /><Info label="KPI ảnh hưởng" value={issue.kpi} /></section><section className="rounded-lg border border-primary/20 bg-primary/5 p-3"><div className="text-[10px] uppercase tracking-wider text-muted-foreground">Liên kết hành trình</div><div className="mt-1 text-xs font-semibold text-foreground">{phase.code} · {phase.name}</div><div className="mt-1 text-[11px] text-muted-foreground">{issue.touchpoint}</div></section><section><h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Evidence đã gộp</h3><div className="rounded-lg border border-border bg-card p-3 text-xs font-medium">{issue.signal}</div></section><section><h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Feedback gần nhất</h3><div className="space-y-2">{issue.feedback.map((feedback) => <div key={feedback.text} className="rounded-lg border border-border bg-card p-3"><div className="flex justify-between text-[10px] text-muted-foreground"><span>{feedback.channel}</span><span>{feedback.time}</span></div><p className="mt-1.5 text-xs leading-5 text-foreground">“{feedback.text}”</p></div>)}</div></section></div><div className="flex gap-2 border-t border-border p-4"><button className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">Mở {issue.ticketId}</button><button className="rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground hover:text-foreground"><ArrowUpRight className="h-3.5 w-3.5" /></button></div></aside>;
+  const breached = issue.severity === 'critical' && issue.status !== 'resolved';
+  return (
+    <aside aria-label={`Chi tiết ${issue.id}`} className="min-h-0 overflow-y-auto rounded-lg border border-border bg-white shadow-sm">
+      <div className="border-b border-border p-4"><div className="flex items-center gap-2"><Badge meta={SEVERITY_META[issue.severity]} /><Badge meta={STATUS_META[issue.status]} /><span className="ml-auto font-mono text-[10px] text-muted-foreground">{issue.id}</span></div><h2 className="mt-2 text-sm font-semibold leading-5">{issue.title}</h2><p className="mt-1 text-[10px] text-muted-foreground">Cập nhật {issue.updated}</p></div>
+      <div className="space-y-5 p-4 text-xs">
+        <section className={cn('border-l-2 py-1 pl-3', breached ? 'border-rose-500' : 'border-emerald-500')}><div className={cn('font-semibold', breached ? 'text-rose-700' : 'text-emerald-700')}>{breached ? 'Vi phạm SLA · quá 48 phút' : 'Đang trong SLA'}</div><p className="mt-1 leading-5 text-muted-foreground">{breached ? 'Chưa có phản hồi đầu tiên cho cụm sự cố này.' : 'Owner đã tiếp nhận trong thời gian cam kết.'}</p></section>
+        <section><Heading>Customer & business impact</Heading><dl className="grid grid-cols-2 gap-x-4 gap-y-3"><Info label="Affected cases" value={String(issue.volume)} /><Info label="Xu hướng" value={issue.trend.split(' so với')[0]} /><Info label="KPI ảnh hưởng" value={issue.kpi} /><Info label="Owner" value={issue.owner} /></dl></section>
+        <section><Heading>Evidence</Heading><div className="border-y border-border py-3 font-medium leading-5">{issue.signal}</div><div className="divide-y divide-border">{issue.feedback.map((feedback) => <blockquote key={feedback.text} className="py-3"><p className="leading-5 text-foreground">“{feedback.text}”</p><footer className="mt-1 flex justify-between text-[10px] text-muted-foreground"><span>{feedback.channel}</span><span>{feedback.time}</span></footer></blockquote>)}</div></section>
+        <section><Heading>Journey context</Heading><div className="font-medium">{phase.code} · {phase.name}</div><div className="mt-1 text-muted-foreground">{issue.touchpoint}</div></section>
+        <section><Heading>Accountability</Heading><div className="inline-flex items-center gap-1 font-mono font-semibold text-primary">{issue.ticketId}<ArrowUpRight className="h-3 w-3" aria-hidden="true" /></div><p className="mt-2 leading-5 text-muted-foreground">Ticket chỉ đóng khi đã xác nhận fix và gửi phản hồi cho khách hàng.</p></section>
+      </div>
+    </aside>
+  );
 }
 
-function Info({ label, value }: { label: string; value: string }) { return <div className="rounded-lg border border-border bg-card p-2.5"><div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div><div className="mt-1 truncate text-xs font-medium" title={value}>{value}</div></div>; }
+function Heading({ children }: { children: string }) { return <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{children}</h3>; }
+function Info({ label, value }: { label: string; value: string }) { return <div className="min-w-0"><dt className="text-[9px] uppercase tracking-wide text-muted-foreground">{label}</dt><dd className="mt-0.5 truncate font-medium" title={value}>{value}</dd></div>; }

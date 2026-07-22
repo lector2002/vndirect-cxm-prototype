@@ -1,306 +1,301 @@
 import { Link } from 'react-router';
 import {
-  Activity,
-  Compass,
-  Gauge,
   AlertTriangle,
   ArrowRight,
-  MousePointerClick,
-  Zap,
+  BarChart3,
+  CheckCircle2,
+  Database,
   EyeOff,
+  Radio,
+  Target,
 } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import {
   allEventPaths,
   allTouchpoints,
   blindKpiList,
+  coverageOf,
   fmtNum,
-  northStarKpis,
-  totalCoverage, coverageOf,
+  impactOfTouchpoint,
 } from '@/lib/cxm-utils';
-import { CUSTOMER_PHASES, customerPhaseCoverage, customerPhasePaths, customerPhaseIdForPath } from '@/lib/journey-taxonomy';
-import { CoverageBar, SectionTitle, StatCard, TrendChip, KpiCategoryChip } from '@/components/cxm-shared';
-import { KPI_CATEGORY_LABEL, PLATFORM_LABEL, type Platform } from '@/types/cxm';
-import { cn } from '@/lib/utils';
+import {
+  CUSTOMER_PHASES,
+  customerPhaseCoverage,
+  customerPhaseForLegacyId,
+  customerPhaseIdForPath,
+  customerPhasePaths,
+} from '@/lib/journey-taxonomy';
+import { CoverageBar, PriorityBadge } from '@/components/cxm-shared';
 import { useCXM } from '@/store/CXMContext';
 import { timeFrameById, volumeForTimeFrame } from '@/lib/timeframe';
 
-// Funnel mô phỏng từ event volume thật trong dataset
-const FUNNEL = [
-  { label: 'Reach / quan tâm', value: 21400, phase: '01' },
-  { label: 'Lead / tạo account', value: 2880, phase: '02' },
-  { label: 'Onboarding / TK được duyệt', value: 1760, phase: '03' },
-  { label: 'Be In / nạp tiền đầu', value: 1480, phase: '04' },
-  { label: 'Be In / lệnh đầu khớp', value: 1180, phase: '04' },
-  { label: 'Engage / active 30 ngày', value: 820, phase: '05' },
-  { label: 'Engage / dùng ≥2 sản phẩm', value: 310, phase: '05' },
-];
+const TASK_STATUS = {
+  backlog: 'Backlog',
+  ready: 'Sẵn sàng',
+  doing: 'Đang làm',
+  validating: 'Đang validate',
+  done: 'Hoàn tất',
+} as const;
 
 export default function Overview() {
-  const cov = totalCoverage();
-  const { selectedCustomerPhaseId, selectedTimeFrameId } = useCXM();
+  const { tasks, selectedCustomerPhaseId, selectedTimeFrameId } = useCXM();
   const timeFrame = timeFrameById(selectedTimeFrameId);
-  const paths = allEventPaths().filter((path) => selectedCustomerPhaseId === 'all' || customerPhaseIdForPath(path) === selectedCustomerPhaseId);
-  const tps = allTouchpoints().filter((path) => selectedCustomerPhaseId === 'all' || customerPhaseIdForPath(path) === selectedCustomerPhaseId);
-  const events = paths;
-  const blind = blindKpiList().map((item) => ({ ...item, paths: item.paths.filter((path) => selectedCustomerPhaseId === 'all' || customerPhaseIdForPath(path) === selectedCustomerPhaseId) })).filter((item) => item.paths.length > 0 && !item.paths.some((path) => path.event.status === 'live' || path.event.status === 'validating'));
-  const platformCov = (Object.keys(PLATFORM_LABEL) as Platform[]).reduce((result, platform) => {
-    result[platform] = coverageOf(paths.filter((path) => path.event.platforms.includes(platform)).map((path) => path.event));
-    return result;
-  }, {} as Record<Platform, ReturnType<typeof coverageOf>>);
-
-  const filteredCov = selectedCustomerPhaseId === 'all' ? cov : coverageOf(paths.map((path) => path.event));
-  const donut = [
-    { name: 'Đang đo', value: filteredCov.live, color: '#34d399' },
-    { name: 'Đang validate', value: filteredCov.validating, color: '#38bdf8' },
-    { name: 'Đã thiết kế', value: filteredCov.designed, color: '#fbbf24' },
-    { name: 'Chưa đo', value: filteredCov.gap, color: '#fb7185' },
-  ];
-  const dailyVolume = events.reduce((s, p) => s + p.event.volumePerDay, 0);
-  const periodVolume = volumeForTimeFrame(dailyVolume, selectedTimeFrameId);
-  const maxFunnel = FUNNEL[0].value;
+  const phaseInScope = (phaseId: string) => selectedCustomerPhaseId === 'all' || phaseId === selectedCustomerPhaseId;
+  const paths = allEventPaths().filter((path) => phaseInScope(customerPhaseIdForPath(path)));
+  const touchpoints = allTouchpoints().filter((path) => phaseInScope(customerPhaseIdForPath(path)));
+  const coverage = coverageOf(paths.map((path) => path.event));
+  const openGaps = coverage.designed + coverage.gap;
+  const activeSignals = coverage.live + coverage.validating;
+  const periodVolume = volumeForTimeFrame(
+    paths.reduce((sum, path) => sum + path.event.volumePerDay, 0),
+    selectedTimeFrameId,
+  );
+  const blindKpis = blindKpiList()
+    .map((item) => ({
+      ...item,
+      paths: item.paths.filter((path) => phaseInScope(customerPhaseIdForPath(path))),
+    }))
+    .filter((item) => item.paths.length > 0);
+  const phaseRows = CUSTOMER_PHASES.filter((phase) => phaseInScope(phase.id)).map((phase) => {
+    const phasePaths = customerPhasePaths(phase.id);
+    const phaseCoverage = customerPhaseCoverage(phase.id);
+    const phaseBlindKpis = blindKpiList().filter((item) =>
+      item.paths.some((path) => customerPhaseIdForPath(path) === phase.id),
+    ).length;
+    const phaseTasks = tasks.filter(
+      (task) => customerPhaseForLegacyId(task.phaseId).id === phase.id && task.column !== 'done',
+    );
+    return { phase, paths: phasePaths, coverage: phaseCoverage, blindKpis: phaseBlindKpis, tasks: phaseTasks };
+  });
+  const weakestPhase = [...phaseRows].filter((row) => row.coverage.total > 0).sort((a, b) => a.coverage.score - b.coverage.score)[0];
+  const impactCandidates = touchpoints
+    .map((path) => ({ ...path, impact: impactOfTouchpoint(path.touchpoint) }))
+    .filter((path) => path.impact.coverage.gap + path.impact.coverage.designed > 0)
+    .sort((a, b) => b.impact.impactScore - a.impact.impactScore);
+  const highestImpact = impactCandidates[0];
+  const priorityExceptions = tasks
+    .filter(
+      (task) =>
+        task.column !== 'done' &&
+        (task.priority === 'P0' || task.priority === 'P1') &&
+        phaseInScope(customerPhaseForLegacyId(task.phaseId).id),
+    )
+    .sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority === 'P0' ? -1 : 1;
+      return b.impact - a.impact || b.reach - a.reach;
+    });
+  const exceptions = priorityExceptions.slice(0, 5);
+  const scopeLabel =
+    selectedCustomerPhaseId === 'all'
+      ? 'Toàn bộ hành trình'
+      : CUSTOMER_PHASES.find((phase) => phase.id === selectedCustomerPhaseId)?.name;
+  const healthLabel = coverage.score >= 75 ? 'Đang kiểm soát' : coverage.score >= 55 ? 'Cần chú ý' : 'Cần quyết định';
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="min-w-[1040px] space-y-7 p-6">
+      <header className="flex items-start justify-between gap-8 border-b border-border pb-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Tổng quan hôm nay</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">
-            Sức khỏe hành trình khách hàng
-          </h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Executive reporting</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Bức tranh điều hành CXM</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Giai đoạn ▸ Flow ▸ Stage ▸ Touchpoint ▸ Event ▸ KPI · Mô hình instrumentation cho toàn bộ hành trình nhà đầu tư
+            {scopeLabel} · {timeFrame.label}{timeFrame.snapshot ? ' · Demo snapshot' : ' · Realtime'}
           </p>
         </div>
         <Link
-          to="/coverage"
-          className="flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90"
+          to="/board"
+          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border bg-white px-4 text-xs font-semibold text-foreground shadow-sm transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-            Xem {filteredCov.gap + filteredCov.designed} gap cần đóng
-          <ArrowRight className="h-3.5 w-3.5" />
+          Mở kế hoạch triển khai
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
         </Link>
-      </div>
+      </header>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <StatCard
-          icon={<Gauge className="h-4 w-4" />}
-          label="Instrumentation coverage"
-           value={`${filteredCov.score}%`}
-          accent
-          sub={
-            <span>
-               {filteredCov.live} live · {filteredCov.validating} validating · {filteredCov.designed} thiết kế · {filteredCov.gap} gap
-            </span>
-          }
-        />
-        <StatCard
-          icon={<Compass className="h-4 w-4" />}
-          label="Điểm chạm được quản trị"
-          value={`${tps.length}`}
-          sub={`5 phase CX · ${tps.length} touchpoint · ${events.length} events`}
-        />
-        <StatCard
-          icon={<Activity className="h-4 w-4" />}
-          label={`Event volume · ${timeFrame.label}`}
-          value={fmtNum(periodVolume)}
-          sub={`${filteredCov.live} event đang stream · ${timeFrame.snapshot ? 'Demo snapshot' : 'Realtime'}`}
-        />
-        <StatCard
-          icon={<AlertTriangle className="h-4 w-4" />}
-          label="KPI đang mù tín hiệu"
-          value={`${blind.length}`}
-          sub={
-            <Link to="/impact" className="text-primary hover:underline">
-              Phân tích blast radius →
-            </Link>
-          }
-        />
-      </div>
+      <section aria-labelledby="executive-summary" className="overflow-hidden rounded-2xl border border-primary/25 bg-white shadow-[0_18px_48px_-34px_hsla(221,83%,32%,0.45)]">
+        <div className="grid grid-cols-[minmax(0,1fr)_190px_190px_190px]">
+          <div className="border-r border-border p-6">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex rounded-full bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-700">
+                {healthLabel}
+              </span>
+              <span className="text-xs text-muted-foreground">Kết luận điều hành</span>
+            </div>
+            <h2 id="executive-summary" className="mt-3 max-w-3xl text-xl font-bold leading-7 text-foreground">
+              {openGaps > 0
+                ? `${openGaps} event còn thiếu tín hiệu; rủi ro tập trung tại ${weakestPhase?.phase.name ?? 'phase đang chọn'}.`
+                : 'Phạm vi đang chọn đã có tín hiệu đầy đủ để theo dõi.'}
+            </h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              Coverage đạt {coverage.score}%. {blindKpis.length > 0 ? `${blindKpis.length} KPI vẫn chưa có nguồn đo tin cậy.` : 'Không còn KPI mất hoàn toàn tín hiệu.'}{' '}
+              {highestImpact
+                ? `${highestImpact.touchpoint.name} là điểm cần bảo vệ trước, với impact score ${highestImpact.impact.impactScore}/100.`
+                : 'Duy trì đối soát chất lượng dữ liệu tại các touchpoint đang live.'}
+            </p>
+          </div>
+          <SummaryMetric label="Coverage" value={`${coverage.score}%`} note={`${activeSignals}/${coverage.total} event có tín hiệu`} />
+          <SummaryMetric label="Khoảng trống" value={String(openGaps)} note={`${coverage.gap} chưa đo · ${coverage.designed} đã thiết kế`} tone="risk" />
+          <SummaryMetric label="Ưu tiên mở" value={String(priorityExceptions.length)} note="P0/P1 cần theo dõi" tone="warning" />
+        </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* Funnel */}
-        <div className="card-gradient rounded-2xl border border-border p-5 xl:col-span-2">
-          <SectionTitle
-            title="Phễu hành trình nhà đầu tư"
-             desc={`Chuyển đổi end-to-end · ${timeFrame.label}${timeFrame.snapshot ? ' (Demo snapshot)' : ''}`}
-            right={
-              <span className="rounded-md bg-secondary px-2 py-1 text-[10px] text-muted-foreground">realtime</span>
+      <section aria-labelledby="report-pillars">
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Ba trụ cột báo cáo</p>
+            <h2 id="report-pillars" className="mt-1 text-base font-bold text-foreground">Điều cần biết trước khi ra quyết định</h2>
+          </div>
+          <span className="text-xs text-muted-foreground">Tự động cập nhật theo filter global</span>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <ReportPillar
+            icon={<EyeOff className="h-4 w-4" aria-hidden="true" />}
+            eyebrow="Điểm gãy / thiếu sót"
+            value={`${openGaps} event chưa hoàn chỉnh`}
+            description={`${blindKpis.length} KPI mất tín hiệu; ${weakestPhase?.phase.name ?? 'phase đang chọn'} có coverage thấp nhất ở mức ${weakestPhase?.coverage.score ?? 0}%.`}
+            detail={`${coverage.gap} chưa đo · ${coverage.designed} chờ triển khai`}
+            to="/coverage"
+            linkLabel="Xem khoảng trống dữ liệu"
+            tone="risk"
+          />
+          <ReportPillar
+            icon={<Target className="h-4 w-4" aria-hidden="true" />}
+            eyebrow="Tác động thay đổi"
+            value={highestImpact ? `${highestImpact.touchpoint.name}` : 'Không có điểm rủi ro mở'}
+            description={
+              highestImpact
+                ? `${fmtNum(volumeForTimeFrame(highestImpact.touchpoint.dailyUsers, selectedTimeFrameId))} lượt KH trong ${timeFrame.label}; liên kết ${highestImpact.impact.downstreamKpis.length} KPI downstream.`
+                : 'Các touchpoint trong phạm vi đã có coverage hoàn chỉnh.'
             }
+            detail={highestImpact ? `Impact score ${highestImpact.impact.impactScore}/100 · Revenue ${highestImpact.touchpoint.revenueImpact}/10` : 'Tiếp tục kiểm soát chất lượng'}
+            to="/impact"
+            linkLabel="Phân tích blast radius"
           />
-          <div className="space-y-2.5">
-             {FUNNEL.filter((f) => selectedCustomerPhaseId === 'all' || f.phase === CUSTOMER_PHASES.find((phase) => phase.id === selectedCustomerPhaseId)?.code).map((f, i) => {
-              const pct = (f.value / maxFunnel) * 100;
-              const prevRate = i > 0 ? Math.round((f.value / FUNNEL[i - 1].value) * 100) : null;
-              return (
-                <div key={f.label} className="group">
-                  <div className="mb-1 flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-2 text-foreground">
-                      <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-primary">{f.phase}</span>
-                      {f.label}
-                    </span>
-                    <span className="flex items-center gap-3">
-                      {prevRate !== null && (
-                        <span className={cn('text-[10px]', prevRate >= 60 ? 'text-emerald-300' : prevRate >= 40 ? 'text-amber-300' : 'text-rose-300')}>
-                          ▲ {prevRate}% từ bước trước
-                        </span>
-                      )}
-                       <span className="font-semibold tabular-nums text-foreground">{fmtNum(volumeForTimeFrame(f.value, selectedTimeFrameId))}</span>
-                    </span>
-                  </div>
-                  <div className="h-6 overflow-hidden rounded-md bg-muted/70">
-                    <div
-                      className="flex h-full items-center rounded-md bg-gradient-to-r from-primary/80 to-amber-500/80 px-2 transition-all group-hover:from-primary group-hover:to-amber-400"
-                      style={{ width: `${Math.max(pct, 2.5)}%` }}
-                    >
-                      <span className="text-[10px] font-bold text-primary-foreground">{pct >= 1 ? pct.toFixed(1) : '<1'}%</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-200">
-            <Zap className="mr-1 inline h-3.5 w-3.5" />
-            Nút thắt lớn nhất: <b>Lead → Onboarding (61%)</b> và <b>Active 30d → Cross-sell (38%)</b>.
-            Impact analysis gợi ý 3 touchpoint có blast radius cao nhất tại 2 nút này.
-          </div>
-        </div>
-
-        {/* Donut + platform */}
-        <div className="space-y-6">
-          <div className="card-gradient rounded-2xl border border-border p-5">
-            <SectionTitle title="Trạng thái instrument" desc={`${events.length} events trong taxonomy`} />
-            <div className="flex items-center gap-4">
-              <div className="h-36 w-36 shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={donut} dataKey="value" innerRadius={44} outerRadius={62} paddingAngle={3} strokeWidth={0}>
-                      {donut.map((d) => (
-                        <Cell key={d.name} fill={d.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex-1 space-y-2">
-                {donut.map((d) => (
-                  <div key={d.name} className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: d.color }} />
-                      {d.name}
-                    </span>
-                    <span className="font-semibold tabular-nums text-foreground">{d.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="card-gradient rounded-2xl border border-border p-5">
-            <SectionTitle title="Coverage theo nền tảng" desc="Event có ít nhất 1 platform live" />
-            <div className="space-y-3">
-              {(Object.keys(platformCov) as Platform[]).map((pl) => (
-                <div key={pl} className="flex items-center gap-3">
-                  <span className="w-16 text-xs text-muted-foreground">{PLATFORM_LABEL[pl]}</span>
-                  <CoverageBar stats={platformCov[pl]} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* Coverage by phase */}
-        <div className="card-gradient rounded-2xl border border-border p-5 xl:col-span-2">
-          <SectionTitle
-            title="Coverage theo giai đoạn hành trình"
-            desc="Tỷ trọng event theo trạng thái · click để mở cây hành trình"
+          <ReportPillar
+            icon={<Database className="h-4 w-4" aria-hidden="true" />}
+            eyebrow="Dữ liệu đang thu thập"
+            value={`${fmtNum(periodVolume)} event`}
+            description={`${activeSignals} event live/validating trên ${touchpoints.length} touchpoint trong phạm vi báo cáo.`}
+            detail={`${coverage.live} live · ${coverage.validating} đang validate`}
+            to="/journey"
+            linkLabel="Kiểm tra nguồn dữ liệu"
+            tone="positive"
           />
-          <div className="space-y-3">
-             {CUSTOMER_PHASES.filter((ph) => selectedCustomerPhaseId === 'all' || ph.id === selectedCustomerPhaseId).map((ph) => {
-               const c = customerPhaseCoverage(ph.id);
-              return (
-                <Link
-                  key={ph.id}
-                  to="/journey"
-                  className="flex items-center gap-4 rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-secondary/40"
-                >
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold"
-                    style={{ background: `${ph.color}22`, color: ph.color }}
-                  >
-                    {ph.code}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center justify-between">
-                      <span className="truncate text-xs font-medium text-foreground">{ph.name}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {c.gap > 0 && <span className="mr-2 text-rose-300">{c.gap} gap</span>}
-                         {customerPhasePaths(ph.id).length} events
+        </div>
+      </section>
+
+      <section aria-labelledby="phase-health" className="rounded-2xl border border-border bg-white">
+        <div className="flex items-start justify-between border-b border-border px-5 py-4">
+          <div>
+            <h2 id="phase-health" className="text-sm font-bold text-foreground">Sức khỏe theo phase</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">So sánh coverage, tín hiệu thiếu và khối lượng công việc đang mở.</p>
+          </div>
+          <Link to="/journey" className="rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Xem hành trình
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th scope="col" className="px-5 py-3">Phase</th>
+                <th scope="col" className="w-[280px] px-4 py-3">Coverage</th>
+                <th scope="col" className="px-4 py-3 text-right">Có tín hiệu</th>
+                <th scope="col" className="px-4 py-3 text-right">Chưa hoàn chỉnh</th>
+                <th scope="col" className="px-4 py-3 text-right">KPI mù</th>
+                <th scope="col" className="px-5 py-3 text-right">Việc đang mở</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {phaseRows.map(({ phase, paths: phasePaths, coverage: phaseCoverage, blindKpis: phaseBlind, tasks: phaseTasks }) => (
+                <tr key={phase.id} className="transition-colors hover:bg-slate-50/80">
+                  <th scope="row" className="px-5 py-3.5 font-medium">
+                    <Link to="/journey" className="group flex items-center gap-3 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg text-[10px] font-bold" style={{ backgroundColor: `${phase.color}1A`, color: phase.color }}>
+                        {phase.code}
                       </span>
-                    </div>
-                    <CoverageBar stats={c} />
-                  </div>
+                      <span>
+                        <span className="block text-xs font-semibold text-foreground group-hover:text-primary">{phase.name}</span>
+                        <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">{phase.subtitle} · {phasePaths.length} event</span>
+                      </span>
+                    </Link>
+                  </th>
+                  <td className="px-4 py-3.5"><CoverageBar stats={phaseCoverage} /></td>
+                  <td className="px-4 py-3.5 text-right font-semibold tabular-nums text-emerald-700">{phaseCoverage.live + phaseCoverage.validating}</td>
+                  <td className="px-4 py-3.5 text-right font-semibold tabular-nums text-amber-700">{phaseCoverage.designed + phaseCoverage.gap}</td>
+                  <td className="px-4 py-3.5 text-right font-semibold tabular-nums text-rose-700">{phaseBlind}</td>
+                  <td className="px-5 py-3.5 text-right font-semibold tabular-nums text-foreground">{phaseTasks.length}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="priority-exceptions" className="rounded-2xl border border-border bg-white">
+        <div className="flex items-start justify-between border-b border-border px-5 py-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" aria-hidden="true" />
+              <h2 id="priority-exceptions" className="text-sm font-bold text-foreground">Priority exceptions</h2>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">P0/P1 chưa hoàn tất, xếp theo priority và impact.</p>
+          </div>
+          <Link to="/board" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Xem tất cả trên PO Board <ArrowRight className="h-3 w-3" aria-hidden="true" />
+          </Link>
+        </div>
+        {exceptions.length > 0 ? (
+          <div className="divide-y divide-border">
+            {exceptions.map((task) => {
+              const phase = customerPhaseForLegacyId(task.phaseId);
+              return (
+                <Link key={task.id} to="/board" className="grid min-h-[72px] grid-cols-[90px_minmax(0,1fr)_170px_120px_120px] items-center gap-4 px-5 py-3 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                  <div className="flex items-center gap-2"><PriorityBadge p={task.priority} /><span className="font-mono text-[10px] text-muted-foreground">{task.id}</span></div>
+                  <div className="min-w-0"><p className="truncate text-xs font-semibold text-foreground">{task.title}</p><p className="mt-1 truncate text-[10px] text-muted-foreground">{phase.code} · {phase.name} · {task.squad}</p></div>
+                  <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Tác động</p><p className="mt-1 text-xs font-semibold text-foreground">{fmtNum(task.reach)} KH/tuần · {task.impact}/10</p></div>
+                  <div><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Trạng thái</p><p className="mt-1 text-xs font-medium text-foreground">{TASK_STATUS[task.column]}</p></div>
+                  <div className="text-right"><p className="text-[10px] uppercase tracking-wide text-muted-foreground">Owner</p><p className="mt-1 truncate text-xs font-medium text-foreground">{task.owner}</p></div>
                 </Link>
               );
             })}
           </div>
-        </div>
-
-        {/* North-star KPIs + blind */}
-        <div className="space-y-6">
-          <div className="card-gradient rounded-2xl border border-border p-5">
-            <SectionTitle title="North-star KPI" desc="Theo từng giai đoạn" />
-            <div className="space-y-3">
-              {northStarKpis.slice(0, 5).map((k) => (
-                <div key={k.id} className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="truncate text-xs font-medium text-foreground">{k.name}</div>
-                    <div className="text-[10px] text-muted-foreground">Mục tiêu: {k.target}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-bold tabular-nums text-foreground">{k.value}</div>
-                    <TrendChip trend={k.trend} value={k.trendValue} good={k.trendGood} />
-                  </div>
-                </div>
-              ))}
-            </div>
+        ) : (
+          <div className="flex items-center gap-3 px-5 py-6 text-sm text-muted-foreground">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" aria-hidden="true" />
+            Không có exception P0/P1 trong phạm vi đang chọn.
           </div>
-
-          <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-5">
-            <SectionTitle
-              title="Blind spots — KPI mất tín hiệu"
-              desc="KPI chỉ được cấu thành bởi event chưa instrument"
-            />
-            <div className="space-y-2.5">
-              {blind.map(({ kpi, paths }) => (
-                <div key={kpi.id} className="flex items-center justify-between gap-2 rounded-lg border border-rose-500/20 bg-background/60 p-2.5">
-                  <div className="flex items-center gap-2">
-                    <EyeOff className="h-3.5 w-3.5 shrink-0 text-rose-400" />
-                    <div>
-                      <div className="text-xs font-medium text-foreground">{kpi.name}</div>
-                      <div className="text-[10px] text-muted-foreground">
-                        {paths.length} event chưa đo · owner: {kpi.owner}
-                      </div>
-                    </div>
-                  </div>
-                  <KpiCategoryChip category={kpi.category} label={KPI_CATEGORY_LABEL[kpi.category]} />
-                </div>
-              ))}
-            </div>
-            <Link
-              to="/board"
-              className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-rose-500/15 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-500/25"
-            >
-              <MousePointerClick className="h-3.5 w-3.5" />
-              Đã có {blind.length} task tương ứng trên PO Board →
-            </Link>
-          </div>
-        </div>
-      </div>
+        )}
+      </section>
     </div>
+  );
+}
+
+function SummaryMetric({ label, value, note, tone = 'default' }: { label: string; value: string; note: string; tone?: 'default' | 'risk' | 'warning' }) {
+  const valueColor = tone === 'risk' ? 'text-rose-700' : tone === 'warning' ? 'text-amber-700' : 'text-primary';
+  return (
+    <div className="flex flex-col justify-center border-r border-border p-5 last:border-r-0">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <p className={`mt-2 text-3xl font-bold tabular-nums ${valueColor}`}>{value}</p>
+      <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{note}</p>
+    </div>
+  );
+}
+
+function ReportPillar({ icon, eyebrow, value, description, detail, to, linkLabel, tone = 'default' }: { icon: React.ReactNode; eyebrow: string; value: string; description: string; detail: string; to: string; linkLabel: string; tone?: 'default' | 'risk' | 'positive' }) {
+  const iconTone = tone === 'risk' ? 'bg-rose-500/10 text-rose-700' : tone === 'positive' ? 'bg-emerald-500/10 text-emerald-700' : 'bg-primary/10 text-primary';
+  return (
+    <article className="flex min-h-[220px] flex-col rounded-2xl border border-border bg-white p-5 transition-shadow hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <span className={`rounded-lg p-2 ${iconTone}`}>{icon}</span>
+        <BarChart3 className="h-4 w-4 text-muted-foreground/50" aria-hidden="true" />
+      </div>
+      <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{eyebrow}</p>
+      <h3 className="mt-1 truncate text-base font-bold text-foreground" title={value}>{value}</h3>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p>
+      <div className="mt-auto flex items-end justify-between gap-3 border-t border-border pt-4">
+        <span className="text-[10px] font-medium text-muted-foreground"><Radio className="mr-1 inline h-3 w-3" aria-hidden="true" />{detail}</span>
+        <Link to={to} className="inline-flex shrink-0 items-center gap-1 rounded px-1 py-0.5 text-[11px] font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          {linkLabel} <ArrowRight className="h-3 w-3" aria-hidden="true" />
+        </Link>
+      </div>
+    </article>
   );
 }

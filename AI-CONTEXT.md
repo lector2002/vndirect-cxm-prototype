@@ -2,13 +2,13 @@
 
 > Updated: 2026-07-22
 > Level: Small
-> Status: done
+> Status: active
 
 ## Project
 VNDIRECT CXM prototype là desktop web app giúp đội CX khám phá, đo lường và quản trị hành trình khách hàng.
 
 ## Current State
-React/Vite prototype đang được redesign tab Hành trình khách hàng. Journey thực tế có 6 phase gồm Reach, Lead, Onboarding, Be In, Engage & Advocacy và Churn; mỗi phase có nhiều nhóm và mỗi nhóm có nhiều flow.
+React/Vite desktop reporting prototype. Platform tập trung vào báo cáo sức khỏe hành trình, phát hiện điểm gãy/thiếu sót, phân tích tác động thay đổi lên hệ thống và kiểm kê dữ liệu đang thu thập.
 
 ## Done
 - [x] Xác định project level Small.
@@ -18,22 +18,33 @@ React/Vite prototype đang được redesign tab Hành trình khách hàng. Jour
 - [x] Bổ sung phase Churn vào taxonomy toàn app.
 - [x] Map flow từ Account Journey và Money Journey, kèm provenance cho từng flow.
 - [x] Build production và lint các file thay đổi thành công.
+- [x] Redesign toàn bộ tab còn lại theo reporting hierarchy: kết luận, exception, evidence và drill-down.
+- [x] Chuyển Coverage, Impact, Issues và Actions sang master-detail reporting workspace.
+- [x] Chuyển Overview thành executive report theo ba trụ cột: điểm gãy, tác động thay đổi và dữ liệu thu thập.
+- [x] Chuẩn hóa navigation và global filter cho reporting platform.
 
 ## Now
-- Tab Hành trình khách hàng đã sẵn sàng review UX trên desktop.
+- Toàn bộ reporting workspace đã sẵn sàng review UX và nghiệp vụ trên desktop.
 
 ## Next
-1. User review tên nhóm, cách map flow vào phase và độ chi tiết từng bước.
-2. Bổ sung tài liệu nguồn cho các flow đang gắn nhãn `Cần bổ sung nguồn`.
+1. User review logic executive conclusion, exception ranking và impact chain.
+2. Kết nối action/issue register với dữ liệu backend thật khi có API.
+3. Bổ sung tài liệu nguồn cho các flow đang gắn nhãn `Cần bổ sung nguồn`.
 
 ## Key Files
 - `app/src/pages/JourneyTree.tsx` - tab Hành trình khách hàng.
+- `app/src/pages/Overview.tsx` - executive reporting home.
+- `app/src/pages/CoverageGap.tsx` - data coverage exception report.
+- `app/src/pages/ImpactAnalysis.tsx` - change impact report.
+- `app/src/pages/IssueHub.tsx` - breakpoint report.
+- `app/src/pages/POBoard.tsx` - action register.
+- `app/src/components/AppShell.tsx` - reporting navigation và global filters.
 - `app/src/lib/journey-taxonomy.ts` - taxonomy phase dùng toàn app.
 - `app/src/data/cxm.ts` - touchpoint, event và KPI hiện có.
 - `docs/money-journey-mermaid.html` - nguồn flow money journey.
 - `docs/account-journey-mermaid.html` - nguồn flow account journey.
 
 ## Last Session
-- Done: Redesign desktop journey explorer, thêm 6 phase, search, provenance và inspector; build pass.
-- Pending: Review nghiệp vụ với user.
+- Done: Redesign toàn bộ platform theo reporting-first; production build và lint pass; JS bundle giảm còn khoảng 431 kB.
+- Pending: Review UX và nghiệp vụ với user.
 - Blocker: Không có.
