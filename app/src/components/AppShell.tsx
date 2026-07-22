@@ -12,6 +12,7 @@ import {
   PanelLeftOpen,
   CalendarDays,
   SlidersHorizontal,
+  HeartHandshake,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { totalCoverage, allEventPaths } from '@/lib/cxm-utils';
@@ -25,6 +26,7 @@ const NAV = [
   { to: '/coverage', label: 'Độ phủ dữ liệu', icon: Grid3X3, group: 'Chất lượng đo lường' },
   { to: '/impact', label: 'Tác động thay đổi', icon: Target, group: 'Chất lượng đo lường' },
   { to: '/issues', label: 'Báo cáo điểm gãy', icon: MessagesSquare, group: 'Vấn đề & hành động' },
+  { to: '/voice', label: 'Tiếng nói khách hàng', icon: HeartHandshake, group: 'Vấn đề & hành động' },
   { to: '/board', label: 'Danh mục hành động', icon: ListChecks, group: 'Vấn đề & hành động' },
 ];
 
@@ -35,6 +37,7 @@ const PAGE_META = {
   '/impact': { label: 'Tác động thay đổi', note: 'Phạm vi ảnh hưởng tới KPI và hệ thống' },
   '/board': { label: 'Danh mục hành động', note: 'Owner, ưu tiên và trạng thái triển khai' },
   '/issues': { label: 'Báo cáo điểm gãy', note: 'Severity, SLA, evidence và tác động' },
+  '/voice': { label: 'Tiếng nói khách hàng', note: 'Cảm nhận sản phẩm và quyết định tiếp theo' },
 } as const;
 
 export default function AppShell({ children }: { children: ReactNode }) {

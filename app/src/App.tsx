@@ -7,6 +7,7 @@ import CoverageGap from '@/pages/CoverageGap';
 import ImpactAnalysis from '@/pages/ImpactAnalysis';
 import POBoard from '@/pages/POBoard';
 import IssueHub from '@/pages/IssueHub';
+import VoiceOfCustomer from '@/pages/VoiceOfCustomer';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/impact" element={<ImpactAnalysis />} />
           <Route path="/board" element={<POBoard />} />
           <Route path="/issues" element={<IssueHub />} />
+          <Route path="/voice" element={<VoiceOfCustomer />} />
         </Routes>
       </AppShell>
     </CXMProvider>
