@@ -25,8 +25,8 @@ const NAV = [
   { to: '/journey', label: 'Hành trình khách hàng', icon: GitBranch, group: 'Bối cảnh hành trình' },
   { to: '/coverage', label: 'Độ phủ dữ liệu', icon: Grid3X3, group: 'Chất lượng đo lường' },
   { to: '/impact', label: 'Tác động thay đổi', icon: Target, group: 'Chất lượng đo lường' },
-  { to: '/issues', label: 'Báo cáo điểm gãy', icon: MessagesSquare, group: 'Vấn đề & hành động' },
-  { to: '/voice', label: 'Tiếng nói khách hàng', icon: HeartHandshake, group: 'Vấn đề & hành động' },
+  { to: '/voice', label: 'Tiếng nói khách hàng', icon: HeartHandshake, group: 'Customer intelligence' },
+  { to: '/issues', label: 'Trải nghiệm khách hàng', icon: MessagesSquare, group: 'Customer intelligence' },
   { to: '/board', label: 'Danh mục hành động', icon: ListChecks, group: 'Vấn đề & hành động' },
 ];
 
@@ -36,7 +36,7 @@ const PAGE_META = {
   '/coverage': { label: 'Độ phủ dữ liệu', note: 'Signal, gap và mức sẵn sàng đo lường' },
   '/impact': { label: 'Tác động thay đổi', note: 'Phạm vi ảnh hưởng tới KPI và hệ thống' },
   '/board': { label: 'Danh mục hành động', note: 'Owner, ưu tiên và trạng thái triển khai' },
-  '/issues': { label: 'Báo cáo điểm gãy', note: 'Severity, SLA, evidence và tác động' },
+  '/issues': { label: 'Trải nghiệm khách hàng', note: 'Journey friction, repeat contact và churn risk' },
   '/voice': { label: 'Tiếng nói khách hàng', note: 'Cảm nhận sản phẩm và quyết định tiếp theo' },
 } as const;
 
