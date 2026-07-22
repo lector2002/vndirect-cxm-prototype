@@ -6,6 +6,7 @@ import JourneyTree from '@/pages/JourneyTree';
 import CoverageGap from '@/pages/CoverageGap';
 import ImpactAnalysis from '@/pages/ImpactAnalysis';
 import POBoard from '@/pages/POBoard';
+import IssueHub from '@/pages/IssueHub';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/coverage" element={<CoverageGap />} />
           <Route path="/impact" element={<ImpactAnalysis />} />
           <Route path="/board" element={<POBoard />} />
+          <Route path="/issues" element={<IssueHub />} />
         </Routes>
       </AppShell>
     </CXMProvider>

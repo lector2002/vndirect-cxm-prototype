@@ -6,6 +6,7 @@ import {
   Grid3X3,
   Target,
   KanbanSquare,
+  MessagesSquare,
   Search,
   Bell,
   ChevronDown,
@@ -26,6 +27,7 @@ const NAV = [
   { to: '/coverage', label: 'Coverage Gap', icon: Grid3X3 },
   { to: '/impact', label: 'Impact Analysis', icon: Target },
   { to: '/board', label: 'PO Board', icon: KanbanSquare },
+  { to: '/issues', label: 'CX Issue Hub', icon: MessagesSquare },
 ];
 
 export default function AppShell({ children }: { children: ReactNode }) {
