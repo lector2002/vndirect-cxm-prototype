@@ -1,214 +1,221 @@
 import { useState } from 'react';
 import {
-  ArrowRight,
-  BadgeCheck,
+  AlertTriangle,
+  BarChart3,
   Check,
+  CheckCircle2,
+  ChevronDown,
   ChevronRight,
-  CircleDot,
-  ClipboardCheck,
   Clock3,
-  DatabaseZap,
   Eye,
   FileCheck2,
   Fingerprint,
   GitCommitHorizontal,
+  Info,
   LockKeyhole,
   MessageSquareQuote,
-  Radio,
-  RefreshCcw,
+  Play,
   ShieldCheck,
   Sparkles,
-  UserRoundCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   ONBOARDING_PILOT,
   validateOnboardingPilot,
-  type ApprovalStatus,
-  type DeliveryStatus,
-  type LoopClosureStatus,
   type PilotAction,
   type PilotIssue,
   type PilotSeverity,
-  type PilotStep,
-  type ValidationStatus,
 } from '@/data/onboarding-pilot';
 
-const SEVERITY_META: Record<PilotSeverity, { label: string; cls: string }> = {
-  critical: { label: 'Critical', cls: 'border-rose-200 bg-rose-50 text-rose-700' },
-  high: { label: 'High', cls: 'border-amber-200 bg-amber-50 text-amber-700' },
-  medium: { label: 'Medium', cls: 'border-sky-200 bg-sky-50 text-sky-700' },
-};
-
-const DELIVERY_LABEL: Record<DeliveryStatus, string> = {
-  backlog: 'Chờ triển khai',
-  'in-progress': 'Đang triển khai',
-  released: 'Đã phát hành',
+const SEVERITY: Record<PilotSeverity, { label: string; dot: string; badge: string }> = {
+  critical: { label: 'Cần xử lý ngay', dot: 'bg-rose-500', badge: 'bg-rose-50 text-rose-700 border-rose-200' },
+  high: { label: 'Cần theo dõi', dot: 'bg-amber-500', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+  medium: { label: 'Đang quan sát', dot: 'bg-sky-500', badge: 'bg-sky-50 text-sky-700 border-sky-200' },
 };
 
 export default function OnboardingControlTower() {
   const [selectedIssueId, setSelectedIssueId] = useState(ONBOARDING_PILOT.issues[0].id);
   const [actions, setActions] = useState<PilotAction[]>(ONBOARDING_PILOT.actions);
-  const [view, setView] = useState<'evidence' | 'action'>('evidence');
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [technicalOpen, setTechnicalOpen] = useState(false);
   const integrityErrors = validateOnboardingPilot();
-  const selectedIssue = ONBOARDING_PILOT.issues.find((issue) => issue.id === selectedIssueId) ?? ONBOARDING_PILOT.issues[0];
-  const selectedStep = ONBOARDING_PILOT.steps.find((step) => step.id === selectedIssue.stepId)!;
-  const selectedMetric = ONBOARDING_PILOT.metrics.find((metric) => metric.id === selectedIssue.metricId)!;
-  const selectedEvidence = ONBOARDING_PILOT.evidence.filter((item) => selectedIssue.evidenceRefs.includes(item.id));
-  const selectedAction = actions.find((action) => action.id === selectedIssue.actionId)!;
-  const successMetric = ONBOARDING_PILOT.metrics.find((metric) => metric.id === selectedAction.successMetricId)!;
-  const totalStarted = ONBOARDING_PILOT.steps[0].entered;
-  const totalActivated = ONBOARDING_PILOT.steps.at(-1)?.completed ?? 0;
-  const completion = ((totalActivated / totalStarted) * 100).toFixed(1).replace('.', ',');
-  const issueExposures = ONBOARDING_PILOT.issues.reduce((sum, issue) => sum + issue.affectedCustomers, 0);
-  const openDecisions = actions.filter((action) => action.approval === 'pending').length;
+
+  const issue = ONBOARDING_PILOT.issues.find((item) => item.id === selectedIssueId) ?? ONBOARDING_PILOT.issues[0];
+  const step = ONBOARDING_PILOT.steps.find((item) => item.id === issue.stepId)!;
+  const metric = ONBOARDING_PILOT.metrics.find((item) => item.id === issue.metricId)!;
+  const evidence = ONBOARDING_PILOT.evidence.filter((item) => issue.evidenceRefs.includes(item.id));
+  const action = actions.find((item) => item.id === issue.actionId)!;
+  const successMetric = ONBOARDING_PILOT.metrics.find((item) => item.id === action.successMetricId)!;
+  const currentStage = getCurrentStage(action);
 
   const updateAction = (patch: Partial<PilotAction>) => {
-    setActions((current) => current.map((action) => action.id === selectedAction.id ? { ...action, ...patch } : action));
+    setActions((current) => current.map((item) => item.id === action.id ? { ...item, ...patch } : item));
   };
 
-  const captureOutcome = () => {
-    if (selectedAction.outcome) {
+  const nextAction = () => {
+    if (action.approval === 'pending') {
+      updateAction({ approval: 'approved' });
+      return;
+    }
+    if (action.delivery === 'backlog') {
+      updateAction({ delivery: 'in-progress' });
+      return;
+    }
+    if (action.delivery === 'in-progress') {
+      updateAction({ delivery: 'released', impactValidation: 'monitoring' });
+      return;
+    }
+    if (!action.outcome) {
+      const observedValue = action.successMetricId === 'm-liveness' ? '88,7%' : action.successMetricId === 'm-contract' ? '97,4%' : '91,4%';
+      updateAction({
+        outcome: {
+          observedValue,
+          target: successMetric.target,
+          period: 'Observation demo · 24 giờ sau release',
+          sampleSize: 240,
+          evidenceRef: `DEMO-RUN•••${action.id.slice(-3)}`,
+        },
+      });
+      return;
+    }
+    if (action.impactValidation !== 'validated') {
       updateAction({ impactValidation: 'validated', loopClosure: 'ready' });
       return;
     }
-    updateAction({
-      impactValidation: 'monitoring',
-      outcome: {
-        observedValue: successMetric.target.replace('≥ ', ''),
-        target: successMetric.target,
-        period: 'Observation demo · 24 giờ sau release',
-        sampleSize: 240,
-        evidenceRef: `DEMO-RUN•••${selectedAction.id.slice(-3)}`,
-      },
-    });
+    if (action.loopClosure !== 'closed') updateAction({ loopClosure: 'closed' });
   };
 
+  const primaryAction = getPrimaryAction(action);
+  const openIssues = ONBOARDING_PILOT.issues.filter((item) => actions.find((candidate) => candidate.id === item.actionId)?.loopClosure !== 'closed');
+  const affectedTotal = openIssues.reduce((sum, item) => sum + item.affectedCustomers, 0);
+
   return (
-    <div className="min-w-[1180px] bg-[#f5f6f2] text-slate-900">
-      <section className="border-b border-slate-200 bg-[#102d2a] px-7 py-6 text-white">
-        <div className="mx-auto flex max-w-[1500px] items-start justify-between gap-8">
+    <div className="min-w-[1080px] bg-[#f6f7f4] text-slate-900">
+      <header className="border-b border-slate-200 bg-white px-7 py-5">
+        <div className="mx-auto flex max-w-[1440px] items-start justify-between gap-8">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-300">
-              <Fingerprint className="h-4 w-4" /> Pilot · Securities Journey Control Tower
-            </div>
-            <h1 className="mt-2 text-[28px] font-bold tracking-tight">{ONBOARDING_PILOT.journey.name}</h1>
-            <p className="mt-1 text-sm text-slate-300">{ONBOARDING_PILOT.journey.scope}</p>
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#087264]"><Fingerprint className="h-4 w-4" /> Control Tower · Mở tài khoản</div>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight">Từ điểm gãy đến kết quả xử lý</h1>
+            <p className="mt-1 text-sm text-slate-500">Hệ thống phát hiện tín hiệu bất thường, đề xuất xử lý và theo dõi hiệu quả sau thay đổi.</p>
           </div>
-          <div className="grid grid-cols-3 overflow-hidden rounded-xl border border-white/15 bg-white/5 text-xs">
-            <HeaderMeta label="Taxonomy" value={ONBOARDING_PILOT.journey.version} />
-            <HeaderMeta label="Provenance" value={ONBOARDING_PILOT.journey.source} />
-            <HeaderMeta label="Dữ liệu" value={`Demo snapshot · ${ONBOARDING_PILOT.journey.asOf}`} warning />
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] text-amber-800">
+            <div className="flex items-center gap-2 font-bold"><Info className="h-4 w-4" /> UI prototype · Demo data</div>
+            <p className="mt-1">Mọi trạng thái chỉ mô phỏng trong phiên.</p>
           </div>
         </div>
-      </section>
+      </header>
 
-      <div className="mx-auto max-w-[1500px] space-y-5 p-6">
-        <section className="grid grid-cols-[1.4fr_repeat(4,minmax(0,1fr))] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-r border-slate-200 p-5">
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-700">Cần quyết định</span>
-              <span className="text-[11px] text-slate-500">Kết luận pilot</span>
-            </div>
-            <p className="mt-3 max-w-xl text-lg font-bold leading-7">Liveness là điểm gãy lớn nhất; 312 khách bị ảnh hưởng và evidence đủ để duyệt pilot recovery.</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">Không dùng sentiment đơn lẻ. Kết luận kết hợp funnel event, ticket lặp lại và app review đã masking.</p>
+      <main className="mx-auto max-w-[1440px] space-y-5 p-6">
+        <section className="grid grid-cols-[1fr_220px_220px] overflow-hidden rounded-2xl border border-slate-200 bg-[#123a35] text-white shadow-sm">
+          <div className="p-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-300">Hệ thống đang thấy gì?</p>
+            <h2 className="mt-2 text-xl font-bold">Có {openIssues.length} điểm gãy chưa khép vòng trong hành trình mở tài khoản.</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Điểm nghiêm trọng nhất nằm ở bước Liveness. Hệ thống đã liên kết funnel thất bại, liên hệ lặp lại và phản hồi khách hàng để tạo cảnh báo.</p>
           </div>
-          <MetricCard label="Hoàn tất hành trình" value={`${completion}%`} note="11.840 / 18.420 hồ sơ" tone="risk" />
-          <MetricCard label="Issue exposures" value={issueExposures.toLocaleString('vi-VN')} note="Có thể trùng khách giữa các issue" />
-          <MetricCard label="Evidence coverage" value="78%" note="6 nguồn đã nối issue" />
-          <MetricCard label="Chờ phê duyệt" value={String(openDecisions)} note="Human approval bắt buộc" tone="warning" />
+          <SummaryNumber label="Lượt ảnh hưởng" value={affectedTotal.toLocaleString('vi-VN')} note="Có thể trùng khách" />
+          <SummaryNumber label="Đang chờ quyết định" value={String(actions.filter((item) => item.approval === 'pending').length)} note="Cần human approval" />
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-            <div><h2 className="text-sm font-bold">Canonical journey · 6 bước</h2><p className="mt-0.5 text-xs text-slate-500">Một taxonomy, stable ID và owner cho toàn bộ pilot.</p></div>
-            <div className="flex items-center gap-4 text-[10px] text-slate-500"><Legend dot="bg-emerald-500" label="Ổn định" /><Legend dot="bg-amber-500" label="Theo dõi" /><Legend dot="bg-rose-500" label="Điểm gãy" /></div>
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div><h2 className="text-sm font-bold">Cách Control Tower vận hành</h2><p className="mt-0.5 text-xs text-slate-500">Một vòng lặp thống nhất, không yêu cầu người dùng đọc toàn bộ dữ liệu kỹ thuật.</p></div>
+            <span className="text-[10px] text-slate-400">Ba bước từ tín hiệu đến kết quả</span>
           </div>
-          <div className="grid grid-cols-6 px-5 py-5">
-            {ONBOARDING_PILOT.steps.map((step, index) => <JourneyStep key={step.id} step={step} last={index === ONBOARDING_PILOT.steps.length - 1} />)}
+          <div className="grid grid-cols-3 gap-3">
+            <HowItWorks number="1" icon={<AlertTriangle className="h-4 w-4" />} title="Phát hiện" text="Kết hợp hành vi, lỗi và phản hồi để tìm điểm gãy." active={false} />
+            <HowItWorks number="2" icon={<GitCommitHorizontal className="h-4 w-4" />} title="Xử lý" text="Duyệt đề xuất, giao owner và theo dõi thay đổi." active={currentStage === 2} />
+            <HowItWorks number="3" icon={<FileCheck2 className="h-4 w-4" />} title="Đánh giá" text="Quan sát sau phát hành và xác nhận vấn đề đã cải thiện." active={currentStage === 3} />
           </div>
         </section>
 
-        <section className="grid min-h-[520px] grid-cols-[370px_minmax(0,1fr)_360px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <aside className="border-r border-slate-200">
-            <div className="border-b border-slate-200 px-5 py-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Friction queue</p><h2 className="mt-1 text-sm font-bold">Điểm gãy cần xử lý</h2></div>
-            <div className="divide-y divide-slate-100">
-              {ONBOARDING_PILOT.issues.map((issue) => (
-                <IssueRow key={issue.id} issue={issue} selected={issue.id === selectedIssue.id} action={actions.find((item) => item.id === issue.actionId)!} onClick={() => setSelectedIssueId(issue.id)} />
-              ))}
+        <section className="grid min-h-[570px] grid-cols-[330px_minmax(0,1fr)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <aside className="border-r border-slate-200 bg-slate-50/60">
+            <div className="border-b border-slate-200 px-5 py-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Điểm gãy đã phát hiện</p><h2 className="mt-1 text-sm font-bold">Chọn một trường hợp để xem</h2></div>
+            <div className="space-y-2 p-3">
+              {ONBOARDING_PILOT.issues.map((item) => {
+                const itemAction = actions.find((candidate) => candidate.id === item.actionId)!;
+                const selected = item.id === issue.id;
+                return (
+                  <button key={item.id} type="button" aria-pressed={selected} onClick={() => { setSelectedIssueId(item.id); setEvidenceOpen(false); setTechnicalOpen(false); }} className={cn('w-full rounded-xl border p-4 text-left transition-all', selected ? 'border-[#087264] bg-white shadow-sm ring-1 ring-[#087264]/15' : 'border-transparent bg-transparent hover:border-slate-200 hover:bg-white')}>
+                    <div className="flex items-center justify-between"><span className={cn('inline-flex items-center gap-1.5 text-[10px] font-bold', item.severity === 'critical' ? 'text-rose-700' : item.severity === 'high' ? 'text-amber-700' : 'text-sky-700')}><span className={cn('h-2 w-2 rounded-full', SEVERITY[item.severity].dot)} />{SEVERITY[item.severity].label}</span><ChevronRight className="h-3.5 w-3.5 text-slate-400" /></div>
+                    <p className="mt-2 text-xs font-bold leading-5">{item.title}</p>
+                    <p className="mt-2 text-[10px] text-slate-500">{item.affectedCustomers.toLocaleString('vi-VN')} lượt ảnh hưởng · {shortActionStatus(itemAction)}</p>
+                  </button>
+                );
+              })}
             </div>
-            <div className="m-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[11px] leading-5 text-emerald-800">
-              <div className="flex items-center gap-2 font-bold"><ShieldCheck className="h-4 w-4" /> Integrity check</div>
-              <p className="mt-1">{integrityErrors.length === 0 ? '0 broken link · issue, evidence và action hợp lệ.' : `${integrityErrors.length} lỗi cần xử lý.`}</p>
-            </div>
+            {integrityErrors.length > 0 && <div className="mx-4 mt-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-[10px] text-rose-800"><ShieldCheck className="mr-1 inline h-3.5 w-3.5" />{integrityErrors.length} liên kết dữ liệu mẫu cần kiểm tra.</div>}
           </aside>
 
-          <div className="min-w-0 border-r border-slate-200">
-            <div className="border-b border-slate-200 px-5 py-4">
-              <div className="flex items-start justify-between gap-5">
-                <div className="min-w-0"><div className="flex items-center gap-2"><span className={cn('rounded border px-2 py-0.5 text-[10px] font-bold', SEVERITY_META[selectedIssue.severity].cls)}>{SEVERITY_META[selectedIssue.severity].label}</span><span className="font-mono text-[10px] text-slate-400">{selectedIssue.id}</span></div><h2 className="mt-2 truncate text-lg font-bold">{selectedIssue.title}</h2><p className="mt-1 text-xs text-slate-500">{selectedStep.code} · {selectedStep.name} · {selectedStep.owner}</p></div>
-                <div className="text-right"><p className="text-[10px] uppercase tracking-wide text-slate-400">Priority score</p><p className="text-2xl font-bold text-[#0a6b5b]">{selectedIssue.priorityScore}</p></div>
-              </div>
-              <div className="mt-4 grid grid-cols-4 gap-2">
-                <MiniMetric label="Khách ảnh hưởng" value={selectedIssue.affectedCustomers.toLocaleString('vi-VN')} />
-                <MiniMetric label="Repeat contact" value={`${selectedIssue.repeatContactRate}%`} />
-                <MiniMetric label="Confidence" value={`${selectedIssue.confidence}%`} />
-                <MiniMetric label="Xu hướng" value={`${selectedIssue.trend > 0 ? '+' : ''}${selectedIssue.trend}%`} risk={selectedIssue.trend > 0} />
+          <div className="min-w-0">
+            <div className="border-b border-slate-200 px-6 py-5">
+              <div className="flex items-start justify-between gap-6">
+                <div className="min-w-0"><div className="flex items-center gap-2"><span className={cn('rounded-full border px-2.5 py-1 text-[10px] font-bold', SEVERITY[issue.severity].badge)}>{SEVERITY[issue.severity].label}</span><span className="text-[10px] text-slate-400">Bước {step.code} · {step.name}</span></div><h2 className="mt-3 text-xl font-bold">{issue.title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">{plainLanguageFinding(issue)}</p></div>
+                <div className="shrink-0 rounded-xl bg-slate-50 px-4 py-3 text-right"><p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Độ tin cậy</p><p className="mt-1 text-xl font-bold text-[#087264]">{issue.confidence}%</p></div>
               </div>
             </div>
 
-            <div className="flex border-b border-slate-200 bg-slate-50 px-5 pt-2">
-              <TabButton active={view === 'evidence'} onClick={() => setView('evidence')} icon={<Eye className="h-3.5 w-3.5" />} label={`Evidence · ${selectedEvidence.length}`} />
-              <TabButton active={view === 'action'} onClick={() => setView('action')} icon={<ClipboardCheck className="h-3.5 w-3.5" />} label="Decision & action" />
-            </div>
+            <div className="grid grid-cols-[minmax(0,1fr)_310px] gap-6 p-6">
+              <div className="space-y-5">
+                <section>
+                  <div className="flex items-center gap-2 text-xs font-bold"><Sparkles className="h-4 w-4 text-[#087264]" /> Vì sao hệ thống phát hiện?</div>
+                  <div className="mt-3 grid grid-cols-3 gap-3">
+                    <SignalCard value={`${step.failed.toLocaleString('vi-VN')}`} label="lần thất bại tại bước này" />
+                    <SignalCard value={`${issue.repeatContactRate}%`} label="liên hệ lại cùng vấn đề" />
+                    <SignalCard value={`${issue.trend > 0 ? '+' : ''}${issue.trend}%`} label="thay đổi so với kỳ trước" risk={issue.trend > 0} />
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-slate-500">Giả thuyết: {issue.hypothesis}</p>
+                  <button type="button" aria-expanded={evidenceOpen} aria-controls="issue-evidence" onClick={() => setEvidenceOpen((open) => !open)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-[#087264] hover:underline"><Eye className="h-3.5 w-3.5" />{evidenceOpen ? 'Ẩn căn cứ chi tiết' : `Xem ${evidence.length} căn cứ chi tiết`}<ChevronDown className={cn('h-3.5 w-3.5 transition-transform', evidenceOpen && 'rotate-180')} /></button>
+                </section>
 
-            {view === 'evidence' ? (
-              <div className="space-y-4 p-5">
-                <div className="rounded-xl border border-slate-200 bg-[#f8faf7] p-4"><div className="flex items-center gap-2 text-xs font-bold"><Sparkles className="h-4 w-4 text-[#0a6b5b]" /> Giả thuyết có evidence</div><p className="mt-2 text-sm leading-6 text-slate-700">{selectedIssue.hypothesis}</p><p className="mt-2 text-[10px] text-slate-500">Prototype rule-based synthesis · không phải AI production output.</p></div>
-                <div className="space-y-2">{selectedEvidence.map((evidence) => <EvidenceCard key={evidence.id} evidence={evidence} />)}</div>
+                {evidenceOpen && <section id="issue-evidence" className="rounded-xl border border-slate-200 bg-slate-50 p-4"><div className="space-y-2">{evidence.map((item) => <EvidenceRow key={item.id} item={item} />)}</div><button type="button" aria-expanded={technicalOpen} onClick={() => setTechnicalOpen((open) => !open)} className="mt-3 inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-500 hover:text-slate-800"><BarChart3 className="h-3.5 w-3.5" />{technicalOpen ? 'Ẩn định nghĩa đo lường' : 'Xem định nghĩa đo lường'}</button>{technicalOpen && <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-200 pt-3"><Detail label="Metric" value={metric.name} /><Detail label="Giá trị / mục tiêu" value={`${metric.value} / ${metric.target}`} /><Detail label="Cách tính" value={metric.formula} /><Detail label="Độ mới dữ liệu" value={metric.freshness} /></div>}</section>}
+
+                <section className="rounded-xl border border-[#b9d9d2] bg-[#f2faf7] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#087264]">Đề xuất xử lý</p>
+                  <p className="mt-2 text-sm font-semibold leading-6">{issue.decision}</p>
+                  <div className="mt-3 flex items-center gap-4 text-[10px] text-slate-500"><span>Owner: <b className="text-slate-700">{action.owner}</b></span><span>Hạn: <b className="text-slate-700">{action.dueAt}</b></span><span>Thành công khi: <b className="text-slate-700">{successMetric.name} {successMetric.target}</b></span></div>
+                </section>
               </div>
-            ) : (
-              <div className="space-y-4 p-5">
-                <div className="rounded-xl border border-[#b7d8cf] bg-[#f2faf7] p-4"><p className="text-[10px] font-bold uppercase tracking-[0.13em] text-[#0a6b5b]">Decision recommendation</p><p className="mt-2 text-sm font-semibold leading-6">{selectedIssue.decision}</p></div>
-                <ActionTimeline action={selectedAction} />
-              </div>
-            )}
+
+              <aside className="rounded-2xl border border-slate-200 bg-[#fbfcfa] p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Vòng xử lý</p>
+                <h3 className="mt-1 text-sm font-bold">Bước tiếp theo</h3>
+                <div className="mt-4 space-y-1"><LoopStep number="1" label="Duyệt đề xuất" done={action.approval === 'approved'} active={primaryAction.key === 'approve'} /><LoopStep number="2" label="Triển khai thay đổi" done={action.delivery === 'released'} active={primaryAction.key === 'start' || primaryAction.key === 'release'} /><LoopStep number="3" label="Đo sau thay đổi" done={action.impactValidation === 'validated'} active={primaryAction.key === 'observe' || primaryAction.key === 'validate'} /><LoopStep number="4" label="Khép vòng với khách" done={action.loopClosure === 'closed'} active={primaryAction.key === 'close'} last /></div>
+
+                {action.outcome && <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-3"><p className="text-[9px] font-bold uppercase tracking-wide text-sky-700">Hệ thống ghi nhận</p><div className="mt-2 flex items-end justify-between"><div><p className="text-xl font-bold text-sky-900">{action.outcome.observedValue}</p><p className="text-[10px] text-sky-700">Mục tiêu {action.outcome.target}</p></div>{action.impactValidation === 'validated' ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Clock3 className="h-5 w-5 text-sky-600" />}</div><p className="mt-2 text-[9px] text-sky-700">{action.outcome.period} · {action.outcome.sampleSize} mẫu · chờ người phụ trách kết luận</p></div>}
+
+                {primaryAction.key !== 'done' ? <><p className="mt-5 text-[9px] font-bold uppercase tracking-wide text-slate-400">{primaryAction.actor}</p><button type="button" onClick={nextAction} className="mt-1 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#087264] text-xs font-bold text-white shadow-sm transition-colors hover:bg-[#065d52]"><Play className="h-4 w-4" />{primaryAction.label}</button></> : <div className="mt-5 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-700"><CheckCircle2 className="h-4 w-4" />Vòng xử lý đã hoàn tất</div>}
+                <p className="mt-2 text-center text-[9px] leading-4 text-slate-400">Thao tác chỉ thay đổi trạng thái demo trong phiên.</p>
+              </aside>
+            </div>
           </div>
-
-          <aside className="bg-[#fbfcfa]">
-            <div className="border-b border-slate-200 px-5 py-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Governed action</p><h2 className="mt-1 text-sm font-bold">{selectedAction.id}</h2></div>
-            <div className="space-y-4 p-5">
-              <div><p className="text-sm font-bold leading-5">{selectedAction.title}</p><div className="mt-3 grid grid-cols-2 gap-2"><Info label="Owner" value={selectedAction.owner} /><Info label="Accountable" value={selectedAction.accountable} /><Info label="Due" value={selectedAction.dueAt} /><Info label="Success metric" value={`${successMetric.name} ${successMetric.target}`} /></div></div>
-              <WorkflowControl label="1. Phê duyệt" icon={<UserRoundCheck className="h-4 w-4" />} value={selectedAction.approval === 'approved' ? 'Đã phê duyệt' : 'Chờ phê duyệt'} done={selectedAction.approval === 'approved'} actionLabel="Phê duyệt pilot" disabled={selectedAction.approval === 'approved'} onAction={() => updateAction({ approval: 'approved' as ApprovalStatus })} />
-              <WorkflowControl label="2. Delivery" icon={<GitCommitHorizontal className="h-4 w-4" />} value={DELIVERY_LABEL[selectedAction.delivery]} done={selectedAction.delivery === 'released'} actionLabel={selectedAction.delivery === 'backlog' ? 'Bắt đầu triển khai' : 'Đánh dấu phát hành'} disabled={selectedAction.approval !== 'approved' || selectedAction.delivery === 'released'} onAction={() => updateAction({ delivery: selectedAction.delivery === 'backlog' ? 'in-progress' : 'released', impactValidation: selectedAction.delivery === 'in-progress' ? 'monitoring' : selectedAction.impactValidation })} />
-              {selectedAction.outcome && <div className="rounded-xl border border-sky-200 bg-sky-50 p-3"><p className="text-[9px] font-bold uppercase tracking-wide text-sky-700">Post-release observation</p><div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-sky-900"><span>Quan sát: <b>{selectedAction.outcome.observedValue}</b></span><span>Mục tiêu: <b>{selectedAction.outcome.target}</b></span><span>Sample: <b>{selectedAction.outcome.sampleSize}</b></span><span>Evidence: <b>{selectedAction.outcome.evidenceRef}</b></span></div><p className="mt-2 text-[10px] text-sky-700">{selectedAction.outcome.period}</p></div>}
-              <WorkflowControl label="3. Xác minh tác động" icon={<FileCheck2 className="h-4 w-4" />} value={validationLabel(selectedAction.impactValidation)} done={selectedAction.impactValidation === 'validated'} actionLabel={selectedAction.outcome ? 'Xác nhận observation' : 'Tạo observation demo'} disabled={selectedAction.delivery !== 'released' || selectedAction.impactValidation === 'validated'} onAction={captureOutcome} />
-              <WorkflowControl label="4. Khép vòng" icon={<MessageSquareQuote className="h-4 w-4" />} value={loopLabel(selectedAction.loopClosure)} done={selectedAction.loopClosure === 'closed'} actionLabel="Xác nhận đã liên hệ" disabled={selectedAction.impactValidation !== 'validated' || selectedAction.loopClosure === 'closed'} onAction={() => updateAction({ loopClosure: 'closed' as LoopClosureStatus })} />
-              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[10px] leading-4 text-amber-800"><LockKeyhole className="mr-1 inline h-3.5 w-3.5" /> Mọi thay đổi chỉ mô phỏng trong phiên. Authentication, approval log và CRM/Jira chỉ là trạng thái giả lập ngoài phạm vi dự án.</div>
-            </div>
-          </aside>
         </section>
-
-        <section className="grid grid-cols-[1.15fr_1fr] gap-5 pb-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="text-sm font-bold">Metric contract</h2><p className="mt-1 text-xs text-slate-500">Định nghĩa dùng để kiểm tra kết luận đang chọn.</p></div><DatabaseZap className="h-5 w-5 text-[#0a6b5b]" /></div><div className="mt-4 grid grid-cols-2 gap-3"><Info label="Metric" value={selectedMetric.name} /><Info label="Giá trị / mục tiêu" value={`${selectedMetric.value} / ${selectedMetric.target}`} /><Info label="Grain" value={selectedMetric.grain} /><Info label="Formula" value={selectedMetric.formula} /><Info label="Source" value={selectedMetric.source} /><Info label="Freshness" value={selectedMetric.freshness} /></div></div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="text-sm font-bold">Prototype readiness</h2><p className="mt-1 text-xs text-slate-500">Feature và trạng thái cần chốt trong UI prototype.</p></div><BadgeCheck className="h-5 w-5 text-emerald-600" /></div><div className="mt-4 grid grid-cols-2 gap-x-5 gap-y-3"><Readiness label="Canonical journey" done /><Readiness label="Evidence drill-down" done /><Readiness label="Issue → Action integrity" done /><Readiness label="Human approval states" done /><Readiness label="Persistence state simulation" /><Readiness label="Connector state simulation" /><Readiness label="RBAC & audit screens" /><Readiness label="AI insight states" /></div></div>
-        </section>
-      </div>
+      </main>
     </div>
   );
 }
 
-function HeaderMeta({ label, value, warning }: { label: string; value: string; warning?: boolean }) { return <div className="border-r border-white/10 px-4 py-3 last:border-r-0"><p className="text-[9px] uppercase tracking-wider text-slate-400">{label}</p><p className={cn('mt-1 max-w-52 truncate font-semibold', warning && 'text-amber-300')} title={value}>{value}</p></div>; }
-function MetricCard({ label, value, note, tone }: { label: string; value: string; note: string; tone?: 'risk' | 'warning' }) { return <div className="flex flex-col justify-center border-r border-slate-200 p-5 last:border-r-0"><p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</p><p className={cn('mt-2 text-3xl font-bold', tone === 'risk' ? 'text-rose-700' : tone === 'warning' ? 'text-amber-700' : 'text-[#0a6b5b]')}>{value}</p><p className="mt-1 text-[11px] text-slate-500">{note}</p></div>; }
-function Legend({ dot, label }: { dot: string; label: string }) { return <span className="flex items-center gap-1.5"><span className={cn('h-2 w-2 rounded-full', dot)} />{label}</span>; }
-function JourneyStep({ step, last }: { step: PilotStep; last: boolean }) { const conversion = ((step.completed / step.entered) * 100).toFixed(1).replace('.', ','); const color = step.status === 'critical' ? 'bg-rose-500' : step.status === 'watch' ? 'bg-amber-500' : 'bg-emerald-500'; return <div className="relative pr-4 last:pr-0"><div className={cn('absolute left-5 top-5 h-0.5 w-full bg-slate-200', last && 'hidden')} /><div className="relative flex items-center"><span className={cn('z-10 flex h-10 w-10 items-center justify-center rounded-full border-4 border-white text-[10px] font-bold text-white shadow-sm', color)}>{step.code}</span><ChevronRight className={cn('ml-auto h-4 w-4 text-slate-300', last && 'hidden')} /></div><p className="mt-3 pr-3 text-xs font-bold">{step.name}</p><p className="mt-1 text-[10px] text-slate-500">{conversion}% hoàn tất · {step.failed.toLocaleString('vi-VN')} fail</p><div className="mt-2 flex items-center gap-1 text-[10px] text-slate-500"><Radio className="h-3 w-3" /> Evidence {step.evidenceCoverage}%</div></div>; }
-function IssueRow({ issue, selected, action, onClick }: { issue: PilotIssue; selected: boolean; action: PilotAction; onClick: () => void }) { return <button type="button" onClick={onClick} className={cn('w-full border-l-4 px-4 py-4 text-left transition-colors', selected ? 'border-l-[#0a6b5b] bg-[#f0f8f5]' : 'border-l-transparent hover:bg-slate-50')}><div className="flex items-center justify-between"><span className={cn('rounded border px-1.5 py-0.5 text-[9px] font-bold', SEVERITY_META[issue.severity].cls)}>{SEVERITY_META[issue.severity].label}</span><span className="font-mono text-[9px] text-slate-400">{issue.id}</span></div><p className="mt-2 text-xs font-bold leading-5">{issue.title}</p><div className="mt-2 flex items-center justify-between text-[10px] text-slate-500"><span>{issue.affectedCustomers.toLocaleString('vi-VN')} khách · confidence {issue.confidence}%</span><span className="flex items-center gap-1">{action.approval === 'pending' ? <Clock3 className="h-3 w-3 text-amber-600" /> : <Check className="h-3 w-3 text-emerald-600" />}{action.approval === 'pending' ? 'Chờ duyệt' : DELIVERY_LABEL[action.delivery]}</span></div></button>; }
-function MiniMetric({ label, value, risk }: { label: string; value: string; risk?: boolean }) { return <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5"><p className="text-[9px] uppercase tracking-wide text-slate-400">{label}</p><p className={cn('mt-1 text-sm font-bold', risk && 'text-rose-700')}>{value}</p></div>; }
-function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) { return <button type="button" onClick={onClick} className={cn('flex items-center gap-2 border-b-2 px-3 py-2 text-xs font-semibold', active ? 'border-[#0a6b5b] text-[#0a6b5b]' : 'border-transparent text-slate-500')}>{icon}{label}</button>; }
-function EvidenceCard({ evidence }: { evidence: (typeof ONBOARDING_PILOT.evidence)[number] }) { return <article className="rounded-xl border border-slate-200 p-3.5"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><MessageSquareQuote className="h-4 w-4 text-[#0a6b5b]" /><span className="text-xs font-bold">{evidence.source}</span><span className="font-mono text-[9px] text-slate-400">{evidence.id}</span></div><span className="text-[10px] text-slate-400">{evidence.occurredAt}</span></div><p className="mt-2 text-xs leading-5 text-slate-700">“{evidence.maskedQuote}”</p><div className="mt-2 flex items-center justify-between text-[10px] text-slate-500"><span>{evidence.signal}</span><span className="flex items-center gap-1"><LockKeyhole className="h-3 w-3" />{evidence.customerKey} · {evidence.sourceRef}</span></div></article>; }
-function ActionTimeline({ action }: { action: PilotAction }) { const rows = [{ label: 'Human approval', value: action.approval === 'approved' ? 'Đã phê duyệt' : 'Chờ phê duyệt', done: action.approval === 'approved' }, { label: 'Delivery', value: DELIVERY_LABEL[action.delivery], done: action.delivery === 'released' }, { label: 'Impact validation', value: validationLabel(action.impactValidation), done: action.impactValidation === 'validated' }, { label: 'Customer loop', value: loopLabel(action.loopClosure), done: action.loopClosure === 'closed' }]; return <div className="rounded-xl border border-slate-200"><div className="border-b border-slate-200 px-4 py-3 text-xs font-bold">Decision-to-outcome chain</div><div className="grid grid-cols-4 p-4">{rows.map((row, index) => <div key={row.label} className="relative pr-4"><div className={cn('absolute left-4 top-4 h-0.5 w-full bg-slate-200', index === rows.length - 1 && 'hidden')} /><span className={cn('relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 bg-white', row.done ? 'border-emerald-500 text-emerald-600' : 'border-slate-300 text-slate-400')}>{row.done ? <Check className="h-4 w-4" /> : <CircleDot className="h-3.5 w-3.5" />}</span><p className="mt-2 text-[10px] font-bold">{row.label}</p><p className="mt-1 text-[10px] text-slate-500">{row.value}</p></div>)}</div></div>; }
-function Info({ label, value }: { label: string; value: string }) { return <div className="rounded-lg border border-slate-200 bg-white p-2.5"><p className="text-[9px] uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 text-[11px] font-semibold leading-4 text-slate-700">{value}</p></div>; }
-function WorkflowControl({ label, icon, value, done, actionLabel, disabled, onAction }: { label: string; icon: React.ReactNode; value: string; done: boolean; actionLabel: string; disabled: boolean; onAction: () => void }) { return <div className="rounded-xl border border-slate-200 bg-white p-3"><div className="flex items-center gap-2"><span className={cn('rounded-lg p-1.5', done ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500')}>{icon}</span><div><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</p><p className="text-xs font-semibold">{value}</p></div></div><button type="button" disabled={disabled} onClick={onAction} className="mt-3 flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-[#0a6b5b] text-[10px] font-bold text-white transition-colors hover:bg-[#085448] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400">{done ? <Check className="h-3.5 w-3.5" /> : <RefreshCcw className="h-3.5 w-3.5" />}{done ? 'Hoàn tất' : actionLabel}</button></div>; }
-function Readiness({ label, done }: { label: string; done?: boolean }) { return <div className="flex items-center gap-2 text-xs"><span className={cn('flex h-5 w-5 items-center justify-center rounded-full', done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400')}>{done ? <Check className="h-3 w-3" /> : <ArrowRight className="h-3 w-3" />}</span><span className={done ? 'font-semibold' : 'text-slate-500'}>{label}</span></div>; }
-function validationLabel(status: ValidationStatus) { return status === 'validated' ? 'Đã xác minh' : status === 'monitoring' ? 'Đang theo dõi' : 'Chưa bắt đầu'; }
-function loopLabel(status: LoopClosureStatus) { return status === 'closed' ? 'Đã khép vòng' : status === 'ready' ? 'Sẵn sàng liên hệ' : 'Chưa đủ điều kiện'; }
+function SummaryNumber({ label, value, note }: { label: string; value: string; note: string }) { return <div className="flex flex-col justify-center border-l border-white/10 px-6"><p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{label}</p><p className="mt-1 text-3xl font-bold">{value}</p><p className="mt-1 text-[10px] text-slate-400">{note}</p></div>; }
+function HowItWorks({ number, icon, title, text, active }: { number: string; icon: React.ReactNode; title: string; text: string; active: boolean }) { return <div className={cn('flex items-start gap-3 rounded-xl border p-4', active ? 'border-[#87bdb1] bg-[#f1faf7]' : 'border-slate-200 bg-slate-50')}><span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold', active ? 'bg-[#087264] text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200')}>{number}</span><div><div className="flex items-center gap-1.5 text-xs font-bold">{icon}{title}</div><p className="mt-1 text-[11px] leading-5 text-slate-500">{text}</p></div></div>; }
+function SignalCard({ value, label, risk }: { value: string; label: string; risk?: boolean }) { return <div className="rounded-xl border border-slate-200 bg-white p-3"><p className={cn('text-lg font-bold', risk ? 'text-rose-700' : 'text-slate-900')}>{value}</p><p className="mt-1 text-[10px] leading-4 text-slate-500">{label}</p></div>; }
+function EvidenceRow({ item }: { item: (typeof ONBOARDING_PILOT.evidence)[number] }) { return <div className="rounded-lg border border-slate-200 bg-white p-3"><div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-[10px] font-bold"><MessageSquareQuote className="h-3.5 w-3.5 text-[#087264]" />{item.source}</span><span className="text-[9px] text-slate-400">{item.occurredAt}</span></div><p className="mt-2 text-[11px] leading-5 text-slate-700">“{item.maskedQuote}”</p><p className="mt-1 text-[9px] text-slate-400"><LockKeyhole className="mr-1 inline h-3 w-3" />{item.customerKey} · {item.signal}</p></div>; }
+function Detail({ label, value }: { label: string; value: string }) { return <div><p className="text-[9px] uppercase tracking-wide text-slate-400">{label}</p><p className="mt-1 text-[10px] font-semibold leading-4 text-slate-700">{value}</p></div>; }
+function LoopStep({ number, label, done, active, last }: { number: string; label: string; done: boolean; active: boolean; last?: boolean }) { return <div className="relative flex min-h-12 items-start gap-3"><div className={cn('absolute left-[13px] top-7 h-full w-px', last ? 'hidden' : 'bg-slate-200')} /><span className={cn('relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold', done ? 'border-emerald-500 bg-emerald-500 text-white' : active ? 'border-[#087264] bg-white text-[#087264] ring-4 ring-[#087264]/10' : 'border-slate-200 bg-white text-slate-400')}>{done ? <Check className="h-3.5 w-3.5" /> : number}</span><div className="pt-1"><p className={cn('text-[11px] font-semibold', done ? 'text-emerald-700' : active ? 'text-slate-900' : 'text-slate-400')}>{label}</p>{active && <p className="mt-0.5 text-[9px] text-[#087264]">Đang chờ thao tác</p>}</div></div>; }
+
+function plainLanguageFinding(issue: PilotIssue) {
+  if (issue.id === 'OBI-021') return 'Nhiều khách Android không vượt qua bước nhận diện khuôn mặt và phải thử lại hoặc liên hệ hỗ trợ. Tín hiệu đang tăng nên cần quyết định xử lý ngay.';
+  if (issue.id === 'OBI-017') return 'Khách không biết hợp đồng đã được ký hay chưa khi phiên SmartCA hết hạn. Điều này tạo bỏ dở và liên hệ lại.';
+  return 'Bản cập nhật reason code đã được phát hành. Hệ thống đang theo dõi evidence coverage để người phụ trách xác nhận thay đổi có đủ hiệu quả hay chưa.';
+}
+
+function getCurrentStage(action: PilotAction) { return action.delivery !== 'released' ? 2 : 3; }
+function shortActionStatus(action: PilotAction) { if (action.loopClosure === 'closed') return 'Đã hoàn tất'; if (action.impactValidation === 'validated') return 'Chờ khép vòng'; if (action.delivery === 'released') return 'Đang đánh giá'; if (action.delivery === 'in-progress') return 'Đang sửa'; return action.approval === 'pending' ? 'Chờ duyệt' : 'Sẵn sàng xử lý'; }
+function getPrimaryAction(action: PilotAction) {
+  if (action.approval === 'pending') return { key: 'approve', actor: 'Người phụ trách quyết định', label: 'Duyệt đề xuất xử lý' };
+  if (action.delivery === 'backlog') return { key: 'start', actor: 'Owner cập nhật trạng thái', label: 'Bắt đầu triển khai' };
+  if (action.delivery === 'in-progress') return { key: 'release', actor: 'Owner cập nhật trạng thái', label: 'Đánh dấu đã phát hành' };
+  if (!action.outcome) return { key: 'observe', actor: 'Hệ thống mô phỏng', label: 'Nhận dữ liệu đánh giá demo' };
+  if (action.impactValidation !== 'validated') return { key: 'validate', actor: 'Người phụ trách kết luận', label: 'Xác nhận kết quả đánh giá' };
+  if (action.loopClosure !== 'closed') return { key: 'close', actor: 'CX xác nhận trạng thái', label: 'Đánh dấu đã khép vòng' };
+  return { key: 'done', actor: '', label: 'Hoàn tất' };
+}

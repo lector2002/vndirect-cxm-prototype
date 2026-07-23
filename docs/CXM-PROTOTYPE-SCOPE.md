@@ -19,6 +19,9 @@ Phạm vi hành trình:
 
 ## Feature cần review và chốt
 
+- Control Tower dùng workflow ba bước `Phát hiện → Xử lý → Đánh giá`, mỗi thời điểm chỉ nhấn mạnh một quyết định tiếp theo.
+- Dữ liệu kỹ thuật, raw evidence và metric definition dùng progressive disclosure thay vì hiển thị đồng thời.
+- CTA nêu rõ actor: hệ thống mô phỏng, owner, người phụ trách quyết định hoặc CX.
 - Canonical journey taxonomy có stable ID, version, provenance và owner.
 - Executive conclusion gắn trực tiếp với issue ưu tiên.
 - Journey health theo completion, failure và evidence coverage.
