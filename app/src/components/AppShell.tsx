@@ -13,6 +13,7 @@ import {
   CalendarDays,
   SlidersHorizontal,
   HeartHandshake,
+  Fingerprint,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { totalCoverage, allEventPaths } from '@/lib/cxm-utils';
@@ -21,17 +22,19 @@ import { useCXM } from '@/store/CXMContext';
 import { TIME_FRAMES, timeFrameById } from '@/lib/timeframe';
 
 const NAV = [
-  { to: '/', label: 'Báo cáo điều hành', icon: LayoutDashboard, end: true, group: 'Bối cảnh hành trình' },
-  { to: '/journey', label: 'Hành trình khách hàng', icon: GitBranch, group: 'Bối cảnh hành trình' },
-  { to: '/coverage', label: 'Độ phủ dữ liệu', icon: Grid3X3, group: 'Chất lượng đo lường' },
-  { to: '/impact', label: 'Tác động thay đổi', icon: Target, group: 'Chất lượng đo lường' },
-  { to: '/voice', label: 'Tiếng nói khách hàng', icon: HeartHandshake, group: 'Customer intelligence' },
-  { to: '/issues', label: 'Trải nghiệm khách hàng', icon: MessagesSquare, group: 'Customer intelligence' },
-  { to: '/board', label: 'Danh mục hành động', icon: ListChecks, group: 'Vấn đề & hành động' },
+  { to: '/', label: 'Onboarding Control Tower', icon: Fingerprint, end: true, group: 'Pilot mở tài khoản' },
+  { to: '/legacy-overview', label: 'Báo cáo điều hành', icon: LayoutDashboard, group: 'Báo cáo tham chiếu' },
+  { to: '/journey', label: 'Hành trình khách hàng', icon: GitBranch, group: 'Báo cáo tham chiếu' },
+  { to: '/coverage', label: 'Độ phủ dữ liệu', icon: Grid3X3, group: 'Báo cáo tham chiếu' },
+  { to: '/impact', label: 'Tác động thay đổi', icon: Target, group: 'Báo cáo tham chiếu' },
+  { to: '/voice', label: 'Tiếng nói khách hàng', icon: HeartHandshake, group: 'Báo cáo tham chiếu' },
+  { to: '/issues', label: 'Trải nghiệm khách hàng', icon: MessagesSquare, group: 'Báo cáo tham chiếu' },
+  { to: '/board', label: 'Danh mục hành động', icon: ListChecks, group: 'Báo cáo tham chiếu' },
 ];
 
 const PAGE_META = {
-  '/': { label: 'Báo cáo điều hành', note: 'Sức khỏe hành trình và ngoại lệ chính' },
+  '/': { label: 'Onboarding Control Tower', note: 'UI/feature prototype · pilot mở tài khoản' },
+  '/legacy-overview': { label: 'Báo cáo điều hành', note: 'Báo cáo tham chiếu từ prototype trước' },
   '/journey': { label: 'Hành trình khách hàng', note: 'Phase, nhóm, flow và touchpoint' },
   '/coverage': { label: 'Độ phủ dữ liệu', note: 'Signal, gap và mức sẵn sàng đo lường' },
   '/impact': { label: 'Tác động thay đổi', note: 'Phạm vi ảnh hưởng tới KPI và hệ thống' },
@@ -48,6 +51,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const { selectedCustomerPhaseId, setSelectedCustomerPhaseId, selectedTimeFrameId, setSelectedTimeFrameId } = useCXM();
   const timeFrame = timeFrameById(selectedTimeFrameId);
   const page = PAGE_META[location.pathname as keyof typeof PAGE_META] ?? PAGE_META['/'];
+  const isPilot = location.pathname === '/';
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
@@ -100,7 +104,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
         {/* Coverage footer */}
         <div className={cn('border-t border-border', sidebarOpen ? 'p-4' : 'p-2')}>
-          {sidebarOpen && <div className="rounded-xl border border-border bg-slate-50 p-3">
+          {sidebarOpen && !isPilot && <div className="rounded-xl border border-border bg-slate-50 p-3">
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
               <Activity className="h-3.5 w-3.5 text-emerald-400" />
                Dữ liệu hành trình
@@ -140,8 +144,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-white/95 px-6 backdrop-blur">
           <div className="min-w-0"><div className="text-xs font-semibold text-foreground">{page.label}</div><div className="truncate text-[10px] text-muted-foreground">{page.note}</div></div>
           <div className="ml-auto flex min-w-0 items-center gap-2">
-            <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Reporting live</span>
-            <div className="flex items-center gap-1 rounded-lg border border-border bg-slate-50 p-1">
+            <span className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-1 text-[10px] font-medium text-amber-700"><span className="h-1.5 w-1.5 rounded-full bg-amber-500" />UI prototype · Demo data</span>
+            {!isPilot && <div className="flex items-center gap-1 rounded-lg border border-border bg-slate-50 p-1">
               <SlidersHorizontal className="ml-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <select
                 value={selectedCustomerPhaseId}
@@ -162,8 +166,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
               >
                 {TIME_FRAMES.map((frame) => <option key={frame.id} value={frame.id}>{frame.label}{frame.snapshot ? ' · Demo' : ''}</option>)}
               </select>
-            </div>
-            {timeFrame.snapshot && <span className="text-[10px] font-medium text-amber-700">Demo snapshot</span>}
+            </div>}
+            {!isPilot && timeFrame.snapshot && <span className="text-[10px] font-medium text-amber-700">Demo snapshot</span>}
           </div>
         </header>
 

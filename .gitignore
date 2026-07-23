@@ -3,4 +3,6 @@ app/dist/
 app/.pnpm-store/
 app/pnpm-lock.yaml
 output/standalone-build/
+output/onboarding-control-tower/
+.swarm/
 *.log

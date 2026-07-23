@@ -8,13 +8,15 @@ import ImpactAnalysis from '@/pages/ImpactAnalysis';
 import POBoard from '@/pages/POBoard';
 import IssueHub from '@/pages/IssueHub';
 import VoiceOfCustomer from '@/pages/VoiceOfCustomer';
+import OnboardingControlTower from '@/pages/OnboardingControlTower';
 
 export default function App() {
   return (
     <CXMProvider>
       <AppShell>
         <Routes>
-          <Route path="/" element={<Overview />} />
+          <Route path="/" element={<OnboardingControlTower />} />
+          <Route path="/legacy-overview" element={<Overview />} />
           <Route path="/journey" element={<JourneyTree />} />
           <Route path="/coverage" element={<CoverageGap />} />
           <Route path="/impact" element={<ImpactAnalysis />} />

@@ -5,12 +5,17 @@
 > Status: active
 
 ## Project
-VNDIRECT CXM prototype là desktop web app giúp đội CX khám phá, đo lường và quản trị hành trình khách hàng.
+VNDIRECT CXM prototype là desktop UI/UX prototype giúp đội CX khám phá, đo lường và quản trị hành trình khách hàng. Dự án chỉ mô phỏng giao diện, tính năng và workflow; không triển khai backend, data source hoặc integration thật.
 
 ## Current State
 React/Vite desktop reporting prototype. Platform tập trung vào báo cáo sức khỏe hành trình, phát hiện điểm gãy/thiếu sót, phân tích tác động thay đổi lên hệ thống và kiểm kê dữ liệu đang thu thập.
 
 ## Done
+- [x] Xây UI/feature prototype `Onboarding Control Tower` cho pilot mở tài khoản: canonical journey, friction queue, evidence drill-down, metric contract và governed action flow.
+- [x] Gắn nhãn toàn app là UI prototype/demo data; bỏ tuyên bố realtime không có backend chứng minh.
+- [x] Ghi phạm vi prototype và roadmap domain cash/trading/margin/wealth/servicing/churn trong `docs/`.
+- [x] Gộp `Xác thực khách hàng` vào các bước eKYC của `Mở tài khoản mới 2026`, tránh hai flow song song bị conflict.
+- [x] Loại flow tổng quan/routing trùng với flow chi tiết: `Tổng quan Money Journey` và `Chọn sản phẩm / dịch vụ`.
 - [x] Redesign Voice of Customer theo mô hình customer intelligence: hợp nhất nguồn, adaptive taxonomy, context, trend, verbatim evidence và recommended action.
 - [x] Tách Customer Experience thành workspace riêng: journey friction, repeat contact, CSAT impact, churn risk, resolution và close-the-loop.
 - [x] Xác định project level Small.
@@ -26,12 +31,12 @@ React/Vite desktop reporting prototype. Platform tập trung vào báo cáo sứ
 - [x] Chuẩn hóa navigation và global filter cho reporting platform.
 
 ## Now
-- Toàn bộ reporting workspace đã sẵn sàng review UX và nghiệp vụ trên desktop, kèm Voice of Customer để hỗ trợ quyết định sản phẩm.
+- Review và chốt UI/feature pilot mở tài khoản; không có backend/API phase trong phạm vi dự án.
 
 ## Next
-1. User review logic executive conclusion, exception ranking và impact chain.
-2. Kết nối action/issue register với dữ liệu backend thật khi có API.
-3. Bổ sung tài liệu nguồn cho các flow đang gắn nhãn `Cần bổ sung nguồn`.
+1. User review canonical journey, friction ranking, evidence fields và action lifecycle trong Control Tower.
+2. Chốt cách prototype mô phỏng ranh giới giữa CXM, CRM và delivery tools.
+3. Mở rộng prototype sang domain tiếp theo sau khi pilot onboarding được duyệt.
 
 ## Key Files
 - `app/src/pages/JourneyTree.tsx` - tab Hành trình khách hàng.
@@ -42,12 +47,16 @@ React/Vite desktop reporting prototype. Platform tập trung vào báo cáo sứ
 - `app/src/pages/VoiceOfCustomer.tsx` - customer intelligence workspace từ theme tới evidence và action.
 - `app/src/pages/POBoard.tsx` - action register.
 - `app/src/components/AppShell.tsx` - reporting navigation và global filters.
+- `app/src/pages/OnboardingControlTower.tsx` - UI/feature prototype chính cho pilot mở tài khoản.
+- `app/src/data/onboarding-pilot.ts` - mock domain contract và integrity validation của pilot.
+- `docs/CXM-PROTOTYPE-SCOPE.md` - phạm vi dự án và prototype approval gate.
+- `docs/CXM-DOMAIN-ROADMAP.md` - backlog domain sau pilot.
 - `app/src/lib/journey-taxonomy.ts` - taxonomy phase dùng toàn app.
 - `app/src/data/cxm.ts` - touchpoint, event và KPI hiện có.
 - `docs/money-journey-mermaid.html` - nguồn flow money journey.
 - `docs/account-journey-mermaid.html` - nguồn flow account journey.
 
 ## Last Session
-- Done: Tách Voice of Customer cho product decision và Customer Experience cho issue impact, resolution, close-the-loop; liên kết hai workspace qua touchpoint/CX issue.
-- Pending: Kết nối thumb/survey tại touchpoint với analytics/backend thật; xử lý 12 lỗi lint có sẵn toàn repo nếu cần lint sạch.
+- Done: Chuẩn hóa nhóm Mở tài khoản: xác thực CCCD, khuôn mặt, chữ ký/Video Call là bước thành phần của flow MTK, không còn flow song song.
+- Pending: Review UI/feature pilot onboarding; xử lý 12 lỗi lint có sẵn toàn repo nếu cần lint sạch.
 - Blocker: Không có.

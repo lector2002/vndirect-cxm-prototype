@@ -97,7 +97,7 @@ export default function Overview() {
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Executive reporting</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Bức tranh điều hành CXM</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {scopeLabel} · {timeFrame.label}{timeFrame.snapshot ? ' · Demo snapshot' : ' · Realtime'}
+            {scopeLabel} · {timeFrame.label} · Demo snapshot
           </p>
         </div>
         <Link
