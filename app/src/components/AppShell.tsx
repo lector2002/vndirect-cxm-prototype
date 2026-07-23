@@ -22,25 +22,25 @@ import { useCXM } from '@/store/CXMContext';
 import { TIME_FRAMES, timeFrameById } from '@/lib/timeframe';
 
 const NAV = [
-  { to: '/', label: 'Onboarding Control Tower', icon: Fingerprint, end: true, group: 'Pilot mở tài khoản' },
-  { to: '/legacy-overview', label: 'Báo cáo điều hành', icon: LayoutDashboard, group: 'Báo cáo tham chiếu' },
-  { to: '/journey', label: 'Hành trình khách hàng', icon: GitBranch, group: 'Báo cáo tham chiếu' },
-  { to: '/coverage', label: 'Độ phủ dữ liệu', icon: Grid3X3, group: 'Báo cáo tham chiếu' },
-  { to: '/impact', label: 'Tác động thay đổi', icon: Target, group: 'Báo cáo tham chiếu' },
-  { to: '/voice', label: 'Tiếng nói khách hàng', icon: HeartHandshake, group: 'Báo cáo tham chiếu' },
-  { to: '/issues', label: 'Trải nghiệm khách hàng', icon: MessagesSquare, group: 'Báo cáo tham chiếu' },
-  { to: '/board', label: 'Danh mục hành động', icon: ListChecks, group: 'Báo cáo tham chiếu' },
+  { to: '/', label: 'CX Control Tower', icon: Fingerprint, end: true, group: 'Customer Experience' },
+  { to: '/issues', label: 'CX Issue Register', icon: MessagesSquare, group: 'Customer Experience' },
+  { to: '/board', label: 'Action Register', icon: ListChecks, group: 'Customer Experience' },
+  { to: '/voice', label: 'Voice Insights', icon: HeartHandshake, group: 'Voice of Customer' },
+  { to: '/journey', label: 'Hành trình khách hàng', icon: GitBranch, group: 'Journey & Measurement' },
+  { to: '/coverage', label: 'Độ phủ dữ liệu', icon: Grid3X3, group: 'Journey & Measurement' },
+  { to: '/impact', label: 'Tác động thay đổi', icon: Target, group: 'Journey & Measurement' },
+  { to: '/legacy-overview', label: 'Báo cáo điều hành', icon: LayoutDashboard, group: 'Executive' },
 ];
 
 const PAGE_META = {
-  '/': { label: 'Onboarding Control Tower', note: 'UI/feature prototype · pilot mở tài khoản' },
+  '/': { label: 'CX Control Tower', note: 'Điều hành điểm gãy trên toàn bộ Customer Experience' },
   '/legacy-overview': { label: 'Báo cáo điều hành', note: 'Báo cáo tham chiếu từ prototype trước' },
   '/journey': { label: 'Hành trình khách hàng', note: 'Phase, nhóm, flow và touchpoint' },
   '/coverage': { label: 'Độ phủ dữ liệu', note: 'Signal, gap và mức sẵn sàng đo lường' },
   '/impact': { label: 'Tác động thay đổi', note: 'Phạm vi ảnh hưởng tới KPI và hệ thống' },
-  '/board': { label: 'Danh mục hành động', note: 'Owner, ưu tiên và trạng thái triển khai' },
-  '/issues': { label: 'Trải nghiệm khách hàng', note: 'Journey friction, repeat contact và churn risk' },
-  '/voice': { label: 'Tiếng nói khách hàng', note: 'Cảm nhận sản phẩm và quyết định tiếp theo' },
+  '/board': { label: 'Action Register', note: 'Danh mục owner, ưu tiên và trạng thái triển khai' },
+  '/issues': { label: 'CX Issue Register', note: 'Hồ sơ điểm gãy, tác động và trạng thái xử lý' },
+  '/voice': { label: 'Voice Insights', note: 'Khách hàng đang nói gì, vì sao và xu hướng nào đáng chú ý' },
 } as const;
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -72,7 +72,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
               VNDIRECT <span className="text-primary">CXM</span>
             </div>
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              Customer experience workspace
+              Customer intelligence workspace
             </div>
           </div>}
         </div>

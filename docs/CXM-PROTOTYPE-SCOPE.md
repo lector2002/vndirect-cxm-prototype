@@ -6,7 +6,11 @@
 
 ## Pilot đang triển khai
 
-Domain: `Mở tài khoản mới 2026`.
+Workspace: `CX Control Tower` cấp toàn hệ thống.
+
+Pilot scope đang có dữ liệu mẫu: `Mở tài khoản mới 2026`. Các domain sau dùng chung Control Tower và đổi bằng scope selector; không tạo Control Tower riêng.
+
+`Voice Insights` và `CX Issue Register` vẫn chứa cross-domain concept data để review information architecture. Chỉ onboarding hiện có full interaction loop trong Control Tower.
 
 Phạm vi hành trình:
 
@@ -19,6 +23,9 @@ Phạm vi hành trình:
 
 ## Feature cần review và chốt
 
+- Ranh giới hai luồng: `Voice of Customer` tạo insight; `Customer Experience` quản lý issue, xử lý và outcome.
+- Control Tower thuộc Customer Experience và chỉ điều hành issue ưu tiên, không thay thế Voice Insights hoặc CX Issue Register.
+- Issue Register và Control Tower dùng cùng `CXI-*` ID; deep-link phải mở đúng cùng issue.
 - Control Tower dùng workflow ba bước `Phát hiện → Xử lý → Đánh giá`, mỗi thời điểm chỉ nhấn mạnh một quyết định tiếp theo.
 - Dữ liệu kỹ thuật, raw evidence và metric definition dùng progressive disclosure thay vì hiển thị đồng thời.
 - CTA nêu rõ actor: hệ thống mô phỏng, owner, người phụ trách quyết định hoặc CX.
@@ -46,9 +53,11 @@ Phạm vi hành trình:
 
 UI có thể mô phỏng trạng thái của các capability trên để review luồng sử dụng, nhưng repository không xây implementation thật.
 
+State thay đổi trong Control Tower chỉ tồn tại tại route hiện tại; prototype chưa mô phỏng shared persistence khi chuyển sang Issue Register.
+
 ## Mock data contract
 
-Source of truth của pilot UI: `app/src/data/onboarding-pilot.ts`.
+Source of truth của pilot scope UI: `app/src/data/onboarding-pilot.ts`.
 
 Fixture được tách thành:
 

@@ -2,9 +2,31 @@
 
 ## Nguyên tắc mở rộng
 
-Không nhân bản màn hình theo từng domain. Mỗi domain mới phải tái sử dụng cùng capability model:
+Chỉ có một `CX Control Tower`. Không nhân bản Control Tower hoặc màn quản lý theo từng domain. Domain mới xuất hiện dưới dạng scope/filter và tái sử dụng cùng capability model:
 
 `Journey → Observation → Friction → Evidence → Decision → Action → Outcome`
+
+## Ranh giới VOC và CX
+
+### Voice of Customer
+
+- Hợp nhất phản hồi, phân loại theme và phát hiện xu hướng.
+- Trả lời khách hàng đang nói gì và vì sao.
+- Output là `Voice Insight` có evidence và recommendation.
+- Chỉ handoff sang CX khi insight có journey impact, affected scope và owner rõ.
+
+### Customer Experience
+
+- Hợp nhất Voice Insight với behavioral và operational signals.
+- Tạo và quản lý `CX Issue` trong Issue Register.
+- Đưa issue ưu tiên vào một `CX Control Tower` duy nhất.
+- Điều phối action, đánh giá outcome và close the loop.
+
+Object flow:
+
+`Voice Insight (optional) → CX Issue → Control Tower priority → Action → Outcome`
+
+Không phải mọi VOC insight đều trở thành issue. Không phải mọi issue đều phải xuất hiện trên Control Tower.
 
 Domain chỉ được đưa vào prototype sau khi thống nhất owner giả lập, source provenance, stable identifiers và success metric hiển thị.
 

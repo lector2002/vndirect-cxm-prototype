@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 import {
   AlertTriangle,
   BarChart3,
@@ -33,8 +34,11 @@ const SEVERITY: Record<PilotSeverity, { label: string; dot: string; badge: strin
   medium: { label: 'Đang quan sát', dot: 'bg-sky-500', badge: 'bg-sky-50 text-sky-700 border-sky-200' },
 };
 
-export default function OnboardingControlTower() {
-  const [selectedIssueId, setSelectedIssueId] = useState(ONBOARDING_PILOT.issues[0].id);
+export default function CXControlTower() {
+  const [params] = useSearchParams();
+  const [scope, setScope] = useState('onboarding');
+  const requestedIssueId = params.get('issue');
+  const [selectedIssueId, setSelectedIssueId] = useState(ONBOARDING_PILOT.issues.some((item) => item.id === requestedIssueId) ? requestedIssueId! : ONBOARDING_PILOT.issues[0].id);
   const [actions, setActions] = useState<PilotAction[]>(ONBOARDING_PILOT.actions);
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [technicalOpen, setTechnicalOpen] = useState(false);
@@ -94,13 +98,21 @@ export default function OnboardingControlTower() {
       <header className="border-b border-slate-200 bg-white px-7 py-5">
         <div className="mx-auto flex max-w-[1440px] items-start justify-between gap-8">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#087264]"><Fingerprint className="h-4 w-4" /> Control Tower · Mở tài khoản</div>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight">Từ điểm gãy đến kết quả xử lý</h1>
-            <p className="mt-1 text-sm text-slate-500">Hệ thống phát hiện tín hiệu bất thường, đề xuất xử lý và theo dõi hiệu quả sau thay đổi.</p>
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#087264]"><Fingerprint className="h-4 w-4" /> Customer Experience · Control Tower</div>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight">Một nơi điều hành mọi điểm gãy trải nghiệm</h1>
+            <p className="mt-1 text-sm text-slate-500">Nhận issue từ behavioral, operational và VOC signals; điều phối xử lý rồi đánh giá outcome.</p>
           </div>
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[11px] text-amber-800">
-            <div className="flex items-center gap-2 font-bold"><Info className="h-4 w-4" /> UI prototype · Demo data</div>
-            <p className="mt-1">Mọi trạng thái chỉ mô phỏng trong phiên.</p>
+          <div className="flex items-center gap-3">
+            <label className="text-[10px] font-bold uppercase tracking-wide text-slate-400" htmlFor="cx-scope">Phạm vi đang xem</label>
+            <select id="cx-scope" value={scope} onChange={(event) => setScope(event.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 outline-none ring-[#087264]/20 focus:ring-4">
+              <option value="onboarding">Mở tài khoản · Pilot</option>
+              <option value="cash" disabled>Dòng tiền · Sắp prototype</option>
+              <option value="trading" disabled>Giao dịch · Sắp prototype</option>
+              <option value="wealth" disabled>Sản phẩm đầu tư · Sắp prototype</option>
+              <option value="service" disabled>Chăm sóc & khiếu nại · Sắp prototype</option>
+              <option value="retention" disabled>Retention & churn · Sắp prototype</option>
+            </select>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[10px] text-amber-800"><Info className="mr-1 inline h-3.5 w-3.5" />Demo data</div>
           </div>
         </div>
       </header>
@@ -108,7 +120,7 @@ export default function OnboardingControlTower() {
       <main className="mx-auto max-w-[1440px] space-y-5 p-6">
         <section className="grid grid-cols-[1fr_220px_220px] overflow-hidden rounded-2xl border border-slate-200 bg-[#123a35] text-white shadow-sm">
           <div className="p-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-300">Hệ thống đang thấy gì?</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-300">Scope · Mở tài khoản</p>
             <h2 className="mt-2 text-xl font-bold">Có {openIssues.length} điểm gãy chưa khép vòng trong hành trình mở tài khoản.</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Điểm nghiêm trọng nhất nằm ở bước Liveness. Hệ thống đã liên kết funnel thất bại, liên hệ lặp lại và phản hồi khách hàng để tạo cảnh báo.</p>
           </div>
@@ -118,7 +130,7 @@ export default function OnboardingControlTower() {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <div><h2 className="text-sm font-bold">Cách Control Tower vận hành</h2><p className="mt-0.5 text-xs text-slate-500">Một vòng lặp thống nhất, không yêu cầu người dùng đọc toàn bộ dữ liệu kỹ thuật.</p></div>
+            <div><h2 className="text-sm font-bold">Vai trò của CX Control Tower</h2><p className="mt-0.5 text-xs text-slate-500">Một vòng điều hành thống nhất cho mọi domain; chỉ thay đổi scope và loại evidence.</p></div>
             <span className="text-[10px] text-slate-400">Ba bước từ tín hiệu đến kết quả</span>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -203,8 +215,8 @@ function Detail({ label, value }: { label: string; value: string }) { return <di
 function LoopStep({ number, label, done, active, last }: { number: string; label: string; done: boolean; active: boolean; last?: boolean }) { return <div className="relative flex min-h-12 items-start gap-3"><div className={cn('absolute left-[13px] top-7 h-full w-px', last ? 'hidden' : 'bg-slate-200')} /><span className={cn('relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold', done ? 'border-emerald-500 bg-emerald-500 text-white' : active ? 'border-[#087264] bg-white text-[#087264] ring-4 ring-[#087264]/10' : 'border-slate-200 bg-white text-slate-400')}>{done ? <Check className="h-3.5 w-3.5" /> : number}</span><div className="pt-1"><p className={cn('text-[11px] font-semibold', done ? 'text-emerald-700' : active ? 'text-slate-900' : 'text-slate-400')}>{label}</p>{active && <p className="mt-0.5 text-[9px] text-[#087264]">Đang chờ thao tác</p>}</div></div>; }
 
 function plainLanguageFinding(issue: PilotIssue) {
-  if (issue.id === 'OBI-021') return 'Nhiều khách Android không vượt qua bước nhận diện khuôn mặt và phải thử lại hoặc liên hệ hỗ trợ. Tín hiệu đang tăng nên cần quyết định xử lý ngay.';
-  if (issue.id === 'OBI-017') return 'Khách không biết hợp đồng đã được ký hay chưa khi phiên SmartCA hết hạn. Điều này tạo bỏ dở và liên hệ lại.';
+  if (issue.id === 'CXI-021') return 'Nhiều khách Android không vượt qua bước nhận diện khuôn mặt và phải thử lại hoặc liên hệ hỗ trợ. Tín hiệu đang tăng nên cần quyết định xử lý ngay.';
+  if (issue.id === 'CXI-017') return 'Khách không biết hợp đồng đã được ký hay chưa khi phiên SmartCA hết hạn. Điều này tạo bỏ dở và liên hệ lại.';
   return 'Bản cập nhật reason code đã được phát hành. Hệ thống đang theo dõi evidence coverage để người phụ trách xác nhận thay đổi có đủ hiệu quả hay chưa.';
 }
 
