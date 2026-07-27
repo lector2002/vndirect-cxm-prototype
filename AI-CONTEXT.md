@@ -1,8 +1,8 @@
 # AI Context
 
-> Updated: 2026-07-27
+> Updated: 2026-07-28
 > Level: Small
-> Status: active · đang chờ owner review spec redesign
+> Status: active · đang chờ owner review bản bấm được
 
 ## Project
 VNDIRECT CXM prototype là desktop UI/UX prototype giúp đội CX khám phá, đo lường và quản trị hành trình khách hàng. Dự án chỉ mô phỏng giao diện, tính năng và workflow; không triển khai backend, data source hoặc integration thật.
@@ -41,24 +41,39 @@ Hướng mới: **lấy Enterpret (customer intelligence platform) làm mô hìn
 - [x] Chuyển Coverage, Impact, Issues và Actions sang master-detail reporting workspace.
 - [x] Chuyển Overview thành executive report theo ba trụ cột: điểm gãy, tác động thay đổi và dữ liệu thu thập.
 - [x] Chuẩn hóa navigation và global filter cho reporting platform.
+- [x] **Redesign `#/atlas`**: điều hướng ba nhịp ngang (rail 7 phase → chip flow → xương sống bước) thay cho catalog dọc phải kéo xuống mới thấy hết 20 flow.
+- [x] **Trực quan hóa tương quan giữa các bước**: dải nối dày mỏng theo số khách còn lại, vạch đỏ tách ra là phần rơi tại bước trước, kèm câu đọc-theo-chiều-ngang tự tính.
+- [x] Bỏ khối *"Ảnh hưởng nếu thay đổi bước này"*; step inspector chia 3 tab (Touchpoint & signal · Chỉ số liên kết · Độ phủ dữ liệu).
+- [x] **Thêm `#/rules` — màn quản trị Chỉ số & ngưỡng.** Ngưỡng đánh giá không còn hardcode: sửa trong UI là funnel, bản đồ hành trình, bảng nguồn, màn khảo sát và màn agent tô lại ngay.
+- [x] Bỏ `#/customers` và `#/customers/<key>` — tra cứu khách lẻ thuộc CRM / Customer 360, không thuộc CXM. Tab *Khách hàng* trong hồ sơ điểm gãy đổi thành *Cohort ảnh hưởng*, chỉ để khép vòng.
 
 ## Now
 - **Owner review bản bấm được** `output/cxm-platform-prototype.html`, và duyệt/điều chỉnh feature set trước khi chuyển cho team dev.
+- Owner chốt **giá trị mặc định của ngưỡng** trong `CFG_DEFAULT` (mục `===== 2a. CFG =====`). Hiện đang đặt sao cho khớp đúng các nhận định đã viết trong tài liệu — chưa phải quyết định nghiệp vụ.
 
 ## Next
 1. Cần owner cung cấp **mã cam chính thức** theo brand guideline VNDIRECT. Đang dùng placeholder `#D9531E` ở biến `--primary` trong `<style>` — đổi một dòng là cả app đổi theo.
 2. Owner quyết định có xóa React app trong `app/` hay giữ lại để đối chiếu.
 3. Nếu cần sửa nội dung: mọi nhãn, số liệu, verbatim nằm trong object `DATA` ở đầu `<script>`, có comment tiếng Việt. Sửa xong refresh browser. `validateFixture()` sẽ báo banner đỏ nếu làm đứt liên kết nào.
+4. **Workflow `.github/workflows/deploy-pages.yml` đang deploy `app/dist` (React app cũ), KHÔNG deploy file HTML prototype.** Nếu muốn publish bản đang dùng thì phải sửa workflow — hiện push lên `main` chỉ build lại bản cũ.
 
-## Đã build trong file HTML (14 route + 2 màn chi tiết)
+## Đã build trong file HTML (14 route + 1 màn chi tiết)
 - **Khám phá:** `#/dashboard` `#/feed` `#/quantify` `#/assistant`
 - **Hành trình:** `#/atlas` (gộp cả độ phủ dữ liệu) `#/health`
-- **Xử lý:** `#/issues` `#/actions` `#/outcomes`
+- **Xử lý:** `#/issues` `#/actions` `#/outcomes` · `#/issue/<id>`
 - **Nền dữ liệu:** `#/sources` `#/surveys` `#/taxonomy` `#/agents`
-- **Tra cứu:** `#/customers` · `#/customers/<key>` · `#/issue/<id>`
+- **Quản trị:** `#/rules`
 - Guided tour 6 bước (nút "Chạy bản giới thiệu" ở đáy sidebar), filter kỳ + phạm vi trên mọi màn, `validateFixture()` chạy mỗi lần render.
 
-Đã verify: 14 route + 2 màn chi tiết render không lỗi; `validateFixture()` trả rỗng; chạy hết vòng governed action cho 3 action mà toàn vẹn dữ liệu vẫn đúng ở mọi bước trung gian; guided tour 6 bước hoạt động.
+## Trạng thái được SUY RA, không hardcode (28/07/2026)
+Ba hàm là chỗ duy nhất quyết định "Đang kiểm soát / Cần theo dõi / Cần xử lý ngay":
+- `stepState(o)` — theo `failed ÷ entered`, cộng điều kiện coverage và effort. Ngưỡng ở `CFG.step`.
+- `metricState(m)` — **band riêng từng metric** ở `CFG.metric[id]`. Cố ý không dùng một ngưỡng chung: `m-liveness` (83,3% / mục tiêu 90%) là `crit` còn `m-ocr` (71% / mục tiêu 90%) chỉ là `watch` — metric chạm khách và metric chất lượng dữ liệu không đọc cùng một cách. Một ngưỡng chung sẽ đảo ngược đúng hai metric này.
+- `sourceHealth(s)` — so `lagH` với **SLA riêng từng nguồn** ở `CFG.source[id]`. Crawl store 1 lần/ngày không thể chấm cùng SLA với event stream.
+
+Trọng số xếp ưu tiên điểm gãy để **chỉ đọc** (mục 6 của `#/rules`): fixture lưu điểm tuyệt đối và `validateFixture()` khẳng định `sev+aff+jc+rep+tr+reg === total`, nên cho sửa trọng số mà không tính lại `total` sẽ bắn banner đỏ mọi màn.
+
+Đã verify 28/07/2026 (Node harness + Chrome DevTools): 14 route + `#/issue/<id>` render không lỗi, không có console error/warning; `validateFixture()` trả rỗng; 6 issue × 5 tab, 20 flow, 7 phase, 6 bước × 3 tab đều render; trạng thái suy ra khớp đúng fixture cũ (bước `ok watch crit ok watch ok`, metric `crit crit watch watch watch crit`, nguồn `ok ok ok stale ok ok down`); đổi ngưỡng xử lý 15%→10% làm bước 02 chuyển sang `crit` **trên DOM thật** (1 crit + 2 watch → 2 crit + 1 watch), bấm "Trả về mặc định" quay lại đúng trạng thái gốc.
 
 ## Lỗi đã xác minh trong code hiện tại (spec §7.1, §10)
 - **P0 · Issue → Action đứt:** trong 6 issue của Issue Register chỉ `CXI-024 → CXM-142` resolve được. `CXI-019 → CXM-135` và `CXI-026 → CXM-147` không tồn tại. `CXI-021/017/013 → CXA-*` chỉ có trong fixture pilot.
@@ -84,8 +99,14 @@ Hướng mới: **lấy Enterpret (customer intelligence platform) làm mô hìn
 - `app/src/data/cxm.ts` · `customer-experience.ts` · `voice-of-customer.ts` · `lib/journey-taxonomy.ts` — 4 nguồn sẽ gộp thành một.
 - `app/src/pages/` — Overview, JourneyTree, CoverageGap, ImpactAnalysis, IssueHub, VoiceOfCustomer, POBoard.
 
-## Last Session (27/07/2026)
-- Done: Audit toàn bộ prototype, xác minh 5 vấn đề bằng code. Brainstorm lại feature set và UI/UX. Chốt Enterpret làm mô hình gốc + 8 bổ sung của VNDIRECT. Chốt IA 13 route / 5 nhóm, theme cam–xám ấm, guided tour 6 màn. Viết spec và bản so sánh HTML.
-- Pending: Owner review spec. Chưa có implementation plan. Chưa sửa code.
+## Last Session (28/07/2026)
+- Done: Tra cứu Enterpret sâu hơn (Dashboards & Reporting, Customer Context Graph, AI Insights) — lấy hai pattern: **Knowledge Manager** (một surface sở hữu định nghĩa và ngưỡng) và **alert/subscription** (tần suất + kênh gửi). Redesign `#/atlas` theo điều hướng ngang + dải nối thể hiện tương quan bước. Bỏ khối blast radius. Thêm `#/rules` và nối nó vào 6 màn khác. Bỏ `#/customers`.
+- Pending: Owner review bản bấm được và chốt giá trị mặc định của ngưỡng.
 - Blocker: Thiếu mã cam chính thức từ brand guideline.
-- Lưu ý: repo `CXM Platform` **không phải git repository** nên không commit được gì. Cần `git init` nếu muốn version.
+- Lưu ý: repo này **có** git (`origin` = `github.com/lector2002/vndirect-cxm-prototype`, branch `main`) — ghi chú "không phải git repository" ở bản trước đã sai và đã bỏ.
+
+## Quyết định cố ý giữ, đừng "sửa" lại
+- **Không** dùng một ngưỡng chung cho mọi metric (xem mục *Trạng thái được SUY RA* ở trên).
+- **Không** gộp funnel của `#/health` vào `#/atlas`: atlas là cấu trúc + instrumentation trên cả 20 flow, health là hàng đợi ưu tiên của pilot. Hai phạm vi khác nhau.
+- **Không** dựng lại timeline từng khách. Fixture `DATA.cust` cố ý chỉ còn `key · seg · tier · pf · st` — vừa đủ để khép vòng, không thành hệ thống tra cứu thứ hai.
+- Cấu hình ngưỡng **không persist** (không có backend). Refresh là về mặc định — đây là chủ ý và có ghi rõ trên UI.

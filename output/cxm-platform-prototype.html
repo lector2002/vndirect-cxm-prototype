@@ -13,12 +13,18 @@
 
   CÁCH SỬA NỘI DUNG (không cần biết code):
     Mở file bằng VS Code / Notepad++ / bất kỳ text editor, sửa chữ trong dấu
-    nháy, lưu lại rồi refresh browser. Nội dung nằm ở ĐÚNG BA CHỖ:
+    nháy, lưu lại rồi refresh browser. Nội dung nằm ở ĐÚNG BỐN CHỖ:
 
     1. Object DATA  (tìm dòng  ===== 1. DATA =====)
        Số liệu, câu nói của khách, tên bước, taxonomy, nhãn menu (DATA.nav),
        tiêu đề màn (DATA.meta), lời dẫn guided tour (DATA.tour), và câu hỏi
        đáp của màn Trợ lý (DATA.chips).
+
+    1b. Object CFG_DEFAULT  (tìm dòng  ===== 2a. CFG =====)
+       NGƯỠNG ĐÁNH GIÁ: thế nào là "cần theo dõi", thế nào là "cần xử lý ngay".
+       Không cần sửa file để thử — mở màn "Chỉ số & ngưỡng" (menu Quản trị) là
+       sửa được ngay trong browser, đổi một ô là cả app tô lại. Sửa trong file
+       chỉ để đổi giá trị MẶC ĐỊNH khi mở lần đầu.
 
     2. Câu kết luận lớn ở đầu mỗi màn  (tìm  ===== 3. VIEWS =====)
        Các câu cỡ lớn kiểu "Cứ 6 người vào bước nhận diện khuôn mặt thì 1
@@ -212,6 +218,71 @@ tr.sel td{background:var(--primary-soft)}
 .drop{position:absolute;top:50%;right:-13px;z-index:2;background:#fff;border:1px solid var(--crit-line);color:var(--crit);
   font:700 12px/1 ui-monospace,Menlo,monospace;padding:3px 4px;border-radius:5px;transform:translateY(-50%)}
 
+/* ===================== BẢN ĐỒ HÀNH TRÌNH =====================
+   Rail 7 phase nằm ngang thay cho catalog dọc — không phải kéo xuống
+   mới thấy hết flow. Xem thêm khối .spine bên dưới. */
+.prail{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin-bottom:13px}
+.prail button{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:10px 11px}
+.prail button:hover{border-color:var(--primary-line);background:var(--primary-soft)}
+.prail button.on{border-color:var(--primary);background:var(--primary-soft);box-shadow:0 0 0 3px var(--primary-ring)}
+.prail .pc{font:700 12px/1 ui-monospace,Menlo,monospace;color:var(--ink3);letter-spacing:.08em}
+.prail .pn{font-size:12.5px;font-weight:650;margin:6px 0 8px;line-height:1.28;min-height:33px}
+.prail .pd{display:flex;gap:3px;align-items:center}
+.prail .pd i{width:7px;height:7px;border-radius:50%;flex:none}
+.prail .pd span{margin-left:auto;font-size:12px;color:var(--ink3);font-weight:600}
+
+.frail{display:flex;gap:20px;flex-wrap:wrap}
+.fchips{display:flex;gap:6px;flex-wrap:wrap}
+.fchips button{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:6px 11px;font-size:12.5px;font-weight:600}
+.fchips button:hover{background:var(--surface2)}
+.fchips button.on{border-color:var(--primary);background:var(--primary);color:#fff}
+.fchips button i{width:7px;height:7px;border-radius:50%;flex:none}
+.fchips button.on i{box-shadow:0 0 0 2px rgba(255,255,255,.55)}
+
+/* Xương sống hành trình: dải nối dày mỏng theo số khách CÒN LẠI, phần rơi
+   ra vẽ tách xuống dưới. Đây là chỗ thể hiện tương quan giữa các bước. */
+.spine{display:flex;align-items:stretch;overflow-x:auto;padding:3px 2px 2px}
+.spine .sn{flex:1 1 0;min-width:134px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:11px;text-align:left}
+.spine .sn:hover{border-color:var(--primary-line)}
+.spine .sn.watch{background:var(--watch-bg);border-color:var(--watch-line)}
+.spine .sn.crit{background:var(--crit-bg);border-color:var(--crit-line)}
+.spine .sn.unknown{border-style:dashed}
+.spine .sn.on{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+.spine .sc{font:700 12px/1 ui-monospace,Menlo,monospace;color:var(--ink3);letter-spacing:.06em}
+.spine .snm{font-size:12.5px;font-weight:650;line-height:1.3;margin:6px 0 9px;min-height:33px}
+.spine .sv{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.spine .sl{font-size:12px;color:var(--ink2);margin-top:2px}
+.spine .smeter{margin-top:8px;height:5px;border-radius:3px;background:var(--surface2);overflow:hidden}
+.spine .smeter>i{display:block;height:100%}
+.cx{flex:none;width:64px;display:flex;flex-direction:column;align-items:center;padding-top:54px}
+.cxband{width:100%;position:relative}
+.cxpass{position:absolute;left:0;right:0;top:0;background:linear-gradient(90deg,rgba(140,134,129,.34),rgba(140,134,129,.14));border-top:1px solid #C9C3BC;border-bottom:1px solid #C9C3BC}
+.cxloss{position:absolute;left:0;right:0;min-height:3px;border-radius:0 0 5px 5px;
+  background:repeating-linear-gradient(45deg,var(--crit),var(--crit) 3px,#8F2A23 3px,#8F2A23 6px)}
+.cxlbl{margin-top:9px;text-align:center;white-space:nowrap}
+.cxlbl b{display:block;font:700 13px/1.2 ui-monospace,Menlo,monospace;color:var(--crit)}
+.cxlbl span{display:block;font-size:12px;color:var(--ink3);font-weight:600}
+
+/* ===================== MÀN CHỈ SỐ & NGƯỠNG ===================== */
+.cfl{min-width:0}
+.cfl b{font-size:13.5px;display:block;line-height:1.35}
+.cfl span{display:block;font-size:12px;color:var(--ink3);margin-top:2px}
+.cfgrid{display:grid;gap:14px 18px;align-items:center}
+.num-in{width:100%;border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 9px;
+  font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right;outline:none}
+.num-in:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+.num-in.w{border-color:var(--watch-line);background:var(--watch-bg)}
+.num-in.c{border-color:var(--crit-line);background:var(--crit-bg)}
+.sel-in{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 8px;font-size:12.5px;font-weight:600;outline:none}
+.sel-in:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;cursor:pointer}
+.sw input{appearance:none;-webkit-appearance:none;width:36px;height:20px;border-radius:999px;background:#D6D1CB;
+  position:relative;cursor:pointer;flex:none;margin:0;transition:background .12s}
+.sw input:checked{background:var(--primary)}
+.sw input::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .12s}
+.sw input:checked::after{transform:translateX(16px)}
+.sw input:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-ring)}
+
 /* ===================== TABS / DISCLOSURE ===================== */
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 17px}
 .tabs button{border:none;background:none;padding:11px 13px;font-size:13px;font-weight:600;color:var(--ink3);border-bottom:2px solid transparent;margin-bottom:-1px}
@@ -382,14 +453,16 @@ const DATA = {
     { id:'s6', flowId:'f-open-2026', code:'06', name:'Kích hoạt tài khoản',       stationId:'JS-MTK-06', owner:'Core Account' },
   ],
 
-  /* --- Quan sát theo bước. Số theo kỳ 30 ngày. --- */
+  /* --- Quan sát theo bước. Số theo kỳ 30 ngày.
+         KHÔNG có field `state`: trạng thái do stepState() suy ra từ ngưỡng
+         trong CFG.step — đổi ngưỡng ở màn "Chỉ số & ngưỡng" là màu đổi theo. --- */
   obs: [
-    { stepId:'s1', entered:18420, completed:17690, failed:730,  effort:1.1, cov:96, state:'ok' },
-    { stepId:'s2', entered:17690, completed:15840, failed:1850, effort:1.6, cov:71, state:'watch' },
-    { stepId:'s3', entered:15840, completed:13190, failed:2650, effort:2.4, cov:64, state:'crit' },
-    { stepId:'s4', entered:13190, completed:12760, failed:430,  effort:1.1, cov:92, state:'ok' },
-    { stepId:'s5', entered:12760, completed:11990, failed:770,  effort:1.3, cov:58, state:'watch' },
-    { stepId:'s6', entered:11990, completed:11840, failed:150,  effort:1.0, cov:89, state:'ok' },
+    { stepId:'s1', entered:18420, completed:17690, failed:730,  effort:1.1, cov:96 },
+    { stepId:'s2', entered:17690, completed:15840, failed:1850, effort:1.6, cov:71 },
+    { stepId:'s3', entered:15840, completed:13190, failed:2650, effort:2.4, cov:64 },
+    { stepId:'s4', entered:13190, completed:12760, failed:430,  effort:1.1, cov:92 },
+    { stepId:'s5', entered:12760, completed:11990, failed:770,  effort:1.3, cov:58 },
+    { stepId:'s6', entered:11990, completed:11840, failed:150,  effort:1.0, cov:89 },
   ],
 
   /* --- Touchpoint & signal của pilot --- */
@@ -414,37 +487,45 @@ const DATA = {
     { id:'sg10',tpId:'tp6', name:'account_activated',           st:'live',       pf:['server'],              es:'server', vol:395,  seen:'27/07 · 14:45', metrics:['m-completion'], desc:'Tài khoản sẵn sàng giao dịch' },
   ],
 
-  /* --- Metric contract: grain, công thức, nguồn, độ tươi, chủ sở hữu --- */
+  /* --- Metric contract: grain, công thức, nguồn, độ tươi, chủ sở hữu.
+         KHÔNG có field `state`. Mỗi metric có BAND RIÊNG trong CFG.metric —
+         không dùng một ngưỡng chung, vì khoảng cách tới mục tiêu của metric
+         chạm khách (liveness) và metric chất lượng dữ liệu (evidence coverage)
+         không đọc cùng một cách. Sửa band ở màn "Chỉ số & ngưỡng".
+         Hướng tốt lên/xuống suy ra từ dấu ≥ / ≤ trong `target`. --- */
   metrics: [
-    { id:'m-completion', name:'Hoàn tất mở tài khoản', value:'64,3%', target:'≥ 72%', state:'crit',
+    { id:'m-completion', name:'Hoàn tất mở tài khoản', value:'64,3%', target:'≥ 72%', unit:'%',
       grain:'Unique applicant / journey instance', formula:'Activated accounts ÷ started applications',
       source:'Digital analytics + Core Account', freshness:'Snapshot · trễ 4 giờ', owner:'Onboarding Analytics' },
-    { id:'m-liveness', name:'Liveness completion', value:'83,3%', target:'≥ 90%', state:'crit',
+    { id:'m-liveness', name:'Liveness completion', value:'83,3%', target:'≥ 90%', unit:'%',
       grain:'Unique applicant / liveness attempt group', formula:'Completed liveness ÷ entered liveness',
       source:'eKYC SDK', freshness:'Snapshot · trễ 6 giờ', owner:'Onboarding Squad' },
-    { id:'m-contract', name:'Ký hợp đồng thành công', value:'94,0%', target:'≥ 97%', state:'watch',
+    { id:'m-contract', name:'Ký hợp đồng thành công', value:'94,0%', target:'≥ 97%', unit:'%',
       grain:'Unique applicant / contract session', formula:'Signed contracts ÷ contract sessions',
       source:'SmartCA + Account service', freshness:'Snapshot · trễ 4 giờ', owner:'Onboarding Squad' },
-    { id:'m-ocr', name:'Evidence coverage bước OCR', value:'71,0%', target:'≥ 90%', state:'watch',
+    { id:'m-ocr', name:'Evidence coverage bước OCR', value:'71,0%', target:'≥ 90%', unit:'%',
       grain:'Failed ID capture event', formula:'Failure events có reason code hợp lệ ÷ total failure events',
       source:'Mobile SDK event registry', freshness:'Snapshot · trễ 4 giờ', owner:'Data Platform' },
-    { id:'m-ces', name:'CES sau mở tài khoản', value:'3,8 / 5', target:'≥ 4,2', state:'watch',
+    { id:'m-ces', name:'CES sau mở tài khoản', value:'3,8 / 5', target:'≥ 4,2', unit:'điểm',
       grain:'Response / khách hoàn tất MTK', formula:'Điểm trung bình câu hỏi mức độ dễ dàng',
       source:'In-app survey', freshness:'Snapshot · trễ 12 giờ', owner:'CX Insight' },
-    { id:'m-repeat', name:'Repeat contact trong 7 ngày', value:'24,0%', target:'≤ 15%', state:'crit',
-      grain:'Unique khách có ≥2 lần liên hệ cùng chủ đề', formula:'Khách liên hệ lại ÷ khách có liên hệ',
+    { id:'m-repeat', name:'Repeat contact trong 7 ngày', value:'24,0%', target:'≤ 15%', unit:'%',
+      grain:'Unique khách có số lần liên hệ cùng chủ đề đạt ngưỡng repeat', formula:'Khách liên hệ lại ÷ khách có liên hệ',
       source:'CS case system', freshness:'Snapshot · trễ 2 giờ', owner:'CS Center' },
   ],
 
-  /* --- Nguồn tín hiệu. `metrics` = nguồn này chết thì số nào sai. --- */
+  /* --- Nguồn tín hiệu. `metrics` = nguồn này chết thì số nào sai.
+         `lagH` là độ trễ thực tế theo GIỜ. Trạng thái do sourceHealth() suy ra
+         bằng cách so `lagH` với SLA RIÊNG của từng nguồn (CFG.source[id].sla) —
+         crawl store 1 lần/ngày không thể chấm cùng SLA với event stream. --- */
   sources: [
-    { id:'src-ga',    name:'Digital analytics (app + web)', kind:'event',        vol:41200, fresh:'trễ 4 giờ',  health:'ok',    last:'27/07 · 14:52', metrics:['m-completion'], note:'Nguồn funnel chính' },
-    { id:'src-ekyc',  name:'eKYC SDK',                      kind:'event',        vol:12800, fresh:'trễ 6 giờ',  health:'ok',    last:'27/07 · 14:48', metrics:['m-liveness','m-ocr'], note:'SDK 4.8.2' },
-    { id:'src-case',  name:'CS case (hotline + chat)',      kind:'case',         vol:1840,  fresh:'trễ 2 giờ',  health:'ok',    last:'27/07 · 14:39', metrics:['m-repeat'], note:'Ticket đã gán chủ đề' },
-    { id:'src-survey',name:'In-app survey (CES/CSAT/NPS)',  kind:'survey',       vol:612,   fresh:'trễ 12 giờ', health:'stale', last:'26/07 · 23:10', metrics:['m-ces'], note:'Job tổng hợp chậm hơn 12 giờ so với thoả thuận' },
-    { id:'src-store', name:'App Store + Google Play review',kind:'store-review', vol:186,   fresh:'trễ 1 ngày', health:'ok',    last:'27/07 · 08:00', metrics:[], note:'Crawl 1 lần/ngày' },
-    { id:'src-broker',name:'Ghi chú broker / RM',           kind:'broker-note',  vol:94,    fresh:'trễ 1 ngày', health:'ok',    last:'27/07 · 09:15', metrics:[], note:'Nhập tay trong CRM' },
-    { id:'src-zalo',  name:'Zalo OA inbox',                 kind:'chat',         vol:0,     fresh:'—',          health:'down',  last:'19/07 · 11:02', metrics:['m-repeat'], note:'Webhook lỗi từ 19/07 — repeat contact đang bị đếm thiếu' },
+    { id:'src-ga',    name:'Digital analytics (app + web)', kind:'event',        vol:41200, lagH:4,   last:'27/07 · 14:52', metrics:['m-completion'], note:'Nguồn funnel chính' },
+    { id:'src-ekyc',  name:'eKYC SDK',                      kind:'event',        vol:12800, lagH:6,   last:'27/07 · 14:48', metrics:['m-liveness','m-ocr'], note:'SDK 4.8.2' },
+    { id:'src-case',  name:'CS case (hotline + chat)',      kind:'case',         vol:1840,  lagH:2,   last:'27/07 · 14:39', metrics:['m-repeat'], note:'Ticket đã gán chủ đề' },
+    { id:'src-survey',name:'In-app survey (CES/CSAT/NPS)',  kind:'survey',       vol:612,   lagH:12,  last:'26/07 · 23:10', metrics:['m-ces'], note:'Job tổng hợp chậm hơn thoả thuận' },
+    { id:'src-store', name:'App Store + Google Play review',kind:'store-review', vol:186,   lagH:24,  last:'27/07 · 08:00', metrics:[], note:'Crawl 1 lần/ngày' },
+    { id:'src-broker',name:'Ghi chú broker / RM',           kind:'broker-note',  vol:94,    lagH:24,  last:'27/07 · 09:15', metrics:[], note:'Nhập tay trong CRM' },
+    { id:'src-zalo',  name:'Zalo OA inbox',                 kind:'chat',         vol:0,     lagH:192, last:'19/07 · 11:02', metrics:['m-repeat'], note:'Webhook lỗi từ 19/07 — repeat contact đang bị đếm thiếu' },
   ],
 
   /* --- Survey program. Lấy nguyên sheet 4 của tracking-plan-cx-mau.xlsx --- */
@@ -720,51 +801,18 @@ const DATA = {
     { iss:'CXI-013', need:25, done:25, ch:'In-app',         by:'Thu Hà · Head of CX',   sent:'Sentiment sau liên hệ +0,4 · 18/25 phản hồi tích cực' },
   ],
 
-  /* --- Khách hàng (Context Graph, đã pseudonymize) --- */
+  /* --- Cohort khách bị ảnh hưởng, đã pseudonymize theo sheet 1C.
+         CXM chỉ giữ đủ để trả lời "ai bị ảnh hưởng" và "đã liên hệ khép vòng
+         chưa". Hồ sơ, tài khoản và timeline từng khách thuộc CRM / Customer 360
+         — cố ý KHÔNG dựng lại trong này để không thành hai hệ thống tra cứu. --- */
   cust: [
-    { key:'KH•••7A2', seg:'Mới mở TK', tier:'new', acc:'ACC•••4471', pf:'android', st:'Bỏ dở tại bước 03',
-      tl:[ { at:'27/07 · 14:20', k:'event', l:'Bắt đầu mở tài khoản', step:'s1', ref:'account_open_started', o:'success' },
-           { at:'27/07 · 14:28', k:'event', l:'Chụp CCCD thành công', step:'s2', ref:'ekyc_document_capture_result', o:'success' },
-           { at:'27/07 · 14:35', k:'event', l:'Liveness thất bại · LIGHT_CONDITION', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
-           { at:'27/07 · 14:39', k:'event', l:'Liveness thất bại lần 2', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
-           { at:'27/07 · 14:42', k:'event', l:'Liveness thất bại lần 3', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
-           { at:'27/07 · 14:42', k:'verbatim', l:'Mã lỗi LIGHT_CONDITION sau 3 lần thử', step:'s3', ref:'EV-101', o:'neutral' },
-           { at:'27/07 · 14:44', k:'event', l:'Thoát app, chưa quay lại', step:'s3', ref:'session_end', o:'fail' } ] },
-    { key:'KH•••1C9', seg:'Mới mở TK', tier:'new', acc:'ACC•••4488', pf:'android', st:'Bỏ dở tại bước 03, đã gọi hỗ trợ',
-      tl:[ { at:'27/07 · 13:50', k:'event', l:'Bắt đầu mở tài khoản', step:'s1', ref:'account_open_started', o:'success' },
-           { at:'27/07 · 14:05', k:'event', l:'Liveness thất bại lần 1', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
-           { at:'27/07 · 14:12', k:'case', l:'Gọi hotline lần 1', step:'s3', ref:'CASE•••1839', o:'neutral' },
-           { at:'27/07 · 14:25', k:'event', l:'Liveness thất bại lần 2', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
-           { at:'27/07 · 14:31', k:'case', l:'Chat lần 2 · cùng vấn đề', step:'s3', ref:'CASE•••1842', o:'neutral' },
-           { at:'27/07 · 14:31', k:'verbatim', l:'Đã quay lại nhiều lần nhưng vẫn yêu cầu làm lại từ đầu', step:'s3', ref:'EV-102', o:'neutral' } ] },
-    { key:'KH•••4B8', seg:'Mới mở TK', tier:'new', acc:'ACC•••4502', pf:'android', st:'Hoàn tất sau 4 lần thử',
-      tl:[ { at:'26/07 · 20:10', k:'event', l:'Bắt đầu mở tài khoản', step:'s1', ref:'account_open_started', o:'success' },
-           { at:'26/07 · 20:22', k:'event', l:'Liveness thất bại · 3 lần liên tiếp', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
-           { at:'27/07 · 09:40', k:'event', l:'Liveness thành công lần thứ 4', step:'s3', ref:'ekyc_face_liveness_result', o:'success' },
-           { at:'27/07 · 09:52', k:'event', l:'Kích hoạt tài khoản', step:'s6', ref:'account_activated', o:'success' },
-           { at:'27/07 · 10:04', k:'survey', l:'CES 2/5 · "Khó nhất là bước quay mặt"', step:'s3', ref:'EV-104', o:'neutral' } ] },
-    { key:'KH•••9F1', seg:'Khách chuyển từ CTCK khác', tier:'high-value', acc:'ACC•••2210', pf:'android', st:'Đã hoàn tất, có 3 lần liên hệ',
-      tl:[ { at:'25/07 · 10:15', k:'event', l:'Bắt đầu mở tài khoản', step:'s1', ref:'account_open_started', o:'success' },
-           { at:'25/07 · 10:40', k:'case', l:'Gọi hotline lần 1 · xác thực khuôn mặt', step:'s3', ref:'CASE•••1902', o:'neutral' },
-           { at:'26/07 · 09:20', k:'case', l:'Gọi hotline lần 2 · cùng việc', step:'s3', ref:'CASE•••1955', o:'neutral' },
-           { at:'26/07 · 09:30', k:'verbatim', l:'RM ghi chú: đề nghị gửi SMS xác nhận sau khi ký', step:'s5', ref:'EV-203', o:'neutral' },
-           { at:'27/07 · 10:40', k:'case', l:'Gọi hotline lần 3 · cùng việc', step:'s3', ref:'CASE•••2010', o:'neutral' },
-           { at:'27/07 · 11:05', k:'event', l:'Hoàn tất mở tài khoản', step:'s6', ref:'account_activated', o:'success' } ] },
-    { key:'KH•••8B4', seg:'Mới mở TK', tier:'standard', acc:'ACC•••4390', pf:'ios', st:'Bỏ dở tại bước 05',
-      tl:[ { at:'27/07 · 12:40', k:'event', l:'Bắt đầu mở tài khoản', step:'s1', ref:'account_open_started', o:'success' },
-           { at:'27/07 · 12:58', k:'event', l:'Vào phiên ký SmartCA', step:'s5', ref:'contract_sign_started', o:'success' },
-           { at:'27/07 · 13:06', k:'event', l:'Phiên ký hết hạn sau 4m32s', step:'s5', ref:'EV-201', o:'fail' },
-           { at:'27/07 · 13:12', k:'event', l:'Thoát app', step:'s5', ref:'session_end', o:'fail' } ] },
-    { key:'KH•••5F6', seg:'Mới mở TK', tier:'standard', acc:'ACC•••4455', pf:'ios', st:'Hoàn tất · đã được liên hệ khép vòng',
-      tl:[ { at:'27/07 · 13:50', k:'event', l:'Chụp CCCD thất bại · GLARE', step:'s2', ref:'EV-301', o:'fail' },
-           { at:'27/07 · 14:02', k:'event', l:'Chụp CCCD thất bại lần 2', step:'s2', ref:'id_capture_failed', o:'fail' },
-           { at:'27/07 · 14:10', k:'event', l:'Chụp CCCD thành công sau khi có hướng dẫn mới', step:'s2', ref:'id_capture_ok', o:'success' },
-           { at:'27/07 · 14:30', k:'event', l:'Kích hoạt tài khoản', step:'s6', ref:'account_activated', o:'success' },
-           { at:'27/07 · 16:00', k:'action-notice', l:'Nhận thông báo khép vòng từ CXA-013', step:'s2', ref:'CLOSE•••013', o:'success' } ] },
-    { key:'KH•••2C8', seg:'Khách 50+', tier:'standard', acc:'ACC•••4120', pf:'android', st:'Chưa hoàn tất, cần hỗ trợ',
-      tl:[ { at:'25/07 · 09:30', k:'event', l:'Bắt đầu mở tài khoản tại quầy có RM hỗ trợ', step:'s1', ref:'account_open_started', o:'success' },
-           { at:'25/07 · 10:20', k:'event', l:'Liveness thất bại · 2 lần', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
-           { at:'25/07 · 11:05', k:'verbatim', l:'RM ghi chú: khách cần người hỗ trợ bước quay mặt', step:'s3', ref:'EV-601', o:'neutral' } ] },
+    { key:'KH•••7A2', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Bỏ dở tại bước 03' },
+    { key:'KH•••1C9', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Bỏ dở tại bước 03, đã gọi hỗ trợ' },
+    { key:'KH•••4B8', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Hoàn tất sau 4 lần thử' },
+    { key:'KH•••9F1', seg:'Khách chuyển từ CTCK khác',  tier:'high-value', pf:'android', st:'Đã hoàn tất, có 3 lần liên hệ' },
+    { key:'KH•••8B4', seg:'Mới mở TK',                  tier:'standard',   pf:'ios',     st:'Bỏ dở tại bước 05' },
+    { key:'KH•••5F6', seg:'Mới mở TK',                  tier:'standard',   pf:'ios',     st:'Hoàn tất · đã được liên hệ khép vòng' },
+    { key:'KH•••2C8', seg:'Khách 50+',                  tier:'standard',   pf:'android', st:'Chưa hoàn tất, cần hỗ trợ' },
   ],
 
   /* --- 8 tổ hợp Quantify được hỗ trợ. KHÔNG phải query engine tự do. --- */
@@ -802,13 +850,14 @@ const DATA = {
       note:'Khách high-value liên hệ lại nhiều hơn 2,4 lần — nhóm này ít kiên nhẫn hơn với lỗi lặp.' },
   ],
 
-  /* --- Dashboard template dọn sẵn theo vai. Head of CX không phải tự soạn Quantify. --- */
+  /* --- Dashboard template dọn sẵn theo vai. Head of CX không phải tự soạn Quantify.
+         Tần suất và kênh gửi bản tin nằm trong CFG.sub, sửa ở màn Chỉ số & ngưỡng. --- */
   dash: [
-    { id:'d-cx', name:'Bảng điều hành CX', role:'Head of CX / CX Manager', shared:true, sub:{ f:'weekly', ch:'Email + Slack' },
+    { id:'d-cx', name:'Bảng điều hành CX', role:'Head of CX / CX Manager', shared:true,
       desc:'Điểm gãy theo ưu tiên, repeat contact, action chờ duyệt, verdict outcome gần nhất.', q:['q1','q3','q7','q6'] },
-    { id:'d-pilot', name:'Sức khỏe pilot Mở tài khoản', role:'Onboarding Squad', shared:true, sub:null,
+    { id:'d-pilot', name:'Sức khỏe pilot Mở tài khoản', role:'Onboarding Squad', shared:true,
       desc:'Funnel 6 bước, evidence coverage, CES sau mở tài khoản.', q:['q6','q7','q2'] },
-    { id:'d-voc', name:'Theme đang xấu đi', role:'VoC Analyst', shared:false, sub:{ f:'daily', ch:'Slack' },
+    { id:'d-voc', name:'Theme đang xấu đi', role:'VoC Analyst', shared:false,
       desc:'Theme giảm điểm, nguồn đóng góp, cohort bị ảnh hưởng.', q:['q1','q5','q8','q4'] },
   ],
 
@@ -819,7 +868,7 @@ const DATA = {
       f:[ { id:'AF-01', sev:'critical', at:'19/07 · 11:30', title:'Zalo OA ngừng gửi dữ liệu',
             detail:'Volume từ Zalo OA về 0 trong 8 ngày liên tiếp, baseline là ~120/ngày. Mọi số repeat contact trong kỳ đang bị đếm thiếu.', ev:[] },
           { id:'AF-02', sev:'high', at:'26/07 · 23:15', title:'In-app survey trễ hơn thoả thuận',
-            detail:'Job tổng hợp survey trễ 12 giờ, vượt ngưỡng 6 giờ. Điểm CES trên Dashboard đang là dữ liệu của hôm trước.', ev:[] },
+            detail:'Job tổng hợp survey đang trễ 12 giờ, vượt SLA độ tươi của nguồn In-app survey. Điểm CES trên Dashboard đang là dữ liệu của hôm trước.', ev:[] },
           { id:'AF-03', sev:'high', at:'27/07 · 09:00', title:'Volume lỗi liveness vượt baseline 2,4 lần',
             detail:'Số event ekyc_face_liveness_result với status=fail đạt 1.180/ngày, baseline 30 ngày là ~490/ngày.', ev:['EV-101','EV-103'] } ] },
     { id:'ag-e', kind:'escalation', name:'Escalation', st:'on', last:'27/07 · 14:45',
@@ -855,8 +904,8 @@ const DATA = {
     { r:'surveys',   ic:'☑', l:'Khảo sát' },
     { r:'taxonomy',  ic:'⋔', l:'Taxonomy' },
     { r:'agents',    ic:'◈', l:'Agent & cảnh báo' },
-    { g:'Tra cứu' },
-    { r:'customers', ic:'◇', l:'Khách hàng' },
+    { g:'Quản trị' },
+    { r:'rules',     ic:'⚙', l:'Chỉ số & ngưỡng' },
   ],
 
   /* --- Tiêu đề và mô tả trên thanh trên cùng của từng màn --- */
@@ -865,7 +914,7 @@ const DATA = {
     feed:['Feed','Dòng tín hiệu thô từ mọi nguồn, đã phân loại và masking'],
     quantify:['Quantify','Biến tổ hợp filter thành chart, lưu lại và chia sẻ'],
     assistant:['Trợ lý','Placeholder có kịch bản — không phải AI thật'],
-    atlas:['Bản đồ hành trình','Cấu trúc 7 phase, signal và độ phủ dữ liệu từng bước'],
+    atlas:['Bản đồ hành trình','Chọn phase → flow → bước, xem khách rơi ở đâu giữa các bước'],
     health:['Sức khỏe hành trình','Funnel pilot và xếp ưu tiên điểm gãy'],
     issues:['Điểm gãy','Hồ sơ toàn bộ điểm gãy trên mọi hành trình'],
     actions:['Hành động','Duyệt, triển khai và theo dõi từng thay đổi'],
@@ -874,9 +923,8 @@ const DATA = {
     surveys:['Khảo sát','Trigger, cooldown, response rate và kết quả'],
     taxonomy:['Taxonomy','5 tầng phân loại, lý do phân loại và cảnh báo drift'],
     agents:['Agent & cảnh báo','Ba agent chỉ đọc: phát hiện và cảnh báo'],
-    customers:['Khách hàng','Context graph và timeline từng khách'],
-    customer:['Timeline khách hàng','Chuỗi tín hiệu của một khách, đã pseudonymize'],
-    issue:['Hồ sơ điểm gãy','Bằng chứng, ảnh hưởng, khách, xử lý và kết quả'],
+    rules:['Chỉ số & ngưỡng','Chọn chỉ số theo dõi và đặt ngưỡng cần theo dõi / cần xử lý'],
+    issue:['Hồ sơ điểm gãy','Bằng chứng, ảnh hưởng, cohort, xử lý và kết quả'],
   },
 
   /* --- Guided tour: 6 bước dùng khi trình bày trước lãnh đạo. Sửa thứ tự và lời dẫn ở đây. --- */
@@ -908,12 +956,65 @@ let ST = { period:'d30', scope:'onboarding', route:'dashboard', tour:0, sub:{}, 
 let ACT = JSON.parse(JSON.stringify(DATA.act));
 let SEEN = {}; /* agent finding đã acknowledge */
 
+/* ==========================================================================
+   ===== 2a. CFG — NGƯỠNG ĐÁNH GIÁ, SỬA ĐƯỢC TRONG UI =====
+   Đây là những con số trước đây nằm rải rác trong code và trong câu văn.
+   Giờ tất cả nằm ở một chỗ, và màn "Chỉ số & ngưỡng" (#/rules) sửa trực tiếp
+   vào đây. Đổi một số là funnel, bản đồ hành trình và bảng nguồn tô lại ngay.
+   Giá trị mặc định được chọn để khớp đúng nhận định đang viết trong tài liệu.
+   ========================================================================== */
+const CFG_DEFAULT = {
+  /* Trạng thái của một BƯỚC hành trình. Áp cho mọi bước, mọi flow. */
+  step: {
+    failWatch: 5,    /* tỷ lệ thất bại ≥ x% → Cần theo dõi */
+    failCrit: 15,    /* tỷ lệ thất bại ≥ x% → Cần xử lý ngay */
+    covMin: 70,      /* evidence coverage dưới x% → ít nhất Cần theo dõi */
+    effortMax: 2.0,  /* effort trung bình vượt x lần thử → ít nhất Cần theo dõi */
+  },
+  /* Band RIÊNG cho từng metric. `on` = có đưa vào danh sách theo dõi hay không.
+     Hướng so sánh lấy từ dấu ≥ / ≤ trong DATA.metrics[].target. */
+  metric: {
+    'm-completion': { on:true, watch:72,  crit:68 },
+    'm-liveness':   { on:true, watch:90,  crit:85 },
+    'm-contract':   { on:true, watch:97,  crit:92 },
+    'm-ocr':        { on:true, watch:90,  crit:60 },
+    'm-ces':        { on:true, watch:4.2, crit:3.5 },
+    'm-repeat':     { on:true, watch:15,  crit:20 },
+  },
+  /* SLA độ tươi riêng từng nguồn, đơn vị GIỜ. */
+  source: {
+    'src-ga':6, 'src-ekyc':8, 'src-case':4, 'src-survey':6,
+    'src-store':36, 'src-broker':36, 'src-zalo':6,
+  },
+  /* Ngưỡng nền dữ liệu và cảnh báo. */
+  data: {
+    deadDays: 2,     /* nguồn im lặng ≥ x ngày → coi là Ngừng gửi */
+    anomalyX: 2.0,   /* volume vượt baseline x lần → agent cảnh báo */
+    cooldown: 14,    /* mỗi khách tối đa 1 khảo sát trong x ngày */
+    repeatMin: 2,    /* từ x lần liên hệ cùng chủ đề mới tính là repeat contact */
+    repeatWarn: 20,  /* repeat contact của issue vượt x% → tô đỏ */
+    churnWarn: 50,   /* số khách có tín hiệu churn vượt x → tô đỏ */
+  },
+  /* Ai nhận bản tin nào, tần suất nào, kênh nào. */
+  sub: {
+    'd-cx':    { f:'weekly', ch:'Email + Slack' },
+    'd-pilot': { f:'off',    ch:'Email' },
+    'd-voc':   { f:'daily',  ch:'Slack' },
+  },
+};
+let CFG = JSON.parse(JSON.stringify(CFG_DEFAULT));
+const cfgDirty = () => JSON.stringify(CFG) !== JSON.stringify(CFG_DEFAULT);
+const SUB_LABEL = { off:'', daily:'hằng ngày', weekly:'hằng tuần', monthly:'hằng tháng' };
+const SUB_CH = ['Email', 'Slack', 'Email + Slack'];
+
 const $  = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 const period = () => DATA.periods.find((p) => p.id === ST.period);
 const fx = (n) => Math.round(n * period().factor);
 const nf = (n) => Number(n).toLocaleString('vi-VN');
 const pct = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : 0);
+/* Cùng con số nhưng viết theo quy ước tiếng Việt — dùng khi in ra cho người đọc */
+const pv = (a, b) => String(pct(a, b)).replace('.', ',');
 
 const byId = (arr, id, k = 'id') => arr.find((x) => x[k] === id);
 const step  = (id) => byId(DATA.steps, id);
@@ -934,6 +1035,53 @@ const ST_LABEL = { ok:'Đang kiểm soát', watch:'Cần theo dõi', crit:'Cần
 const badge = (s, txt) => `<span class="st ${s}">${s==='ok'?'✓ ':s==='unknown'?'— ':''}${esc(txt || ST_LABEL[s])}</span>`;
 const SEV = { critical:'crit', high:'watch', medium:'ok' };
 const SEV_LABEL = { critical:'Cần xử lý ngay', high:'Cần theo dõi', medium:'Đang quan sát' };
+
+/* ---------- Trạng thái SUY RA TỪ NGƯỠNG, không hardcode trong fixture ----------
+   Ba hàm dưới đây là chỗ duy nhất quyết định một thứ đang "Đang kiểm soát",
+   "Cần theo dõi" hay "Cần xử lý ngay". Mọi màn đều gọi qua đây. */
+
+/* Bước: tỷ lệ thất bại là tiêu chí chính; coverage thấp hoặc effort cao thì
+   ít nhất phải Cần theo dõi — thấy thất bại mà không biết vì sao cũng là vấn đề. */
+const failRate = (o) => (o && o.entered ? (o.failed / o.entered) * 100 : 0);
+function stepState(o) {
+  if (!o) return 'unknown';
+  const fr = failRate(o);
+  let s = fr >= CFG.step.failCrit ? 'crit' : fr >= CFG.step.failWatch ? 'watch' : 'ok';
+  if (s === 'ok' && (o.cov < CFG.step.covMin || o.effort > CFG.step.effortMax)) s = 'watch';
+  return s;
+}
+/* Lý do bước bị gắn nhãn — để UI giải thích được, không chỉ tô màu */
+function stepWhy(o) {
+  if (!o) return 'Chưa có dữ liệu quan sát';
+  const r = [], fr = failRate(o);
+  if (fr >= CFG.step.failCrit)      r.push(`thất bại ${fr.toFixed(1).replace('.',',')}% ≥ ngưỡng xử lý ${CFG.step.failCrit}%`);
+  else if (fr >= CFG.step.failWatch) r.push(`thất bại ${fr.toFixed(1).replace('.',',')}% ≥ ngưỡng theo dõi ${CFG.step.failWatch}%`);
+  if (o.cov < CFG.step.covMin)      r.push(`evidence coverage ${o.cov}% dưới ngưỡng ${CFG.step.covMin}%`);
+  if (o.effort > CFG.step.effortMax) r.push(`effort ${String(o.effort).replace('.',',')} vượt ${String(CFG.step.effortMax).replace('.',',')} lần thử`);
+  return r.length ? r.join(' · ') : 'mọi tiêu chí trong ngưỡng';
+}
+
+/* Metric: band riêng từng metric, hướng lấy từ dấu ≥ / ≤ của target */
+const mdir = (m) => (String(m.target).indexOf('≤') > -1 ? 'down' : 'up');
+const mval = (m) => parseFloat(String(m.value).replace(',', '.'));
+function metricState(m) {
+  const c = CFG.metric[m.id];
+  if (!c || !c.on) return 'unknown';
+  const v = mval(m);
+  if (isNaN(v)) return 'unknown';
+  if (mdir(m) === 'down') return v > c.crit ? 'crit' : v > c.watch ? 'watch' : 'ok';
+  return v < c.crit ? 'crit' : v < c.watch ? 'watch' : 'ok';
+}
+const metricBadge = (m) => (CFG.metric[m.id] && !CFG.metric[m.id].on
+  ? badge('unknown', 'Không theo dõi') : badge(metricState(m)));
+
+/* Nguồn: im lặng quá deadDays là chết; trễ hơn SLA riêng của nguồn là trễ */
+function sourceHealth(s) {
+  if (s.lagH == null || s.lagH >= CFG.data.deadDays * 24) return 'down';
+  return s.lagH > (CFG.source[s.id] != null ? CFG.source[s.id] : 6) ? 'stale' : 'ok';
+}
+const freshLabel = (h) => (h == null ? '—' : h < 24 ? `trễ ${h} giờ`
+  : `trễ ${Math.round(h / 24 * 10) / 10}`.replace('.', ',') + ' ngày');
 
 /* QUY TẮC DENOMINATOR: mọi card/chart hiện "X of Y đơn vị" + kỳ ngày tuyệt đối */
 const denom = (shown, total, unit) =>
@@ -1140,7 +1288,7 @@ V.dashboard = () => {
 
     <div class="stats">
       ${stat('Hoàn tất mở tài khoản','64,3%','Mục tiêu ≥ 72% · thiếu 7,7 điểm','Digital analytics + Core Account · trễ 4 giờ · n=' + nf(fx(18420)),'var(--crit)')}
-      ${stat('Thất bại tại bước Liveness', nf(fx(s3.failed)), pct(s3.failed,s3.entered)+'% người vào bước này','eKYC SDK · trễ 6 giờ · n=' + nf(fx(s3.entered)),'var(--crit)')}
+      ${stat('Thất bại tại bước Liveness', nf(fx(s3.failed)), pv(s3.failed,s3.entered)+'% người vào bước này','eKYC SDK · trễ 6 giờ · n=' + nf(fx(s3.entered)),'var(--crit)')}
       ${stat('Điểm gãy chưa khép vòng', String(openIss.length),'Trong đó 1 ở mức cần xử lý ngay','Fixture demo · snapshot 27/07/2026')}
       ${stat('Chờ human approval', String(pend),'Cần người phụ trách quyết định','Action register · trong phiên')}
     </div>
@@ -1158,7 +1306,7 @@ V.dashboard = () => {
             <div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap">
               <span class="chip">${x.q.length} Quantify</span>
               ${x.shared?'<span class="chip">Đã share</span>':''}
-              ${x.sub?`<span class="chip">Subscribe ${x.sub.f==='daily'?'hằng ngày':x.sub.f==='weekly'?'hằng tuần':'hằng tháng'}</span>`:''}
+              ${SUB_LABEL[CFG.sub[x.id].f] ? `<span class="chip">Bản tin ${SUB_LABEL[CFG.sub[x.id].f]} · ${esc(CFG.sub[x.id].ch)}</span>` : ''}
             </div>
           </button>`).join('')}</div>
       </div>
@@ -1312,28 +1460,33 @@ V.health = () => {
     .sort((a, b) => b.pri.total - a.pri.total);
   const s3 = obs('s3');
   return `<div class="wrap">
-    <h1 class="t-hero" style="max-width:32ch;margin-bottom:8px">Hành trình mở tài khoản mất ${pct(s3.failed,s3.entered)}% người tại bước nhận diện khuôn mặt.</h1>
+    <h1 class="t-hero" style="max-width:32ch;margin-bottom:8px">Hành trình mở tài khoản mất ${pv(s3.failed,s3.entered)}% người tại bước nhận diện khuôn mặt.</h1>
     <p class="t-meta" style="max-width:86ch;margin:0 0 18px">Funnel 6 bước của pilot. Mỗi bước có nhãn trạng thái bằng chữ, không chỉ bằng màu. Chú ý cột <b>evidence coverage</b>: bước dưới 70% nghĩa là kể cả khi thấy thất bại, ta vẫn không biết lý do của phần lớn trường hợp.</p>
 
     <div class="card" style="margin-bottom:16px">
       ${chead('Funnel pilot Mở tài khoản', '6 bước · vào / hoàn tất / thất bại / effort / evidence coverage', 6, 6, 'bước')}
       <div class="cbody">
         <div class="funnel">${DATA.steps.map((s, i) => {
-          const o = obs(s.id);
-          return `<div class="fstep ${o.state}">
-            ${i > 0 && o.failed > 800 ? `<div class="drop">−${pct(o.failed,o.entered)}%</div>` : ''}
+          const o = obs(s.id), st = stepState(o);
+          return `<div class="fstep ${st}" title="${esc(stepWhy(o))}">
+            ${i > 0 && o.failed > 800 ? `<div class="drop">−${pv(o.failed,o.entered)}%</div>` : ''}
             <div class="fc">${s.code} · ${esc(s.stationId)}</div>
             <div class="fn">${esc(s.name)}</div>
             <div class="fv">${nf(fx(o.completed))}</div>
             <div class="fl">hoàn tất / ${nf(fx(o.entered))} vào</div>
-            <div class="fbar"><i style="width:${pct(o.completed,o.entered)}%;background:${o.state==='crit'?'var(--crit)':o.state==='watch'?'var(--watch)':'var(--good)'}"></i></div>
+            <div class="fbar"><i style="width:${pct(o.completed,o.entered)}%;background:${st==='crit'?'var(--crit)':st==='watch'?'var(--watch)':'var(--good)'}"></i></div>
             <div class="fl" style="margin-top:7px">Thất bại <b class="num">${nf(fx(o.failed))}</b></div>
             <div class="fl">Effort <b class="num">${o.effort}</b> lần thử</div>
             <div class="fl">Evidence <b class="num">${o.cov}%</b></div>
-            <div style="margin-top:8px">${badge(o.state)}</div>
+            <div style="margin-top:8px">${badge(st)}</div>
           </div>`;
         }).join('')}</div>
-        <div class="note" style="margin-top:14px">Bước 03 và 05 có evidence coverage dưới 70% — nghĩa là kể cả khi thấy thất bại, ta vẫn <b>không biết lý do</b> của một phần lớn trường hợp. Xem chi tiết ở Bản đồ hành trình.</div>
+        ${(() => {
+          const low = DATA.steps.filter((s) => obs(s.id).cov < CFG.step.covMin);
+          return low.length
+            ? `<div class="note" style="margin-top:14px">${low.length === 1 ? 'Bước' : 'Bước'} ${low.map((s) => s.code).join(' và ')} có evidence coverage dưới ngưỡng ${CFG.step.covMin}% — nghĩa là kể cả khi thấy thất bại, ta vẫn <b>không biết lý do</b> của một phần lớn trường hợp. Xem chi tiết ở <a href="#/atlas">Bản đồ hành trình</a>, đổi ngưỡng ở <a href="#/rules">Chỉ số &amp; ngưỡng</a>.</div>`
+            : `<div class="note" style="margin-top:14px">Mọi bước đều đạt ngưỡng evidence coverage ${CFG.step.covMin}% đang đặt ở <a href="#/rules">Chỉ số &amp; ngưỡng</a>.</div>`;
+        })()}
       </div>
     </div>
 
@@ -1552,7 +1705,7 @@ V.issue = (id) => {
   const i = iss(id);
   if (!i) return `<div class="empty">Không tìm thấy điểm gãy ${esc(id)}.</div>`;
   const s = step(i.step), m = metric(i.metric), a = action(i.act), tab = ST.sub.issue || 'ev';
-  const TABS = [['ev','Bằng chứng'],['imp','Ảnh hưởng'],['cust','Khách hàng'],['act','Xử lý'],['out','Kết quả']];
+  const TABS = [['ev','Bằng chứng'],['imp','Ảnh hưởng'],['cust','Cohort ảnh hưởng'],['act','Xử lý'],['out','Kết quả']];
   return `<div class="wrap">
     <div style="display:flex;align-items:center;gap:9px;margin-bottom:11px">
       <button class="btn sm" onclick="go('health')">← Quay lại</button>
@@ -1587,8 +1740,11 @@ V.issue = (id) => {
           ${ST.sel['mc-'+i.id] ? `<div class="note" style="margin-top:10px">
             <div class="t-lbl" style="margin-bottom:7px">Metric contract</div>
             <dl class="kv" style="grid-template-columns:auto 1fr">
-              <dt>Metric</dt><dd>${esc(m.name)}</dd>
+              <dt>Metric</dt><dd>${esc(m.name)} ${metricBadge(m)}</dd>
               <dt>Giá trị / mục tiêu</dt><dd>${esc(m.value)} / ${esc(m.target)}</dd>
+              <dt>Ngưỡng đang áp</dt><dd>${CFG.metric[m.id] && CFG.metric[m.id].on
+                ? `cần theo dõi khi ${mdir(m)==='down'?'vượt':'dưới'} ${String(CFG.metric[m.id].watch).replace('.',',')} · cần xử lý khi ${mdir(m)==='down'?'vượt':'dưới'} ${String(CFG.metric[m.id].crit).replace('.',',')}`
+                : 'không theo dõi'}</dd>
               <dt>Grain</dt><dd>${esc(m.grain)}</dd>
               <dt>Công thức</dt><dd>${esc(m.formula)}</dd>
               <dt>Nguồn</dt><dd>${esc(m.source)}</dd>
@@ -1598,9 +1754,9 @@ V.issue = (id) => {
         : tab === 'imp' ? `
           <div class="grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">
             ${stat('Khách bị ảnh hưởng', nf(fx(i.imp.aff)), 'unique trong kỳ', esc(m.source))}
-            ${stat('Liên hệ lặp lại', i.imp.rep + '%', 'trong 7 ngày', 'CS case · trễ 2 giờ', i.imp.rep > 20 ? 'var(--crit)' : undefined)}
+            ${stat('Liên hệ lặp lại', i.imp.rep + '%', `từ ${CFG.data.repeatMin} lần trở lên · ngưỡng cảnh báo ${CFG.data.repeatWarn}%`, 'CS case · trễ 2 giờ', i.imp.rep > CFG.data.repeatWarn ? 'var(--crit)' : undefined)}
             ${stat('Tác động CSAT', i.imp.csat + 'pt', 'so với nhóm không gặp lỗi', 'In-app survey · trễ 12 giờ', 'var(--crit)')}
-            ${stat('Có tín hiệu churn', nf(fx(i.imp.churn)), 'khách cần can thiệp', 'Fixture demo', i.imp.churn > 50 ? 'var(--crit)' : undefined)}
+            ${stat('Có tín hiệu churn', nf(fx(i.imp.churn)), `khách cần can thiệp · ngưỡng ${CFG.data.churnWarn}`, 'Fixture demo', i.imp.churn > CFG.data.churnWarn ? 'var(--crit)' : undefined)}
             ${stat('Khách high-value', nf(i.imp.hv), 'trong nhóm bị ảnh hưởng', 'CRM valueTier')}
           </div>
           <div class="t-lbl" style="margin-bottom:9px">Breakdown điểm ưu tiên — tổng ${i.pri.total}</div>
@@ -1626,22 +1782,33 @@ V.issue = (id) => {
                 </div>
               </div>
             </div>`; })() : `<div class="hr"></div><div class="note">${badge('unknown')} Điểm gãy này <b>không đến từ Voice of Customer</b> mà từ tín hiệu hành vi. Không phải mọi issue đều có insight nguồn.</div>`}`
-        : tab === 'cust' ? `
-          ${i.cust.length ? `
-            <div class="note" style="margin-bottom:13px">${i.cust.length} khách trong danh sách mẫu bị ảnh hưởng. Toàn bộ định danh đã pseudonymize theo quy tắc masking — không có tên, CCCD, số điện thoại hay email.</div>
-            <div class="grid g2">${i.cust.map((k) => { const c = cust(k); if (!c) return ''; return `
-              <button class="card flat" style="text-align:left;padding:14px;cursor:pointer" onclick="go('customer/${encodeURIComponent(k)}')">
-                <div style="display:flex;align-items:center;gap:8px">
-                  <span class="mono t-item">${esc(k)}</span>
-                  ${c.tier === 'high-value' ? '<span class="chip b">High-value</span>' : `<span class="chip">${c.tier === 'new' ? 'Khách mới' : 'Thường'}</span>`}
-                </div>
-                <div class="t-meta" style="margin-top:6px">${esc(c.seg)} · ${esc(c.pf)} · ${c.tl.length} tín hiệu</div>
-                <div class="t-meta" style="margin-top:4px;color:var(--ink)">${esc(c.st)}</div>
-              </button>`; }).join('')}</div>`
-            : `<div class="note">${badge('unknown')} <b>Chưa lập được danh sách khách bị ảnh hưởng.</b> ${
+        : tab === 'cust' ? (() => {
+          const cs = i.cust.map((k) => cust(k)).filter(Boolean);
+          const l = loop(i.id);
+          const TIER = { 'high-value':'High-value', new:'Khách mới', standard:'Thường' };
+          return cs.length ? `
+            <div class="note" style="margin-bottom:14px"><b>Đây là cohort để khép vòng, không phải màn tra cứu khách hàng.</b>
+              Hồ sơ, tài khoản và lịch sử của từng khách nằm ở CRM / Customer 360 — CXM chỉ giữ đủ để biết <i>ai bị ảnh hưởng</i> và <i>đã liên hệ chưa</i>. Toàn bộ định danh đã pseudonymize: không tên, CCCD, số điện thoại hay email.</div>
+            <div class="grid g3" style="margin-bottom:15px">
+              ${stat('Khách trong cohort mẫu', String(cs.length), `trên tổng ${nf(fx(i.imp.aff))} khách bị ảnh hưởng`, 'Đã pseudonymize')}
+              ${stat('Nhóm giá trị cao', String(cs.filter((c) => c.tier === 'high-value').length), 'cần ưu tiên khi liên hệ', 'CRM valueTier')}
+              ${stat('Cần liên hệ khép vòng', l ? nf(l.need) : '—', l ? `đã liên hệ ${nf(l.done)} · kênh ${l.ch}` : 'chưa lập danh sách', '')}
+            </div>
+            <table>
+              <thead><tr><th>Khóa khách</th><th>Segment</th><th>Nhóm giá trị</th><th>Platform</th><th>Trạng thái hiện tại</th></tr></thead>
+              <tbody>${cs.map((c) => `<tr>
+                <td><span class="mono t-item">${esc(c.key)}</span></td>
+                <td class="t-meta">${esc(c.seg)}</td>
+                <td>${c.tier === 'high-value' ? '<span class="chip b">High-value</span>' : `<span class="chip">${TIER[c.tier]}</span>`}</td>
+                <td class="t-meta">${esc(c.pf)}</td>
+                <td class="t-meta" style="color:var(--ink)">${esc(c.st)}</td>
+              </tr>`).join('')}</tbody>
+            </table>`
+            : `<div class="note">${badge('unknown')} <b>Chưa lập được cohort khách bị ảnh hưởng.</b> ${
                 i.ev.length === 0
                   ? 'Điểm gãy này là lỗi ở hệ thống thu thập dữ liệu, không gắn với khách hàng cụ thể nào.'
-                  : 'Điểm gãy này hiện chỉ có tín hiệu hành vi, chưa nối được sang định danh khách. Cần bổ sung tín hiệu có khóa khách trước khi có thể khép vòng.'}</div>`}`
+                  : 'Điểm gãy này hiện chỉ có tín hiệu hành vi, chưa nối được sang định danh khách. Cần bổ sung tín hiệu có khóa khách trước khi có thể khép vòng.'}</div>`;
+        })()
         : tab === 'act' ? `
           <div class="note bd" style="margin-bottom:14px"><b>Đề xuất xử lý:</b> ${esc(i.dec)}</div>
           <div class="lst" style="border:1px solid var(--line);border-radius:10px">${actionRow(a)}</div>
@@ -1663,137 +1830,224 @@ V.issue = (id) => {
   </div>`;
 };
 
-/* ---------- Bản đồ hành trình (gộp cả độ phủ dữ liệu) ---------- */
+/* ---------- Bản đồ hành trình ----------
+   Điều hướng ba nhịp NGANG, không còn catalog dọc phải kéo xuống mới thấy hết
+   20 flow:  rail 7 phase  →  chip flow trong phase  →  xương sống các bước.
+   Tương quan giữa các bước nằm ở dải nối `.cx`: độ dày = số khách còn lại so
+   với bước đầu, vạch đỏ bên dưới = phần rơi ra tại bước bên trái. */
 V.atlas = () => {
   const fid = ST.sel.atlas || 'f-open-2026';
   const flow = byId(DATA.flows, fid);
+  const phaseOf = (f) => byId(DATA.groups, f.groupId).phaseId;
+  const pid = ST.sel.atlasPhase || phaseOf(flow);
   const steps = DATA.steps.filter((s) => s.flowId === fid);
   const sid = ST.sel.atlasStep || (steps[0] && steps[0].id);
-  const verified = DATA.flows.filter((f) => f.verified).length;
-  return `<div class="wrap">
-    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">Hệ thống đã map ${DATA.flows.length} flow trên 7 phase, trong đó ${verified} flow có nguồn xác minh.</h1>
-    <p class="t-meta" style="max-width:84ch;margin:0 0 18px">Bản đồ hiển thị <b>toàn bộ</b> hành trình. Chỉ pilot Mở tài khoản có dữ liệu quan sát — các flow khác ghi rõ “chưa có dữ liệu”, không để trống.</p>
-    <div class="split" style="grid-template-columns:290px 340px minmax(0,1fr)">
-      <div class="card" style="align-self:start;max-height:78vh;overflow:auto">
-        ${chead('Catalog', 'Phase › nhóm › flow', DATA.flows.length, DATA.flows.length, 'flow')}
-        <div>${DATA.phases.map((p) => `
-          <div class="t-lbl" style="padding:11px 14px 5px;background:var(--surface2);border-bottom:1px solid var(--line)">${p.code} · ${esc(p.name)}</div>
-          ${DATA.groups.filter((g) => g.phaseId === p.id).map((g) => `
-            <div style="padding:8px 14px 3px;font-size:12px;font-weight:650;color:var(--ink2)">${esc(g.name)}</div>
-            ${DATA.flows.filter((f) => f.groupId === g.id).map((f) => `
-              <button class="itm ${f.id===fid?'on':''}" style="padding:8px 14px" onclick="setAtlas('${f.id}')">
-                <div style="display:flex;align-items:center;gap:7px">
-                  <span style="width:6px;height:6px;border-radius:50%;flex:none;background:${f.observed?'var(--primary)':f.verified?'var(--ink3)':'#D6D1CB'}"></span>
-                  <span style="font-size:12.5px;font-weight:600">${esc(f.name)}</span>
-                </div>
-                <div class="t-meta" style="font-size:12px;margin-top:2px;padding-left:13px">
-                  ${f.observed ? 'Có dữ liệu quan sát' : f.verified ? 'Có nguồn · chưa có dữ liệu' : 'Chờ nguồn'}
-                </div>
-              </button>`).join('')}`).join('')}`).join('')}</div>
-      </div>
+  const observed = DATA.flows.filter((f) => f.observed).length;
+  const dotOf = (f) => (f.observed ? 'var(--primary)' : f.verified ? 'var(--ink3)' : '#D6D1CB');
+  const stateOf = (f) => (f.observed ? 'Có dữ liệu quan sát' : f.verified ? 'Có nguồn · chưa có dữ liệu' : 'Chờ nguồn');
 
-      <div class="card" style="align-self:start">
-        ${chead(flow.name, flow.owner + ' · ' + flow.version, steps.length || 0, steps.length || 0, 'bước')}
-        <div class="cbody tight">
-          <div class="note" style="margin:4px 6px 10px;font-size:12px">
-            <div class="t-lbl" style="margin-bottom:4px">Provenance</div>
-            ${flow.verified ? `Nguồn: ${esc(flow.src)}` : 'Chưa có sơ đồ nguồn — flow này được suy ra từ thảo luận, cần xác minh'}
-          </div>
-          ${steps.length ? `<div class="lst">${steps.map((s) => { const o = obs(s.id); return `
-            <button class="itm ${s.id===sid?'on':''}" onclick="setSel('atlasStep','${s.id}')">
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="mono" style="font-size:12px;color:var(--ink3)">${s.code}</span>
-                <span class="t-meta" style="color:var(--ink);font-weight:600">${esc(s.name)}</span>
-                <div class="grow"></div>${badge(o ? o.state : 'unknown')}
-              </div>
-              <div class="t-meta" style="font-size:12px;margin-top:4px">
-                <span class="mono">${esc(s.stationId)}</span> · ${esc(s.owner)}
-                ${o ? ` · evidence ${o.cov}%` : ' · chưa có quan sát'}
-              </div>
-            </button>`; }).join('')}</div>`
-          : `<div class="note warn" style="margin:6px">${badge('unknown')} <b>Chưa có dữ liệu quan sát.</b> Flow này đã được map ở mức cấu trúc nhưng chưa nằm trong pilot, nên chưa có bước, signal hay số liệu. Đây là chủ ý, không phải mất dữ liệu.</div>`}
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:36ch;margin-bottom:8px">${DATA.flows.length} flow trên 7 phase, ${observed} flow đang có dữ liệu quan sát.</h1>
+    <p class="t-meta" style="max-width:88ch;margin:0 0 16px">Chọn phase ở hàng trên, chọn flow ở hàng dưới, rồi đọc chuỗi bước theo chiều ngang. Bề dày dải nối cho biết <b>còn bao nhiêu khách đi tiếp</b>; vạch đỏ cho biết <b>rơi bao nhiêu ở bước trước đó</b>.</p>
+
+    <div class="prail">${DATA.phases.map((p) => {
+      const fl = DATA.flows.filter((f) => phaseOf(f) === p.id);
+      return `<button class="${p.id === pid ? 'on' : ''}" onclick="setAtlasPhase('${p.id}')"
+              title="${esc(p.name)} · ${fl.length} flow">
+        <div class="pc">${p.code}</div>
+        <div class="pn">${esc(p.name)}</div>
+        <div class="pd">${fl.map((f) => `<i style="background:${dotOf(f)}"></i>`).join('')}<span>${fl.length} flow</span></div>
+      </button>`;
+    }).join('')}</div>
+
+    <div class="card" style="margin-bottom:14px">
+      ${chead(DATA.phases.find((p) => p.id === pid).code + ' · ' + DATA.phases.find((p) => p.id === pid).name,
+              'Chọn một flow để mở chuỗi bước',
+              DATA.flows.filter((f) => phaseOf(f) === pid).length, DATA.flows.length, 'flow')}
+      <div class="cbody tight" style="padding:13px 15px">
+        <div class="frail">${DATA.groups.filter((g) => g.phaseId === pid).map((g) => `
+          <div>
+            <div class="t-lbl" style="margin-bottom:6px">${esc(g.name)}</div>
+            <div class="fchips">${DATA.flows.filter((f) => f.groupId === g.id).map((f) => `
+              <button class="${f.id === fid ? 'on' : ''}" onclick="setAtlas('${f.id}')" title="${esc(stateOf(f))}">
+                <i style="background:${dotOf(f)}"></i>${esc(f.name)}
+              </button>`).join('')}</div>
+          </div>`).join('')}</div>
+        <div class="t-meta" style="font-size:12px;margin-top:11px;display:flex;gap:15px;flex-wrap:wrap">
+          <span><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--primary)"></i> có dữ liệu quan sát</span>
+          <span><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ink3)"></i> có sơ đồ nguồn, chưa đo</span>
+          <span><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#D6D1CB"></i> chờ nguồn</span>
         </div>
       </div>
-
-      <div>${sid && steps.length ? stepInspector(sid) : `<div class="card"><div class="empty">Chọn một flow thuộc pilot để xem chi tiết bước, signal và độ phủ dữ liệu.</div></div>`}</div>
     </div>
+
+    <div class="card" style="margin-bottom:14px">
+      ${chead(flow.name, flow.owner + ' · ' + flow.version + ' · ' + (flow.verified ? 'Nguồn: ' + flow.src : 'chưa có sơ đồ nguồn, cần xác minh'),
+              steps.length, steps.length || 0, 'bước')}
+      <div class="cbody">${steps.length ? journeySpine(steps, sid) : `
+        <div class="note warn">${badge('unknown')} <b>Chưa có dữ liệu quan sát.</b> Flow này đã được map ở mức cấu trúc nhưng chưa nằm trong pilot, nên chưa có bước, signal hay số liệu. Đây là chủ ý, không phải mất dữ liệu.
+          <div style="margin-top:8px">Muốn đo flow này thì cần: xác minh sơ đồ nguồn → khai báo bước và <span class="mono">stationId</span> → instrument signal → chọn chỉ số theo dõi ở màn <a href="#/rules">Chỉ số &amp; ngưỡng</a>.</div>
+        </div>`}
+      </div>
+    </div>
+
+    ${sid && steps.length ? stepInspector(sid) : ''}
   </div>`;
 };
 
+/* Xương sống hành trình. Vẽ bằng flexbox: mỗi bước một thẻ, giữa hai thẻ là
+   một dải nối cao theo tỷ lệ khách còn lại so với bước đầu (`base`). */
+function journeySpine(steps, sid) {
+  const H = 112; /* px ứng với 100% khách của bước đầu */
+  const base = obs(steps[0].id).entered;
+  const last = obs(steps[steps.length - 1].id);
+  const lostAll = base - last.completed;
+  const worst = steps.slice().sort((a, b) => obs(b.id).failed - obs(a.id).failed)[0];
+
+  const node = (s) => {
+    const o = obs(s.id), st = stepState(o);
+    const tone = st === 'crit' ? 'var(--crit)' : st === 'watch' ? 'var(--watch)' : 'var(--good)';
+    return `<button class="sn ${st} ${s.id === sid ? 'on' : ''}" onclick="setSel('atlasStep','${s.id}')"
+            title="${esc(s.name)} — ${esc(stepWhy(o))}">
+      <div class="sc">${s.code} · ${esc(s.stationId)}</div>
+      <div class="snm">${esc(s.name)}</div>
+      <div class="sv">${nf(fx(o.completed))}</div>
+      <div class="sl">hoàn tất / ${nf(fx(o.entered))} vào</div>
+      <div class="smeter"><i style="width:${o.cov}%;background:${o.cov < CFG.step.covMin ? 'var(--watch)' : 'var(--ink3)'}"></i></div>
+      <div class="sl">Evidence ${o.cov}% · ↻ ${String(o.effort).replace('.', ',')} lần thử</div>
+      <div style="margin-top:9px">${badge(st)}</div>
+    </button>`;
+  };
+
+  /* Khung dải cao CỐ ĐỊNH bằng H để mọi nhãn % nằm cùng một cao độ; chỉ phần
+     tô bên trong thay đổi. Nếu để khung co theo dữ liệu thì các nhãn lệch nhau
+     và trông như lỗi trình bày chứ không như một cái phễu. */
+  const conn = (i) => {
+    const o = obs(steps[i].id), nx = obs(steps[i + 1].id);
+    const lost = o.entered - nx.entered;
+    const passPx = Math.max(4, (nx.entered / base) * H);
+    const lossPx = Math.max(3, (lost / base) * H);
+    return `<div class="cx" title="Rơi tại bước ${steps[i].code}: ${nf(fx(lost))} khách · ${pv(lost, o.entered)}% người vào bước đó · chiếm ${pv(lost, lostAll)}% tổng số rơi của flow">
+      <div class="cxband" style="height:${H}px">
+        <div class="cxpass" style="height:${passPx}px"></div>
+        <div class="cxloss" style="top:${passPx}px;height:${lossPx}px"></div>
+      </div>
+      <div class="cxlbl"><b>−${pv(lost, o.entered)}%</b><span>${nf(fx(lost))} rơi</span></div>
+    </div>`;
+  };
+
+  return `<div class="spine">${steps.map((s, i) =>
+      node(s) + (i < steps.length - 1 ? conn(i) : '')).join('')}</div>
+    <div class="note" style="margin-top:15px">
+      <b>Đọc theo chiều ngang:</b> ${nf(fx(base))} khách vào bước ${steps[0].code}, còn ${nf(fx(last.completed))} hoàn tất bước ${steps[steps.length - 1].code}
+      — mất ${nf(fx(lostAll))} người (${pv(lostAll, base)}%). Riêng bước ${worst.code} ${esc(worst.name)} chiếm ${pv(obs(worst.id).failed, lostAll)}% tổng số rơi.
+      <div class="t-meta" style="font-size:12px;margin-top:7px">Bề dày dải xám = số khách còn đi tiếp so với bước đầu · vạch đỏ gạch chéo = phần rơi ra tại bước bên trái · thanh mảnh trong mỗi thẻ = evidence coverage.
+      Nhãn trạng thái suy ra từ ngưỡng đang đặt ở <a href="#/rules">Chỉ số &amp; ngưỡng</a> (thất bại ≥ ${CFG.step.failWatch}% cần theo dõi, ≥ ${CFG.step.failCrit}% cần xử lý).</div>
+    </div>`;
+}
+
+/* Hồ sơ một bước. Ba tab thay cho một cột dọc dài — mỗi tab trả lời đúng một
+   câu hỏi. Không còn khối "ảnh hưởng nếu thay đổi bước này". */
 function stepInspector(sid) {
-  const s = step(sid), o = obs(sid);
+  const s = step(sid), o = obs(sid), st = stepState(o);
+  const tab = ST.sub.atlasTab || 'sig';
+  const TABS = [['sig', 'Touchpoint & signal'], ['met', 'Chỉ số liên kết'], ['cov', 'Độ phủ dữ liệu']];
   const tps = DATA.touchpoints.filter((t) => t.stepId === sid);
   const sgs = DATA.signals.filter((g) => tps.some((t) => t.id === g.tpId));
   const SG = { live:['ok','Đang đo'], validating:['watch','Đang validate'], designed:['watch','Đã có spec, chưa implement'], gap:['unknown','Chưa đo (gap)'] };
   const mIds = [...new Set(sgs.flatMap((g) => g.metrics))];
   const gaps = sgs.filter((g) => g.st === 'gap' || g.st === 'designed');
-  const laterSteps = DATA.steps.filter((x) => x.flowId === s.flowId && x.code > s.code);
+  const relIss = DATA.iss.filter((i) => i.step === sid);
+
   return `<div class="card">
-    ${chead('Bước ' + s.code + ' · ' + s.name, 'Touchpoint, signal, độ phủ dữ liệu và blast radius', sgs.length, DATA.signals.length, 'signal')}
-    <div class="cbody">
-      <div class="grid g4" style="margin-bottom:16px">
+    ${chead('Bước ' + s.code + ' · ' + s.name, esc(s.stationId) + ' · phụ trách ' + esc(s.owner), sgs.length, DATA.signals.length, 'signal',
+      `<div class="denom">${badge(st)}<br>${period().range}</div>`)}
+    <div class="cbody" style="padding-bottom:6px">
+      <div class="grid g4">
         ${stat('Vào bước', nf(fx(o.entered)), '', '')}
-        ${stat('Hoàn tất', nf(fx(o.completed)), pct(o.completed, o.entered) + '%', '')}
-        ${stat('Thất bại', nf(fx(o.failed)), pct(o.failed, o.entered) + '%', '', o.state === 'crit' ? 'var(--crit)' : undefined)}
-        ${stat('Evidence coverage', o.cov + '%', o.cov < 70 ? 'Dưới ngưỡng 70%' : 'Đạt ngưỡng', '', o.cov < 70 ? 'var(--watch)' : undefined)}
+        ${stat('Hoàn tất', nf(fx(o.completed)), pv(o.completed, o.entered) + '%', '')}
+        ${stat('Thất bại', nf(fx(o.failed)), pv(o.failed, o.entered) + '% người vào bước', '', st === 'crit' ? 'var(--crit)' : undefined)}
+        ${stat('Evidence coverage', o.cov + '%', o.cov < CFG.step.covMin ? `Dưới ngưỡng ${CFG.step.covMin}%` : `Đạt ngưỡng ${CFG.step.covMin}%`, '', o.cov < CFG.step.covMin ? 'var(--watch)' : undefined)}
       </div>
-
-      <div class="t-lbl" style="margin-bottom:8px">Touchpoint (${tps.length})</div>
-      ${tps.map((t) => `<div class="note" style="margin-bottom:8px">
-        <div style="display:flex;align-items:center;gap:8px"><b style="font-size:13.5px;color:var(--ink)">${esc(t.name)}</b><span class="chip">${esc(t.channel)}</span>
-        <div class="grow"></div><span class="t-meta">${nf(fx(t.users))} khách / kỳ</span></div>
-        <div style="margin-top:5px">${esc(t.desc)} · phụ trách ${esc(t.owner)}</div></div>`).join('')}
-
-      <div class="t-lbl" style="margin:15px 0 8px">Signal — đây là nơi độ phủ dữ liệu sống</div>
-      <table><thead><tr><th>Event</th><th>Nguồn</th><th>Platform</th><th>Volume/ngày</th><th>Lần thấy cuối</th><th>Trạng thái</th></tr></thead>
-      <tbody>${sgs.map((g) => `<tr>
-        <td><code class="mono" style="font-size:12px;color:var(--primary)">${esc(g.name)}</code><div class="t-meta" style="font-size:12px;margin-top:3px">${esc(g.desc)}</div></td>
-        <td class="t-meta">${g.es === 'server' ? 'server' : 'client'}</td>
-        <td class="t-meta">${g.pf.join(', ')}</td>
-        <td><b class="num">${g.vol ? nf(g.vol) : '—'}</b></td>
-        <td class="t-meta">${g.seen || '<span style="color:var(--ink3)">chưa từng</span>'}</td>
-        <td>${badge(SG[g.st][0], SG[g.st][1])}</td>
-      </tr>`).join('')}</tbody></table>
-
-      <div class="t-lbl" style="margin:16px 0 8px">Metric liên kết</div>
-      <div style="display:grid;gap:8px">${mIds.map((mid) => { const m = metric(mid); return `
-        <div class="note"><div style="display:flex;align-items:center;gap:9px">
-          <b style="font-size:13.5px;color:var(--ink)">${esc(m.name)}</b>${badge(m.state)}
-          <div class="grow"></div><b class="num">${esc(m.value)}</b><span class="t-meta">/ ${esc(m.target)}</span></div>
-          <div style="margin-top:6px;font-size:12px">Grain ${esc(m.grain)} · ${esc(m.formula)} · ${esc(m.freshness)} · ${esc(m.owner)}</div>
-        </div>`; }).join('')}</div>
-
-      <div class="t-lbl" style="margin:16px 0 8px">Ảnh hưởng nếu thay đổi bước này</div>
-      <div class="note ${gaps.length ? 'warn' : ''}">
-        <div><b>Metric mất tín hiệu:</b> ${mIds.map((x) => esc(metric(x).name)).join(', ')}</div>
-        <div style="margin-top:6px"><b>Platform phải sửa:</b> ${[...new Set(sgs.flatMap((g) => g.pf))].join(', ')}</div>
-        <div style="margin-top:6px"><b>Bước phía sau bị kéo theo:</b> ${laterSteps.length ? laterSteps.map((x) => x.code + ' ' + esc(x.name)).join(' · ') : 'không có'}</div>
-        ${gaps.length ? `<div style="margin-top:8px">⚠ ${gaps.length} signal chưa hoạt động (${gaps.map((g) => esc(g.name)).join(', ')}) — nếu đổi bước này mà chưa instrument, ta sẽ <b>không đo được</b> tác động của chính thay đổi đó.</div>` : ''}
+      <div class="note ${st === 'crit' ? 'crit' : st === 'watch' ? 'warn' : ''}" style="margin-top:13px">
+        <b>Vì sao gắn nhãn “${ST_LABEL[st]}”:</b> ${esc(stepWhy(o))}.
+        ${relIss.length ? ` Đang có ${relIss.length} điểm gãy mở tại bước này: ${relIss.map((i) => `<a href="#/issue/${i.id}" class="mono">${i.id}</a>`).join(' · ')}.` : ''}
       </div>
     </div>
+    <div class="tabs">${TABS.map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" onclick="setSub('atlasTab','${k}')">${l}</button>`).join('')}</div>
+    <div class="cbody">${
+      tab === 'sig' ? `
+        <div class="t-lbl" style="margin-bottom:8px">Touchpoint (${tps.length})</div>
+        ${tps.map((t) => `<div class="note" style="margin-bottom:9px">
+          <div style="display:flex;align-items:center;gap:8px"><b style="font-size:13.5px;color:var(--ink)">${esc(t.name)}</b><span class="chip">${esc(t.channel)}</span>
+          <div class="grow"></div><span class="t-meta">${nf(fx(t.users))} khách / kỳ</span></div>
+          <div style="margin-top:5px">${esc(t.desc)} · phụ trách ${esc(t.owner)}</div></div>`).join('')}
+        <div class="t-lbl" style="margin:15px 0 8px">Signal đang gắn vào bước này</div>
+        <table><thead><tr><th>Event</th><th>Nguồn</th><th>Platform</th><th>Volume/ngày</th><th>Lần thấy cuối</th><th>Trạng thái</th></tr></thead>
+        <tbody>${sgs.map((g) => `<tr>
+          <td><code class="mono" style="font-size:12px;color:var(--primary)">${esc(g.name)}</code><div class="t-meta" style="font-size:12px;margin-top:3px">${esc(g.desc)}</div></td>
+          <td class="t-meta">${g.es === 'server' ? 'server' : 'client'}</td>
+          <td class="t-meta">${g.pf.join(', ')}</td>
+          <td><b class="num">${g.vol ? nf(g.vol) : '—'}</b></td>
+          <td class="t-meta">${g.seen || '<span style="color:var(--ink3)">chưa từng</span>'}</td>
+          <td>${badge(SG[g.st][0], SG[g.st][1])}</td>
+        </tr>`).join('')}</tbody></table>`
+      : tab === 'met' ? `
+        <div class="t-meta" style="margin-bottom:11px">Ngưỡng của từng chỉ số đặt ở màn <a href="#/rules">Chỉ số &amp; ngưỡng</a> — bảng dưới đọc trực tiếp từ đó.</div>
+        <div style="display:grid;gap:9px">${mIds.map((mid) => { const m = metric(mid), c = CFG.metric[mid], d = mdir(m); return `
+          <div class="note"><div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+            <b style="font-size:13.5px;color:var(--ink)">${esc(m.name)}</b>${metricBadge(m)}
+            <div class="grow"></div><b class="num">${esc(m.value)}</b><span class="t-meta">mục tiêu ${esc(m.target)}</span></div>
+            <div style="margin-top:7px;font-size:12px">${c && c.on
+              ? `Ngưỡng đang áp: cần theo dõi khi ${d === 'down' ? 'vượt' : 'dưới'} <b>${String(c.watch).replace('.', ',')}</b>, cần xử lý khi ${d === 'down' ? 'vượt' : 'dưới'} <b>${String(c.crit).replace('.', ',')}</b>`
+              : 'Chỉ số này đang <b>không được theo dõi</b> — vẫn tính và hiện số, nhưng không gắn nhãn trạng thái và không vào cảnh báo.'}</div>
+            <div style="margin-top:5px;font-size:12px;color:var(--ink3)">Grain ${esc(m.grain)} · ${esc(m.formula)} · ${esc(m.freshness)} · ${esc(m.owner)}</div>
+          </div>`; }).join('')}</div>`
+      : `
+        <div class="grid g2" style="margin-bottom:14px">
+          ${stat('Evidence coverage', o.cov + '%', `Ngưỡng tối thiểu ${CFG.step.covMin}%`, 'Mobile SDK event registry', o.cov < CFG.step.covMin ? 'var(--watch)' : undefined)}
+          ${stat('Signal chưa hoạt động', String(gaps.length), gaps.length ? 'Chưa instrument hoặc chỉ có spec' : 'Đủ signal', '')}
+        </div>
+        ${o.cov < CFG.step.covMin
+          ? `<div class="note warn"><b>Còn ${100 - o.cov}% trường hợp thất bại chưa biết lý do.</b> Thấy được số người rớt, nhưng không đọc được nguyên nhân cho phần lớn trong đó — nên mọi giả thuyết về bước này còn yếu bằng chứng.</div>`
+          : `<div class="note"><b>Độ phủ đạt ngưỡng.</b> Phần lớn trường hợp thất bại ở bước này có reason code đọc được.</div>`}
+        ${gaps.length ? `
+          <div class="t-lbl" style="margin:15px 0 8px">Signal đang thiếu</div>
+          <div class="lst" style="border:1px solid var(--line);border-radius:10px">${gaps.map((g) => `
+            <div style="padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+                ${badge(SG[g.st][0], SG[g.st][1])}
+                <code class="mono" style="font-size:12px;color:var(--primary)">${esc(g.name)}</code>
+                <div class="grow"></div><span class="t-meta">${g.pf.join(', ')}</span>
+              </div>
+              <div class="t-meta" style="margin-top:6px">${esc(g.desc)}</div>
+            </div>`).join('')}</div>` : ''}
+        <div class="note" style="margin-top:13px;font-size:12px">Độ phủ dữ liệu là thuộc tính của <b>bước</b>, không phải một màn riêng — nên nó sống ở đây, cạnh chính bước đang xét.</div>`
+    }</div>
   </div>`;
 }
 
 /* ---------- Nguồn tín hiệu ---------- */
 V.sources = () => {
-  const bad = DATA.sources.filter((s) => s.health !== 'ok');
-  const H = { ok:['ok','Đang nhận'], stale:['watch','Trễ hơn thoả thuận'], down:['crit','Ngừng gửi'] };
-  const sorted = DATA.sources.slice().sort((a, b) => (a.health === 'ok' ? 1 : 0) - (b.health === 'ok' ? 1 : 0));
+  const bad = DATA.sources.filter((s) => sourceHealth(s) !== 'ok');
+  const hurt = [...new Set(bad.flatMap((s) => s.metrics))];
+  const H = { ok:['ok','Đang nhận'], stale:['watch','Trễ hơn SLA'], down:['crit','Ngừng gửi'] };
+  const sorted = DATA.sources.slice().sort((a, b) => (sourceHealth(a) === 'ok' ? 1 : 0) - (sourceHealth(b) === 'ok' ? 1 : 0));
   return `<div class="wrap">
-    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">${bad.length} trong ${DATA.sources.length} nguồn đang có vấn đề, và điều đó làm sai 2 metric.</h1>
-    <p class="t-meta" style="max-width:84ch;margin:0 0 18px">Cột cuối trả lời câu quan trọng nhất của màn này: <b>nguồn này chết thì số nào sai</b>. Không có cột đó thì source health chỉ là thông tin kỹ thuật.</p>
+    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">${bad.length} trong ${DATA.sources.length} nguồn đang có vấn đề, và điều đó làm sai ${hurt.length} chỉ số.</h1>
+    <p class="t-meta" style="max-width:84ch;margin:0 0 18px">Cột cuối trả lời câu quan trọng nhất của màn này: <b>nguồn này chết thì số nào sai</b>. Không có cột đó thì source health chỉ là thông tin kỹ thuật. SLA độ tươi của từng nguồn đặt ở <a href="#/rules">Chỉ số &amp; ngưỡng</a>.</p>
     <div class="card">
       ${chead('Nguồn tín hiệu', 'Nguồn có vấn đề xếp lên đầu', DATA.sources.length, DATA.sources.length, 'nguồn')}
-      <table><thead><tr><th>Nguồn</th><th>Loại</th><th>Volume kỳ</th><th>Độ tươi</th><th>Nhận lần cuối</th><th>Trạng thái</th><th>Nguồn này sai thì metric nào sai</th></tr></thead>
-      <tbody>${sorted.map((s) => `<tr>
+      <table><thead><tr><th>Nguồn</th><th>Loại</th><th>Volume kỳ</th><th>Độ trễ / SLA</th><th>Nhận lần cuối</th><th>Trạng thái</th><th>Nguồn này sai thì metric nào sai</th></tr></thead>
+      <tbody>${sorted.map((s) => { const h = sourceHealth(s); return `<tr>
         <td><b style="font-size:13.5px">${esc(s.name)}</b><div class="t-meta" style="font-size:12px;margin-top:3px">${esc(s.note)}</div></td>
         <td class="t-meta">${esc(s.kind)}</td>
         <td><b class="num">${s.vol ? nf(fx(s.vol)) : '0'}</b></td>
-        <td class="t-meta">${esc(s.fresh)}</td>
+        <td class="t-meta"><b style="color:${h==='ok'?'var(--ink2)':'var(--crit)'}">${esc(freshLabel(s.lagH))}</b><div style="font-size:12px">SLA ${CFG.source[s.id]} giờ</div></td>
         <td class="t-meta">${esc(s.last)}</td>
-        <td>${badge(H[s.health][0], H[s.health][1])}</td>
-        <td>${s.metrics.length ? s.metrics.map((m) => `<div style="margin-bottom:4px"><span class="chip" style="${s.health!=='ok'?'color:var(--crit);border-color:currentColor':''}">${esc(metric(m).name)}</span></div>`).join('') : '<span class="t-meta">không nối metric nào</span>'}</td>
-      </tr>`).join('')}</tbody></table>
+        <td>${badge(H[h][0], H[h][1])}</td>
+        <td>${s.metrics.length ? s.metrics.map((m) => `<div style="margin-bottom:4px"><span class="chip" style="${h!=='ok'?'color:var(--crit);border-color:currentColor':''}">${esc(metric(m).name)}</span></div>`).join('') : '<span class="t-meta">không nối metric nào</span>'}</td>
+      </tr>`; }).join('')}</tbody></table>
     </div>
     <div class="note crit" style="margin-top:14px">
       <b>Hệ quả cụ thể đang xảy ra:</b> Zalo OA ngừng gửi từ 19/07 nên <b>repeat contact bị đếm thiếu</b>. Con số 24% trên bảng điều hành thấp hơn thực tế. Mọi quyết định dựa vào repeat contact trong kỳ này cần chờ backfill 8 ngày.
@@ -1823,7 +2077,7 @@ V.surveys = () => {
       </tr>`).join('')}</tbody></table>
     </div>
     <div class="note" style="margin-top:14px">
-      <b>Quy tắc cooldown toàn cục:</b> mỗi khách chịu tối đa 1 khảo sát trong 14 ngày, và luôn được phép bỏ qua. Đây là ràng buộc trong tracking plan để không làm khách mệt — hệ thống phải tự chặn, không phụ thuộc người vận hành nhớ.
+      <b>Quy tắc cooldown toàn cục:</b> mỗi khách chịu tối đa 1 khảo sát trong <b>${CFG.data.cooldown} ngày</b>, và luôn được phép bỏ qua. Đây là ràng buộc trong tracking plan để không làm khách mệt — hệ thống phải tự chặn, không phụ thuộc người vận hành nhớ. Đổi số ngày ở <a href="#/rules">Chỉ số &amp; ngưỡng</a>.
     </div>
   </div>`;
 };
@@ -1910,7 +2164,17 @@ V.agents = () => {
   const open = all.filter((f) => !SEEN[f.id]);
   return `<div class="wrap">
     <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">${open.length} cảnh báo chưa được xử lý từ 3 agent.</h1>
-    <p class="t-meta" style="max-width:86ch;margin:0 0 18px">Cả 3 agent đều <b>chỉ đọc</b>: chúng phát hiện, cảnh báo và tổng hợp, không con nào tự ghi dữ liệu hay tự gửi gì cho khách. Mọi hành động chạm khách vẫn phải qua người duyệt.</p>
+    <p class="t-meta" style="max-width:86ch;margin:0 0 14px">Cả 3 agent đều <b>chỉ đọc</b>: chúng phát hiện, cảnh báo và tổng hợp, không con nào tự ghi dữ liệu hay tự gửi gì cho khách. Mọi hành động chạm khách vẫn phải qua người duyệt.</p>
+    <div class="note bd" style="margin-bottom:18px">
+      <div class="t-lbl" style="margin-bottom:7px">Ngưỡng agent đang áp dụng</div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <span class="chip">Volume vượt baseline <b>${String(CFG.data.anomalyX).replace('.', ',')} lần</b></span>
+        <span class="chip">Nguồn im lặng <b>≥ ${CFG.data.deadDays} ngày</b> → Ngừng gửi</span>
+        <span class="chip">Trễ hơn <b>SLA riêng từng nguồn</b></span>
+        <span class="chip">Repeat contact từ <b>${CFG.data.repeatMin} lần</b></span>
+      </div>
+      <div class="t-meta" style="font-size:12px;margin-top:8px">Sửa ở <a href="#/rules">Chỉ số &amp; ngưỡng</a>. Agent không tự đặt ngưỡng cho mình — đó là quyết định của người vận hành.</div>
+    </div>
     ${DATA.ag.map((a) => {
       const o = a.f.filter((f) => !SEEN[f.id]);
       return `<div class="card" style="margin-bottom:14px">
@@ -1971,67 +2235,172 @@ V.assistant = () => {
   </div>`;
 };
 
-/* ---------- Khách hàng ---------- */
-V.customers = () => `<div class="wrap">
-    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">${DATA.cust.length} khách mẫu, mỗi khách một chuỗi tín hiệu có thể lần lại.</h1>
-    <p class="t-meta" style="max-width:86ch;margin:0 0 18px">Đây là Context Graph ở dạng nhẹ nhất: nối khách với tài khoản, bước hành trình, case và khảo sát. Toàn bộ định danh đã pseudonymize — không có tên, CCCD, số điện thoại hay email.</p>
-    <div class="card">
-      ${chead('Danh sách khách mẫu', 'Bấm để xem timeline', DATA.cust.length, DATA.cust.length, 'khách')}
-      <table><thead><tr><th>Khóa khách</th><th>Segment</th><th>Nhóm giá trị</th><th>Tài khoản</th><th>Platform</th><th>Trạng thái hiện tại</th><th>Tín hiệu</th></tr></thead>
-      <tbody>${DATA.cust.map((c) => `<tr class="clickable" onclick="go('customer/${encodeURIComponent(c.key)}')">
-        <td><span class="mono t-item">${esc(c.key)}</span></td>
-        <td class="t-meta">${esc(c.seg)}</td>
-        <td>${c.tier === 'high-value' ? '<span class="chip b">High-value</span>' : `<span class="chip">${c.tier === 'new' ? 'Khách mới' : 'Thường'}</span>`}</td>
-        <td class="mono t-meta">${esc(c.acc)}</td>
-        <td class="t-meta">${esc(c.pf)}</td>
-        <td class="t-meta" style="color:var(--ink)">${esc(c.st)}</td>
-        <td><b class="num">${c.tl.length}</b></td>
-      </tr>`).join('')}</tbody></table>
-    </div>
-  </div>`;
+/* ---------- Chỉ số & ngưỡng (màn quản trị) ----------
+   Một nơi duy nhất quyết định "thế nào là cần theo dõi, thế nào là cần xử lý".
+   Trước đây các con số này nằm rải rác trong code và trong câu văn của từng màn.
+   Mọi ô ở đây ghi thẳng vào CFG và các màn khác đọc lại ngay khi render. */
+V.rules = () => {
+  const num = (path, v, cls, suffix) => `<div style="display:flex;align-items:center;gap:6px">
+    <input class="num-in ${cls || ''}" type="text" inputmode="decimal" value="${String(v).replace('.', ',')}"
+           onchange="setCfg('${path}',this.value,'num')" aria-label="${path}">
+    ${suffix ? `<span class="t-meta" style="font-size:12px;flex:none">${suffix}</span>` : ''}</div>`;
 
-V.customer = (key) => {
-  const c = cust(decodeURIComponent(key));
-  if (!c) return `<div class="empty">Không tìm thấy khách ${esc(key)}.</div>`;
-  const K = { event:['Event','var(--ink3)'], case:['Liên hệ','var(--watch)'], survey:['Khảo sát','var(--primary)'],
-              verbatim:['Câu nói','var(--ink)'], 'action-notice':['Thông báo khép vòng','var(--good)'] };
-  const fails = c.tl.filter((t) => t.o === 'fail').length;
-  const cases = c.tl.filter((t) => t.k === 'case').length;
-  return `<div class="wrap" style="max-width:1050px">
-    <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">
-      <button class="btn sm" onclick="go('customers')">← Danh sách khách</button>
-      <span class="mono t-item">${esc(c.key)}</span>
-      ${c.tier === 'high-value' ? '<span class="chip b">High-value</span>' : `<span class="chip">${c.tier === 'new' ? 'Khách mới' : 'Thường'}</span>`}
-      <span class="chip">${esc(c.seg)}</span><span class="chip mono">${esc(c.acc)}</span><span class="chip">${esc(c.pf)}</span>
+  const stCount = (s) => DATA.steps.filter((x) => stepState(obs(x.id)) === s).length;
+  const watched = DATA.metrics.filter((m) => CFG.metric[m.id].on).length;
+  const offTarget = DATA.metrics.filter((m) => ['watch', 'crit'].indexOf(metricState(m)) > -1).length;
+  const badSrc = DATA.sources.filter((s) => sourceHealth(s) !== 'ok').length;
+  const warns = cfgIssues();
+  const priMax = (k) => Math.max(...DATA.iss.map((i) => i.pri[k]));
+
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:36ch;margin-bottom:8px">Ngưỡng đánh giá là cấu hình của người vận hành, không phải hằng số trong code.</h1>
+    <p class="t-meta" style="max-width:90ch;margin:0 0 16px">Với ngưỡng đang đặt: <b>${stCount('crit')} bước cần xử lý ngay</b>, ${stCount('watch')} bước cần theo dõi, ${stCount('ok')} bước đang kiểm soát · <b>${offTarget} trong ${watched} chỉ số</b> đang lệch mục tiêu · ${badSrc} nguồn có vấn đề. Đổi một ô bên dưới là funnel, bản đồ hành trình và bảng nguồn tô lại ngay.</p>
+
+    <div class="note ${cfgDirty() ? 'bd' : ''}" style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div style="min-width:0">${cfgDirty()
+        ? '<b>Đang dùng ngưỡng đã sửa trong phiên này.</b> Prototype không có backend nên cấu hình không lưu — refresh browser là về mặc định.'
+        : '<b>Đang dùng ngưỡng mặc định.</b> Sửa bất kỳ ô nào bên dưới để xem toàn app đổi theo. Cấu hình chỉ tồn tại trong phiên, không lưu xuống đâu cả.'}</div>
+      <div class="grow"></div>
+      <button class="btn sm" ${cfgDirty() ? '' : 'disabled style="opacity:.45;cursor:default"'} onclick="resetCfg()">↺ Trả về mặc định</button>
     </div>
-    <h1 class="t-hero" style="max-width:32ch;margin-bottom:14px">${esc(c.st)}</h1>
-    <div class="stats" style="grid-template-columns:repeat(3,1fr)">
-      ${stat('Tín hiệu ghi nhận', String(c.tl.length), 'trên toàn bộ hành trình', 'Đã pseudonymize')}
-      ${stat('Lần thất bại', String(fails), fails > 2 ? 'Vượt ngưỡng chú ý' : 'Trong ngưỡng', '', fails > 2 ? 'var(--crit)' : undefined)}
-      ${stat('Lần liên hệ hỗ trợ', String(cases), cases > 2 ? 'Repeat contact cao' : '', '', cases > 2 ? 'var(--crit)' : undefined)}
-    </div>
-    <div class="card">
-      ${chead('Timeline', 'Mới nhất ở dưới · bấm bước để mở Bản đồ hành trình', c.tl.length, c.tl.length, 'tín hiệu')}
+
+    ${warns.length ? `<div class="note crit" style="margin-bottom:16px"><b>⚠ ${warns.length} ngưỡng đang đặt ngược nhau</b> — vẫn chạy được nhưng nhãn trạng thái sẽ vô nghĩa.
+      <ul style="margin:8px 0 0;padding-left:19px">${warns.map((w) => `<li style="margin:3px 0">${esc(w)}</li>`).join('')}</ul></div>` : ''}
+
+    <div class="card" style="margin-bottom:16px">
+      ${chead('1 · Ngưỡng trạng thái của một bước hành trình', 'Áp cho mọi bước của mọi flow. Tỷ lệ thất bại là tiêu chí chính; coverage thấp hoặc effort cao thì ít nhất phải Cần theo dõi.', 4, 4, 'ngưỡng')}
       <div class="cbody">
-        <div style="position:relative;padding-left:20px">
-          <div style="position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:var(--line)"></div>
-          ${c.tl.map((t) => `<div style="position:relative;margin-bottom:14px">
-            <span style="position:absolute;left:-19px;top:5px;width:11px;height:11px;border-radius:50%;border:2px solid #fff;
-              background:${t.o === 'fail' ? 'var(--crit)' : t.o === 'success' ? 'var(--good)' : 'var(--ink3)'}"></span>
-            <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-              <span class="t-meta mono" style="font-size:12px">${esc(t.at)}</span>
-              <span class="chip" style="color:${K[t.k][1]}">${K[t.k][0]}</span>
-              ${t.step ? `<a href="#/atlas" class="chip">${step(t.step).code} · ${esc(step(t.step).name)}</a>` : ''}
-              ${t.o === 'fail' ? badge('crit', 'Thất bại') : ''}
-            </div>
-            <div class="t-body" style="margin-top:5px">${t.k === 'verbatim' ? '“' + esc(t.l) + '”' : esc(t.l)}</div>
-            <div class="t-meta" style="font-size:12px;margin-top:3px"><span class="mono">${esc(t.ref)}</span></div>
-          </div>`).join('')}
+        <div class="cfgrid" style="grid-template-columns:minmax(0,1fr) 150px">
+          <div class="cfl"><b>Cần theo dõi khi tỷ lệ thất bại đạt</b><span>failed ÷ entered của bước</span></div>
+          ${num('step.failWatch', CFG.step.failWatch, 'w', '%')}
+          <div class="cfl"><b>Cần xử lý ngay khi tỷ lệ thất bại đạt</b><span>phải cao hơn ngưỡng theo dõi</span></div>
+          ${num('step.failCrit', CFG.step.failCrit, 'c', '%')}
+          <div class="cfl"><b>Evidence coverage tối thiểu</b><span>dưới mức này thì dù thất bại ít vẫn phải theo dõi — thấy rớt mà không biết vì sao</span></div>
+          ${num('step.covMin', CFG.step.covMin, '', '%')}
+          <div class="cfl"><b>Effort tối đa cho phép</b><span>số lần thử trung bình mỗi khách tại một bước</span></div>
+          ${num('step.effortMax', CFG.step.effortMax, '', 'lần')}
         </div>
+        <div class="hr"></div>
+        <div class="t-lbl" style="margin-bottom:9px">Kết quả áp lên 6 bước của pilot ngay lúc này</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px">${DATA.steps.map((s) => { const o = obs(s.id); return `
+          <div class="note ${stepState(o) === 'crit' ? 'crit' : stepState(o) === 'watch' ? 'warn' : ''}" style="min-width:0">
+            <div style="display:flex;align-items:center;gap:8px"><span class="mono" style="font-size:12px;color:var(--ink3)">${s.code}</span>
+              <b style="font-size:13px">${esc(s.name)}</b><div class="grow"></div>${badge(stepState(o))}</div>
+            <div class="t-meta" style="font-size:12px;margin-top:5px">${esc(stepWhy(o))}</div>
+          </div>`; }).join('')}</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      ${chead('2 · Chỉ số đang theo dõi', 'Mỗi chỉ số có band riêng — không dùng một ngưỡng chung cho tất cả. Tắt công tắc thì vẫn tính và hiện số, nhưng không gắn nhãn trạng thái và không vào cảnh báo.', watched, DATA.metrics.length, 'chỉ số đang theo dõi')}
+      <table>
+        <thead><tr><th>Chỉ số</th><th>Theo dõi</th><th>Giá trị</th><th>Mục tiêu</th><th>Cần theo dõi khi</th><th>Cần xử lý khi</th><th>Trạng thái</th></tr></thead>
+        <tbody>${DATA.metrics.map((m) => { const c = CFG.metric[m.id], d = mdir(m), w = d === 'down' ? 'vượt' : 'dưới'; return `<tr>
+          <td><b style="font-size:13.5px">${esc(m.name)}</b>
+            <div class="t-meta" style="font-size:12px;margin-top:3px">${esc(m.grain)}</div>
+            <div class="t-meta" style="font-size:12px;margin-top:2px">${esc(m.source)} · ${esc(m.freshness)} · ${esc(m.owner)}</div></td>
+          <td><label class="sw"><input type="checkbox" ${c.on ? 'checked' : ''} onchange="setCfg('metric.${m.id}.on',this.checked,'bool')"></label></td>
+          <td><b class="num" style="font-size:15px">${esc(m.value)}</b></td>
+          <td class="t-meta">${esc(m.target)}</td>
+          <td style="width:150px">${c.on ? `<div class="t-meta" style="font-size:12px;margin-bottom:4px">${w}</div>${num('metric.' + m.id + '.watch', c.watch, 'w', m.unit === '%' ? '%' : '')}` : '<span class="t-meta">—</span>'}</td>
+          <td style="width:150px">${c.on ? `<div class="t-meta" style="font-size:12px;margin-bottom:4px">${w}</div>${num('metric.' + m.id + '.crit', c.crit, 'c', m.unit === '%' ? '%' : '')}` : '<span class="t-meta">—</span>'}</td>
+          <td>${metricBadge(m)}</td>
+        </tr>`; }).join('')}</tbody>
+      </table>
+      <div class="cbody" style="padding-top:13px"><div class="note" style="font-size:12px">Hướng so sánh suy ra từ dấu trong mục tiêu: <span class="mono">≥</span> là càng cao càng tốt, <span class="mono">≤</span> là càng thấp càng tốt. Repeat contact dùng <span class="mono">≤</span> nên ngưỡng đọc theo chiều “vượt”.</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      ${chead('3 · SLA độ tươi từng nguồn', 'Crawl store 1 lần/ngày không thể chấm cùng SLA với event stream — nên SLA đặt theo từng nguồn.', DATA.sources.length, DATA.sources.length, 'nguồn')}
+      <table>
+        <thead><tr><th>Nguồn</th><th>Loại</th><th>Độ trễ hiện tại</th><th>SLA cho phép</th><th>Trạng thái suy ra</th><th>Chỉ số bị ảnh hưởng nếu nguồn sai</th></tr></thead>
+        <tbody>${DATA.sources.map((s) => { const h = sourceHealth(s); return `<tr>
+          <td><b style="font-size:13.5px">${esc(s.name)}</b></td>
+          <td class="t-meta">${esc(s.kind)}</td>
+          <td><b class="num" style="color:${h === 'ok' ? 'var(--ink)' : 'var(--crit)'}">${esc(freshLabel(s.lagH))}</b></td>
+          <td style="width:150px">${num('source.' + s.id, CFG.source[s.id], '', 'giờ')}</td>
+          <td>${badge(h === 'ok' ? 'ok' : h === 'stale' ? 'watch' : 'crit', h === 'ok' ? 'Đang nhận' : h === 'stale' ? 'Trễ hơn SLA' : 'Ngừng gửi')}</td>
+          <td>${s.metrics.length ? s.metrics.map((m) => `<span class="chip">${esc(metric(m).name)}</span>`).join(' ') : '<span class="t-meta">không nối chỉ số nào</span>'}</td>
+        </tr>`; }).join('')}</tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      ${chead('4 · Ngưỡng nền dữ liệu và cảnh báo', 'Dùng cho agent, khảo sát và cách tô đỏ trên hồ sơ điểm gãy.', 6, 6, 'ngưỡng')}
+      <div class="cbody">
+        <div class="cfgrid" style="grid-template-columns:minmax(0,1fr) 150px minmax(0,1fr) 150px">
+          <div class="cfl"><b>Nguồn im lặng bao lâu thì coi là Ngừng gửi</b><span>Quality Monitor dùng ngưỡng này</span></div>
+          ${num('data.deadDays', CFG.data.deadDays, '', 'ngày')}
+          <div class="cfl"><b>Volume vượt baseline bao nhiêu lần thì cảnh báo</b><span>baseline tính trên 30 ngày</span></div>
+          ${num('data.anomalyX', CFG.data.anomalyX, '', 'lần')}
+          <div class="cfl"><b>Cooldown khảo sát toàn cục</b><span>mỗi khách tối đa 1 khảo sát trong khoảng này</span></div>
+          ${num('data.cooldown', CFG.data.cooldown, '', 'ngày')}
+          <div class="cfl"><b>Từ bao nhiêu lần liên hệ thì tính là repeat contact</b><span>cùng một chủ đề, trong 7 ngày</span></div>
+          ${num('data.repeatMin', CFG.data.repeatMin, '', 'lần')}
+          <div class="cfl"><b>Repeat contact của điểm gãy vượt mức nào thì tô đỏ</b><span>hiển thị trên tab Ảnh hưởng</span></div>
+          ${num('data.repeatWarn', CFG.data.repeatWarn, 'c', '%')}
+          <div class="cfl"><b>Số khách có tín hiệu churn vượt mức nào thì tô đỏ</b><span>hiển thị trên tab Ảnh hưởng</span></div>
+          ${num('data.churnWarn', CFG.data.churnWarn, 'c', 'khách')}
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      ${chead('5 · Bản tin định kỳ và kênh nhận', 'Ai nhận bảng nào, tần suất nào, gửi qua đâu.', DATA.dash.filter((d) => CFG.sub[d.id].f !== 'off').length, DATA.dash.length, 'bản tin đang bật')}
+      <table>
+        <thead><tr><th>Bảng</th><th>Vai nhận</th><th>Tần suất</th><th>Kênh</th></tr></thead>
+        <tbody>${DATA.dash.map((d) => `<tr>
+          <td><b style="font-size:13.5px">${esc(d.name)}</b><div class="t-meta" style="font-size:12px;margin-top:3px">${esc(d.desc)}</div></td>
+          <td class="t-meta">${esc(d.role)}</td>
+          <td><select class="sel-in" onchange="setCfg('sub.${d.id}.f',this.value)">
+            ${[['off','Không gửi'],['daily','Hằng ngày'],['weekly','Hằng tuần'],['monthly','Hằng tháng']]
+              .map(([v, l]) => `<option value="${v}" ${CFG.sub[d.id].f === v ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
+          <td><select class="sel-in" ${CFG.sub[d.id].f === 'off' ? 'disabled' : ''} onchange="setCfg('sub.${d.id}.ch',this.value)">
+            ${SUB_CH.map((v) => `<option value="${v}" ${CFG.sub[d.id].ch === v ? 'selected' : ''}>${v}</option>`).join('')}</select></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      ${chead('6 · Mô hình xếp ưu tiên điểm gãy', 'Chỉ đọc trong prototype — trọng số là quyết định của CX Council, không phải cấu hình vận hành hằng ngày.', 6, 6, 'thành phần')}
+      <div class="cbody">
+        <table>
+          <thead><tr><th>Thành phần</th><th>Trả lời câu hỏi gì</th><th>Điểm cao nhất đang ghi nhận</th></tr></thead>
+          <tbody>${[
+            ['sev', 'Mức nghiêm trọng', 'Hậu quả với khách nặng tới đâu'],
+            ['aff', 'Số khách bị ảnh hưởng', 'Bao nhiêu khách unique gặp phải'],
+            ['jc', 'Mức quan trọng của bước', 'Bước này chặn cả hành trình hay không'],
+            ['rep', 'Liên hệ lặp lại', 'Khách phải hỏi lại bao nhiêu lần'],
+            ['tr', 'Xu hướng', 'Đang xấu đi hay đang cải thiện'],
+            ['reg', 'Rủi ro pháp lý / tuân thủ', 'Có hệ quả với cơ quan quản lý hay không'],
+          ].map(([k, l, q]) => `<tr>
+            <td><b style="font-size:13.5px">${l}</b></td>
+            <td class="t-meta">${q}</td>
+            <td><b class="num">${priMax(k)}</b></td>
+          </tr>`).join('')}</tbody>
+        </table>
+        <div class="note" style="margin-top:14px">Rủi ro pháp lý là thành phần đặc thù ngành chứng khoán — một lỗi eKYC có hệ quả tuân thủ khác một lỗi giao diện, dù cùng số khách bị ảnh hưởng. Đây là lý do không nên để trọng số này sửa được như một ngưỡng vận hành.</div>
       </div>
     </div>
   </div>`;
 };
+
+/* Kiểm tra ngưỡng có đặt ngược nhau không. Đây KHÔNG phải lỗi fixture nên
+   không dùng banner đỏ toàn app — cảnh báo hiện ngay trong màn cấu hình. */
+function cfgIssues() {
+  const e = [];
+  if (CFG.step.failCrit <= CFG.step.failWatch)
+    e.push(`Bước: ngưỡng cần xử lý (${CFG.step.failCrit}%) phải cao hơn ngưỡng cần theo dõi (${CFG.step.failWatch}%).`);
+  DATA.metrics.forEach((m) => {
+    const c = CFG.metric[m.id];
+    if (!c.on) return;
+    if (mdir(m) === 'down' && c.crit <= c.watch)
+      e.push(`${m.name}: mục tiêu là càng thấp càng tốt, nên ngưỡng cần xử lý (${c.crit}) phải cao hơn ngưỡng cần theo dõi (${c.watch}).`);
+    if (mdir(m) === 'up' && c.crit >= c.watch)
+      e.push(`${m.name}: mục tiêu là càng cao càng tốt, nên ngưỡng cần xử lý (${c.crit}) phải thấp hơn ngưỡng cần theo dõi (${c.watch}).`);
+  });
+  return e;
+}
 
 /* ==========================================================================
    ===== 4. SHELL, ROUTER, TOUR =====
@@ -2095,7 +2464,39 @@ function setPeriod(v) { ST.period = v; render(); }
 function setScope(v)  { ST.scope = v; render(); }
 function setSub(k, v) { ST.sub[k] = v; render(); }
 function setSel(k, v) { ST.sel[k] = v; render(); }
-function setAtlas(fid){ ST.sel.atlas = fid; const s = DATA.steps.filter((x) => x.flowId === fid); ST.sel.atlasStep = s[0] ? s[0].id : null; render(); }
+function setAtlas(fid){
+  const f = byId(DATA.flows, fid);
+  ST.sel.atlas = fid;
+  ST.sel.atlasPhase = byId(DATA.groups, f.groupId).phaseId; /* rail luôn khớp flow đang xem */
+  const s = DATA.steps.filter((x) => x.flowId === fid);
+  ST.sel.atlasStep = s[0] ? s[0].id : null;
+  render();
+}
+/* Chọn phase thì nhảy luôn sang flow đầu tiên của phase đó — nếu không, rail và
+   xương sống bên dưới nói về hai chỗ khác nhau. */
+function setAtlasPhase(pid){
+  const gids = DATA.groups.filter((g) => g.phaseId === pid).map((g) => g.id);
+  const f = DATA.flows.filter((x) => gids.indexOf(x.groupId) > -1);
+  if (f.length) setAtlas(f[0].id); else { ST.sel.atlasPhase = pid; render(); }
+}
+
+/* ---------- Ghi cấu hình ngưỡng ----------
+   onchange (không phải oninput) để render lại sau khi người dùng nhập xong,
+   nếu không ô nhập mất focus giữa lúc đang gõ. */
+function setCfg(path, v, kind){
+  const parts = path.split('.');
+  let o = CFG;
+  for (let i = 0; i < parts.length - 1; i++) o = o[parts[i]];
+  const k = parts[parts.length - 1];
+  if (kind === 'num') {
+    const n = parseFloat(String(v).replace(',', '.').replace(/[^0-9.\-]/g, ''));
+    if (isNaN(n)) { render(); return; }   /* nhập rác thì bỏ qua và vẽ lại giá trị cũ */
+    o[k] = n;
+  } else if (kind === 'bool') { o[k] = !!v; }
+  else { o[k] = v; }
+  render();
+}
+function resetCfg(){ CFG = JSON.parse(JSON.stringify(CFG_DEFAULT)); render(); }
 function tog(k)       { ST.sel[k] = !ST.sel[k]; render(); }
 function setFeed(k, v){ const f = ST.sel.feed || { cat:'all', step:'all', src:'all' };
                         if (k === 'reset') ST.sel.feed = { cat:'all', step:'all', src:'all' }; else { f[k] = v; ST.sel.feed = f; } render(); }
@@ -2134,9 +2535,6 @@ function tourGo(d)   { ST.tour = Math.min(DATA.tour.length, Math.max(1, ST.tour 
 
 window.addEventListener('hashchange', route);
 route();
-</script>
-</body>
-</html>
 </script>
 </body>
 </html>

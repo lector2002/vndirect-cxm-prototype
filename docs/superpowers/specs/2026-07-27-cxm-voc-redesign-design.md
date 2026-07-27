@@ -1,7 +1,8 @@
 # CXM & VoC Platform — Redesign Design Doc
 
-> Ngày: 2026-07-27
+> Ngày: 2026-07-27 · **sửa đổi 2026-07-28** (§8, §9.5, §9.14, §9.15, §9.16)
 > Trạng thái: **đã triển khai** — bản bấm được tại `output/cxm-platform-prototype.html`
+> Sửa đổi 28/07: viết lại `/atlas`, bỏ blast radius, bỏ `/customers`, thêm `/rules`
 > Mô hình gốc: **Enterpret** (customer intelligence platform) + lớp journey/securities của VNDIRECT
 > Bản so sánh phương án kèm mockup: `output/cxm-redesign-options.html`
 
@@ -13,7 +14,7 @@ Owner chốt ngày 27/07/2026: prototype là **một file HTML tự chứa**, kh
 - **Lý do:** mục đích là gửi cho lãnh đạo xem và cho người khác sửa thêm. Một file tự chứa thì gửi qua email là chạy được, và sửa được bằng text editor.
 - **Vanilla JS, cố ý không bundle/minify.** Toàn bộ dữ liệu nằm trong object `DATA` ở đầu `<script>` kèm comment tiếng Việt, để người không phải developer sửa được nhãn, số liệu và câu nói của khách. Nếu minify thì không ai sửa nổi — mất đúng mục đích.
 - **Chart vẽ bằng SVG/CSS thuần**, không dùng thư viện. Chart đơn giản hơn, đổi lại file vẫn đọc và sửa được.
-- **Route là hash route** trong cùng một file: `#/feed`, `#/issue/CXI-021`, `#/customers/<key>`. Vẫn deep-link và share link được.
+- **Route là hash route** trong cùng một file: `#/feed`, `#/atlas`, `#/rules`, `#/issue/CXI-021`. Vẫn deep-link và share link được.
 - **`validateFixture()` chạy mỗi lần render**, lỗi hiện thành banner đỏ trên mọi màn. Đây là lưới an toàn cho người sửa file: làm đứt một liên kết thì UI nói ngay chỗ nào sai.
 
 Các đường dẫn `app/src/...` trong tài liệu này mô tả **code React cũ đang bị thay thế**, dùng để đối chiếu vấn đề. Code đó vẫn còn trong repo, chưa xóa.
@@ -66,9 +67,9 @@ Ranh giới chia pha lấy từ chính §11: **guided tour đi qua đúng 6 rout
 
 **Pha 2 — chiều sâu chứng minh platform.** Làm sau khi pha 1 được duyệt.
 
-`/atlas` · `/sources` · `/surveys` · `/taxonomy` · `/agents` · `/assistant` · `/customers`
+`/atlas` · `/sources` · `/surveys` · `/taxonomy` · `/agents` · `/assistant` · `/rules`
 
-Thứ tự trong pha 2 theo giá trị chứng minh: `/atlas` trước (đây là differentiation lớn nhất, xem §6 #1), rồi `/sources` và `/surveys` (nền dữ liệu), rồi `/customers`, cuối cùng `/taxonomy`, `/agents`, `/assistant`.
+Thứ tự trong pha 2 theo giá trị chứng minh: `/atlas` trước (đây là differentiation lớn nhất, xem §6 #1), rồi `/sources` và `/surveys` (nền dữ liệu), rồi `/rules` (§9.16 — thứ làm cho ba màn trên có nghĩa), cuối cùng `/taxonomy`, `/agents`, `/assistant`.
 
 Ba route cuối cũng là ba route được cắt đầu tiên nếu hết thời gian — trùng với mitigation ở §14 nhưng vì lý do khác: ở đây là công sức xây, ở §14 là số lượng nav item.
 
@@ -93,7 +94,7 @@ Ba route cuối cũng là ba route được cắt đầu tiên nếu hết thờ
 | **Mô hình gốc** | **Enterpret**. Lật kết luận *"should not pursue feature parity"* trong `.swarm/synthesis.md` |
 | Primitive lõi | `Feed` · `Quantify` · `Dashboard` — lấy nguyên từ Enterpret |
 | Lớp bổ sung | 8 hạng mục ở §6, trọng tâm là journey layer |
-| IA | 13 nav item / 5 nhóm + route hồ sơ dùng chung `/issue/:id` |
+| IA | 14 nav item / 5 nhóm + route hồ sơ dùng chung `/issue/:id` |
 | Theme | Cam VNDIRECT trên nền xám ấm, hướng tiết chế. Cam chỉ dùng cho tương tác & định danh |
 | Demo mode | Guided tour 6 màn, song song chế độ tự do |
 | Route bỏ | `/legacy-overview` xóa · `/coverage` gộp vào Bản đồ · `/impact` tách vào 2 nơi |
@@ -360,7 +361,8 @@ Mở rộng `validateOnboardingPilot()` thành `validateFixture()` chạy trên 
 
 ## 8. Information Architecture
 
-13 nav item, 5 nhóm, cộng route hồ sơ dùng chung.
+14 nav item, 5 nhóm, cộng route hồ sơ dùng chung `/issue/:id`.
+*(Bản 27/07 viết "13 nav item" trong khi app dựng 14 — đã sửa lại cho khớp code.)*
 
 ```
 KHÁM PHÁ                      ← gốc Enterpret, artifact primitives
@@ -384,11 +386,16 @@ NỀN DỮ LIỆU
   /taxonomy            Taxonomy              5 tầng · explainable · sửa mức record
   /agents              Agent & cảnh báo      3 agent read-only
 
-TRA CỨU
-  /customers           Khách hàng            context graph
-  /customers/:key      Timeline một khách
+QUẢN TRỊ                      ← bổ sung 28/07, xem §9.16
+  /rules               Chỉ số & ngưỡng       chọn chỉ số theo dõi · đặt band trạng thái
+
   /issue/:id           Hồ sơ điểm gãy        deep-link từ mọi nơi
 ```
+
+**Sửa đổi 28/07/2026:** nhóm `TRA CỨU` với `/customers` và `/customers/:key` **đã bỏ**. Tra cứu hồ sơ và
+timeline từng khách thuộc CRM / Customer 360; dựng lại trong CXM là tạo hệ thống tra cứu thứ hai. Phần
+còn cần cho khép vòng — *ai bị ảnh hưởng, đã liên hệ chưa* — nằm ở tab **Cohort ảnh hưởng** trong
+`/issue/:id`, dạng bảng không bấm sâu được. Số nav item giữ nguyên 14 vì `/rules` thay chỗ `/customers`.
 
 ### 8.1 Bảng chuyển đổi từ route cũ
 
@@ -399,8 +406,8 @@ TRA CỨU
 | `/board` Action Register | `/actions` |
 | `/voice` Voice Insights | Tách: theme explorer → `/quantify` + `/taxonomy`; verbatim → `/feed`; nguồn → `/sources` |
 | `/journey` | `/atlas` |
-| `/coverage` | Gộp vào cột 3 của `/atlas` |
-| `/impact` | Tách: blast radius cấu trúc → step inspector ở `/atlas`; ảnh hưởng của issue → tab trong `/issue/:id` |
+| `/coverage` | Gộp vào tab **Độ phủ dữ liệu** của step inspector ở `/atlas` |
+| `/impact` | Ảnh hưởng của issue → tab trong `/issue/:id`. Khối blast radius cấu trúc **đã bỏ 28/07** — xem §9.5 |
 | `/legacy-overview` | Xóa |
 
 Route mặc định `/` redirect sang `/dashboard` với Dashboard template của vai đang chọn.
@@ -414,7 +421,11 @@ Bốn chặng của vòng xử lý mỗi chặng sở hữu **danh sách** và *
 - `/actions` — điều phối. Kết thúc ở: *duyệt và release*
 - `/outcomes` — đánh giá. Kết thúc ở: *khép vòng hay mở lại*
 
-`/atlas`, `/customers`, `/sources` và `/issue/:id` không sở hữu danh sách quyết định nào — chúng là tra cứu.
+`/atlas`, `/sources` và `/issue/:id` không sở hữu danh sách quyết định nào — chúng là tra cứu.
+
+`/rules` là ngoại lệ: nó không thuộc vòng xử lý mà **định nghĩa luật chơi của vòng đó**. Quyết định nó
+sở hữu là *thế nào thì gọi là cần theo dõi, thế nào là cần xử lý ngay* — quyết định này phải nằm ngoài
+bốn chặng trên, nếu không mỗi màn lại tự đặt ngưỡng cho mình.
 
 ---
 
@@ -473,19 +484,42 @@ Trả lời gồm: câu kết luận + chart + bảng + citation một click v�
 
 **Yêu cầu về tính trung thực:** đây là câu trả lời **có kịch bản**, không phải AI thật. Nhãn phải ghi rõ *"Câu trả lời demo theo kịch bản"* — không dùng nhãn kiểu "AI answer · grounded" như `VoiceOfCustomer.tsx:30` hiện tại, vì đó là tuyên bố sai. Người xem demo được biết đúng những gì họ đang xem.
 
-### 9.5 `/atlas` Bản đồ hành trình
+### 9.5 `/atlas` Bản đồ hành trình — *viết lại 28/07/2026*
 
-Ba cột, hiển thị **toàn bộ** 7 phase.
+Bản ba cột trước đó có hai vấn đề thật, do owner chỉ ra khi dùng:
 
-**Cột 1 · Catalog** — phase → nhóm → flow. Mỗi flow có badge provenance: *có nguồn* (kèm `diagramRef`) hoặc *chờ nguồn*.
+1. Catalog dọc chứa cả 20 flow trong một khung `max-height:78vh; overflow:auto` — muốn tới flow ở phase 05 phải cuộn qua toàn bộ phase 01–04.
+2. Chuỗi bước là danh sách dọc, nên **tương quan giữa các bước không nhìn thấy được**. Đọc từng dòng thì biết mỗi bước mất bao nhiêu người, nhưng không thấy dòng khách teo dần dọc hành trình.
 
-**Cột 2 · Flow sequence** — các bước theo thứ tự, mỗi bước hiện canonical ID, `stationId`, trạng thái đo lường theo 4 màu §10.2.
+**Điều hướng ba nhịp ngang** thay cho ba cột:
 
-**Cột 3 · Step inspector** — touchpoint, signal (tên, status, platform, `eventSource`, volume, lần thấy cuối), KPI liên kết, metric contract, owner, version, provenance. Cộng khối **"Ảnh hưởng nếu thay đổi"**: KPI nào mất tín hiệu, platform nào phải sửa, bước nào phía sau bị kéo theo.
+1. **Rail 7 phase** — một hàng, 7 ô bằng nhau. Mỗi ô: mã phase, tên, một chấm cho mỗi flow (cam = có dữ liệu quan sát, xám = có sơ đồ nguồn chưa đo, nhạt = chờ nguồn), tổng số flow. Không cuộn.
+2. **Chip flow của phase đang chọn** — nhóm theo `JourneyGroup`, tối đa 4 chip mỗi phase nên luôn thấy hết. Chọn phase thì tự nhảy sang flow đầu tiên của phase đó; nếu không, rail và phần bên dưới đang nói về hai chỗ khác nhau.
+3. **Xương sống bước** — các bước xếp ngang, giữa hai bước là **dải nối**:
+   - bề dày dải xám = số khách còn đi tiếp, chia theo `entered` của bước đầu flow;
+   - vạch đỏ gạch chéo tách xuống dưới = phần rơi tại bước bên trái;
+   - nhãn `−X%` (theo số vào bước đó) cộng số khách rơi tuyệt đối;
+   - `title` bổ sung thông tin thứ ba mà nhãn không đủ chỗ: phần rơi này chiếm bao nhiêu **tổng số rơi của cả flow**.
 
-Đây là nơi `/coverage` sống — độ phủ dữ liệu là thuộc tính của step.
+   Khung dải cao **cố định** bằng 100% thang; chỉ phần tô bên trong thay đổi. Để khung co theo dữ liệu thì mọi nhãn `−X%` lệch cao độ nhau và trông như lỗi trình bày chứ không như một cái phễu.
 
-**Về bất đối xứng phạm vi:** bản đồ có 7 phase, vòng xử lý chỉ chạy sâu trên pilot. Đây là chủ ý. Mọi flow ngoài pilot phải có badge *"Chưa có dữ liệu quan sát"* thay vì để trống, nếu không người xem tưởng dữ liệu bị mất.
+   Dưới xương sống là một câu tự tính: *bao nhiêu vào bước đầu → bao nhiêu hoàn tất bước cuối → mất bao nhiêu → bước nào chiếm phần lớn nhất trong số rơi đó*. Đây là câu trả lời cho "tương quan", ở dạng chữ, cho người không đọc được biểu đồ.
+
+**Step inspector** nằm bên dưới, mở theo bước đang chọn, chia **3 tab** thay cho một cột dọc dài:
+
+| Tab | Trả lời |
+|---|---|
+| Touchpoint & signal | Đang đo cái gì, ở đâu, trên platform nào |
+| Chỉ số liên kết | Bước này ảnh hưởng chỉ số nào, band ngưỡng đang áp là gì (đọc từ `/rules`) |
+| Độ phủ dữ liệu | Có đủ bằng chứng để giải thích thất bại hay không |
+
+Trên phần tab là khối **"Vì sao gắn nhãn ..."** — liệt kê đúng những tiêu chí đã vượt ngưỡng, ví dụ *thất bại 16,7% ≥ ngưỡng xử lý 15% · evidence coverage 64% dưới ngưỡng 70% · effort 2,4 vượt 2 lần thử*. Tô màu mà không nói được vì sao thì người đọc không kiểm tra được.
+
+Khối **"Ảnh hưởng nếu thay đổi bước này"** (blast radius) **đã bỏ**. Lý do: nó trả lời một câu hỏi thuộc pha thiết kế thay đổi, trong khi màn này dùng để quan sát; và phần duy nhất còn giá trị vận hành — *signal nào chưa instrument* — đã nằm đúng chỗ hơn ở tab Độ phủ dữ liệu.
+
+Đây vẫn là nơi `/coverage` sống — độ phủ dữ liệu là thuộc tính của step, không phải một màn riêng.
+
+**Về bất đối xứng phạm vi:** bản đồ có 7 phase, vòng xử lý chỉ chạy sâu trên pilot. Đây là chủ ý. Mọi flow ngoài pilot phải có badge *"Chưa có dữ liệu quan sát"* kèm đúng các bước cần làm để đo được, thay vì để trống — nếu không người xem tưởng dữ liệu bị mất.
 
 ### 9.6 `/health` Sức khỏe hành trình
 
@@ -537,13 +571,23 @@ Không có merge/split node — xem §4.
 
 Ba agent read-only với trạng thái on/off và danh sách `AgentFinding` chưa acknowledge. Mỗi finding: severity, tiêu đề, chi tiết, evidence liên quan, nút acknowledge.
 
-### 9.14 `/customers` và `/customers/:key`
+### 9.14 ~~`/customers` và `/customers/:key`~~ — *đã bỏ 28/07/2026*
 
-Danh sách 6–8 khách mẫu: key, segment, valueTier, accountRef, trạng thái hiện tại, số tín hiệu.
+Hai route này **không còn**. Owner chốt: tra cứu hồ sơ và timeline từng khách là việc của CRM /
+Customer 360, và CXM dựng lại thì thành hệ thống tra cứu thứ hai cho cùng một dữ liệu — với đủ rủi ro
+quyền truy cập và masking đi kèm, mà không thêm quyết định nào cho đội CX.
 
-Timeline một khách: `TimelineEntry` trên trục thời gian dọc, mỗi entry gắn `stepId` để bấm sang `/atlas`. Thể hiện được chuỗi: *3 lần liveness fail → gọi hotline → bỏ dở → 2 ngày sau trả lời CES 2/5*.
+Phần **thực sự cần** cho close-the-loop là *ai bị ảnh hưởng* và *đã liên hệ chưa*. Nó ở tab
+**Cohort ảnh hưởng** của `/issue/:id`: 3 số neo (số khách trong cohort mẫu trên tổng bị ảnh hưởng ·
+số khách high-value cần ưu tiên · số cần liên hệ so với đã liên hệ) cộng một bảng
+`key · segment · valueTier · platform · trạng thái hiện tại`, **không bấm sâu được**.
 
-Fixture phủ: qua trót lọt · fail liveness 3 lần rồi bỏ · bỏ dở rồi quay lại hoàn tất · có gọi hotline · trả lời CES thấp. Ít hơn 6 khách không thấy pattern, nhiều hơn 8 thì fixture phình mà không thêm thông tin.
+Fixture `DATA.cust` thu lại còn đúng 5 field trên. `TimelineEntry`, `accountRef` và mảng `tl` đã xóa vì
+không còn nơi nào đọc — giữ dữ liệu chết trong một file được sửa bằng tay là mời người sau nhầm.
+
+Điều này **không** làm mất năng lực nào của vòng xử lý: chuỗi *3 lần liveness fail → gọi hotline → bỏ dở
+→ 2 ngày sau trả lời CES 2/5* vẫn kể được, nhưng kể ở nơi nó tạo ra quyết định — trong `evidence[]` của
+`/issue/:id` và trong `/feed`, chứ không phải trên một trục thời gian của một khách riêng lẻ.
 
 ### 9.15 `/issue/:id` Hồ sơ điểm gãy
 
@@ -553,7 +597,7 @@ Năm tab:
 |---|---|
 | Bằng chứng | `evidenceRefs[]` đã masking: nguồn, sourceRef, thời điểm, Category, taxonomy path, verbatim 14px, customerKey |
 | Ảnh hưởng | `impact` + breakdown `priority` + insight nguồn nếu có |
-| Khách hàng | `affectedCustomerKeys[]`, link sang timeline từng khách |
+| Cohort ảnh hưởng | `affectedCustomerKeys[]` dạng bảng, **không bấm sâu** — xem §9.14 |
 | Xử lý | `Action` đầy đủ trạng thái, **CTA thao tác được tại chỗ** |
 | Kết quả | `Outcome` + `CloseLoop` đầy đủ trạng thái, **CTA thao tác được tại chỗ** |
 
@@ -565,6 +609,57 @@ Năm tab:
 Lý do bắt buộc: thứ tốt nhất trong prototype hiện tại là `CXControlTower.tsx` đặt evidence disclosure và nút `primaryAction` trong cùng một màn (`CXControlTower.tsx:180-199`). Người ra quyết định đọc bằng chứng rồi duyệt ngay. Nếu bắt họ đọc 5 tab rồi nhảy sang `/actions` tìm lại action, ta phá đúng điểm mạnh đó — và §9.8 đã hứa giữ nguyên nó.
 
 **Triển khai:** tab Xử lý và Kết quả render **cùng component và cùng state** với `/actions` và `/outcomes`, không nhân bản logic. Một nguồn state, hai nơi hiển thị. Đây cũng là cách chặn việc trạng thái lệch giữa hai route như lỗi hiện tại giữa Control Tower và Issue Register.
+
+### 9.16 `/rules` Chỉ số & ngưỡng — *bổ sung 28/07/2026*
+
+**Vấn đề nó giải quyết.** Trước đó ngưỡng đánh giá nằm rải rác ba chỗ và không chỗ nào sửa được: field
+`state` hardcode trong từng record fixture (`obs[].state`, `metrics[].state`, `sources[].health`); số
+literal trong code (`o.cov < 70`, `i.imp.rep > 20`, `i.imp.churn > 50`); và **số viết thẳng vào câu văn**
+("Bước 03 và 05 có evidence coverage dưới 70%", "vượt ngưỡng 6 giờ", "tối đa 1 khảo sát trong 14 ngày").
+Chỗ thứ ba là tệ nhất: đổi ngưỡng thì câu văn nói sai mà không có gì báo.
+
+Đây là pattern **Knowledge Manager** của Enterpret áp vào ngưỡng: một surface sở hữu định nghĩa, mọi màn
+khác đọc lại.
+
+**Trạng thái phải được SUY RA.** Ba hàm là chỗ duy nhất quyết định trạng thái:
+
+| Hàm | Tiêu chí | Cấu hình |
+|---|---|---|
+| `stepState(o)` | `failed ÷ entered`, cộng OR: `cov < covMin` hoặc `effort > effortMax` → ít nhất *Cần theo dõi* | `CFG.step` |
+| `metricState(m)` | so giá trị với **band riêng của metric**; hướng lấy từ dấu `≥`/`≤` trong `target` | `CFG.metric[id]` |
+| `sourceHealth(s)` | `lagH` so với **SLA riêng của nguồn**; im lặng ≥ `deadDays` → *Ngừng gửi* | `CFG.source[id]` |
+
+Cộng `stepWhy(o)` trả về đúng những tiêu chí đã vượt, để UI giải thích được nhãn chứ không chỉ tô màu.
+
+**Vì sao band phải riêng từng metric, không dùng một ngưỡng chung.** Đây là điểm dễ làm sai nhất:
+
+| Metric | Giá trị | Mục tiêu | Cách xa mục tiêu | Trạng thái đúng |
+|---|---|---|---|---|
+| `m-liveness` | 83,3% | ≥ 90% | 7,4% | **Cần xử lý ngay** |
+| `m-ocr` | 71,0% | ≥ 90% | 21,1% | Cần theo dõi |
+
+`m-ocr` xa mục tiêu gấp 3 lần nhưng nhẹ hơn. Không phải lỗi dữ liệu: liveness là metric **chạm khách**,
+evidence coverage là metric **chất lượng dữ liệu** với đường chạy dài hơn. Bất kỳ ngưỡng chung nào cũng
+đảo ngược đúng hai metric này. Band mặc định đặt sao cho tái tạo chính xác trạng thái cũ.
+
+**Sáu mục của màn:**
+
+1. **Ngưỡng trạng thái của một bước** — `failWatch` `failCrit` `covMin` `effortMax`, kèm preview 6 bước pilot với lý do từng nhãn, cập nhật ngay khi sửa.
+2. **Chỉ số đang theo dõi** — bảng metric: công tắc *theo dõi*, giá trị, mục tiêu, hai ô band, trạng thái suy ra, metric contract đầy đủ. Tắt công tắc thì vẫn tính và hiện số nhưng không gắn nhãn và không vào cảnh báo — trạng thái `unknown`, nhãn *"Không theo dõi"*.
+3. **SLA độ tươi từng nguồn** — mỗi nguồn một ô giờ, cộng cột *chỉ số bị ảnh hưởng nếu nguồn sai*.
+4. **Ngưỡng nền dữ liệu và cảnh báo** — `deadDays` `anomalyX` `cooldown` `repeatMin` `repeatWarn` `churnWarn`.
+5. **Bản tin định kỳ và kênh nhận** — tần suất và kênh cho từng Dashboard template. Đây là pattern alert/subscription của Enterpret.
+6. **Mô hình xếp ưu tiên điểm gãy** — **chỉ đọc**, xem ràng buộc bên dưới.
+
+**Ràng buộc bắt buộc:**
+
+- **Trọng số ưu tiên không được cho sửa** nếu chưa tính lại `priority.total`. `validateFixture()` khẳng định `sev+aff+jc+rep+tr+reg === total`; cho sửa trọng số mà bỏ qua điều này thì banner đỏ bắn trên mọi màn. Và đó không phải thứ owner yêu cầu — yêu cầu là *band trạng thái*, không phải số học ưu tiên. Trọng số là quyết định của CX Council, không phải cấu hình vận hành hằng ngày.
+- **Ngưỡng đặt ngược nhau không dùng banner đỏ toàn app.** Banner đỏ dành cho fixture đứt liên kết. Ngưỡng ngược là lựa chọn hợp lệ về mặt dữ liệu nhưng vô nghĩa về mặt nghiệp vụ, nên `cfgIssues()` cảnh báo **ngay trong màn cấu hình**, và app vẫn chạy.
+- **Ghi bằng `onchange`, không phải `oninput`.** App render lại bằng `innerHTML`; nếu render mỗi lần gõ một ký tự thì ô nhập mất focus giữa lúc đang gõ.
+- **Nhập rác thì bỏ qua và vẽ lại giá trị cũ**, không ghi `NaN` vào `CFG`.
+- **Không persist**, vì không có backend. Trạng thái "đang dùng ngưỡng đã sửa / đang dùng mặc định" phải hiện rõ trên UI cùng nút **Trả về mặc định** — nói dối về persistence là mất tin cậy ngay lần refresh đầu.
+
+**Nơi khác phải đọc lại từ CFG,** nếu không màn này chỉ là mockup: funnel `/health` và câu văn về coverage · nhãn trạng thái và tab Chỉ số của step inspector `/atlas` · cột trạng thái và SLA của `/sources` · câu cooldown ở `/surveys` · dải *"Ngưỡng agent đang áp dụng"* ở `/agents` · ngưỡng tô đỏ repeat/churn và dòng *Ngưỡng đang áp* ở `/issue/:id` · chip bản tin ở `/dashboard`.
 
 ---
 
@@ -721,7 +816,8 @@ Một reviewer phải làm được liền mạch:
 5. Sang `/health`, thấy funnel 6 bước, mở breakdown ưu tiên và **kiểm tra được** vì sao issue đứng đầu.
 6. Bấm một issue → `/issue/:id`, đi qua 5 tab, **duyệt action ngay tại tab Xử lý**, từ tab Khách hàng bấm sang timeline một khách.
 7. Sang `/outcomes`, thấy trước/sau, cohort, confounder, verdict; khép vòng.
-8. Sang `/atlas`, xem cấu trúc 7 phase, mở một step và thấy signal, coverage, KPI, metric contract, provenance, blast radius.
+8. Sang `/atlas`, chọn phase trên rail rồi chọn flow, đọc dải nối để thấy khách rơi ở đâu, mở một step và thấy signal, coverage, metric contract, provenance, cùng lý do bước đó bị gắn nhãn.
+8b. Sang `/rules`, hạ ngưỡng *Cần xử lý ngay* xuống 10%, quay lại `/health` và `/atlas` thấy bước 02 chuyển đỏ, bấm *Trả về mặc định* thấy quay lại trạng thái gốc.
 9. Sang `/sources`, thấy nguồn nào stale và **số nào bị ảnh hưởng**.
 10. Sang `/surveys`, thấy 6 khảo sát với trigger, cooldown, response rate so mục tiêu.
 11. Sang `/agents`, thấy finding chưa acknowledge và acknowledge được.
