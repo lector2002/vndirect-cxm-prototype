@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VNDIRECT CXM · UI prototype</title>
+<!--
+  ============================================================================
+  VNDIRECT CXM & VoC PLATFORM — UI PROTOTYPE
+  ============================================================================
+  File này là prototype giao diện, KHÔNG có backend. Mọi số liệu là demo data.
+  Mở trực tiếp bằng browser, không cần cài gì.
+
+  CÁCH SỬA NỘI DUNG (không cần biết code):
+    Mở file bằng VS Code / Notepad++ / bất kỳ text editor, sửa chữ trong dấu
+    nháy, lưu lại rồi refresh browser. Nội dung nằm ở ĐÚNG BA CHỖ:
+
+    1. Object DATA  (tìm dòng  ===== 1. DATA =====)
+       Số liệu, câu nói của khách, tên bước, taxonomy, nhãn menu (DATA.nav),
+       tiêu đề màn (DATA.meta), lời dẫn guided tour (DATA.tour), và câu hỏi
+       đáp của màn Trợ lý (DATA.chips).
+
+    2. Câu kết luận lớn ở đầu mỗi màn  (tìm  ===== 3. VIEWS =====)
+       Các câu cỡ lớn kiểu "Cứ 6 người vào bước nhận diện khuôn mặt thì 1
+       người không qua được" nằm TRONG hàm của từng màn, không nằm trong DATA.
+       Tìm chuỗi  t-hero  để thấy hết. Vài câu có chèn số tự tính, ví dụ
+       ${measured} — giữ nguyên phần ${...}, chỉ sửa chữ xung quanh.
+
+    3. Màu thương hiệu  (tìm  DESIGN TOKENS  trong phần <style>)
+       Sửa --primary là toàn app đổi theo. Không hardcode màu ở chỗ nào khác.
+
+  LƯỚI AN TOÀN: mỗi lần refresh, validateFixture() tự kiểm mọi liên kết dữ
+  liệu. Nếu bạn sửa làm đứt liên kết nào, một banner đỏ sẽ hiện trên mọi màn
+  và nói chính xác chỗ sai. Banner biến mất khi dữ liệu đúng lại.
+
+  Spec đầy đủ: docs/superpowers/specs/2026-07-27-cxm-voc-redesign-design.md
+  ============================================================================
+-->
+<style>
+/* ===================== DESIGN TOKENS =====================
+   Đổi màu thương hiệu ở đây. Mọi màu trong app đi qua các biến này. */
+:root{
+  /* Cam VNDIRECT — chỉ dùng cho TƯƠNG TÁC và ĐỊNH DANH.
+     Không bao giờ dùng cam làm màu trạng thái. */
+  --primary:#D9531E;
+  --primary-hover:#B84415;
+  --primary-soft:#FDF3EE;
+  --primary-line:#F3D5C4;
+  --primary-ring:rgba(217,83,30,.22);
+
+  /* Xám ấm — chiếm ~90% giao diện */
+  --bg:#FAF9F7;
+  --surface:#FFFFFF;
+  --surface2:#F4F2EF;
+  --line:#E5E1DB;
+  --line-soft:#F0EDE8;
+  --ink-dark:#292420;
+  --ink:#1C1917;
+  --ink2:#57534E;
+  --ink3:#8C8681;
+
+  /* 4 trạng thái. "Đang kiểm soát" KHÔNG có màu riêng — đó là chủ ý. */
+  --watch:#A16207;  --watch-bg:#FDFBEB;  --watch-line:#EADDA0;
+  --crit:#B3261E;   --crit-bg:#FDF1F0;   --crit-line:#F3C9C4;
+  --unk:#8C8681;
+  --good:#3F6212;   --good-bg:#F8FAF1;   --good-line:#DDE8C4;
+
+  --radius:12px;
+  --shadow:0 1px 2px rgba(28,25,23,.04), 0 8px 24px rgba(28,25,23,.05);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; min-width:1280px;
+  font:14px/1.55 -apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  color:var(--ink); background:var(--bg);
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:38px 38px;
+  -webkit-font-smoothing:antialiased;
+}
+button,select,input{font:inherit;color:inherit}
+button,select{cursor:pointer}
+a{color:var(--primary);text-decoration:none}
+
+/* ===================== THANG CHỮ — 7 bậc, sàn 12px ===================== */
+.t-lbl{font:700 12px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3)}
+.t-meta{font-size:13px;color:var(--ink2)}
+.t-body{font-size:14px}
+.t-item{font-size:15px;font-weight:600}
+.t-block{font-size:18px;font-weight:650;letter-spacing:-.005em}
+.t-num{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.t-hero{font-size:34px;font-weight:700;letter-spacing:-.022em;line-height:1.16;margin:0}
+.dim{color:var(--ink3)} .dim2{color:var(--ink2)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ===================== SHELL ===================== */
+.app{display:flex;height:100vh;overflow:hidden}
+aside.side{width:246px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+.brand{display:flex;align-items:center;gap:11px;padding:17px 18px;border-bottom:1px solid var(--line)}
+.brand .mark{width:34px;height:34px;flex:none;border-radius:10px;background:var(--primary);color:#fff;display:grid;place-items:center;font-weight:800;font-size:16px}
+.brand .nm{font-size:14px;font-weight:700;letter-spacing:-.01em}
+.brand .sub{font:700 12px/1.2 ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.11em;color:var(--ink3);margin-top:2px}
+nav.nav{flex:1;overflow-y:auto;padding:6px 0 14px}
+nav.nav .g{padding:14px 18px 6px;font:700 12px/1.2 ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--ink3)}
+nav.nav a.it{display:flex;align-items:center;gap:9px;margin:1px 8px;padding:7px 10px;border-radius:9px;font-size:13.5px;color:var(--ink2)}
+nav.nav a.it:hover{background:var(--surface2);color:var(--ink)}
+nav.nav a.it.on{background:var(--primary);color:#fff;font-weight:600}
+nav.nav a.it .ic{width:16px;flex:none;text-align:center;font-size:13px;opacity:.85}
+nav.nav a.it .bdg{margin-left:auto;font:700 12px/1 ui-monospace,Menlo,monospace;background:var(--crit);color:#fff;padding:3px 5px;border-radius:5px}
+nav.nav a.it.on .bdg{background:rgba(255,255,255,.25)}
+.sidefoot{border-top:1px solid var(--line);padding:12px 18px;font-size:12px;color:var(--ink3)}
+
+.mainwrap{flex:1;min-width:0;display:flex;flex-direction:column}
+header.top{flex:none;display:flex;align-items:center;gap:14px;height:56px;padding:0 22px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+header.top .ttl{min-width:0}
+header.top .ttl b{font-size:13.5px;display:block}
+header.top .ttl span{font-size:12px;color:var(--ink3)}
+.grow{margin-left:auto}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--watch-line);background:var(--watch-bg);color:var(--watch)}
+.pill i{width:6px;height:6px;border-radius:50%;background:var(--watch)}
+.filters{display:flex;align-items:center;gap:8px;padding:4px 6px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}
+.filters label{font:700 12px/1 ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3)}
+.filters select{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 7px;font-size:12.5px;font-weight:600;outline:none}
+.filters select:focus{box-shadow:0 0 0 3px var(--primary-ring);border-color:var(--primary)}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600}
+.btn:hover{background:var(--surface2)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.pri:hover{background:var(--primary-hover);border-color:var(--primary-hover)}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--primary-ring)}
+.btn.sm{padding:5px 9px;font-size:12px}
+main.view{flex:1;min-height:0;overflow-y:auto;padding:24px 26px 60px}
+.wrap{max-width:1500px}
+
+/* ===================== KHUÔN 4 TẦNG ===================== */
+.hero{background:var(--ink-dark);color:#fff;border-radius:16px;padding:26px 28px;margin-bottom:16px}
+.hero .kick{font:700 12px/1.2 ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.13em;color:#F2A883;margin-bottom:12px}
+.hero .t-hero{max-width:30ch}
+.hero p{margin:12px 0 0;color:#CFC9C2;font-size:14px;max-width:78ch}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;position:relative}
+.stat .t-lbl{margin-bottom:7px}
+.stat .src{margin-top:7px;font-size:12px;color:var(--ink3);border-top:1px dashed var(--line);padding-top:7px}
+.stat .foot{font-size:12px;color:var(--ink2);margin-top:3px}
+
+/* ===================== CARD ===================== */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.card.flat{box-shadow:none}
+.chead{display:flex;align-items:flex-start;gap:14px;padding:15px 17px;border-bottom:1px solid var(--line)}
+.chead .ct{min-width:0}
+.chead .ct b{font-size:15px;font-weight:650;display:block}
+.chead .ct span{font-size:12.5px;color:var(--ink3)}
+/* QUY TẮC DENOMINATOR: mọi card/chart phải hiện "X of Y đơn vị" + kỳ ngày tuyệt đối */
+.denom{margin-left:auto;flex:none;text-align:right;font:600 12px/1.5 ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);white-space:nowrap}
+.cbody{padding:16px 17px}
+.cbody.tight{padding:10px 12px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+.split{display:grid;gap:16px}
+
+/* ===================== 4 TRẠNG THÁI — hình trước, màu sau ===================== */
+/* Badge trạng thái không bao giờ được wrap — nhãn bị ngắt dòng làm mất nghĩa */
+.st{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:7px;font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--ink);white-space:nowrap}
+.st.ok{}
+.st.watch{background:var(--watch-bg);border-color:var(--watch-line);color:var(--watch)}
+.st.crit{background:var(--crit-bg);border-color:var(--crit-line);color:var(--crit)}
+.st.unknown{background:transparent;border-style:dashed;border-color:#A8A29E;color:var(--ink3)}
+.row-st{border-left:3px solid transparent}
+.row-st.watch{border-left-color:var(--watch);background:var(--watch-bg)}
+.row-st.crit{border-left-color:var(--crit);background:var(--crit-bg)}
+.row-st.unknown{border-left-style:dashed;border-left-color:#A8A29E}
+.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--surface2);color:var(--ink2)}
+.chip.b{background:var(--primary-soft);border-color:var(--primary-line);color:var(--primary-hover)}
+.tri{font-size:12px;font-weight:700}
+.tri.up{color:var(--crit)} .tri.dn{color:var(--good)}
+
+/* ===================== LIST / TABLE ===================== */
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--line);
+  font:700 12px/1.3 ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top;font-size:13.5px}
+tr.clickable{cursor:pointer}
+tr.clickable:hover td{background:var(--primary-soft)}
+tr.sel td{background:var(--primary-soft)}
+.lst>*{border-bottom:1px solid var(--line-soft)}
+.lst>*:last-child{border-bottom:none}
+.itm{display:block;width:100%;text-align:left;padding:13px 15px;background:none;border:none;font:inherit;color:inherit}
+.itm:hover{background:var(--surface2)}
+.itm.on{background:var(--primary-soft);box-shadow:inset 3px 0 0 var(--primary)}
+
+/* ===================== CHART thuần SVG/CSS ===================== */
+.bars{display:flex;flex-direction:column;gap:9px}
+.bar{display:grid;grid-template-columns:1fr 56px 44%;gap:11px;align-items:center}
+.bar .bn{display:flex;align-items:center;gap:7px;min-width:0;font-size:13px}
+.bar .bn i{width:8px;height:8px;border-radius:50%;flex:none}
+.bar .bn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .bv{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-size:13px}
+.bar .bt{height:10px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.bar .bt>i{display:block;height:100%;border-radius:3px}
+.spark{display:flex;align-items:flex-end;gap:3px;height:44px}
+.spark>i{flex:1;border-radius:2px 2px 0 0;min-height:3px}
+.funnel{display:flex;gap:2px;align-items:stretch}
+.fstep{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:13px 12px;position:relative}
+.fstep.watch{background:var(--watch-bg);border-color:var(--watch-line)}
+.fstep.crit{background:var(--crit-bg);border-color:var(--crit-line)}
+.fstep.unknown{border-style:dashed}
+.fstep .fc{font:700 12px/1 ui-monospace,Menlo,monospace;color:var(--ink3);letter-spacing:.08em}
+.fstep .fn{font-size:12.5px;font-weight:650;margin:6px 0 9px;min-height:32px;line-height:1.3}
+.fstep .fv{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.fstep .fl{font-size:12px;color:var(--ink2);margin-top:2px}
+.fstep .fbar{margin-top:9px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.fstep .fbar>i{display:block;height:100%}
+.drop{position:absolute;top:50%;right:-13px;z-index:2;background:#fff;border:1px solid var(--crit-line);color:var(--crit);
+  font:700 12px/1 ui-monospace,Menlo,monospace;padding:3px 4px;border-radius:5px;transform:translateY(-50%)}
+
+/* ===================== TABS / DISCLOSURE ===================== */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);padding:0 17px}
+.tabs button{border:none;background:none;padding:11px 13px;font-size:13px;font-weight:600;color:var(--ink3);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button:hover{color:var(--ink)}
+.tabs button.on{color:var(--primary);border-bottom-color:var(--primary)}
+.disc{border:none;background:none;padding:0;color:var(--primary);font-size:13px;font-weight:650;display:inline-flex;align-items:center;gap:5px}
+.disc:hover{text-decoration:underline}
+.quote{background:var(--surface2);border:1px solid var(--line);border-left:3px solid var(--ink3);border-radius:9px;padding:12px 13px}
+.quote p{margin:0;font-size:14px;line-height:1.5}
+.quote .qm{display:flex;justify-content:space-between;gap:10px;margin-top:9px;font-size:12px;color:var(--ink3)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12.5px}
+.kv dt{color:var(--ink3)} .kv dd{margin:0;font-weight:600}
+.note{background:var(--surface2);border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:12.5px;color:var(--ink2)}
+.note.warn{background:var(--watch-bg);border-color:var(--watch-line)}
+.note.crit{background:var(--crit-bg);border-color:var(--crit-line)}
+.note.bd{background:var(--primary-soft);border-color:var(--primary-line)}
+.empty{padding:40px;text-align:center;color:var(--ink3);font-size:13.5px}
+
+/* ===================== TOUR RIBBON ===================== */
+#tour{display:none}
+#tour.on{display:flex;align-items:center;gap:14px;padding:11px 22px;background:var(--ink-dark);color:#fff;flex:none}
+#tour .tn{font:700 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.11em;color:#F2A883;flex:none}
+#tour .tm{font-size:13.5px;min-width:0}
+#tour .tm b{display:block;font-size:14px}
+#tour .tm span{color:#CFC9C2;font-size:12.5px}
+#tour .tb{margin-left:auto;display:flex;gap:7px;flex:none}
+#tour .tb button{border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.1);color:#fff;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600}
+#tour .tb button:hover{background:rgba(255,255,255,.2)}
+#tour .tb button.x{border-color:transparent;background:none;color:#CFC9C2}
+
+.mono{font-family:ui-monospace,Menlo,monospace}
+.hr{height:1px;background:var(--line);margin:16px 0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div style="display:flex;flex-direction:column;height:100vh">
+  <div id="tour"></div>
+  <div class="app" style="flex:1;min-height:0">
+    <aside class="side">
+      <div class="brand">
+        <div class="mark">V</div>
+        <div>
+          <div class="nm">VNDIRECT <span style="color:var(--primary)">CXM</span></div>
+          <div class="sub">CX Intelligence</div>
+        </div>
+      </div>
+      <nav class="nav" id="nav" aria-label="Điều hướng"></nav>
+      <div class="sidefoot">
+        <button class="btn sm" style="width:100%;justify-content:center" onclick="startTour()">▶ Chạy bản giới thiệu</button>
+        <div style="margin-top:9px;text-align:center">Snapshot 27/07/2026</div>
+      </div>
+    </aside>
+    <div class="mainwrap">
+      <header class="top">
+        <div class="ttl" id="ptitle"></div>
+        <div class="grow"></div>
+        <span class="pill"><i></i>UI prototype · Demo data</span>
+        <div class="filters">
+          <label for="fperiod">Kỳ</label>
+          <select id="fperiod" onchange="setPeriod(this.value)"></select>
+          <label for="fscope">Phạm vi</label>
+          <select id="fscope" onchange="setScope(this.value)"></select>
+        </div>
+      </header>
+      <main class="view" id="view"></main>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   ===== 1. DATA — SỬA NỘI DUNG Ở ĐÂY =====
+   Mọi nhãn, số liệu, câu nói của khách đều nằm trong object này.
+   Số liệu gốc tính theo kỳ 30 ngày; các kỳ khác được nhân theo `factor`.
+   ========================================================================== */
+const DATA = {
+
+  /* --- Kỳ dữ liệu. QUY TẮC: luôn hiện ngày tuyệt đối, không chỉ nhãn tương đối --- */
+  periods: [
+    { id:'d7',  label:'7 ngày gần nhất',   range:'21/07/2026 – 27/07/2026', factor:0.25 },
+    { id:'d30', label:'30 ngày gần nhất',  range:'28/06/2026 – 27/07/2026', factor:1 },
+    { id:'m3',  label:'3 tháng gần nhất',  range:'28/04/2026 – 27/07/2026', factor:2.8 },
+  ],
+
+  /* --- Phạm vi hành trình --- */
+  scopes: [
+    { id:'onboarding', label:'Mở tài khoản · Pilot' },
+    { id:'all',        label:'Toàn bộ hành trình' },
+  ],
+
+  /* --- 7 phase hành trình. Chỉ pilot Mở tài khoản có dữ liệu quan sát. --- */
+  phases: [
+    { id:'p1', code:'01', name:'Tìm hiểu & Tiếp cận' },
+    { id:'p2', code:'02', name:'Mở tài khoản' },
+    { id:'p3', code:'03', name:'Dòng tiền' },
+    { id:'p4', code:'04', name:'Giao dịch' },
+    { id:'p5', code:'05', name:'Margin & Sức mua' },
+    { id:'p6', code:'06', name:'Sản phẩm đầu tư' },
+    { id:'p7', code:'07', name:'Chăm sóc, khiếu nại & Churn' },
+  ],
+  groups: [
+    { id:'g-reach',    phaseId:'p1', name:'Thu hút',            desc:'Kênh marketing, landing, referral' },
+    { id:'g-lead',     phaseId:'p1', name:'Lead & Xác thực SĐT', desc:'Form đăng ký, OTP' },
+    { id:'g-open',     phaseId:'p2', name:'Mở tài khoản mới',    desc:'Từ khởi tạo hồ sơ tới kích hoạt' },
+    { id:'g-activate', phaseId:'p2', name:'Định hướng sau mở',   desc:'Onboarding trong app, first action' },
+    { id:'g-in',       phaseId:'p3', name:'Nộp tiền',            desc:'VA, QR, liên kết ngân hàng' },
+    { id:'g-out',      phaseId:'p3', name:'Rút & chuyển tiền',   desc:'Rút về ngân hàng, chuyển tiểu khoản' },
+    { id:'g-order',    phaseId:'p4', name:'Đặt lệnh',            desc:'Đặt, sửa, hủy, khớp' },
+    { id:'g-port',     phaseId:'p4', name:'Danh mục & Tài sản',  desc:'Lãi lỗ, sao kê' },
+    { id:'g-mgn',      phaseId:'p5', name:'Margin',              desc:'Đăng ký, sức mua, call margin' },
+    { id:'g-adv',      phaseId:'p5', name:'Ứng trước tiền bán',  desc:'Đăng ký và giải ngân' },
+    { id:'g-bond',     phaseId:'p6', name:'iBond',               desc:'Trái phiếu, bán lại trước hạn' },
+    { id:'g-fund',     phaseId:'p6', name:'Chứng chỉ quỹ & DCA', desc:'Mua định kỳ, tất toán' },
+    { id:'g-care',     phaseId:'p7', name:'Hỗ trợ & khiếu nại',  desc:'Hotline, chat, tra soát' },
+    { id:'g-churn',    phaseId:'p7', name:'Inactive & Win-back', desc:'Ngừng giao dịch, phục hồi' },
+  ],
+  flows: [
+    { id:'f-open-2026', groupId:'g-open', name:'Mở tài khoản mới 2026', owner:'Onboarding Squad', version:'v1.0-pilot',
+      src:'Account Journey · Sơ đồ 2 & 9', verified:true, observed:true },
+    { id:'f-onb-first', groupId:'g-activate', name:'Định hướng & giao dịch đầu tiên', owner:'Growth', version:'v0.4',
+      src:'Account Journey · Sơ đồ 11', verified:true, observed:false },
+    { id:'f-lead-otp',  groupId:'g-lead', name:'Đăng ký & xác thực SĐT', owner:'Growth', version:'v0.9',
+      src:'Account Journey · Sơ đồ 1', verified:true, observed:false },
+    { id:'f-reach-ref', groupId:'g-reach', name:'Giới thiệu bạn bè (referral)', owner:'Marketing', version:'v0.3',
+      src:'—', verified:false, observed:false },
+    { id:'f-dep-va',    groupId:'g-in', name:'Nộp tiền qua VA / QR', owner:'Payments', version:'v1.2',
+      src:'Money Journey · Sơ đồ 3', verified:true, observed:false },
+    { id:'f-dep-link',  groupId:'g-in', name:'Liên kết ngân hàng', owner:'Payments', version:'v1.0',
+      src:'Money Journey · Sơ đồ 4', verified:true, observed:false },
+    { id:'f-wd',        groupId:'g-out', name:'Rút tiền về ngân hàng', owner:'Payments', version:'v1.1',
+      src:'Money Journey · Sơ đồ 6', verified:true, observed:false },
+    { id:'f-tr-sub',    groupId:'g-out', name:'Chuyển tiền giữa tiểu khoản', owner:'Payments', version:'v0.8',
+      src:'Money Journey · Sơ đồ 7', verified:true, observed:false },
+    { id:'f-order',     groupId:'g-order', name:'Đặt / sửa / hủy lệnh', owner:'Trading Core', version:'v2.0',
+      src:'Money Journey · Sơ đồ 9', verified:true, observed:false },
+    { id:'f-reject',    groupId:'g-order', name:'Lệnh bị từ chối & reason code', owner:'Trading Core', version:'v1.4',
+      src:'Money Journey · Sơ đồ 10', verified:true, observed:false },
+    { id:'f-port',      groupId:'g-port', name:'Danh mục & lãi lỗ', owner:'Product', version:'v0.6',
+      src:'—', verified:false, observed:false },
+    { id:'f-mgn-reg',   groupId:'g-mgn', name:'Đăng ký margin', owner:'Margin Squad', version:'v1.0',
+      src:'Money Journey · Sơ đồ 12', verified:true, observed:false },
+    { id:'f-mgn-call',  groupId:'g-mgn', name:'Call margin & xử lý', owner:'Risk', version:'v1.1',
+      src:'Money Journey · Sơ đồ 13', verified:true, observed:false },
+    { id:'f-adv',       groupId:'g-adv', name:'Ứng trước tiền bán', owner:'Margin Squad', version:'v0.9',
+      src:'Money Journey · Sơ đồ 14', verified:true, observed:false },
+    { id:'f-bond',      groupId:'g-bond', name:'Mua iBond', owner:'Wealth Squad', version:'v1.0',
+      src:'—', verified:false, observed:false },
+    { id:'f-bond-sell', groupId:'g-bond', name:'Bán lại iBond trước hạn', owner:'Wealth Squad', version:'v0.5',
+      src:'—', verified:false, observed:false },
+    { id:'f-fund',      groupId:'g-fund', name:'Mua chứng chỉ quỹ & DCA', owner:'Wealth Squad', version:'v0.7',
+      src:'—', verified:false, observed:false },
+    { id:'f-care',      groupId:'g-care', name:'Hotline & chat hỗ trợ', owner:'CS Center', version:'v1.3',
+      src:'—', verified:false, observed:false },
+    { id:'f-claim',     groupId:'g-care', name:'Khiếu nại & tra soát', owner:'CS Center', version:'v1.0',
+      src:'—', verified:false, observed:false },
+    { id:'f-churn',     groupId:'g-churn', name:'Ngừng giao dịch & win-back', owner:'CRM', version:'v0.4',
+      src:'—', verified:false, observed:false },
+  ],
+
+  /* --- 6 bước của pilot. `stationId` khớp journey_station_id trong tracking plan. --- */
+  steps: [
+    { id:'s1', flowId:'f-open-2026', code:'01', name:'Khởi tạo hồ sơ',            stationId:'JS-MTK-01', owner:'Growth' },
+    { id:'s2', flowId:'f-open-2026', code:'02', name:'Xác thực CCCD · VNeID/NFC', stationId:'JS-MTK-02', owner:'Onboarding' },
+    { id:'s3', flowId:'f-open-2026', code:'03', name:'Liveness & Face match',     stationId:'JS-MTK-03', owner:'Onboarding' },
+    { id:'s4', flowId:'f-open-2026', code:'04', name:'Thông tin & NH thụ hưởng',  stationId:'JS-MTK-04', owner:'Product' },
+    { id:'s5', flowId:'f-open-2026', code:'05', name:'Chọn số TK & ký hợp đồng',  stationId:'JS-MTK-05', owner:'Onboarding' },
+    { id:'s6', flowId:'f-open-2026', code:'06', name:'Kích hoạt tài khoản',       stationId:'JS-MTK-06', owner:'Core Account' },
+  ],
+
+  /* --- Quan sát theo bước. Số theo kỳ 30 ngày. --- */
+  obs: [
+    { stepId:'s1', entered:18420, completed:17690, failed:730,  effort:1.1, cov:96, state:'ok' },
+    { stepId:'s2', entered:17690, completed:15840, failed:1850, effort:1.6, cov:71, state:'watch' },
+    { stepId:'s3', entered:15840, completed:13190, failed:2650, effort:2.4, cov:64, state:'crit' },
+    { stepId:'s4', entered:13190, completed:12760, failed:430,  effort:1.1, cov:92, state:'ok' },
+    { stepId:'s5', entered:12760, completed:11990, failed:770,  effort:1.3, cov:58, state:'watch' },
+    { stepId:'s6', entered:11990, completed:11840, failed:150,  effort:1.0, cov:89, state:'ok' },
+  ],
+
+  /* --- Touchpoint & signal của pilot --- */
+  touchpoints: [
+    { id:'tp1', stepId:'s1', name:'Form khởi tạo hồ sơ', channel:'app', owner:'Growth',      users:18420, desc:'Màn nhập SĐT và thông tin cơ bản' },
+    { id:'tp2', stepId:'s2', name:'Chụp & đọc CCCD',      channel:'app', owner:'Onboarding',  users:17690, desc:'OCR giấy tờ, đối chiếu VNeID hoặc NFC' },
+    { id:'tp3', stepId:'s3', name:'Liveness & Face match',channel:'app', owner:'Onboarding',  users:15840, desc:'Quay video xác thực khuôn mặt' },
+    { id:'tp4', stepId:'s4', name:'Xác nhận thông tin',   channel:'app', owner:'Product',     users:13190, desc:'Sửa thông tin OCR, chọn NH thụ hưởng' },
+    { id:'tp5', stepId:'s5', name:'Ký HĐ điện tử SmartCA',channel:'app', owner:'Onboarding',  users:12760, desc:'Chọn số TK và ký hợp đồng' },
+    { id:'tp6', stepId:'s6', name:'Kích hoạt tại core',   channel:'backend', owner:'Core Account', users:11990, desc:'Đồng bộ tài khoản sang hệ thống lõi' },
+  ],
+  signals: [
+    { id:'sg1', tpId:'tp1', name:'account_open_started',        st:'live',       pf:['ios','android','web'], es:'client', vol:614,  seen:'27/07 · 14:52', metrics:['m-completion'], desc:'Khách bấm Mở tài khoản' },
+    { id:'sg2', tpId:'tp1', name:'account_open_step_viewed',    st:'live',       pf:['ios','android','web'], es:'client', vol:2840, seen:'27/07 · 14:52', metrics:['m-completion'], desc:'Hiển thị từng bước, bắn lặp theo bước' },
+    { id:'sg3', tpId:'tp2', name:'ekyc_document_capture_result',st:'live',       pf:['ios','android'],       es:'client', vol:920,  seen:'27/07 · 14:50', metrics:['m-ocr'], desc:'Kết quả mỗi lần chụp giấy tờ' },
+    { id:'sg4', tpId:'tp2', name:'ekyc_document_fail_reason',   st:'validating', pf:['ios','android'],       es:'client', vol:410,  seen:'27/07 · 13:20', metrics:['m-ocr'], desc:'Lý do thất bại: blur / glare / crop / expired' },
+    { id:'sg5', tpId:'tp3', name:'ekyc_face_liveness_result',   st:'live',       pf:['ios','android'],       es:'client', vol:1180, seen:'27/07 · 14:48', metrics:['m-liveness'], desc:'Kết quả mỗi lần liveness' },
+    { id:'sg6', tpId:'tp3', name:'ekyc_face_device_context',    st:'gap',        pf:['android'],             es:'client', vol:0,    seen:null, metrics:['m-liveness'], desc:'Model máy, mức sáng môi trường — CHƯA instrument' },
+    { id:'sg7', tpId:'tp4', name:'account_info_edited',         st:'live',       pf:['ios','android'],       es:'client', vol:520,  seen:'27/07 · 14:31', metrics:['m-ocr'], desc:'Khách sửa thông tin OCR đọc sai' },
+    { id:'sg8', tpId:'tp5', name:'contract_sign_result',        st:'live',       pf:['ios','android'],       es:'client', vol:430,  seen:'27/07 · 14:40', metrics:['m-contract'], desc:'Kết quả ký hợp đồng điện tử' },
+    { id:'sg9', tpId:'tp5', name:'contract_session_abandoned',  st:'designed',   pf:['ios','android'],       es:'client', vol:0,    seen:null, metrics:['m-contract'], desc:'Phiên ký hết hạn — đã có spec, chưa implement' },
+    { id:'sg10',tpId:'tp6', name:'account_activated',           st:'live',       pf:['server'],              es:'server', vol:395,  seen:'27/07 · 14:45', metrics:['m-completion'], desc:'Tài khoản sẵn sàng giao dịch' },
+  ],
+
+  /* --- Metric contract: grain, công thức, nguồn, độ tươi, chủ sở hữu --- */
+  metrics: [
+    { id:'m-completion', name:'Hoàn tất mở tài khoản', value:'64,3%', target:'≥ 72%', state:'crit',
+      grain:'Unique applicant / journey instance', formula:'Activated accounts ÷ started applications',
+      source:'Digital analytics + Core Account', freshness:'Snapshot · trễ 4 giờ', owner:'Onboarding Analytics' },
+    { id:'m-liveness', name:'Liveness completion', value:'83,3%', target:'≥ 90%', state:'crit',
+      grain:'Unique applicant / liveness attempt group', formula:'Completed liveness ÷ entered liveness',
+      source:'eKYC SDK', freshness:'Snapshot · trễ 6 giờ', owner:'Onboarding Squad' },
+    { id:'m-contract', name:'Ký hợp đồng thành công', value:'94,0%', target:'≥ 97%', state:'watch',
+      grain:'Unique applicant / contract session', formula:'Signed contracts ÷ contract sessions',
+      source:'SmartCA + Account service', freshness:'Snapshot · trễ 4 giờ', owner:'Onboarding Squad' },
+    { id:'m-ocr', name:'Evidence coverage bước OCR', value:'71,0%', target:'≥ 90%', state:'watch',
+      grain:'Failed ID capture event', formula:'Failure events có reason code hợp lệ ÷ total failure events',
+      source:'Mobile SDK event registry', freshness:'Snapshot · trễ 4 giờ', owner:'Data Platform' },
+    { id:'m-ces', name:'CES sau mở tài khoản', value:'3,8 / 5', target:'≥ 4,2', state:'watch',
+      grain:'Response / khách hoàn tất MTK', formula:'Điểm trung bình câu hỏi mức độ dễ dàng',
+      source:'In-app survey', freshness:'Snapshot · trễ 12 giờ', owner:'CX Insight' },
+    { id:'m-repeat', name:'Repeat contact trong 7 ngày', value:'24,0%', target:'≤ 15%', state:'crit',
+      grain:'Unique khách có ≥2 lần liên hệ cùng chủ đề', formula:'Khách liên hệ lại ÷ khách có liên hệ',
+      source:'CS case system', freshness:'Snapshot · trễ 2 giờ', owner:'CS Center' },
+  ],
+
+  /* --- Nguồn tín hiệu. `metrics` = nguồn này chết thì số nào sai. --- */
+  sources: [
+    { id:'src-ga',    name:'Digital analytics (app + web)', kind:'event',        vol:41200, fresh:'trễ 4 giờ',  health:'ok',    last:'27/07 · 14:52', metrics:['m-completion'], note:'Nguồn funnel chính' },
+    { id:'src-ekyc',  name:'eKYC SDK',                      kind:'event',        vol:12800, fresh:'trễ 6 giờ',  health:'ok',    last:'27/07 · 14:48', metrics:['m-liveness','m-ocr'], note:'SDK 4.8.2' },
+    { id:'src-case',  name:'CS case (hotline + chat)',      kind:'case',         vol:1840,  fresh:'trễ 2 giờ',  health:'ok',    last:'27/07 · 14:39', metrics:['m-repeat'], note:'Ticket đã gán chủ đề' },
+    { id:'src-survey',name:'In-app survey (CES/CSAT/NPS)',  kind:'survey',       vol:612,   fresh:'trễ 12 giờ', health:'stale', last:'26/07 · 23:10', metrics:['m-ces'], note:'Job tổng hợp chậm hơn 12 giờ so với thoả thuận' },
+    { id:'src-store', name:'App Store + Google Play review',kind:'store-review', vol:186,   fresh:'trễ 1 ngày', health:'ok',    last:'27/07 · 08:00', metrics:[], note:'Crawl 1 lần/ngày' },
+    { id:'src-broker',name:'Ghi chú broker / RM',           kind:'broker-note',  vol:94,    fresh:'trễ 1 ngày', health:'ok',    last:'27/07 · 09:15', metrics:[], note:'Nhập tay trong CRM' },
+    { id:'src-zalo',  name:'Zalo OA inbox',                 kind:'chat',         vol:0,     fresh:'—',          health:'down',  last:'19/07 · 11:02', metrics:['m-repeat'], note:'Webhook lỗi từ 19/07 — repeat contact đang bị đếm thiếu' },
+  ],
+
+  /* --- Survey program. Lấy nguyên sheet 4 của tracking-plan-cx-mau.xlsx --- */
+  surveys: [
+    { id:'sv-ces-mtk', name:'CES sau mở tài khoản', type:'CES', trigger:'account_open_completed',
+      cond:'Hiện trong app ngay sau màn chúc mừng · 1 lần/khách', cd:14, scale:'1–5 (rất khó → rất dễ) + ô góp ý',
+      target:'≥ 4,2', latest:'3,8', rr:31, n:612, status:'running', state:'watch' },
+    { id:'sv-csat-dep', name:'CSAT nạp tiền lần đầu', type:'CSAT', trigger:'deposit_credited (is_first_deposit = true)',
+      cond:'Hiện sau khi khách quay lại app thấy tiền đã lên · 1 lần/khách', cd:14, scale:'1–5 sao + ô góp ý',
+      target:'≥ 4,3', latest:'4,4', rr:27, n:388, status:'running', state:'ok' },
+    { id:'sv-csat-cs', name:'CSAT sau phiên hỗ trợ', type:'CSAT', trigger:'cs_session_closed',
+      cond:'Gửi trong app hoặc ZNS trong 1 giờ sau khi đóng ticket', cd:14, scale:'Đã/chưa giải quyết + 1–5 sao',
+      target:'≥ 4,0', latest:'3,6', rr:22, n:264, status:'running', state:'watch' },
+    { id:'sv-abandon', name:'Khảo sát bỏ dở eKYC', type:'micro', trigger:'account_open_abandoned',
+      cond:'Chỉ hỏi khi khách mở lại app trong 7 ngày · 1 lần', cd:14, scale:'Chọn 1: chụp giấy tờ khó / cần chuẩn bị giấy tờ / đổi ý / khác',
+      target:'Thu ≥ 200 mẫu/tháng', latest:'156 mẫu', rr:18, n:156, status:'running', state:'watch' },
+    { id:'sv-review', name:'In-app review prompt', type:'micro', trigger:'deposit_credited hoặc order_matched',
+      cond:'Chỉ khi latency nạp < 2 phút, session không có error, khách active ≥ 14 ngày', cd:90, scale:'Prompt hệ điều hành chuẩn',
+      target:'≥ 4,5 store rating', latest:'4,3', rr:9, n:186, status:'running', state:'watch' },
+    { id:'sv-nps', name:'NPS quan hệ định kỳ', type:'NPS', trigger:'Chiến dịch quý — không gắn event',
+      cond:'Mẫu ngẫu nhiên ~10% khách active · loại khách vừa nhận khảo sát khác trong 30 ngày', cd:90, scale:'0–10 + câu hỏi lý do',
+      target:'≥ 40', latest:'34', rr:14, n:1240, status:'paused', state:'unknown' },
+  ],
+
+  /* --- Taxonomy 5 tầng: L1 domain → L2 flow → L3 bước/tính năng, cộng theme → subtheme.
+         L1-L3 trả lời CÁI GÌ. theme/subtheme trả lời VÌ SAO. --- */
+  tax: [
+    { id:'x-l1-mtk', lv:'L1', name:'Mở tài khoản', n:1840, why:'Domain gốc, khớp phase 02 của journey', up:'20/07/2026', by:'CX Insight' },
+    { id:'x-l1-cash',lv:'L1', name:'Dòng tiền', n:1120, why:'Domain gốc, khớp phase 03', up:'20/07/2026', by:'CX Insight' },
+    { id:'x-l1-trade',lv:'L1',name:'Giao dịch', n:960, why:'Domain gốc, khớp phase 04', up:'20/07/2026', by:'CX Insight' },
+    { id:'x-l1-mgn', lv:'L1', name:'Margin & Sức mua', n:410, why:'Domain gốc, khớp phase 05', up:'20/07/2026', by:'CX Insight' },
+    { id:'x-l1-wealth',lv:'L1',name:'Sản phẩm đầu tư', n:530, why:'Domain gốc, khớp phase 06', up:'20/07/2026', by:'CX Insight' },
+    { id:'x-l1-care',lv:'L1', name:'Chăm sóc & khiếu nại', n:720, why:'Domain gốc, khớp phase 07', up:'20/07/2026', by:'CX Insight' },
+    { id:'x-l1-churn',lv:'L1',name:'Rời bỏ & phục hồi', n:180, why:'Domain gốc, khớp phase 07', up:'20/07/2026', by:'CX Insight' },
+
+    { id:'x-l2-ekyc', lv:'L2', p:'x-l1-mtk', name:'eKYC', n:1240, why:'Nhóm các bước xác thực danh tính trong flow MTK', up:'21/07/2026', by:'CX Insight' },
+    { id:'x-l2-sign', lv:'L2', p:'x-l1-mtk', name:'Ký hợp đồng điện tử', n:340, why:'Bước ký và chọn số tài khoản', up:'21/07/2026', by:'CX Insight' },
+    { id:'x-l2-actv', lv:'L2', p:'x-l1-mtk', name:'Kích hoạt & định hướng', n:260, why:'Sau khi tài khoản sẵn sàng', up:'21/07/2026', by:'CX Insight' },
+    { id:'x-l2-dep',  lv:'L2', p:'x-l1-cash',name:'Nộp tiền', n:680, why:'VA, QR, liên kết ngân hàng', up:'21/07/2026', by:'CX Insight' },
+    { id:'x-l2-wd',   lv:'L2', p:'x-l1-cash',name:'Rút & chuyển tiền', n:440, why:'Rút về ngân hàng, chuyển tiểu khoản', up:'21/07/2026', by:'CX Insight' },
+    { id:'x-l2-order',lv:'L2', p:'x-l1-trade',name:'Đặt lệnh', n:610, why:'Đặt, sửa, hủy, từ chối', up:'21/07/2026', by:'CX Insight' },
+    { id:'x-l2-port', lv:'L2', p:'x-l1-trade',name:'Danh mục & lãi lỗ', n:350, why:'Xem tài sản, sao kê', up:'21/07/2026', by:'CX Insight' },
+    { id:'x-l2-bond', lv:'L2', p:'x-l1-wealth',name:'iBond', n:410, why:'Trái phiếu doanh nghiệp', up:'21/07/2026', by:'CX Insight' },
+    { id:'x-l2-hotl', lv:'L2', p:'x-l1-care',name:'Hotline & chat', n:520, why:'Kênh hỗ trợ trực tiếp', up:'21/07/2026', by:'CX Insight' },
+    { id:'x-l2-claim',lv:'L2', p:'x-l1-care',name:'Khiếu nại & tra soát', n:200, why:'Case cần xử lý theo SLA', up:'21/07/2026', by:'CX Insight' },
+
+    { id:'x-l3-live', lv:'L3', p:'x-l2-ekyc', name:'Liveness & Face match', n:640, why:'Khớp bước 03 của flow MTK, stationId JS-MTK-03', up:'24/07/2026', by:'Linh Trần' },
+    { id:'x-l3-ocr',  lv:'L3', p:'x-l2-ekyc', name:'Chụp & đọc CCCD', n:470, why:'Khớp bước 02, stationId JS-MTK-02', up:'22/07/2026', by:'CX Insight' },
+    { id:'x-l3-vneid',lv:'L3', p:'x-l2-ekyc', name:'Đối chiếu VNeID / NFC', n:130, why:'Nhánh xác thực thay thế OCR', up:'22/07/2026', by:'CX Insight',
+      drift:'new-term', driftNote:'Xuất hiện 34 verbatim dùng từ "app định danh quốc gia" chưa gán vào node này' },
+    { id:'x-l3-smca', lv:'L3', p:'x-l2-sign', name:'Phiên ký SmartCA', n:280, why:'Khớp bước 05, stationId JS-MTK-05', up:'22/07/2026', by:'CX Insight' },
+    { id:'x-l3-va',   lv:'L3', p:'x-l2-dep',  name:'Nộp qua số VA', n:390, why:'Phương thức nạp phổ biến nhất', up:'22/07/2026', by:'CX Insight' },
+    { id:'x-l3-reject',lv:'L3',p:'x-l2-order',name:'Lệnh bị từ chối', n:240, why:'Nhóm reason code từ core', up:'22/07/2026', by:'CX Insight' },
+
+    { id:'x-th-device', lv:'theme', name:'Thiết bị / môi trường không tương thích', n:412, why:'Khách thất bại vì phần cứng hoặc điều kiện chụp, không phải vì không hiểu cách làm', up:'25/07/2026', by:'Linh Trần' },
+    { id:'x-th-guide',  lv:'theme', name:'Hướng dẫn không rõ hoặc thiếu', n:368, why:'Khách không biết phải làm gì tiếp, hoặc thông báo lỗi chung chung', up:'24/07/2026', by:'CX Insight' },
+    { id:'x-th-status', lv:'theme', name:'Không rõ trạng thái giao dịch', n:295, why:'Khách không biết việc đã xong chưa, tiền đã đến chưa, hợp đồng đã ký chưa', up:'24/07/2026', by:'CX Insight',
+      drift:'duplicate', driftNote:'Trùng nghĩa một phần với "Chờ quá lâu không phản hồi" — cần người quyết định gộp hay tách' },
+    { id:'x-th-wait',   lv:'theme', name:'Chờ quá lâu không phản hồi', n:210, why:'Thời gian xử lý vượt kỳ vọng, không có ETA', up:'23/07/2026', by:'CX Insight' },
+    { id:'x-th-info',   lv:'theme', name:'Thiếu thông tin để ra quyết định', n:186, why:'Khách cần hiểu rủi ro, phí, thanh khoản trước khi hành động', up:'23/07/2026', by:'CX Insight' },
+    { id:'x-th-praise', lv:'theme', name:'Trải nghiệm nhanh và mượt', n:164, why:'Nhóm phản hồi tích cực, dùng để biết cái gì đang hoạt động tốt', up:'23/07/2026', by:'CX Insight' },
+
+    { id:'x-sub-android', lv:'subtheme', p:'x-th-device', name:'Android tầm trung, ánh sáng yếu', n:238, why:'Cụm thiết bị RAM ≤ 4GB gặp lỗi liveness nhiều nhất', up:'25/07/2026', by:'Linh Trần' },
+    { id:'x-sub-glare',   lv:'subtheme', p:'x-th-device', name:'Giấy tờ bị chói hoặc mờ', n:174, why:'Điều kiện chụp làm OCR đọc sai', up:'24/07/2026', by:'CX Insight' },
+    { id:'x-sub-errcode', lv:'subtheme', p:'x-th-guide',  name:'Thông báo lỗi chỉ có mã, không có cách sửa', n:196, why:'Reason code chưa được dịch thành hướng dẫn hành động', up:'24/07/2026', by:'CX Insight' },
+    { id:'x-sub-timeout', lv:'subtheme', p:'x-th-status', name:'Phiên hết hạn giữa lúc thao tác', n:142, why:'Session timeout trước khi khách nhận xác nhận', up:'24/07/2026', by:'CX Insight',
+      drift:'shifting', driftNote:'Ngữ nghĩa đang lệch: 28% record mới thực ra nói về mất mạng, không phải hết phiên' },
+  ],
+
+  /* --- Category theo intent, trực giao với taxonomy --- */
+  cats: {
+    complaint:   { label:'Khiếu nại',         color:'var(--crit)'  },
+    help:        { label:'Cần hỗ trợ',        color:'var(--watch)' },
+    improvement: { label:'Đề xuất cải thiện', color:'var(--ink2)'  },
+    praise:      { label:'Khen ngợi',         color:'var(--good)'  },
+  },
+
+  /* --- Evidence. TẤT CẢ đã masking theo sheet 1C: không tên, CCCD, SĐT, email,
+         số tiền chỉ dùng bucket, ảnh eKYC chỉ log kết quả. --- */
+  ev: [
+    { id:'EV-101', kind:'event', src:'src-ekyc', ref:'liveness_failed · SDK 4.8.2', at:'27/07 · 14:42', step:'s3', pf:'android', cat:'complaint', sen:-0.8, shift:-0.3,
+      q:'Mã lỗi LIGHT_CONDITION sau 3 lần thử.', sig:'Android tầm trung · ánh sáng yếu', ck:'KH•••7A2',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-live','x-th-device','x-sub-android'],
+      why:'Gán theme "Thiết bị / môi trường" vì mã lỗi LIGHT_CONDITION là tín hiệu môi trường, không phải thao tác sai của khách. Subtheme Android tầm trung do device class trong payload.' },
+    { id:'EV-102', kind:'case', src:'src-case', ref:'CASE•••1842', at:'27/07 · 14:31', step:'s3', pf:'android', cat:'complaint', sen:-0.9, shift:-0.4,
+      q:'Tôi đã quay lại nhiều lần nhưng ứng dụng vẫn yêu cầu làm lại từ đầu.', sig:'Repeat contact · 2 lần trong 40 phút', ck:'KH•••1C9',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-live','x-th-device','x-sub-android'],
+      why:'Cụm "làm lại từ đầu" + repeat contact trong cùng phiên → theme thiết bị, không phải theme hướng dẫn.' },
+    { id:'EV-103', kind:'verbatim', src:'src-store', ref:'PLAY•••522 · 2★', at:'27/07 · 12:18', step:'s3', pf:'android', cat:'complaint', sen:-0.7, shift:-0.2,
+      q:'Nhận diện khuôn mặt không hoàn tất trên điện thoại Android, thử buổi tối là chịu.', sig:'Rating 2/5 · Android', ck:'Ẩn danh',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-live','x-th-device','x-sub-android'],
+      why:'"Thử buổi tối" là tín hiệu ánh sáng → subtheme Android tầm trung, ánh sáng yếu.' },
+    { id:'EV-104', kind:'survey-response', src:'src-survey', ref:'CES•••0912 · 2/5', at:'27/07 · 10:04', step:'s3', pf:'android', cat:'complaint', sen:-0.6, shift:-0.1,
+      q:'Khó nhất là bước quay mặt, phải nhờ người khác cầm máy hộ.', sig:'CES 2/5 · hoàn tất sau 4 lần thử', ck:'KH•••4B8',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-live','x-th-device'],
+      why:'Khách hoàn tất nhưng effort cao → vẫn là theme thiết bị, category Khiếu nại vì điểm CES thấp.' },
+    { id:'EV-105', kind:'case', src:'src-case', ref:'CASE•••1901', at:'26/07 · 16:22', step:'s3', pf:'ios', cat:'help', sen:-0.3, shift:0,
+      q:'Cho hỏi quay mặt cần bỏ kính không, app không nói rõ.', sig:'First contact · chưa fail lần nào', ck:'KH•••2E5',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-live','x-th-guide','x-sub-errcode'],
+      why:'Đây là câu hỏi trước khi thao tác, chưa có lỗi → category Cần hỗ trợ, theme Hướng dẫn không rõ.' },
+    { id:'EV-201', kind:'event', src:'src-ga', ref:'contract_session_abandoned', at:'27/07 · 13:06', step:'s5', pf:'ios', cat:'complaint', sen:-0.5, shift:-0.2,
+      q:'Phiên SmartCA hết hạn trước khi CTA ký được xác nhận.', sig:'Session timeout · 4m32s', ck:'KH•••8B4',
+      tax:['x-l1-mtk','x-l2-sign','x-l3-smca','x-th-status','x-sub-timeout'],
+      why:'Event timeout + không có xác nhận trạng thái → theme Không rõ trạng thái, subtheme Phiên hết hạn.' },
+    { id:'EV-202', kind:'case', src:'src-case', ref:'CASE•••1750', at:'27/07 · 11:49', step:'s5', pf:'ios', cat:'help', sen:-0.4, shift:-0.1,
+      q:'Không rõ hồ sơ đã ký thành công hay cần thao tác lại.', sig:'First contact unresolved', ck:'KH•••3D1',
+      tax:['x-l1-mtk','x-l2-sign','x-l3-smca','x-th-status'],
+      why:'Khách hỏi trạng thái, không phàn nàn về lỗi → category Cần hỗ trợ.' },
+    { id:'EV-203', kind:'verbatim', src:'src-broker', ref:'RM-NOTE•••114', at:'26/07 · 09:30', step:'s5', pf:'web', cat:'improvement', sen:-0.2, shift:0,
+      q:'Khách đề nghị gửi SMS xác nhận sau khi ký, để khỏi phải mở app kiểm tra.', sig:'Ghi chú RM · khách high-value', ck:'KH•••9F1',
+      tax:['x-l1-mtk','x-l2-sign','x-th-status'],
+      why:'Là đề xuất giải pháp, không phải báo lỗi → category Đề xuất cải thiện.' },
+    { id:'EV-301', kind:'event', src:'src-ekyc', ref:'id_capture_failed · GLARE', at:'27/07 · 14:10', step:'s2', pf:'ios', cat:'complaint', sen:-0.5, shift:0.2,
+      q:'Ảnh giấy tờ bị chói, chưa có hướng dẫn thay đổi góc chụp.', sig:'iOS · fail 3 lần', ck:'KH•••5F6',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-ocr','x-th-device','x-sub-glare'],
+      why:'GLARE là reason code môi trường → theme thiết bị. sentimentShift dương vì bản cập nhật reason code đã giảm mức bức xúc.' },
+    { id:'EV-302', kind:'event', src:'src-ekyc', ref:'id_capture_failed · BLUR', at:'27/07 · 12:55', step:'s2', pf:'android', cat:'complaint', sen:-0.4, shift:0.2,
+      q:'Ảnh mờ, hệ thống báo thử lại nhưng không nói mờ ở đâu.', sig:'Android · fail 2 lần', ck:'KH•••6A3',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-ocr','x-th-guide','x-sub-errcode'],
+      why:'Có reason code nhưng thông báo không hướng dẫn được → theme Hướng dẫn không rõ.' },
+    { id:'EV-303', kind:'survey-response', src:'src-survey', ref:'ABANDON•••221', at:'26/07 · 20:11', step:'s2', pf:'android', cat:'complaint', sen:-0.6, shift:0,
+      q:'Chụp giấy tờ khó nên tôi để hôm khác làm, rồi quên luôn.', sig:'Khảo sát bỏ dở · chọn "chụp giấy tờ khó"', ck:'KH•••7C4',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-ocr','x-th-device','x-sub-glare'],
+      why:'Trả lời khảo sát bỏ dở, lý do là độ khó thao tác chụp → theme thiết bị.' },
+    { id:'EV-304', kind:'verbatim', src:'src-store', ref:'APPSTORE•••318 · 5★', at:'26/07 · 18:40', step:'s2', pf:'ios', cat:'praise', sen:0.9, shift:0.1,
+      q:'Quét NFC trên căn cước mới nhanh thật, không phải chụp gì cả.', sig:'Rating 5/5 · iOS', ck:'Ẩn danh',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-vneid','x-th-praise'],
+      why:'Phản hồi tích cực về nhánh NFC — dùng để biết cái gì đang hoạt động tốt.' },
+    { id:'EV-305', kind:'case', src:'src-case', ref:'CASE•••1688', at:'25/07 · 15:12', step:'s2', pf:'android', cat:'help', sen:-0.2, shift:0,
+      q:'Ứng dụng định danh quốc gia của tôi báo lỗi, có cách nào khác không?', sig:'First contact', ck:'KH•••1A7',
+      tax:['x-l1-mtk','x-l2-ekyc','x-th-guide'],
+      why:'CHƯA gán L3. Khách dùng cụm "ứng dụng định danh quốc gia" thay vì VNeID — đây là 1 trong 34 record tạo cảnh báo drift new-term.' },
+    { id:'EV-401', kind:'event', src:'src-ga', ref:'account_open_step_viewed · step=nhap_sdt', at:'27/07 · 14:20', step:'s1', pf:'web', cat:'improvement', sen:-0.1, shift:0,
+      q:'Rớt tại bước nhập SĐT sau 8 giây, không thao tác gì thêm.', sig:'Bounce · traffic từ banner', ck:'KH•••3B9',
+      tax:['x-l1-mtk','x-l2-ekyc','x-th-guide'],
+      why:'Hành vi rớt sớm, không có verbatim → suy luận theme Hướng dẫn, độ tin cậy thấp hơn evidence có lời khách.' },
+    { id:'EV-402', kind:'survey-response', src:'src-survey', ref:'CES•••1004 · 5/5', at:'27/07 · 09:15', step:'s6', pf:'ios', cat:'praise', sen:0.8, shift:0.2,
+      q:'Mở tài khoản buổi tối, sáng hôm sau đã đặt được lệnh. Rất gọn.', sig:'CES 5/5 · hoàn tất 1 lần', ck:'KH•••8D2',
+      tax:['x-l1-mtk','x-l2-actv','x-th-praise'],
+      why:'CES cao + verbatim tích cực về tốc độ → theme Trải nghiệm nhanh và mượt.' },
+    { id:'EV-501', kind:'case', src:'src-case', ref:'CASE•••2010', at:'27/07 · 10:40', step:'s3', pf:'android', cat:'complaint', sen:-0.9, shift:-0.5,
+      q:'Đây là lần thứ ba tôi gọi lên về cùng việc xác thực khuôn mặt.', sig:'Repeat contact · lần 3 · khách high-value', ck:'KH•••9F1',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-live','x-th-device','x-sub-android'],
+      why:'Repeat lần 3 từ khách high-value → là evidence cho cả issue liveness và cho agent Escalation.' },
+    { id:'EV-601', kind:'verbatim', src:'src-broker', ref:'RM-NOTE•••120', at:'25/07 · 11:05', step:'s3', pf:'android', cat:'improvement', sen:-0.3, shift:0,
+      q:'Khách lớn tuổi cần người hỗ trợ bước quay mặt, đề nghị có kênh làm tại quầy.', sig:'Ghi chú RM · segment 50+', ck:'KH•••2C8',
+      tax:['x-l1-mtk','x-l2-ekyc','x-l3-live','x-th-device'],
+      why:'Đề xuất kênh thay thế → category Đề xuất cải thiện, vẫn thuộc theme thiết bị vì nguyên nhân gốc là thao tác khó.' },
+  ],
+
+  /* --- Voice Insight. handoff.eligible chỉ true khi có đủ journey impact + scope + owner --- */
+  ins: [
+    { id:'VI-01', theme:'x-th-device', step:'s3', src:['src-ekyc','src-case','src-store','src-survey'],
+      n:412, pos:19, trend:-7, pts:[42,40,36,31,26,19], seg:['Android tầm trung','Khách 50+'],
+      ev:['EV-101','EV-102','EV-103','EV-104','EV-501'], owner:'Linh Trần · CX Insight',
+      rec:'Đẩy thành CX issue: cụm Android RAM ≤ 4GB thất bại liveness gấp 2,6 lần iOS. Cần patch SDK và hướng dẫn theo điều kiện lỗi.',
+      hoEl:true, hoWhy:'Có journey impact (bước 03), affected scope rõ (412 phản hồi, 2 segment) và owner xử lý (Onboarding Squad)', hoIssue:'CXI-021' },
+    { id:'VI-02', theme:'x-th-status', step:'s5', src:['src-ga','src-case','src-broker'],
+      n:295, pos:31, trend:-4, pts:[38,37,36,34,33,31], seg:['iOS','Khách high-value'],
+      ev:['EV-201','EV-202','EV-203'], owner:'Linh Trần · CX Insight',
+      rec:'Đẩy thành CX issue: khách không biết hợp đồng đã ký hay chưa khi phiên SmartCA hết hạn.',
+      hoEl:true, hoWhy:'Có journey impact (bước 05), scope 295 phản hồi và owner (Onboarding Squad)', hoIssue:'CXI-017' },
+    { id:'VI-03', theme:'x-th-guide', step:'s2', src:['src-ekyc','src-case'],
+      n:368, pos:28, trend:2, pts:[24,25,26,27,28,28], seg:['Cả iOS và Android'],
+      ev:['EV-302','EV-305','EV-401'], owner:'Hà Vũ · Data Platform',
+      rec:'Đã có bản sửa reason code phát hành 16/07, trend đang cải thiện. Theo dõi thêm 2 tuần trước khi kết luận.',
+      hoEl:true, hoWhy:'Đã có issue đang theo dõi outcome', hoIssue:'CXI-013' },
+    { id:'VI-04', theme:'x-th-info', step:null, src:['src-broker','src-survey'],
+      n:186, pos:44, trend:-3, pts:[52,50,48,47,45,44], seg:['Khách quan tâm iBond'],
+      ev:[], owner:'Wealth Squad',
+      rec:'Khách hỏi lại nhiều về thanh khoản iBond trước khi mua. Cần khảo sát thêm để xác định điểm cần bổ sung thông tin.',
+      hoEl:false, hoWhy:'CHƯA đủ điều kiện: không xác định được bước cụ thể trong journey, và chưa có owner nhận xử lý. Chỉ tạo CX issue khi có journey impact, affected scope và owner rõ ràng.' },
+    { id:'VI-05', theme:'x-th-praise', step:'s2', src:['src-store','src-survey'],
+      n:164, pos:91, trend:6, pts:[78,81,84,86,89,91], seg:['iOS · căn cước có NFC'],
+      ev:['EV-304','EV-402'], owner:'Linh Trần · CX Insight',
+      rec:'Nhánh NFC được đánh giá tốt hơn nhánh chụp OCR 3,2 lần. Cân nhắc đẩy NFC thành lựa chọn mặc định.',
+      hoEl:false, hoWhy:'Là cơ hội tối ưu, không phải điểm gãy. Chuyển sang backlog sản phẩm, không tạo CX issue.' },
+  ],
+
+  /* --- Issue. priority là object có breakdown, không phải một con số cứng. --- */
+  iss: [
+    { id:'CXI-021', title:'Liveness thất bại lặp lại trên Android', step:'s3', metric:'m-liveness', ins:'VI-01', act:'CXA-021',
+      sev:'critical', st:'investigating', conf:91,
+      ev:['EV-101','EV-102','EV-103','EV-104','EV-501'],
+      plain:'Nhiều khách Android không vượt được bước nhận diện khuôn mặt và phải thử lại hoặc gọi hỗ trợ. Tín hiệu đang tăng nên cần quyết định xử lý ngay.',
+      hyp:'SDK 4.8.2 nhạy với ánh sáng yếu trên nhóm Android RAM ≤ 4GB.',
+      dec:'Duyệt rollout hướng dẫn theo điều kiện lỗi và thử SDK patch trên 10% traffic.',
+      pri:{ sev:30, aff:22, jc:18, rep:12, tr:8, reg:4, total:94 },
+      imp:{ aff:312, rep:29, csat:-0.9, churn:71, hv:9 },
+      cust:['KH•••7A2','KH•••1C9','KH•••4B8','KH•••9F1'] },
+    { id:'CXI-017', title:'Không rõ trạng thái ký hợp đồng', step:'s5', metric:'m-contract', ins:'VI-02', act:'CXA-017',
+      sev:'high', st:'fixing', conf:84,
+      ev:['EV-201','EV-202','EV-203'],
+      plain:'Khách không biết hợp đồng đã được ký hay chưa khi phiên SmartCA hết hạn. Điều này tạo bỏ dở và liên hệ lại.',
+      hyp:'CTA và trạng thái SmartCA không phản hồi kịp trước khi session hết hạn.',
+      dec:'Chốt sticky CTA, trạng thái theo thời gian thực và đường quay lại phiên ký.',
+      pri:{ sev:22, aff:16, jc:18, rep:9, tr:5, reg:12, total:82 },
+      imp:{ aff:146, rep:18, csat:-0.8, churn:19, hv:4 },
+      cust:['KH•••8B4','KH•••9F1'] },
+    { id:'CXI-013', title:'Chụp CCCD thất bại nhưng thiếu hướng dẫn', step:'s2', metric:'m-ocr', ins:'VI-03', act:'CXA-013',
+      sev:'medium', st:'fixing', conf:72,
+      ev:['EV-301','EV-302','EV-303'],
+      plain:'Bản cập nhật reason code đã phát hành. Hệ thống đang theo dõi evidence coverage để người phụ trách xác nhận thay đổi có đủ hiệu quả hay chưa.',
+      hyp:'Thông báo lỗi chung không phân biệt chói, mờ và sai khung.',
+      dec:'Theo dõi reason code sau phát hành và xác nhận evidence coverage đạt mục tiêu trước khi mở rộng hướng dẫn.',
+      pri:{ sev:14, aff:18, jc:14, rep:6, tr:-4, reg:20, total:68 },
+      imp:{ aff:228, rep:11, csat:-0.4, churn:12, hv:2 },
+      cust:['KH•••5F6'] },
+    { id:'CXI-024', title:'Rớt sớm tại bước nhập SĐT từ traffic banner', step:'s1', metric:'m-completion', ins:null, act:'CXA-024',
+      sev:'high', st:'detecting', conf:58,
+      ev:['EV-401'],
+      plain:'Khách vào từ banner rớt ngay bước đầu sau khoảng 8 giây. Chưa có verbatim nên chưa rõ nguyên nhân, độ tin cậy còn thấp.',
+      hyp:'Kỳ vọng từ nội dung banner không khớp với việc phải nhập SĐT ngay.',
+      dec:'Chưa đủ căn cứ để duyệt thay đổi. Cần bổ sung khảo sát micro tại bước 01 trước.',
+      pri:{ sev:20, aff:24, jc:10, rep:2, tr:6, reg:0, total:62 },
+      imp:{ aff:730, rep:3, csat:-0.2, churn:8, hv:1 },
+      cust:[] },
+    { id:'CXI-026', title:'Khách 50+ cần hỗ trợ bước quay mặt', step:'s3', metric:'m-liveness', ins:'VI-01', act:'CXA-026',
+      sev:'medium', st:'investigating', conf:64,
+      ev:['EV-601'],
+      plain:'Nhóm khách lớn tuổi khó tự hoàn thành bước quay mặt và đề nghị có kênh làm tại quầy.',
+      hyp:'Thao tác liveness giả định khách tự cầm máy và tự canh khung.',
+      dec:'Cần quyết định liên phòng ban về việc mở kênh hỗ trợ tại quầy. Chưa đưa vào Control Tower kỳ này.',
+      pri:{ sev:12, aff:8, jc:14, rep:5, tr:2, reg:6, total:47 },
+      imp:{ aff:64, rep:22, csat:-0.5, churn:9, hv:6 },
+      cust:['KH•••2C8'] },
+    { id:'CXI-028', title:'Zalo OA ngừng gửi dữ liệu từ 19/07', step:'s3', metric:'m-repeat', ins:null, act:'CXA-028',
+      sev:'high', st:'fixing', conf:99,
+      ev:[],
+      plain:'Webhook Zalo OA lỗi từ 19/07 nên repeat contact đang bị đếm thiếu. Mọi số liệu liên hệ lại trong kỳ này đều thấp hơn thực tế.',
+      hyp:'Token webhook hết hạn sau lần đổi cấu hình 18/07.',
+      dec:'Khôi phục webhook và backfill dữ liệu 8 ngày trước khi dùng số repeat contact để ra quyết định.',
+      pri:{ sev:22, aff:6, jc:8, rep:0, tr:0, reg:14, total:50 },
+      imp:{ aff:0, rep:0, csat:0, churn:0, hv:0 },
+      cust:[] },
+  ],
+
+  /* --- Action. Giữ nguyên approval gate và chuỗi trạng thái. --- */
+  act: [
+    { id:'CXA-021', iss:'CXI-021', title:'Pilot SDK patch + hướng dẫn theo điều kiện lỗi', owner:'Minh Quân', acc:'Head of Onboarding',
+      due:'02/08/2026', ap:'pending', dl:'backlog', iv:'not-started', lc:'blocked', sm:'m-liveness' },
+    { id:'CXA-017', iss:'CXI-017', title:'Sticky CTA và trạng thái SmartCA theo thời gian thực', owner:'Linh Trần', acc:'Head of Onboarding',
+      due:'30/07/2026', ap:'approved', dl:'released', rel:'Mobile 8.12.0 · 16/07/2026 (một phần)', iv:'monitoring', lc:'blocked', sm:'m-contract' },
+    { id:'CXA-013', iss:'CXI-013', title:'Reason code cho lỗi chụp CCCD', owner:'Hà Vũ', acc:'Data Platform Lead',
+      due:'29/07/2026', ap:'approved', dl:'released', rel:'Mobile 8.12.0 · 16/07/2026', iv:'monitoring', lc:'blocked', sm:'m-ocr' },
+    { id:'CXA-024', iss:'CXI-024', title:'Thêm khảo sát micro tại bước nhập SĐT', owner:'Chưa gán', acc:'Head of Growth',
+      due:'08/08/2026', ap:'pending', dl:'backlog', iv:'not-started', lc:'blocked', sm:'m-completion' },
+    { id:'CXA-026', iss:'CXI-026', title:'Đánh giá phương án hỗ trợ eKYC tại quầy', owner:'Thu Hà', acc:'Head of CX',
+      due:'15/08/2026', ap:'pending', dl:'backlog', iv:'not-started', lc:'blocked', sm:'m-liveness' },
+    { id:'CXA-028', iss:'CXI-028', title:'Khôi phục webhook Zalo OA và backfill 8 ngày', owner:'Hà Vũ', acc:'Data Platform Lead',
+      due:'29/07/2026', ap:'approved', dl:'in-progress', iv:'not-started', lc:'blocked', sm:'m-repeat' },
+  ],
+
+  /* --- Outcome. verdict có bậc `inconclusive` là bắt buộc — không mặc định mọi thay đổi đều có tác dụng. --- */
+  out: [
+    { act:'CXA-013', base:{ v:71.0, u:'%', p:'09/07 – 15/07/2026', n:412 }, post:{ v:91.4, u:'%', p:'17/07 – 27/07/2026', n:286 },
+      cohort:'Khách fail chụp CCCD, cả iOS và Android', win:'11 ngày sau release Mobile 8.12.0',
+      conf:[], verdict:'improved', by:'Hà Vũ · 27/07/2026' },
+    { act:'CXA-017', base:{ v:94.0, u:'%', p:'28/06 – 15/07/2026', n:1840 }, post:{ v:95.1, u:'%', p:'16/07 – 27/07/2026', n:640 },
+      cohort:'Phiên ký SmartCA, iOS', win:'12 ngày, bản sửa chưa release đầy đủ',
+      conf:['Cùng kỳ có release Mobile 8.12.0 chứa 4 thay đổi khác','Kỳ quan sát trùng đợt nghỉ lễ, volume thấp hơn 18%'],
+      verdict:'inconclusive', by:null },
+    /* Cố ý KHÔNG có outcome cho CXA-028: webhook Zalo OA chưa khôi phục xong nên
+       chưa có gì để đo. Việc repeat contact giảm 24% → 16,2% là DẤU HIỆU MẤT NGUỒN,
+       không phải kết quả của một thay đổi — nên nó thuộc màn Nguồn tín hiệu và
+       cảnh báo của Quality Monitor, không thuộc màn Kết quả. */
+  ],
+
+  /* --- Close the loop --- */
+  loop: [
+    { iss:'CXI-021', need:63, done:0,  ch:'Chưa chọn kênh', by:null,                    sent:null },
+    { iss:'CXI-017', need:29, done:0,  ch:'In-app + ZNS',   by:null,                    sent:null },
+    { iss:'CXI-013', need:25, done:25, ch:'In-app',         by:'Thu Hà · Head of CX',   sent:'Sentiment sau liên hệ +0,4 · 18/25 phản hồi tích cực' },
+  ],
+
+  /* --- Khách hàng (Context Graph, đã pseudonymize) --- */
+  cust: [
+    { key:'KH•••7A2', seg:'Mới mở TK', tier:'new', acc:'ACC•••4471', pf:'android', st:'Bỏ dở tại bước 03',
+      tl:[ { at:'27/07 · 14:20', k:'event', l:'Bắt đầu mở tài khoản', step:'s1', ref:'account_open_started', o:'success' },
+           { at:'27/07 · 14:28', k:'event', l:'Chụp CCCD thành công', step:'s2', ref:'ekyc_document_capture_result', o:'success' },
+           { at:'27/07 · 14:35', k:'event', l:'Liveness thất bại · LIGHT_CONDITION', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
+           { at:'27/07 · 14:39', k:'event', l:'Liveness thất bại lần 2', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
+           { at:'27/07 · 14:42', k:'event', l:'Liveness thất bại lần 3', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
+           { at:'27/07 · 14:42', k:'verbatim', l:'Mã lỗi LIGHT_CONDITION sau 3 lần thử', step:'s3', ref:'EV-101', o:'neutral' },
+           { at:'27/07 · 14:44', k:'event', l:'Thoát app, chưa quay lại', step:'s3', ref:'session_end', o:'fail' } ] },
+    { key:'KH•••1C9', seg:'Mới mở TK', tier:'new', acc:'ACC•••4488', pf:'android', st:'Bỏ dở tại bước 03, đã gọi hỗ trợ',
+      tl:[ { at:'27/07 · 13:50', k:'event', l:'Bắt đầu mở tài khoản', step:'s1', ref:'account_open_started', o:'success' },
+           { at:'27/07 · 14:05', k:'event', l:'Liveness thất bại lần 1', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
+           { at:'27/07 · 14:12', k:'case', l:'Gọi hotline lần 1', step:'s3', ref:'CASE•••1839', o:'neutral' },
+           { at:'27/07 · 14:25', k:'event', l:'Liveness thất bại lần 2', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
+           { at:'27/07 · 14:31', k:'case', l:'Chat lần 2 · cùng vấn đề', step:'s3', ref:'CASE•••1842', o:'neutral' },
+           { at:'27/07 · 14:31', k:'verbatim', l:'Đã quay lại nhiều lần nhưng vẫn yêu cầu làm lại từ đầu', step:'s3', ref:'EV-102', o:'neutral' } ] },
+    { key:'KH•••4B8', seg:'Mới mở TK', tier:'new', acc:'ACC•••4502', pf:'android', st:'Hoàn tất sau 4 lần thử',
+      tl:[ { at:'26/07 · 20:10', k:'event', l:'Bắt đầu mở tài khoản', step:'s1', ref:'account_open_started', o:'success' },
+           { at:'26/07 · 20:22', k:'event', l:'Liveness thất bại · 3 lần liên tiếp', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
+           { at:'27/07 · 09:40', k:'event', l:'Liveness thành công lần thứ 4', step:'s3', ref:'ekyc_face_liveness_result', o:'success' },
+           { at:'27/07 · 09:52', k:'event', l:'Kích hoạt tài khoản', step:'s6', ref:'account_activated', o:'success' },
+           { at:'27/07 · 10:04', k:'survey', l:'CES 2/5 · "Khó nhất là bước quay mặt"', step:'s3', ref:'EV-104', o:'neutral' } ] },
+    { key:'KH•••9F1', seg:'Khách chuyển từ CTCK khác', tier:'high-value', acc:'ACC•••2210', pf:'android', st:'Đã hoàn tất, có 3 lần liên hệ',
+      tl:[ { at:'25/07 · 10:15', k:'event', l:'Bắt đầu mở tài khoản', step:'s1', ref:'account_open_started', o:'success' },
+           { at:'25/07 · 10:40', k:'case', l:'Gọi hotline lần 1 · xác thực khuôn mặt', step:'s3', ref:'CASE•••1902', o:'neutral' },
+           { at:'26/07 · 09:20', k:'case', l:'Gọi hotline lần 2 · cùng việc', step:'s3', ref:'CASE•••1955', o:'neutral' },
+           { at:'26/07 · 09:30', k:'verbatim', l:'RM ghi chú: đề nghị gửi SMS xác nhận sau khi ký', step:'s5', ref:'EV-203', o:'neutral' },
+           { at:'27/07 · 10:40', k:'case', l:'Gọi hotline lần 3 · cùng việc', step:'s3', ref:'CASE•••2010', o:'neutral' },
+           { at:'27/07 · 11:05', k:'event', l:'Hoàn tất mở tài khoản', step:'s6', ref:'account_activated', o:'success' } ] },
+    { key:'KH•••8B4', seg:'Mới mở TK', tier:'standard', acc:'ACC•••4390', pf:'ios', st:'Bỏ dở tại bước 05',
+      tl:[ { at:'27/07 · 12:40', k:'event', l:'Bắt đầu mở tài khoản', step:'s1', ref:'account_open_started', o:'success' },
+           { at:'27/07 · 12:58', k:'event', l:'Vào phiên ký SmartCA', step:'s5', ref:'contract_sign_started', o:'success' },
+           { at:'27/07 · 13:06', k:'event', l:'Phiên ký hết hạn sau 4m32s', step:'s5', ref:'EV-201', o:'fail' },
+           { at:'27/07 · 13:12', k:'event', l:'Thoát app', step:'s5', ref:'session_end', o:'fail' } ] },
+    { key:'KH•••5F6', seg:'Mới mở TK', tier:'standard', acc:'ACC•••4455', pf:'ios', st:'Hoàn tất · đã được liên hệ khép vòng',
+      tl:[ { at:'27/07 · 13:50', k:'event', l:'Chụp CCCD thất bại · GLARE', step:'s2', ref:'EV-301', o:'fail' },
+           { at:'27/07 · 14:02', k:'event', l:'Chụp CCCD thất bại lần 2', step:'s2', ref:'id_capture_failed', o:'fail' },
+           { at:'27/07 · 14:10', k:'event', l:'Chụp CCCD thành công sau khi có hướng dẫn mới', step:'s2', ref:'id_capture_ok', o:'success' },
+           { at:'27/07 · 14:30', k:'event', l:'Kích hoạt tài khoản', step:'s6', ref:'account_activated', o:'success' },
+           { at:'27/07 · 16:00', k:'action-notice', l:'Nhận thông báo khép vòng từ CXA-013', step:'s2', ref:'CLOSE•••013', o:'success' } ] },
+    { key:'KH•••2C8', seg:'Khách 50+', tier:'standard', acc:'ACC•••4120', pf:'android', st:'Chưa hoàn tất, cần hỗ trợ',
+      tl:[ { at:'25/07 · 09:30', k:'event', l:'Bắt đầu mở tài khoản tại quầy có RM hỗ trợ', step:'s1', ref:'account_open_started', o:'success' },
+           { at:'25/07 · 10:20', k:'event', l:'Liveness thất bại · 2 lần', step:'s3', ref:'ekyc_face_liveness_result', o:'fail' },
+           { at:'25/07 · 11:05', k:'verbatim', l:'RM ghi chú: khách cần người hỗ trợ bước quay mặt', step:'s3', ref:'EV-601', o:'neutral' } ] },
+  ],
+
+  /* --- 8 tổ hợp Quantify được hỗ trợ. KHÔNG phải query engine tự do. --- */
+  qt: [
+    { id:'q1', name:'Volume theo theme', dim:'Theme · toàn bộ nguồn', chart:'rank', unit:'theme', shown:6, total:41,
+      s:[{l:'Thiết bị / môi trường không tương thích',v:412,c:'var(--crit)'},{l:'Hướng dẫn không rõ hoặc thiếu',v:368,c:'var(--watch)'},
+         {l:'Không rõ trạng thái giao dịch',v:295,c:'var(--watch)'},{l:'Chờ quá lâu không phản hồi',v:210,c:'var(--ink3)'},
+         {l:'Thiếu thông tin để ra quyết định',v:186,c:'var(--ink3)'},{l:'Trải nghiệm nhanh và mượt',v:164,c:'var(--good)'}],
+      note:'Theme trả lời VÌ SAO, khác với L1–L3 trả lời CÁI GÌ.' },
+    { id:'q2', name:'Volume theo L1 domain', dim:'L1 · domain', chart:'rank', unit:'domain', shown:7, total:7,
+      s:[{l:'Mở tài khoản',v:1840,c:'var(--crit)'},{l:'Dòng tiền',v:1120,c:'var(--watch)'},{l:'Giao dịch',v:960,c:'var(--watch)'},
+         {l:'Chăm sóc & khiếu nại',v:720,c:'var(--ink3)'},{l:'Sản phẩm đầu tư',v:530,c:'var(--ink3)'},
+         {l:'Margin & Sức mua',v:410,c:'var(--ink3)'},{l:'Rời bỏ & phục hồi',v:180,c:'var(--ink3)'}],
+      note:'Mở tài khoản chiếm 33% toàn bộ tín hiệu — lý do chọn làm pilot.' },
+    { id:'q3', name:'Volume theo Category', dim:'Category · intent', chart:'rank', unit:'category', shown:4, total:4,
+      s:[{l:'Khiếu nại',v:1420,c:'var(--crit)'},{l:'Cần hỗ trợ',v:1180,c:'var(--watch)'},
+         {l:'Đề xuất cải thiện',v:640,c:'var(--ink3)'},{l:'Khen ngợi',v:520,c:'var(--good)'}],
+      note:'Khiếu nại tăng 18% trong khi Cần hỗ trợ giảm 4% — nghĩa khác hẳn việc cả hai cùng tăng.' },
+    { id:'q4', name:'Volume theo nguồn', dim:'SignalSource', chart:'rank', unit:'nguồn', shown:7, total:7,
+      s:[{l:'Digital analytics',v:41200,c:'var(--ink3)'},{l:'eKYC SDK',v:12800,c:'var(--ink3)'},{l:'CS case',v:1840,c:'var(--ink3)'},
+         {l:'In-app survey',v:612,c:'var(--watch)'},{l:'Store review',v:186,c:'var(--ink3)'},
+         {l:'Ghi chú broker',v:94,c:'var(--ink3)'},{l:'Zalo OA',v:0,c:'var(--crit)'}],
+      note:'Zalo OA đang ở 0 — nguồn chết từ 19/07, kéo repeat contact xuống thấp giả tạo.' },
+    { id:'q5', name:'Trend theme "Thiết bị không tương thích"', dim:'Theme · 6 kỳ', chart:'trend', unit:'kỳ', shown:6, total:6,
+      s:[], t:[{l:'Positive share (%)',p:[42,40,36,31,26,19]}],
+      note:'Giảm 23 điểm qua 6 kỳ. Đây là tín hiệu chính tạo CXI-021.' },
+    { id:'q6', name:'Trend bước Liveness & Face match', dim:'JourneyStep · 6 kỳ', chart:'trend', unit:'kỳ', shown:6, total:6,
+      s:[], t:[{l:'Liveness completion (%)',p:[89,88,87,86,84,83]}],
+      note:'Mục tiêu ≥ 90%. Đã dưới mục tiêu 6 kỳ liên tiếp.' },
+    { id:'q7', name:'So sánh cohort Android vs iOS', dim:'platform · theme thiết bị', chart:'cohort', unit:'kỳ', shown:6, total:6,
+      s:[], t:[{l:'Android · tỷ lệ fail liveness (%)',p:[14,15,16,18,20,22]},{l:'iOS · tỷ lệ fail liveness (%)',p:[8,8,9,8,9,8]}],
+      note:'Android fail gấp 2,6 lần iOS và đang giãn rộng. Đây là tổ hợp dùng trong bản giới thiệu.' },
+    { id:'q8', name:'So sánh cohort high-value vs còn lại', dim:'valueTier · theme thiết bị', chart:'cohort', unit:'kỳ', shown:6, total:6,
+      s:[], t:[{l:'High-value · repeat contact (%)',p:[18,20,23,26,29,34]},{l:'Còn lại · repeat contact (%)',p:[12,12,13,13,14,14]}],
+      note:'Khách high-value liên hệ lại nhiều hơn 2,4 lần — nhóm này ít kiên nhẫn hơn với lỗi lặp.' },
+  ],
+
+  /* --- Dashboard template dọn sẵn theo vai. Head of CX không phải tự soạn Quantify. --- */
+  dash: [
+    { id:'d-cx', name:'Bảng điều hành CX', role:'Head of CX / CX Manager', shared:true, sub:{ f:'weekly', ch:'Email + Slack' },
+      desc:'Điểm gãy theo ưu tiên, repeat contact, action chờ duyệt, verdict outcome gần nhất.', q:['q1','q3','q7','q6'] },
+    { id:'d-pilot', name:'Sức khỏe pilot Mở tài khoản', role:'Onboarding Squad', shared:true, sub:null,
+      desc:'Funnel 6 bước, evidence coverage, CES sau mở tài khoản.', q:['q6','q7','q2'] },
+    { id:'d-voc', name:'Theme đang xấu đi', role:'VoC Analyst', shared:false, sub:{ f:'daily', ch:'Slack' },
+      desc:'Theme giảm điểm, nguồn đóng góp, cohort bị ảnh hưởng.', q:['q1','q5','q8','q4'] },
+  ],
+
+  /* --- 3 Agent, TẤT CẢ đều read-only: phát hiện và cảnh báo, không ghi dữ liệu nghiệp vụ. --- */
+  ag: [
+    { id:'ag-q', kind:'quality-monitor', name:'Quality Monitor', st:'on', last:'27/07 · 15:00',
+      purpose:'Phát hiện volume tăng/giảm bất thường so với baseline, và nguồn ngừng gửi dữ liệu.',
+      f:[ { id:'AF-01', sev:'critical', at:'19/07 · 11:30', title:'Zalo OA ngừng gửi dữ liệu',
+            detail:'Volume từ Zalo OA về 0 trong 8 ngày liên tiếp, baseline là ~120/ngày. Mọi số repeat contact trong kỳ đang bị đếm thiếu.', ev:[] },
+          { id:'AF-02', sev:'high', at:'26/07 · 23:15', title:'In-app survey trễ hơn thoả thuận',
+            detail:'Job tổng hợp survey trễ 12 giờ, vượt ngưỡng 6 giờ. Điểm CES trên Dashboard đang là dữ liệu của hôm trước.', ev:[] },
+          { id:'AF-03', sev:'high', at:'27/07 · 09:00', title:'Volume lỗi liveness vượt baseline 2,4 lần',
+            detail:'Số event ekyc_face_liveness_result với status=fail đạt 1.180/ngày, baseline 30 ngày là ~490/ngày.', ev:['EV-101','EV-103'] } ] },
+    { id:'ag-e', kind:'escalation', name:'Escalation', st:'on', last:'27/07 · 14:45',
+      purpose:'Đánh dấu khách giá trị cao có phản hồi cảm xúc mạnh hoặc liên hệ lặp lại nhiều lần.',
+      f:[ { id:'AF-04', sev:'critical', at:'27/07 · 10:45', title:'Khách high-value liên hệ lần thứ 3 cùng một việc',
+            detail:'KH•••9F1 (khách chuyển từ CTCK khác) đã gọi 3 lần trong 3 ngày về bước xác thực khuôn mặt. Chưa có ai được gán xử lý riêng.', ev:['EV-501'] },
+          { id:'AF-05', sev:'high', at:'26/07 · 18:50', title:'Cụm khách 50+ có repeat contact cao bất thường',
+            detail:'Nhóm segment 50+ có repeat contact 22% ở bước 03, so với 11% trung bình toàn bộ.', ev:['EV-601'] } ] },
+    { id:'ag-n', kind:'newsfeed', name:'Newsfeed', st:'on', last:'27/07 · 07:00',
+      purpose:'Tổng hợp bản tin định kỳ theo vai, gửi qua kênh đã đăng ký.',
+      f:[ { id:'AF-06', sev:'medium', at:'27/07 · 07:00', title:'Bản tin tuần cho Head of CX đã gửi',
+            detail:'Nội dung: 1 issue mới ở mức cần xử lý ngay, 2 action chờ duyệt, 1 outcome kết luận là worse do mất nguồn dữ liệu.', ev:[] },
+          { id:'AF-07', sev:'medium', at:'27/07 · 07:00', title:'Theme mới xuất hiện tuần này',
+            detail:'34 verbatim dùng cụm "ứng dụng định danh quốc gia" chưa gán vào node VNeID / NFC. Cần người xác nhận cách gán.', ev:['EV-305'] } ] },
+  ],
+
+  /* --- Menu bên trái. Đổi nhãn ở đây. `r` là mã route, đừng đổi. --- */
+  nav: [
+    { g:'Khám phá' },
+    { r:'dashboard', ic:'▦', l:'Tổng quan' },
+    { r:'feed',      ic:'≡', l:'Feed' },
+    { r:'quantify',  ic:'▤', l:'Quantify' },
+    { r:'assistant', ic:'✦', l:'Trợ lý' },
+    { g:'Hành trình' },
+    { r:'atlas',     ic:'⎇', l:'Bản đồ hành trình' },
+    { r:'health',    ic:'◍', l:'Sức khỏe hành trình' },
+    { g:'Xử lý' },
+    { r:'issues',    ic:'⚑', l:'Điểm gãy' },
+    { r:'actions',   ic:'✓', l:'Hành động' },
+    { r:'outcomes',  ic:'◎', l:'Kết quả' },
+    { g:'Nền dữ liệu' },
+    { r:'sources',   ic:'⌁', l:'Nguồn tín hiệu' },
+    { r:'surveys',   ic:'☑', l:'Khảo sát' },
+    { r:'taxonomy',  ic:'⋔', l:'Taxonomy' },
+    { r:'agents',    ic:'◈', l:'Agent & cảnh báo' },
+    { g:'Tra cứu' },
+    { r:'customers', ic:'◇', l:'Khách hàng' },
+  ],
+
+  /* --- Tiêu đề và mô tả trên thanh trên cùng của từng màn --- */
+  meta: {
+    dashboard:['Tổng quan','Bảng điều hành theo vai, dựng từ Quantify đã lưu'],
+    feed:['Feed','Dòng tín hiệu thô từ mọi nguồn, đã phân loại và masking'],
+    quantify:['Quantify','Biến tổ hợp filter thành chart, lưu lại và chia sẻ'],
+    assistant:['Trợ lý','Placeholder có kịch bản — không phải AI thật'],
+    atlas:['Bản đồ hành trình','Cấu trúc 7 phase, signal và độ phủ dữ liệu từng bước'],
+    health:['Sức khỏe hành trình','Funnel pilot và xếp ưu tiên điểm gãy'],
+    issues:['Điểm gãy','Hồ sơ toàn bộ điểm gãy trên mọi hành trình'],
+    actions:['Hành động','Duyệt, triển khai và theo dõi từng thay đổi'],
+    outcomes:['Kết quả','Đo trước sau, nêu confounder, khép vòng với khách'],
+    sources:['Nguồn tín hiệu','Sức khỏe từng nguồn và metric bị ảnh hưởng'],
+    surveys:['Khảo sát','Trigger, cooldown, response rate và kết quả'],
+    taxonomy:['Taxonomy','5 tầng phân loại, lý do phân loại và cảnh báo drift'],
+    agents:['Agent & cảnh báo','Ba agent chỉ đọc: phát hiện và cảnh báo'],
+    customers:['Khách hàng','Context graph và timeline từng khách'],
+    customer:['Timeline khách hàng','Chuỗi tín hiệu của một khách, đã pseudonymize'],
+    issue:['Hồ sơ điểm gãy','Bằng chứng, ảnh hưởng, khách, xử lý và kết quả'],
+  },
+
+  /* --- Guided tour: 6 bước dùng khi trình bày trước lãnh đạo. Sửa thứ tự và lời dẫn ở đây. --- */
+  tour: [
+    { r:'dashboard', t:'Bức tranh điều hành', d:'Hành trình mở tài khoản đang mất 1 trong 6 người ở bước nhận diện khuôn mặt.' },
+    { r:'feed',      t:'Khách đang nói gì',   d:'Tín hiệu thô từ 7 nguồn, đã phân loại theo taxonomy và intent, đã masking.' },
+    { r:'quantify',  t:'Định lượng',          d:'Android thất bại gấp 2,6 lần iOS — và khoảng cách đang giãn rộng.' },
+    { r:'health',    t:'Bước nào gãy',        d:'Funnel 6 bước, và mở breakdown để kiểm tra vì sao CXI-021 xếp đầu.' },
+    { r:'actions',   t:'Ai xử lý',            d:'Duyệt đề xuất, giao owner, đặt hạn và metric thành công.' },
+    { r:'outcomes',  t:'Có tác dụng không',   d:'Trước sau, cohort, confounder — và khép vòng với khách bị ảnh hưởng.' },
+  ],
+
+  /* --- Câu hỏi và câu trả lời của màn Trợ lý. ĐÂY LÀ KỊCH BẢN VIẾT SẴN, không phải AI. --- */
+  chips: [
+    ['Điểm gãy cần chú ý', 'Bước nhận diện khuôn mặt đang là điểm gãy nghiêm trọng nhất: 2.650 lượt thất bại, 16,7% người vào bước này, và tín hiệu đã xấu đi 6 kỳ liên tiếp. Khách Android thất bại gấp 2,6 lần iOS.'],
+    ['Nguyên nhân gốc', 'Giả thuyết có độ tin cậy cao nhất (91%): SDK eKYC 4.8.2 nhạy với ánh sáng yếu trên nhóm Android RAM ≤ 4GB. Bằng chứng gồm mã lỗi LIGHT_CONDITION, 3 verbatim nói tới điều kiện chụp buổi tối, và 1 phản hồi khảo sát CES 2/5.'],
+    ['Theme đang xấu đi', 'Ba theme giảm điểm: "Thiết bị không tương thích" giảm 23 điểm qua 6 kỳ, "Không rõ trạng thái giao dịch" giảm 7 điểm, "Thiếu thông tin để ra quyết định" giảm 8 điểm. Theme "Trải nghiệm nhanh và mượt" đang tăng, tập trung ở nhánh xác thực NFC.'],
+    ['Lý do khách rời', 'Trong kỳ này, tín hiệu churn tập trung ở khách bỏ dở eKYC chứ không phải khách đã giao dịch. 71 khách có tín hiệu churn liên quan tới bước liveness. Cần tách rõ churn do trải nghiệm với churn do thị trường trước khi kết luận.'],
+    ['Khách nào bị ảnh hưởng', 'Nhóm chịu ảnh hưởng nặng nhất là khách mới mở tài khoản dùng Android tầm trung, và nhóm khách 50+ có repeat contact 22% so với 11% trung bình. Có 9 khách high-value trong nhóm bị ảnh hưởng, trong đó KH•••9F1 đã liên hệ 3 lần.'],
+    ['Tạo báo cáo', 'Bản tóm tắt cho squad: 1 điểm gãy mức cần xử lý ngay (CXI-021), 2 hành động chờ duyệt, 1 kết quả đo chưa kết luận được vì còn yếu tố nhiễu. Đề nghị ưu tiên khôi phục webhook Zalo OA trước khi dùng số repeat contact để ra quyết định.'],
+  ],
+};
+
+/* ==========================================================================
+   ===== 2. HELPERS =====
+   ========================================================================== */
+let ST = { period:'d30', scope:'onboarding', route:'dashboard', tour:0, sub:{}, sel:{} };
+/* Trạng thái action có thể thay đổi trong phiên — copy để không sửa DATA gốc */
+let ACT = JSON.parse(JSON.stringify(DATA.act));
+let SEEN = {}; /* agent finding đã acknowledge */
+
+const $  = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+const period = () => DATA.periods.find((p) => p.id === ST.period);
+const fx = (n) => Math.round(n * period().factor);
+const nf = (n) => Number(n).toLocaleString('vi-VN');
+const pct = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : 0);
+
+const byId = (arr, id, k = 'id') => arr.find((x) => x[k] === id);
+const step  = (id) => byId(DATA.steps, id);
+const obs   = (id) => byId(DATA.obs, id, 'stepId');
+const metric= (id) => byId(DATA.metrics, id);
+const tax   = (id) => byId(DATA.tax, id);
+const ev    = (id) => byId(DATA.ev, id);
+const iss   = (id) => byId(DATA.iss, id);
+const action= (id) => byId(ACT, id);
+const outc  = (id) => byId(DATA.out, id, 'act');
+const loop  = (id) => byId(DATA.loop, id, 'iss');
+const src   = (id) => byId(DATA.sources, id);
+const cust  = (k) => byId(DATA.cust, k, 'key');
+const qt    = (id) => byId(DATA.qt, id);
+
+/* Nhãn trạng thái — luôn có CHỮ, không bao giờ chỉ có màu */
+const ST_LABEL = { ok:'Đang kiểm soát', watch:'Cần theo dõi', crit:'Cần xử lý ngay', unknown:'Chưa đo được' };
+const badge = (s, txt) => `<span class="st ${s}">${s==='ok'?'✓ ':s==='unknown'?'— ':''}${esc(txt || ST_LABEL[s])}</span>`;
+const SEV = { critical:'crit', high:'watch', medium:'ok' };
+const SEV_LABEL = { critical:'Cần xử lý ngay', high:'Cần theo dõi', medium:'Đang quan sát' };
+
+/* QUY TẮC DENOMINATOR: mọi card/chart hiện "X of Y đơn vị" + kỳ ngày tuyệt đối */
+const denom = (shown, total, unit) =>
+  `<div class="denom">${shown} of ${total} ${esc(unit)}<br>${period().range}</div>`;
+
+const chead = (title, sub, shown, total, unit, right) => `
+  <div class="chead">
+    <div class="ct"><b>${esc(title)}</b>${sub ? `<span>${esc(sub)}</span>` : ''}</div>
+    ${right || (shown != null ? denom(shown, total, unit) : '')}
+  </div>`;
+
+/* Số liệu neo — mỗi số kèm nguồn + độ tươi + cỡ mẫu (quy tắc thứ ba của ta) */
+const stat = (label, value, foot, srcNote, tone) => `
+  <div class="stat">
+    <div class="t-lbl">${esc(label)}</div>
+    <div class="t-num" ${tone ? `style="color:${tone}"` : ''}>${value}</div>
+    ${foot ? `<div class="foot">${esc(foot)}</div>` : ''}
+    ${srcNote ? `<div class="src">${esc(srcNote)}</div>` : ''}
+  </div>`;
+
+const catChip = (c) => `<span class="chip" style="color:${DATA.cats[c].color};border-color:currentColor">${DATA.cats[c].label}</span>`;
+const taxPath = (ids) => ids.map((i) => tax(i)).filter((n) => n && n.level !== 'theme' && n.lv !== 'theme')
+  .map((n) => esc(n.name)).join(' › ');
+const taxPathAll = (ids) => ids.map((i) => tax(i)).filter(Boolean).map((n) => esc(n.name)).join(' › ');
+
+/* Vẽ chart bằng CSS thuần — cố ý không dùng thư viện để file vẫn đọc/sửa được */
+function barChart(series, scaleFactor) {
+  const max = Math.max(...series.map((s) => s.v)) || 1;
+  return `<div class="bars">${series.map((s) => {
+    const v = scaleFactor ? fx(s.v) : s.v;
+    return `<div class="bar">
+      <div class="bn"><i style="background:${s.c || 'var(--ink3)'}"></i><span title="${esc(s.l)}">${esc(s.l)}</span></div>
+      <div class="bv">${nf(v)}</div>
+      <div class="bt"><i style="width:${Math.max(2, (s.v / max) * 100)}%;background:${s.c || 'var(--ink3)'}"></i></div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function lineChart(seriesList) {
+  const colors = ['var(--crit)', 'var(--ink3)'];
+  const all = seriesList.flatMap((s) => s.p);
+  const mx = Math.max(...all), mn = Math.min(...all);
+  const span = mx - mn || 1;
+  const W = 560, H = 130, pad = 6;
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:150px" role="img">
+    ${[0,1,2,3].map((i)=>`<line x1="0" y1="${pad+i*(H-2*pad)/3}" x2="${W}" y2="${pad+i*(H-2*pad)/3}" stroke="var(--line)" stroke-width="1"/>`).join('')}
+    ${seriesList.map((s, si) => {
+      const pts = s.p.map((v, i) => {
+        const x = (i / (s.p.length - 1)) * (W - 10) + 5;
+        const y = H - pad - ((v - mn) / span) * (H - 2 * pad);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+      return `<polyline points="${pts}" fill="none" stroke="${colors[si] || 'var(--ink3)'}" stroke-width="2.5" stroke-linejoin="round"/>
+        ${s.p.map((v, i) => {
+          const x = (i / (s.p.length - 1)) * (W - 10) + 5;
+          const y = H - pad - ((v - mn) / span) * (H - 2 * pad);
+          return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="${colors[si] || 'var(--ink3)'}"/>`;
+        }).join('')}`;
+    }).join('')}
+  </svg>
+  <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap">${seriesList.map((s, si) =>
+    `<span style="font-size:12.5px;display:flex;align-items:center;gap:6px">
+      <i style="width:14px;height:3px;background:${colors[si] || 'var(--ink3)'};display:inline-block"></i>
+      ${esc(s.l)} · cuối kỳ <b class="num">${s.p[s.p.length - 1]}</b></span>`).join('')}</div>`;
+}
+function sparkline(points, color) {
+  const mx = Math.max(...points) || 1;
+  return `<div class="spark">${points.map((p) => `<i style="height:${Math.max(6,(p/mx)*100)}%;background:${color}"></i>`).join('')}</div>`;
+}
+
+/* ==========================================================================
+   ===== 2b. validateFixture() — KIỂM TOÀN VẸN DỮ LIỆU =====
+   Chạy trên TOÀN BỘ fixture, không chỉ một phần. Lỗi hiện thành banner đỏ
+   ngay trong UI. Nếu bạn sửa DATA ở trên mà làm đứt một liên kết, banner sẽ
+   nói chính xác chỗ nào sai — đây là lưới an toàn cho người sửa file.
+   ========================================================================== */
+function validateFixture() {
+  const e = [];
+  const has = (arr, id, k = 'id') => arr.some((x) => x[k] === id);
+
+  /* 1 · ID trùng trên toàn bộ collection */
+  const allIds = [].concat(
+    DATA.steps.map((x) => x.id), DATA.metrics.map((x) => x.id), DATA.ev.map((x) => x.id),
+    DATA.iss.map((x) => x.id), ACT.map((x) => x.id), DATA.sources.map((x) => x.id),
+    DATA.surveys.map((x) => x.id), DATA.tax.map((x) => x.id), DATA.ins.map((x) => x.id),
+    DATA.qt.map((x) => x.id), DATA.dash.map((x) => x.id), DATA.flows.map((x) => x.id),
+  );
+  allIds.filter((id, i) => allIds.indexOf(id) !== i).forEach((id) => e.push(`ID trùng: ${id}`));
+
+  /* 8 · stationId phải có và duy nhất */
+  const stations = DATA.steps.map((s) => s.stationId);
+  DATA.steps.forEach((s) => { if (!s.stationId) e.push(`${s.id}: thiếu stationId`); });
+  stations.filter((x, i) => stations.indexOf(x) !== i).forEach((x) => e.push(`stationId trùng: ${x}`));
+
+  /* 2,3,7,10,11 · Issue */
+  DATA.iss.forEach((i) => {
+    if (!has(DATA.steps, i.step))    e.push(`${i.id}: step ${i.step} không tồn tại`);
+    if (!has(DATA.metrics, i.metric))e.push(`${i.id}: metric ${i.metric} không tồn tại`);
+    if (!has(ACT, i.act))            e.push(`${i.id}: action ${i.act} không tồn tại`);
+    const a = action(i.act);
+    if (a && a.iss !== i.id)         e.push(`${i.id}: action ${i.act} liên kết ngược sai (trỏ về ${a.iss})`);
+    if (i.ins && !has(DATA.ins, i.ins)) e.push(`${i.id}: insight ${i.ins} không tồn tại`);
+    i.ev.forEach((id) => {
+      const x = ev(id);
+      if (!x) return e.push(`${i.id}: evidence ${id} không tồn tại`);
+      if (x.step !== i.step) e.push(`${i.id}: evidence ${id} thuộc bước ${x.step}, khác bước của issue (${i.step})`);
+    });
+    i.cust.forEach((k) => { if (!cust(k)) e.push(`${i.id}: khách ${k} không có trong fixture khách hàng`); });
+    const sum = i.pri.sev + i.pri.aff + i.pri.jc + i.pri.rep + i.pri.tr + i.pri.reg;
+    if (sum !== i.pri.total) e.push(`${i.id}: priority.total = ${i.pri.total} nhưng tổng thành phần = ${sum}`);
+  });
+
+  /* 4 · Action — thứ tự trạng thái không được đảo */
+  ACT.forEach((a) => {
+    if (!has(DATA.iss, a.iss))       e.push(`${a.id}: issue ${a.iss} không tồn tại`);
+    if (!has(DATA.metrics, a.sm))    e.push(`${a.id}: success metric ${a.sm} không tồn tại`);
+    const i = iss(a.iss);
+    if (i && i.act !== a.id)         e.push(`${a.id}: issue ${a.iss} không trỏ ngược về action này`);
+    if (a.ap !== 'approved' && a.dl !== 'backlog')       e.push(`${a.id}: đã triển khai trước khi được duyệt`);
+    if (a.dl !== 'released' && a.iv !== 'not-started')   e.push(`${a.id}: đang đánh giá trước khi phát hành`);
+    if (a.dl !== 'released' && outc(a.id))              e.push(`${a.id}: có outcome trước khi phát hành`);
+    if (a.iv === 'validated' && !outc(a.id))            e.push(`${a.id}: đã xác nhận kết quả nhưng thiếu dữ liệu quan sát`);
+    if (a.lc !== 'blocked' && a.iv !== 'validated')      e.push(`${a.id}: khép vòng trước khi xác nhận kết quả`);
+  });
+
+  /* 5 · Voice Insight handoff */
+  DATA.ins.forEach((v) => {
+    if (!has(DATA.tax, v.theme))   e.push(`${v.id}: theme node ${v.theme} không tồn tại`);
+    if (v.step && !has(DATA.steps, v.step)) e.push(`${v.id}: step ${v.step} không tồn tại`);
+    v.src.forEach((s) => { if (!has(DATA.sources, s)) e.push(`${v.id}: nguồn ${s} không tồn tại`); });
+    v.ev.forEach((x) => { if (!ev(x)) e.push(`${v.id}: evidence ${x} không tồn tại`); });
+    if (v.hoIssue && !has(DATA.iss, v.hoIssue)) e.push(`${v.id}: handoff trỏ tới issue ${v.hoIssue} không tồn tại`);
+    if (!v.hoEl && v.hoIssue)      e.push(`${v.id}: chưa đủ điều kiện handoff nhưng vẫn gắn issue`);
+  });
+
+  /* 6 · Nguồn, khảo sát */
+  DATA.ev.forEach((x) => { if (!has(DATA.sources, x.src)) e.push(`${x.id}: nguồn ${x.src} không tồn tại`); });
+  DATA.sources.forEach((s) => s.metrics.forEach((m) => { if (!has(DATA.metrics, m)) e.push(`${s.id}: metric ${m} không tồn tại`); }));
+  DATA.surveys.forEach((s) => {
+    const known = DATA.signals.some((g) => s.trigger.indexOf(g.name) === 0);
+    const campaign = s.trigger.indexOf('Chiến dịch') === 0;
+    const external = ['deposit_credited','cs_session_closed','account_open_abandoned','account_open_completed','order_matched']
+      .some((n) => s.trigger.indexOf(n) === 0 || s.trigger.indexOf(n) > -1);
+    if (!known && !campaign && !external) e.push(`${s.id}: trigger "${s.trigger}" không khớp signal nào`);
+  });
+
+  /* 9 · Signal luồng tiền phải lấy server làm nguồn sự thật */
+  const moneyGroups = ['g-in','g-out'];
+  const moneyFlows = DATA.flows.filter((f) => moneyGroups.indexOf(f.groupId) > -1).map((f) => f.id);
+  DATA.signals.forEach((g) => {
+    const tp = DATA.touchpoints.find((t) => t.id === g.tpId);
+    const st = tp && step(tp.stepId);
+    if (st && moneyFlows.indexOf(st.flowId) > -1 && g.eventSource !== 'server')
+      e.push(`${g.name}: signal luồng tiền phải có eventSource = server`);
+  });
+
+  /* 11 · Taxonomy — L1/L2/theme bắt buộc, L3/subtheme tùy chọn */
+  DATA.tax.forEach((n) => {
+    if (n.p && !has(DATA.tax, n.p)) e.push(`taxonomy ${n.id}: parent ${n.p} không tồn tại`);
+    const up = { L2:'L1', L3:'L2', subtheme:'theme' }[n.lv];
+    if (up && n.p && tax(n.p).lv !== up) e.push(`taxonomy ${n.id} (${n.lv}): parent phải ở tầng ${up}`);
+    if (n.lv === 'L1' && n.p) e.push(`taxonomy ${n.id}: L1 không được có parent`);
+  });
+  DATA.ev.forEach((x) => {
+    const lv = (l) => x.tax.map((t) => tax(t)).filter((t) => t && t.lv === l);
+    ['L1','L2','theme'].forEach((l) => {
+      const c = lv(l).length;
+      if (c !== 1) e.push(`${x.id}: phải có đúng 1 node ${l}, đang có ${c}`);
+    });
+    ['L3','subtheme'].forEach((l) => { if (lv(l).length > 1) e.push(`${x.id}: có nhiều hơn 1 node ${l}`); });
+    lv('subtheme').forEach((sb) => { if (x.tax.indexOf(sb.p) === -1) e.push(`${x.id}: có sub-theme ${sb.name} nhưng thiếu theme cha`); });
+    x.tax.forEach((t) => { if (!tax(t)) e.push(`${x.id}: taxonomy node ${t} không tồn tại`); });
+  });
+
+  /* 12,13 · Artifact và Agent */
+  DATA.dash.forEach((d) => d.q.forEach((q) => { if (!qt(q)) e.push(`${d.id}: Quantify ${q} không tồn tại`); }));
+  DATA.ag.forEach((a) => a.f.forEach((f) => f.ev.forEach((x) => { if (!ev(x)) e.push(`${f.id}: evidence ${x} không tồn tại`); })));
+  DATA.loop.forEach((l) => {
+    if (!has(DATA.iss, l.iss)) e.push(`close-loop: issue ${l.iss} không tồn tại`);
+    if (l.done > l.need)       e.push(`close-loop ${l.iss}: đã liên hệ (${l.done}) nhiều hơn số cần (${l.need})`);
+  });
+  DATA.out.forEach((o) => { if (!has(ACT, o.act)) e.push(`outcome: action ${o.act} không tồn tại`); });
+
+  return e;
+}
+
+/* ==========================================================================
+   ===== 3. VIEWS — mỗi route một hàm trả về HTML =====
+   Mọi màn theo khuôn 4 tầng: Kết luận → Số liệu neo → Danh sách ưu tiên → Hồ sơ.
+   ========================================================================== */
+const V = {};
+
+/* ---------- Tổng quan (Dashboard) ---------- */
+V.dashboard = () => {
+  const d = DATA.dash.find((x) => x.id === (ST.sub.dashboard || 'd-cx'));
+  const pend = ACT.filter((a) => a.ap === 'pending').length;
+  const openIss = DATA.iss.filter((i) => action(i.act) && action(i.act).lc !== 'closed');
+  const s3 = obs('s3');
+  return `<div class="wrap">
+    <div class="hero">
+      <div class="kick">Bảng điều hành · scope ${esc(DATA.scopes.find(s=>s.id===ST.scope).label)}</div>
+      <h1 class="t-hero">Cứ 6 người vào bước nhận diện khuôn mặt thì 1 người không qua được.</h1>
+      <p>Đây là điểm gãy nghiêm trọng nhất của hành trình mở tài khoản trong kỳ này. Hệ thống đã nối funnel thất bại, liên hệ lặp lại và phản hồi khách hàng để tạo cảnh báo.</p>
+    </div>
+
+    <div class="stats">
+      ${stat('Hoàn tất mở tài khoản','64,3%','Mục tiêu ≥ 72% · thiếu 7,7 điểm','Digital analytics + Core Account · trễ 4 giờ · n=' + nf(fx(18420)),'var(--crit)')}
+      ${stat('Thất bại tại bước Liveness', nf(fx(s3.failed)), pct(s3.failed,s3.entered)+'% người vào bước này','eKYC SDK · trễ 6 giờ · n=' + nf(fx(s3.entered)),'var(--crit)')}
+      ${stat('Điểm gãy chưa khép vòng', String(openIss.length),'Trong đó 1 ở mức cần xử lý ngay','Fixture demo · snapshot 27/07/2026')}
+      ${stat('Chờ human approval', String(pend),'Cần người phụ trách quyết định','Action register · trong phiên')}
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      ${chead('Dashboard template','Chọn template dọn sẵn theo vai. Head of CX không phải tự soạn Quantify.',null,null,null,
+        `<div class="denom">${DATA.dash.length} template<br>${period().range}</div>`)}
+      <div class="cbody">
+        <div class="grid g3">${DATA.dash.map((x) => `
+          <button class="card flat" style="text-align:left;padding:14px;cursor:pointer;${x.id===d.id?'border-color:var(--primary);background:var(--primary-soft)':''}"
+                  onclick="setSub('dashboard','${x.id}')">
+            <div class="t-lbl">${esc(x.role)}</div>
+            <div class="t-item" style="margin:6px 0 5px">${esc(x.name)}</div>
+            <div class="t-meta">${esc(x.desc)}</div>
+            <div style="margin-top:9px;display:flex;gap:6px;flex-wrap:wrap">
+              <span class="chip">${x.q.length} Quantify</span>
+              ${x.shared?'<span class="chip">Đã share</span>':''}
+              ${x.sub?`<span class="chip">Subscribe ${x.sub.f==='daily'?'hằng ngày':x.sub.f==='weekly'?'hằng tuần':'hằng tháng'}</span>`:''}
+            </div>
+          </button>`).join('')}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      ${chead(d.name, d.desc, d.q.length, DATA.qt.length, 'Quantify')}
+      <div class="cbody">
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="btn sm">＋ Add</button>
+          <span class="chip">Saved Items</span><span class="chip">New Quantify</span><span class="chip">New Feed</span>
+          <div class="grow"></div>
+          <button class="btn sm">Share</button>
+          <button class="btn sm">Subscribe</button>
+        </div>
+        <div class="grid g2">${d.q.map((qid) => qCard(qt(qid))).join('')}</div>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* Card Quantify dùng lại ở cả Dashboard và /quantify */
+function qCard(q) {
+  return `<div class="card flat" style="border-color:var(--line)">
+    ${chead(q.name, q.dim, q.shown, q.total, q.unit)}
+    <div class="cbody">
+      ${q.chart === 'rank' ? barChart(q.s, true) : lineChart(q.t)}
+      <div class="note" style="margin-top:13px">${esc(q.note)}</div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Feed ---------- */
+V.feed = () => {
+  const f = ST.sel.feed || { cat:'all', step:'all', src:'all' };
+  const mode = ST.sub.feed || 'verbatim';
+  let list = DATA.ev.slice().sort((a,b) => (a.at < b.at ? 1 : -1));
+  if (f.cat !== 'all')  list = list.filter((e) => e.cat === f.cat);
+  if (f.step !== 'all') list = list.filter((e) => e.step === f.step);
+  if (f.src !== 'all')  list = list.filter((e) => e.src === f.src);
+
+  const sel = (k, v, opts) => `<select onchange="setFeed('${k}',this.value)" style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:6px 8px;font-size:12.5px;width:100%">
+    ${opts.map((o) => `<option value="${o[0]}" ${f[k]===o[0]?'selected':''}>${esc(o[1])}</option>`).join('')}</select>`;
+
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">Khách đang gửi về ${nf(fx(DATA.ev.length * 41))} tín hiệu trong kỳ này, từ 7 nguồn.</h1>
+    <p class="t-meta" style="max-width:80ch;margin:0 0 18px">Đây là dòng tín hiệu thô, chưa gom thành theme. Mỗi dòng đã được phân loại tự động theo taxonomy và Category, và mọi thông tin cá nhân đã được masking theo quy tắc pháp chế.</p>
+
+    <div class="split" style="grid-template-columns:230px minmax(0,1fr)">
+      <div class="card" style="align-self:start">
+        <div class="chead"><div class="ct"><b>Filter</b><span>${list.length} of ${DATA.ev.length} tín hiệu</span></div></div>
+        <div class="cbody" style="display:grid;gap:13px">
+          <div><div class="t-lbl" style="margin-bottom:5px">Category</div>
+            ${sel('cat', f.cat, [['all','Tất cả intent']].concat(Object.entries(DATA.cats).map(([k,v]) => [k, v.label])))}</div>
+          <div><div class="t-lbl" style="margin-bottom:5px">Bước hành trình</div>
+            ${sel('step', f.step, [['all','Tất cả bước']].concat(DATA.steps.map((s) => [s.id, s.code + ' · ' + s.name])))}</div>
+          <div><div class="t-lbl" style="margin-bottom:5px">Nguồn</div>
+            ${sel('src', f.src, [['all','Tất cả nguồn']].concat(DATA.sources.map((s) => [s.id, s.name])))}</div>
+          <div class="hr" style="margin:2px 0"></div>
+          <button class="btn sm" style="justify-content:center" onclick="setFeed('reset','')">Bỏ hết filter</button>
+          <button class="btn sm" style="justify-content:center">Lưu thành Saved Item</button>
+        </div>
+      </div>
+
+      <div class="card">
+        ${chead('Dòng tín hiệu', 'Mới nhất trước', list.length, DATA.ev.length, 'tín hiệu')}
+        <div class="tabs">
+          <button class="${mode==='verbatim'?'on':''}" onclick="setSub('feed','verbatim')">Verbatim</button>
+          <button class="${mode==='summary'?'on':''}" onclick="setSub('feed','summary')">AI summary</button>
+        </div>
+        ${mode === 'summary' ? `<div class="cbody">
+          <div class="note warn" style="margin-bottom:14px"><b>Nội dung demo theo kịch bản.</b> Đây không phải AI thật. Prototype không có model, không có suy luận — đoạn dưới là văn bản viết sẵn trong file. Bản thật cần đánh giá chất lượng trên tập tiếng Việt trước khi tin.</div>
+          <div class="t-body" style="max-width:82ch">
+            <p style="margin:0 0 12px"><b>${list.length} tín hiệu đang xem, tập trung vào ba nhóm nguyên nhân.</b></p>
+            <p style="margin:0 0 10px">Nhóm lớn nhất là <b>thiết bị và môi trường không tương thích</b>: khách dùng Android tầm trung, chụp trong điều kiện ánh sáng yếu, và thất bại nhiều lần liên tiếp ở bước nhận diện khuôn mặt. Có khách phải thử tới 4 lần mới qua.</p>
+            <p style="margin:0 0 10px">Nhóm thứ hai là <b>không rõ trạng thái</b>: phiên ký SmartCA hết hạn trước khi khách nhận được xác nhận, dẫn tới bỏ dở và gọi hỗ trợ.</p>
+            <p style="margin:0">Nhóm thứ ba nhỏ hơn nhưng đáng chú ý: <b>hướng dẫn chỉ có mã lỗi mà không có cách sửa</b>. Bản cập nhật reason code phát hành 16/07 đang cải thiện nhóm này.</p>
+          </div></div>`
+        : `<div class="lst">${list.length ? list.map((e) => feedRow(e)).join('') : '<div class="empty">Không có tín hiệu nào khớp filter.</div>'}</div>`}
+      </div>
+    </div>
+  </div>`;
+};
+
+function feedRow(e) {
+  const s = step(e.step), so = src(e.src);
+  const open = ST.sel['why-' + e.id];
+  return `<div style="padding:14px 16px">
+    <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:8px">
+      ${catChip(e.cat)}
+      <span class="chip">${esc(so.name)}</span>
+      <span class="mono" style="font-size:12px;color:var(--ink3)">${esc(e.ref)}</span>
+      <div class="grow"></div>
+      <span class="t-meta">${esc(e.at)}</span>
+    </div>
+    <p class="t-body" style="margin:0 0 8px;max-width:88ch">“${esc(e.q)}”</p>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--ink3)">
+      <span>🔒 ${esc(e.ck)}</span>
+      <span>${esc(s.code)} · ${esc(s.name)}</span>
+      <span class="mono">${taxPath(e.tax)}</span>
+      <span>Sentiment <b class="num" style="color:${e.sen<0?'var(--crit)':'var(--good)'}">${e.sen>0?'+':''}${e.sen}</b></span>
+      ${e.shift ? `<span>Shift <b class="num" style="color:${e.shift<0?'var(--crit)':'var(--good)'}">${e.shift>0?'+':''}${e.shift}</b></span>` : ''}
+    </div>
+    <button class="disc" style="margin-top:9px" onclick="tog('why-${e.id}')">${open?'Ẩn':'Vì sao phân loại thế này?'} ${open?'▴':'▾'}</button>
+    ${open ? `<div class="note" style="margin-top:9px">
+        <div class="t-lbl" style="margin-bottom:5px">Taxonomy đầy đủ</div>
+        <div class="mono" style="font-size:12px;margin-bottom:9px">${taxPathAll(e.tax)}</div>
+        <div class="t-lbl" style="margin-bottom:5px">Rationale</div>
+        <div>${esc(e.why)}</div>
+      </div>` : ''}
+  </div>`;
+}
+
+/* ---------- Quantify ---------- */
+V.quantify = () => {
+  const cur = qt(ST.sel.quantify || 'q7');
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:32ch;margin-bottom:8px">Android thất bại liveness gấp 2,6 lần iOS, và khoảng cách đang giãn rộng.</h1>
+    <p class="t-meta" style="max-width:80ch;margin:0 0 18px">Quantify biến một tổ hợp filter thành chart. Prototype hỗ trợ đúng 8 tổ hợp có sẵn — cố ý không làm query engine tự do, để không tạo kỳ vọng sai về năng lực.</p>
+    <div class="split" style="grid-template-columns:280px minmax(0,1fr)">
+      <div class="card" style="align-self:start">
+        ${chead('8 tổ hợp được hỗ trợ', 'Chọn một để xem chart', 8, 8, 'tổ hợp')}
+        <div class="lst">${DATA.qt.map((q) => `
+          <button class="itm ${q.id===cur.id?'on':''}" onclick="setSel('quantify','${q.id}')">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="mono" style="font-size:12px;color:var(--ink3)">${q.chart==='rank'?'BAR':q.chart==='trend'?'LINE':'COHORT'}</span>
+              <span class="t-meta" style="color:var(--ink)">${esc(q.name)}</span>
+            </div>
+            <div class="t-meta" style="font-size:12px;margin-top:3px">${esc(q.dim)}</div>
+          </button>`).join('')}</div>
+      </div>
+      <div>
+        ${qCard(cur)}
+        <div class="card" style="margin-top:14px">
+          ${chead('Lưu và chia sẻ', 'Quantify lưu lại thành Saved Item, thêm được vào Dashboard')}
+          <div class="cbody" style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn pri sm">Lưu thành Saved Item</button>
+            <button class="btn sm">Thêm vào Dashboard</button>
+            <button class="btn sm">Share</button>
+            <button class="btn sm">Mở Feed của tổ hợp này</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ---------- Sức khỏe hành trình ---------- */
+V.health = () => {
+  const open = DATA.iss.filter((i) => action(i.act) && action(i.act).lc !== 'closed')
+    .sort((a, b) => b.pri.total - a.pri.total);
+  const s3 = obs('s3');
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:32ch;margin-bottom:8px">Hành trình mở tài khoản mất ${pct(s3.failed,s3.entered)}% người tại bước nhận diện khuôn mặt.</h1>
+    <p class="t-meta" style="max-width:86ch;margin:0 0 18px">Funnel 6 bước của pilot. Mỗi bước có nhãn trạng thái bằng chữ, không chỉ bằng màu. Chú ý cột <b>evidence coverage</b>: bước dưới 70% nghĩa là kể cả khi thấy thất bại, ta vẫn không biết lý do của phần lớn trường hợp.</p>
+
+    <div class="card" style="margin-bottom:16px">
+      ${chead('Funnel pilot Mở tài khoản', '6 bước · vào / hoàn tất / thất bại / effort / evidence coverage', 6, 6, 'bước')}
+      <div class="cbody">
+        <div class="funnel">${DATA.steps.map((s, i) => {
+          const o = obs(s.id);
+          return `<div class="fstep ${o.state}">
+            ${i > 0 && o.failed > 800 ? `<div class="drop">−${pct(o.failed,o.entered)}%</div>` : ''}
+            <div class="fc">${s.code} · ${esc(s.stationId)}</div>
+            <div class="fn">${esc(s.name)}</div>
+            <div class="fv">${nf(fx(o.completed))}</div>
+            <div class="fl">hoàn tất / ${nf(fx(o.entered))} vào</div>
+            <div class="fbar"><i style="width:${pct(o.completed,o.entered)}%;background:${o.state==='crit'?'var(--crit)':o.state==='watch'?'var(--watch)':'var(--good)'}"></i></div>
+            <div class="fl" style="margin-top:7px">Thất bại <b class="num">${nf(fx(o.failed))}</b></div>
+            <div class="fl">Effort <b class="num">${o.effort}</b> lần thử</div>
+            <div class="fl">Evidence <b class="num">${o.cov}%</b></div>
+            <div style="margin-top:8px">${badge(o.state)}</div>
+          </div>`;
+        }).join('')}</div>
+        <div class="note" style="margin-top:14px">Bước 03 và 05 có evidence coverage dưới 70% — nghĩa là kể cả khi thấy thất bại, ta vẫn <b>không biết lý do</b> của một phần lớn trường hợp. Xem chi tiết ở Bản đồ hành trình.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      ${chead('Friction queue', 'Xếp theo điểm ưu tiên. Mở breakdown để kiểm tra vì sao issue đứng đầu.', open.length, DATA.iss.length, 'điểm gãy')}
+      <table>
+        <thead><tr><th>Điểm gãy</th><th>Bước</th><th>Mức</th><th>Khách ảnh hưởng</th><th>Repeat</th><th>Tin cậy</th><th>Ưu tiên</th><th></th></tr></thead>
+        <tbody>${open.map((i) => {
+          const s = step(i.step), showB = ST.sel['pri-' + i.id];
+          return `<tr class="clickable" onclick="go('issue/${i.id}')">
+              <td><div class="mono" style="font-size:12px;color:var(--ink3)">${i.id}</div><div class="t-item" style="font-size:14px;margin-top:2px">${esc(i.title)}</div></td>
+              <td class="t-meta">${s.code} · ${esc(s.name)}</td>
+              <td>${badge(SEV[i.sev], SEV_LABEL[i.sev])}</td>
+              <td><b class="num">${nf(fx(i.imp.aff))}</b></td>
+              <td><b class="num">${i.imp.rep}%</b></td>
+              <td><b class="num">${i.conf}%</b></td>
+              <td><b class="num" style="font-size:17px">${i.pri.total}</b></td>
+              <td><button class="disc" onclick="event.stopPropagation();tog('pri-${i.id}')">${showB?'Ẩn ▴':'Vì sao ▾'}</button></td>
+            </tr>
+            ${showB ? `<tr><td colspan="8" style="background:var(--surface2)">
+              <div class="t-lbl" style="margin-bottom:9px">Breakdown điểm ưu tiên — tổng ${i.pri.total}</div>
+              ${barChart([
+                {l:'Mức nghiêm trọng', v:i.pri.sev, c:'var(--crit)'},
+                {l:'Số khách bị ảnh hưởng (unique)', v:i.pri.aff, c:'var(--watch)'},
+                {l:'Mức quan trọng của bước trong hành trình', v:i.pri.jc, c:'var(--ink3)'},
+                {l:'Liên hệ lặp lại', v:i.pri.rep, c:'var(--ink3)'},
+                {l:'Xu hướng', v:i.pri.tr, c:'var(--ink3)'},
+                {l:'Rủi ro pháp lý / tuân thủ', v:i.pri.reg, c:'var(--primary)'},
+              ], false)}
+              <div class="note" style="margin-top:11px">Rủi ro pháp lý là thành phần đặc thù ngành chứng khoán — một lỗi eKYC có hệ quả tuân thủ khác một lỗi giao diện, dù cùng số khách bị ảnh hưởng.</div>
+            </td></tr>` : ''}`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+  </div>`;
+};
+
+/* ---------- Điểm gãy ---------- */
+V.issues = () => {
+  const list = DATA.iss.slice().sort((a,b) => b.pri.total - a.pri.total);
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:30ch;margin-bottom:8px">${DATA.iss.length} điểm gãy đang mở trên toàn bộ hành trình.</h1>
+    <p class="t-meta" style="max-width:80ch;margin:0 0 18px">Không phải mọi Voice Insight đều thành issue, và không phải mọi issue đều cần đưa lên bảng điều hành. Bấm một dòng để mở hồ sơ đầy đủ.</p>
+    <div class="card">
+      ${chead('Issue register', 'Xếp theo điểm ưu tiên', list.length, DATA.iss.length, 'điểm gãy')}
+      <table>
+        <thead><tr><th>Điểm gãy</th><th>Bước</th><th>Mức</th><th>Trạng thái</th><th>Khách</th><th>Repeat</th><th>Churn risk</th><th>Ưu tiên</th><th>Owner</th><th>Khép vòng</th></tr></thead>
+        <tbody>${list.map((i) => {
+          const s = step(i.step), a = action(i.act), l = loop(i.id);
+          const ST_ISS = { detecting:'Mới phát hiện', investigating:'Đang điều tra', fixing:'Đang sửa', resolved:'Đã xác nhận' };
+          return `<tr class="clickable" onclick="go('issue/${i.id}')">
+            <td><div class="mono" style="font-size:12px;color:var(--ink3)">${i.id}</div><div class="t-item" style="font-size:14px;margin-top:2px">${esc(i.title)}</div></td>
+            <td class="t-meta">${s.code}</td>
+            <td>${badge(SEV[i.sev], SEV_LABEL[i.sev])}</td>
+            <td class="t-meta">${ST_ISS[i.st]}</td>
+            <td><b class="num">${nf(fx(i.imp.aff))}</b></td>
+            <td><b class="num">${i.imp.rep}%</b></td>
+            <td><b class="num" style="color:${i.imp.churn>50?'var(--crit)':'inherit'}">${nf(fx(i.imp.churn))}</b></td>
+            <td><b class="num" style="font-size:16px">${i.pri.total}</b></td>
+            <td class="t-meta">${esc(a.owner)}</td>
+            <td class="t-meta">${l ? (l.done >= l.need ? '✓ Đã khép' : nf(l.need) + ' khách chờ') : '—'}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+  </div>`;
+};
+
+/* ---------- Hành động ---------- */
+const AP_GROUP = [
+  { k:'pending',  label:'Chờ duyệt',   test:(a) => a.ap === 'pending' },
+  { k:'doing',    label:'Đang làm',    test:(a) => a.ap === 'approved' && a.dl !== 'released' },
+  { k:'released', label:'Đã phát hành',test:(a) => a.dl === 'released' },
+];
+V.actions = () => `<div class="wrap">
+    <h1 class="t-hero" style="max-width:32ch;margin-bottom:8px">${ACT.filter(a=>a.ap==='pending').length} đề xuất đang chờ người phụ trách quyết định.</h1>
+    <p class="t-meta" style="max-width:82ch;margin:0 0 18px">Mọi hành động chạm tới khách hàng đều phải qua bước duyệt của người có thẩm quyền. Đây là yêu cầu của ngành chứng khoán, không phải tùy chọn.</p>
+    ${AP_GROUP.map((g) => {
+      const list = ACT.filter(g.test);
+      return `<div class="card" style="margin-bottom:14px">
+        ${chead(g.label, g.k==='pending'?'Cần quyết định trước khi triển khai':g.k==='doing'?'Đã duyệt, đang triển khai':'Đã ra bản, đang hoặc đã đánh giá', list.length, ACT.length, 'hành động')}
+        ${list.length ? `<div class="lst">${list.map((a) => actionRow(a)).join('')}</div>` : '<div class="empty">Không có hành động nào ở trạng thái này.</div>'}
+      </div>`;
+    }).join('')}
+  </div>`;
+
+function nextStepOf(a) {
+  if (a.ap === 'pending')       return { k:'approve', actor:'Người phụ trách quyết định', label:'Duyệt đề xuất xử lý' };
+  if (a.dl === 'backlog')       return { k:'start',   actor:'Owner cập nhật trạng thái',   label:'Bắt đầu triển khai' };
+  if (a.dl === 'in-progress')   return { k:'release', actor:'Owner cập nhật trạng thái',   label:'Đánh dấu đã phát hành' };
+  if (!outc(a.id))              return { k:'observe', actor:'Hệ thống mô phỏng',           label:'Nhận dữ liệu đánh giá demo' };
+  if (outc(a.id).verdict === 'inconclusive' && a.iv !== 'validated')
+                                return { k:'hold',    actor:'Người phụ trách kết luận',    label:'Chưa kết luận được — xem confounder' };
+  if (a.iv !== 'validated')     return { k:'validate',actor:'Người phụ trách kết luận',    label:'Xác nhận kết quả đánh giá' };
+  if (a.lc !== 'closed')        return { k:'close',   actor:'CX xác nhận trạng thái',      label:'Đánh dấu đã khép vòng' };
+  return { k:'done', actor:'', label:'Hoàn tất' };
+}
+function actionRow(a) {
+  const i = iss(a.iss), m = metric(a.sm), n = nextStepOf(a);
+  return `<div style="padding:15px 17px">
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      <div style="min-width:0;flex:1">
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+          <span class="mono" style="font-size:12px;color:var(--ink3)">${a.id}</span>
+          ${badge(SEV[i.sev], SEV_LABEL[i.sev])}
+          <a href="#/issue/${i.id}" class="chip b">${i.id}</a>
+        </div>
+        <div class="t-item" style="margin:7px 0 6px">${esc(a.title)}</div>
+        <dl class="kv" style="grid-template-columns:auto 1fr auto 1fr;max-width:780px">
+          <dt>Owner</dt><dd>${esc(a.owner)}</dd>
+          <dt>Người duyệt</dt><dd>${esc(a.acc)}</dd>
+          <dt>Hạn</dt><dd>${esc(a.due)}</dd>
+          <dt>Thành công khi</dt><dd>${esc(m.name)} ${esc(m.target)}</dd>
+          ${a.rel ? `<dt>Bản phát hành</dt><dd>${esc(a.rel)}</dd>` : ''}
+        </dl>
+      </div>
+      <div style="flex:none;width:250px">
+        ${loopSteps(a)}
+        ${n.k !== 'done' ? `<div class="t-lbl" style="margin:12px 0 5px">${esc(n.actor)}</div>
+          <button class="btn ${n.k==='hold'?'':'pri'}" style="width:100%;justify-content:center" onclick="advance('${a.id}')">${esc(n.label)}</button>`
+        : `<div class="note bd" style="margin-top:12px;text-align:center"><b>Vòng xử lý đã hoàn tất</b></div>`}
+        <div class="t-meta" style="font-size:12px;text-align:center;margin-top:7px">Thao tác chỉ đổi trạng thái demo trong phiên.</div>
+      </div>
+    </div>
+  </div>`;
+}
+function loopSteps(a) {
+  const rows = [
+    { l:'Duyệt đề xuất',      done:a.ap === 'approved' },
+    { l:'Triển khai thay đổi',done:a.dl === 'released' },
+    { l:'Đo sau thay đổi',    done:a.iv === 'validated' },
+    { l:'Khép vòng với khách',done:a.lc === 'closed' },
+  ];
+  return `<div style="display:grid;gap:5px">${rows.map((r, n) => `
+    <div style="display:flex;align-items:center;gap:8px;font-size:12.5px">
+      <span style="width:21px;height:21px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;
+        ${r.done?'background:var(--good);color:#fff':'background:#fff;border:1px solid var(--line);color:var(--ink3)'}">${r.done?'✓':n+1}</span>
+      <span style="${r.done?'color:var(--good);font-weight:600':'color:var(--ink3)'}">${esc(r.l)}</span>
+    </div>`).join('')}</div>`;
+}
+
+/* ---------- Kết quả ---------- */
+V.outcomes = () => {
+  const rel = ACT.filter((a) => a.dl === 'released' || outc(a.id));
+  const measured = DATA.out.length, proved = DATA.out.filter((o) => o.verdict === 'improved').length;
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">Trong ${measured} thay đổi đã đo, ${proved === 0 ? 'chưa có thay đổi nào' : 'chỉ ' + proved} chứng minh được là có tác dụng.</h1>
+    <p class="t-meta" style="max-width:84ch;margin:0 0 18px">Một thay đổi đã release không có nghĩa là vấn đề đã được giải quyết. Màn này bắt buộc nêu confounder, và khi có yếu tố nhiễu thì <b>không</b> được kết luận là cải thiện.</p>
+    ${rel.length ? rel.map((a) => outcomeCard(a)).join('') : '<div class="empty">Chưa có thay đổi nào được phát hành trong kỳ.</div>'}
+    <div class="card" style="margin-top:16px">
+      ${chead('Khép vòng với khách hàng', 'Số khách cần được thông báo sau khi vấn đề được xử lý', DATA.loop.length, DATA.iss.length, 'điểm gãy')}
+      <table>
+        <thead><tr><th>Điểm gãy</th><th>Khách cần liên hệ</th><th>Đã liên hệ</th><th>Kênh</th><th>Người duyệt nội dung</th><th>Sentiment sau đó</th></tr></thead>
+        <tbody>${DATA.loop.map((l) => { const i = iss(l.iss); return `<tr class="clickable" onclick="go('issue/${l.iss}')">
+          <td><span class="mono" style="font-size:12px;color:var(--ink3)">${l.iss}</span><div class="t-meta" style="color:var(--ink)">${esc(i.title)}</div></td>
+          <td><b class="num">${nf(l.need)}</b></td>
+          <td><b class="num" style="color:${l.done>=l.need?'var(--good)':'var(--ink3)'}">${nf(l.done)}</b></td>
+          <td class="t-meta">${esc(l.ch)}</td>
+          <td class="t-meta">${l.by ? esc(l.by) : '<span style="color:var(--crit)">Chưa duyệt</span>'}</td>
+          <td class="t-meta">${l.sent ? esc(l.sent) : '—'}</td>
+        </tr>`; }).join('')}</tbody>
+      </table>
+    </div>
+  </div>`;
+};
+
+const VERDICT = {
+  improved:     { s:'ok',      l:'Chứng minh được là cải thiện' },
+  'no-change':  { s:'watch',   l:'Không thay đổi đáng kể' },
+  worse:        { s:'crit',    l:'Xấu hơn' },
+  inconclusive: { s:'unknown', l:'Chưa kết luận được' },
+};
+function outcomeCard(a) {
+  const o = outc(a.id), i = iss(a.iss), m = metric(a.sm);
+  if (!o) return `<div class="card" style="margin-bottom:14px">${chead(a.title, a.id + ' · đã phát hành, chưa có dữ liệu quan sát')}
+    <div class="cbody"><div class="note">${badge('unknown')} Chưa đủ cửa sổ quan sát để đo.</div></div></div>`;
+  const v = VERDICT[o.verdict], delta = Math.round((o.post.v - o.base.v) * 10) / 10;
+  const better = m.id === 'm-repeat' ? delta < 0 : delta > 0;
+  return `<div class="card" style="margin-bottom:14px">
+    ${chead(a.title, a.id + ' · ' + i.id + ' · ' + esc(a.rel || 'chưa ghi bản phát hành'), 1, 1, 'cửa sổ quan sát')}
+    <div class="cbody">
+      <div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:15px">
+        ${stat('Trước thay đổi', o.base.v + o.base.u, o.base.p, 'n = ' + nf(o.base.n) + ' · ' + esc(m.name))}
+        ${stat('Sau thay đổi', o.post.v + o.post.u, o.post.p, 'n = ' + nf(o.post.n) + ' · cùng grain',
+          o.verdict === 'improved' ? 'var(--good)' : o.verdict === 'worse' ? 'var(--crit)' : undefined)}
+        ${stat('Chênh lệch', (delta > 0 ? '+' : '') + delta + o.post.u,
+          o.verdict === 'inconclusive' ? (better ? 'Đúng hướng, nhưng chưa đủ căn cứ' : 'Ngược hướng, chưa đủ căn cứ')
+                                       : (better ? 'Theo hướng mong muốn' : 'Ngược hướng mong muốn'),
+          'Mục tiêu ' + esc(m.target),
+          o.verdict === 'inconclusive' ? undefined : better ? 'var(--good)' : 'var(--crit)')}
+        <div class="stat">
+          <div class="t-lbl">Kết luận</div>
+          <div style="margin:6px 0 5px">${badge(v.s, v.l)}</div>
+          <div class="src">${o.by ? esc(o.by) : 'Chưa có người kết luận'}</div>
+        </div>
+      </div>
+      <dl class="kv" style="grid-template-columns:auto 1fr;max-width:900px;margin-bottom:13px">
+        <dt>Cohort</dt><dd>${esc(o.cohort)}</dd>
+        <dt>Cửa sổ quan sát</dt><dd>${esc(o.win)}</dd>
+        <dt>Metric</dt><dd>${esc(m.name)} · grain ${esc(m.grain)}</dd>
+      </dl>
+      ${o.conf.length ? `<div class="note crit">
+        <b>⚠ ${o.conf.length} yếu tố nhiễu (confounder) — không được coi tương quan là nhân quả</b>
+        <ul style="margin:8px 0 0;padding-left:19px">${o.conf.map((c) => `<li style="margin:3px 0">${esc(c)}</li>`).join('')}</ul>
+        ${o.verdict === 'inconclusive' ? '<div style="margin-top:9px">Vì còn yếu tố nhiễu, hệ thống <b>không cho phép</b> kết luận là cải thiện mà chưa có người phụ trách ghi nhận rõ lý do.</div>' : ''}
+      </div>` : `<div class="note"><b>Không phát hiện yếu tố nhiễu.</b> Cùng kỳ không có release nào khác chạm vào bước này, volume không lệch bất thường.</div>`}
+      <div class="note" style="margin-top:11px;font-size:12px">Lưu ý về prototype: trước và sau là <b>hai snapshot rời</b>, không phải chuỗi thời gian liên tục. Bản thật cần time-series và release marker thật.</div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Hồ sơ điểm gãy /issue/:id ----------
+   5 tab. Tab Xử lý và Kết quả CÓ CTA thao tác được tại chỗ — cố ý, để người ra
+   quyết định đọc bằng chứng rồi duyệt ngay, không phải nhảy sang màn khác. */
+V.issue = (id) => {
+  const i = iss(id);
+  if (!i) return `<div class="empty">Không tìm thấy điểm gãy ${esc(id)}.</div>`;
+  const s = step(i.step), m = metric(i.metric), a = action(i.act), tab = ST.sub.issue || 'ev';
+  const TABS = [['ev','Bằng chứng'],['imp','Ảnh hưởng'],['cust','Khách hàng'],['act','Xử lý'],['out','Kết quả']];
+  return `<div class="wrap">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:11px">
+      <button class="btn sm" onclick="go('health')">← Quay lại</button>
+      <span class="mono" style="font-size:12px;color:var(--ink3)">${i.id}</span>
+      ${badge(SEV[i.sev], SEV_LABEL[i.sev])}
+      <span class="chip">${s.code} · ${esc(s.name)}</span>
+      <span class="chip mono">${esc(s.stationId)}</span>
+      <div class="grow"></div>
+      <span class="t-meta">Độ tin cậy <b class="num" style="color:var(--primary);font-size:16px">${i.conf}%</b></span>
+    </div>
+    <h1 class="t-hero" style="max-width:30ch;margin-bottom:10px">${esc(i.title)}</h1>
+    <p class="t-body" style="max-width:86ch;margin:0 0 16px;color:var(--ink2)">${esc(i.plain)}</p>
+
+    <div class="card">
+      <div class="tabs">${TABS.map(([k, l]) => `<button class="${tab===k?'on':''}" onclick="setSub('issue','${k}')">${l}</button>`).join('')}</div>
+      <div class="cbody">${
+        tab === 'ev' ? `
+          <div class="note bd" style="margin-bottom:14px"><b>Giả thuyết:</b> ${esc(i.hyp)}</div>
+          ${i.ev.length ? `<div style="display:grid;gap:11px">${i.ev.map((eid) => { const e = ev(eid); return `
+            <div class="quote">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+                ${catChip(e.cat)}<span class="chip">${esc(src(e.src).name)}</span>
+                <span class="mono" style="font-size:12px;color:var(--ink3)">${esc(e.ref)}</span>
+                <div class="grow"></div><span class="t-meta">${esc(e.at)}</span>
+              </div>
+              <p>“${esc(e.q)}”</p>
+              <div class="qm"><span>🔒 ${esc(e.ck)} · ${esc(e.sig)}</span><span class="mono">${taxPathAll(e.tax)}</span></div>
+            </div>`; }).join('')}</div>`
+            : `<div class="note crit">${badge('unknown')} <b>Chưa có bằng chứng từ khách hàng.</b> Điểm gãy này hiện chỉ dựa trên tín hiệu hành vi, nên độ tin cậy chỉ ${i.conf}%. Cần bổ sung khảo sát hoặc verbatim trước khi duyệt thay đổi.</div>`}
+          <div class="hr"></div>
+          <button class="disc" onclick="tog('mc-${i.id}')">${ST.sel['mc-'+i.id]?'Ẩn định nghĩa đo lường ▴':'Xem định nghĩa đo lường ▾'}</button>
+          ${ST.sel['mc-'+i.id] ? `<div class="note" style="margin-top:10px">
+            <div class="t-lbl" style="margin-bottom:7px">Metric contract</div>
+            <dl class="kv" style="grid-template-columns:auto 1fr">
+              <dt>Metric</dt><dd>${esc(m.name)}</dd>
+              <dt>Giá trị / mục tiêu</dt><dd>${esc(m.value)} / ${esc(m.target)}</dd>
+              <dt>Grain</dt><dd>${esc(m.grain)}</dd>
+              <dt>Công thức</dt><dd>${esc(m.formula)}</dd>
+              <dt>Nguồn</dt><dd>${esc(m.source)}</dd>
+              <dt>Độ tươi</dt><dd>${esc(m.freshness)}</dd>
+              <dt>Chủ sở hữu</dt><dd>${esc(m.owner)}</dd>
+            </dl></div>` : ''}`
+        : tab === 'imp' ? `
+          <div class="grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:16px">
+            ${stat('Khách bị ảnh hưởng', nf(fx(i.imp.aff)), 'unique trong kỳ', esc(m.source))}
+            ${stat('Liên hệ lặp lại', i.imp.rep + '%', 'trong 7 ngày', 'CS case · trễ 2 giờ', i.imp.rep > 20 ? 'var(--crit)' : undefined)}
+            ${stat('Tác động CSAT', i.imp.csat + 'pt', 'so với nhóm không gặp lỗi', 'In-app survey · trễ 12 giờ', 'var(--crit)')}
+            ${stat('Có tín hiệu churn', nf(fx(i.imp.churn)), 'khách cần can thiệp', 'Fixture demo', i.imp.churn > 50 ? 'var(--crit)' : undefined)}
+            ${stat('Khách high-value', nf(i.imp.hv), 'trong nhóm bị ảnh hưởng', 'CRM valueTier')}
+          </div>
+          <div class="t-lbl" style="margin-bottom:9px">Breakdown điểm ưu tiên — tổng ${i.pri.total}</div>
+          ${barChart([
+            {l:'Mức nghiêm trọng', v:i.pri.sev, c:'var(--crit)'},
+            {l:'Số khách bị ảnh hưởng (unique)', v:i.pri.aff, c:'var(--watch)'},
+            {l:'Mức quan trọng của bước', v:i.pri.jc, c:'var(--ink3)'},
+            {l:'Liên hệ lặp lại', v:i.pri.rep, c:'var(--ink3)'},
+            {l:'Xu hướng', v:i.pri.tr, c:'var(--ink3)'},
+            {l:'Rủi ro pháp lý / tuân thủ', v:i.pri.reg, c:'var(--primary)'},
+          ], false)}
+          ${i.ins ? (() => { const vi = DATA.ins.find((x) => x.id === i.ins); return `
+            <div class="hr"></div>
+            <div class="t-lbl" style="margin-bottom:9px">Voice Insight nguồn</div>
+            <div class="note bd">
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div style="flex:none">${sparkline(vi.pts, 'var(--crit)')}</div>
+                <div>
+                  <div class="t-item">${esc(tax(vi.theme).name)}</div>
+                  <div class="t-meta" style="margin:4px 0 7px">${nf(vi.n)} phản hồi · positive ${vi.pos}% · ${vi.trend<0?'giảm':'tăng'} ${Math.abs(vi.trend)}pt qua 6 kỳ · ${vi.src.length} nguồn</div>
+                  <div class="t-body">${esc(vi.rec)}</div>
+                  <div class="t-meta" style="margin-top:7px">Insight owner: <b>${esc(vi.owner)}</b> · Segment: ${vi.seg.map(esc).join(', ')}</div>
+                </div>
+              </div>
+            </div>`; })() : `<div class="hr"></div><div class="note">${badge('unknown')} Điểm gãy này <b>không đến từ Voice of Customer</b> mà từ tín hiệu hành vi. Không phải mọi issue đều có insight nguồn.</div>`}`
+        : tab === 'cust' ? `
+          ${i.cust.length ? `
+            <div class="note" style="margin-bottom:13px">${i.cust.length} khách trong danh sách mẫu bị ảnh hưởng. Toàn bộ định danh đã pseudonymize theo quy tắc masking — không có tên, CCCD, số điện thoại hay email.</div>
+            <div class="grid g2">${i.cust.map((k) => { const c = cust(k); if (!c) return ''; return `
+              <button class="card flat" style="text-align:left;padding:14px;cursor:pointer" onclick="go('customer/${encodeURIComponent(k)}')">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span class="mono t-item">${esc(k)}</span>
+                  ${c.tier === 'high-value' ? '<span class="chip b">High-value</span>' : `<span class="chip">${c.tier === 'new' ? 'Khách mới' : 'Thường'}</span>`}
+                </div>
+                <div class="t-meta" style="margin-top:6px">${esc(c.seg)} · ${esc(c.pf)} · ${c.tl.length} tín hiệu</div>
+                <div class="t-meta" style="margin-top:4px;color:var(--ink)">${esc(c.st)}</div>
+              </button>`; }).join('')}</div>`
+            : `<div class="note">${badge('unknown')} <b>Chưa lập được danh sách khách bị ảnh hưởng.</b> ${
+                i.ev.length === 0
+                  ? 'Điểm gãy này là lỗi ở hệ thống thu thập dữ liệu, không gắn với khách hàng cụ thể nào.'
+                  : 'Điểm gãy này hiện chỉ có tín hiệu hành vi, chưa nối được sang định danh khách. Cần bổ sung tín hiệu có khóa khách trước khi có thể khép vòng.'}</div>`}`
+        : tab === 'act' ? `
+          <div class="note bd" style="margin-bottom:14px"><b>Đề xuất xử lý:</b> ${esc(i.dec)}</div>
+          <div class="lst" style="border:1px solid var(--line);border-radius:10px">${actionRow(a)}</div>
+          <div class="note" style="margin-top:12px;font-size:12px">Nút bấm ở đây dùng <b>cùng một state</b> với màn Hành động — đổi ở đây thì màn kia cũng đổi theo. Màn Hành động sở hữu <i>danh sách</i>, còn hồ sơ này chỉ hiển thị đúng một hành động, nhưng vẫn thao tác được để không mất ngữ cảnh bằng chứng.</div>`
+        : (() => { const o = outc(a.id), l = loop(i.id); return `
+          ${o ? outcomeCard(a) : `<div class="note">${badge('unknown')} <b>Chưa có kết quả để đo.</b> Thay đổi chưa được phát hành nên chưa có cửa sổ quan sát.</div>`}
+          <div class="hr"></div>
+          <div class="t-lbl" style="margin-bottom:9px">Khép vòng với khách hàng</div>
+          ${l ? `<div class="note ${l.done >= l.need ? '' : 'warn'}">
+            <dl class="kv" style="grid-template-columns:auto 1fr">
+              <dt>Khách cần liên hệ</dt><dd>${nf(l.need)}</dd>
+              <dt>Đã liên hệ</dt><dd>${nf(l.done)}</dd>
+              <dt>Kênh</dt><dd>${esc(l.ch)}</dd>
+              <dt>Người duyệt nội dung</dt><dd>${l.by ? esc(l.by) : 'Chưa duyệt — nội dung gửi khách bắt buộc có người duyệt'}</dd>
+              <dt>Sentiment sau đó</dt><dd>${l.sent ? esc(l.sent) : '—'}</dd>
+            </dl></div>` : `<div class="note">Chưa lập danh sách khách cần liên hệ.</div>`}`; })()
+      }</div>
+    </div>
+  </div>`;
+};
+
+/* ---------- Bản đồ hành trình (gộp cả độ phủ dữ liệu) ---------- */
+V.atlas = () => {
+  const fid = ST.sel.atlas || 'f-open-2026';
+  const flow = byId(DATA.flows, fid);
+  const steps = DATA.steps.filter((s) => s.flowId === fid);
+  const sid = ST.sel.atlasStep || (steps[0] && steps[0].id);
+  const verified = DATA.flows.filter((f) => f.verified).length;
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">Hệ thống đã map ${DATA.flows.length} flow trên 7 phase, trong đó ${verified} flow có nguồn xác minh.</h1>
+    <p class="t-meta" style="max-width:84ch;margin:0 0 18px">Bản đồ hiển thị <b>toàn bộ</b> hành trình. Chỉ pilot Mở tài khoản có dữ liệu quan sát — các flow khác ghi rõ “chưa có dữ liệu”, không để trống.</p>
+    <div class="split" style="grid-template-columns:290px 340px minmax(0,1fr)">
+      <div class="card" style="align-self:start;max-height:78vh;overflow:auto">
+        ${chead('Catalog', 'Phase › nhóm › flow', DATA.flows.length, DATA.flows.length, 'flow')}
+        <div>${DATA.phases.map((p) => `
+          <div class="t-lbl" style="padding:11px 14px 5px;background:var(--surface2);border-bottom:1px solid var(--line)">${p.code} · ${esc(p.name)}</div>
+          ${DATA.groups.filter((g) => g.phaseId === p.id).map((g) => `
+            <div style="padding:8px 14px 3px;font-size:12px;font-weight:650;color:var(--ink2)">${esc(g.name)}</div>
+            ${DATA.flows.filter((f) => f.groupId === g.id).map((f) => `
+              <button class="itm ${f.id===fid?'on':''}" style="padding:8px 14px" onclick="setAtlas('${f.id}')">
+                <div style="display:flex;align-items:center;gap:7px">
+                  <span style="width:6px;height:6px;border-radius:50%;flex:none;background:${f.observed?'var(--primary)':f.verified?'var(--ink3)':'#D6D1CB'}"></span>
+                  <span style="font-size:12.5px;font-weight:600">${esc(f.name)}</span>
+                </div>
+                <div class="t-meta" style="font-size:12px;margin-top:2px;padding-left:13px">
+                  ${f.observed ? 'Có dữ liệu quan sát' : f.verified ? 'Có nguồn · chưa có dữ liệu' : 'Chờ nguồn'}
+                </div>
+              </button>`).join('')}`).join('')}`).join('')}</div>
+      </div>
+
+      <div class="card" style="align-self:start">
+        ${chead(flow.name, flow.owner + ' · ' + flow.version, steps.length || 0, steps.length || 0, 'bước')}
+        <div class="cbody tight">
+          <div class="note" style="margin:4px 6px 10px;font-size:12px">
+            <div class="t-lbl" style="margin-bottom:4px">Provenance</div>
+            ${flow.verified ? `Nguồn: ${esc(flow.src)}` : 'Chưa có sơ đồ nguồn — flow này được suy ra từ thảo luận, cần xác minh'}
+          </div>
+          ${steps.length ? `<div class="lst">${steps.map((s) => { const o = obs(s.id); return `
+            <button class="itm ${s.id===sid?'on':''}" onclick="setSel('atlasStep','${s.id}')">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="mono" style="font-size:12px;color:var(--ink3)">${s.code}</span>
+                <span class="t-meta" style="color:var(--ink);font-weight:600">${esc(s.name)}</span>
+                <div class="grow"></div>${badge(o ? o.state : 'unknown')}
+              </div>
+              <div class="t-meta" style="font-size:12px;margin-top:4px">
+                <span class="mono">${esc(s.stationId)}</span> · ${esc(s.owner)}
+                ${o ? ` · evidence ${o.cov}%` : ' · chưa có quan sát'}
+              </div>
+            </button>`; }).join('')}</div>`
+          : `<div class="note warn" style="margin:6px">${badge('unknown')} <b>Chưa có dữ liệu quan sát.</b> Flow này đã được map ở mức cấu trúc nhưng chưa nằm trong pilot, nên chưa có bước, signal hay số liệu. Đây là chủ ý, không phải mất dữ liệu.</div>`}
+        </div>
+      </div>
+
+      <div>${sid && steps.length ? stepInspector(sid) : `<div class="card"><div class="empty">Chọn một flow thuộc pilot để xem chi tiết bước, signal và độ phủ dữ liệu.</div></div>`}</div>
+    </div>
+  </div>`;
+};
+
+function stepInspector(sid) {
+  const s = step(sid), o = obs(sid);
+  const tps = DATA.touchpoints.filter((t) => t.stepId === sid);
+  const sgs = DATA.signals.filter((g) => tps.some((t) => t.id === g.tpId));
+  const SG = { live:['ok','Đang đo'], validating:['watch','Đang validate'], designed:['watch','Đã có spec, chưa implement'], gap:['unknown','Chưa đo (gap)'] };
+  const mIds = [...new Set(sgs.flatMap((g) => g.metrics))];
+  const gaps = sgs.filter((g) => g.st === 'gap' || g.st === 'designed');
+  const laterSteps = DATA.steps.filter((x) => x.flowId === s.flowId && x.code > s.code);
+  return `<div class="card">
+    ${chead('Bước ' + s.code + ' · ' + s.name, 'Touchpoint, signal, độ phủ dữ liệu và blast radius', sgs.length, DATA.signals.length, 'signal')}
+    <div class="cbody">
+      <div class="grid g4" style="margin-bottom:16px">
+        ${stat('Vào bước', nf(fx(o.entered)), '', '')}
+        ${stat('Hoàn tất', nf(fx(o.completed)), pct(o.completed, o.entered) + '%', '')}
+        ${stat('Thất bại', nf(fx(o.failed)), pct(o.failed, o.entered) + '%', '', o.state === 'crit' ? 'var(--crit)' : undefined)}
+        ${stat('Evidence coverage', o.cov + '%', o.cov < 70 ? 'Dưới ngưỡng 70%' : 'Đạt ngưỡng', '', o.cov < 70 ? 'var(--watch)' : undefined)}
+      </div>
+
+      <div class="t-lbl" style="margin-bottom:8px">Touchpoint (${tps.length})</div>
+      ${tps.map((t) => `<div class="note" style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px"><b style="font-size:13.5px;color:var(--ink)">${esc(t.name)}</b><span class="chip">${esc(t.channel)}</span>
+        <div class="grow"></div><span class="t-meta">${nf(fx(t.users))} khách / kỳ</span></div>
+        <div style="margin-top:5px">${esc(t.desc)} · phụ trách ${esc(t.owner)}</div></div>`).join('')}
+
+      <div class="t-lbl" style="margin:15px 0 8px">Signal — đây là nơi độ phủ dữ liệu sống</div>
+      <table><thead><tr><th>Event</th><th>Nguồn</th><th>Platform</th><th>Volume/ngày</th><th>Lần thấy cuối</th><th>Trạng thái</th></tr></thead>
+      <tbody>${sgs.map((g) => `<tr>
+        <td><code class="mono" style="font-size:12px;color:var(--primary)">${esc(g.name)}</code><div class="t-meta" style="font-size:12px;margin-top:3px">${esc(g.desc)}</div></td>
+        <td class="t-meta">${g.es === 'server' ? 'server' : 'client'}</td>
+        <td class="t-meta">${g.pf.join(', ')}</td>
+        <td><b class="num">${g.vol ? nf(g.vol) : '—'}</b></td>
+        <td class="t-meta">${g.seen || '<span style="color:var(--ink3)">chưa từng</span>'}</td>
+        <td>${badge(SG[g.st][0], SG[g.st][1])}</td>
+      </tr>`).join('')}</tbody></table>
+
+      <div class="t-lbl" style="margin:16px 0 8px">Metric liên kết</div>
+      <div style="display:grid;gap:8px">${mIds.map((mid) => { const m = metric(mid); return `
+        <div class="note"><div style="display:flex;align-items:center;gap:9px">
+          <b style="font-size:13.5px;color:var(--ink)">${esc(m.name)}</b>${badge(m.state)}
+          <div class="grow"></div><b class="num">${esc(m.value)}</b><span class="t-meta">/ ${esc(m.target)}</span></div>
+          <div style="margin-top:6px;font-size:12px">Grain ${esc(m.grain)} · ${esc(m.formula)} · ${esc(m.freshness)} · ${esc(m.owner)}</div>
+        </div>`; }).join('')}</div>
+
+      <div class="t-lbl" style="margin:16px 0 8px">Ảnh hưởng nếu thay đổi bước này</div>
+      <div class="note ${gaps.length ? 'warn' : ''}">
+        <div><b>Metric mất tín hiệu:</b> ${mIds.map((x) => esc(metric(x).name)).join(', ')}</div>
+        <div style="margin-top:6px"><b>Platform phải sửa:</b> ${[...new Set(sgs.flatMap((g) => g.pf))].join(', ')}</div>
+        <div style="margin-top:6px"><b>Bước phía sau bị kéo theo:</b> ${laterSteps.length ? laterSteps.map((x) => x.code + ' ' + esc(x.name)).join(' · ') : 'không có'}</div>
+        ${gaps.length ? `<div style="margin-top:8px">⚠ ${gaps.length} signal chưa hoạt động (${gaps.map((g) => esc(g.name)).join(', ')}) — nếu đổi bước này mà chưa instrument, ta sẽ <b>không đo được</b> tác động của chính thay đổi đó.</div>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ---------- Nguồn tín hiệu ---------- */
+V.sources = () => {
+  const bad = DATA.sources.filter((s) => s.health !== 'ok');
+  const H = { ok:['ok','Đang nhận'], stale:['watch','Trễ hơn thoả thuận'], down:['crit','Ngừng gửi'] };
+  const sorted = DATA.sources.slice().sort((a, b) => (a.health === 'ok' ? 1 : 0) - (b.health === 'ok' ? 1 : 0));
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">${bad.length} trong ${DATA.sources.length} nguồn đang có vấn đề, và điều đó làm sai 2 metric.</h1>
+    <p class="t-meta" style="max-width:84ch;margin:0 0 18px">Cột cuối trả lời câu quan trọng nhất của màn này: <b>nguồn này chết thì số nào sai</b>. Không có cột đó thì source health chỉ là thông tin kỹ thuật.</p>
+    <div class="card">
+      ${chead('Nguồn tín hiệu', 'Nguồn có vấn đề xếp lên đầu', DATA.sources.length, DATA.sources.length, 'nguồn')}
+      <table><thead><tr><th>Nguồn</th><th>Loại</th><th>Volume kỳ</th><th>Độ tươi</th><th>Nhận lần cuối</th><th>Trạng thái</th><th>Nguồn này sai thì metric nào sai</th></tr></thead>
+      <tbody>${sorted.map((s) => `<tr>
+        <td><b style="font-size:13.5px">${esc(s.name)}</b><div class="t-meta" style="font-size:12px;margin-top:3px">${esc(s.note)}</div></td>
+        <td class="t-meta">${esc(s.kind)}</td>
+        <td><b class="num">${s.vol ? nf(fx(s.vol)) : '0'}</b></td>
+        <td class="t-meta">${esc(s.fresh)}</td>
+        <td class="t-meta">${esc(s.last)}</td>
+        <td>${badge(H[s.health][0], H[s.health][1])}</td>
+        <td>${s.metrics.length ? s.metrics.map((m) => `<div style="margin-bottom:4px"><span class="chip" style="${s.health!=='ok'?'color:var(--crit);border-color:currentColor':''}">${esc(metric(m).name)}</span></div>`).join('') : '<span class="t-meta">không nối metric nào</span>'}</td>
+      </tr>`).join('')}</tbody></table>
+    </div>
+    <div class="note crit" style="margin-top:14px">
+      <b>Hệ quả cụ thể đang xảy ra:</b> Zalo OA ngừng gửi từ 19/07 nên <b>repeat contact bị đếm thiếu</b>. Con số 24% trên bảng điều hành thấp hơn thực tế. Mọi quyết định dựa vào repeat contact trong kỳ này cần chờ backfill 8 ngày.
+    </div>
+  </div>`;
+};
+
+/* ---------- Khảo sát ---------- */
+V.surveys = () => {
+  const run = DATA.surveys.filter((s) => s.status === 'running').length;
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">${run} trong ${DATA.surveys.length} khảo sát đang chạy, 4 chưa đạt mục tiêu.</h1>
+    <p class="t-meta" style="max-width:86ch;margin:0 0 18px">Enterpret chỉ <b>thu</b> khảo sát. Màn này là phần VNDIRECT bổ sung: ai thiết kế và vận hành chúng. Nội dung lấy nguyên sheet 4 của <span class="mono">tracking-plan-cx-mau.xlsx</span>.</p>
+    <div class="card">
+      ${chead('Survey program', 'Trigger, điều kiện hiển thị, cooldown và kết quả', DATA.surveys.length, DATA.surveys.length, 'khảo sát')}
+      <table><thead><tr><th>Khảo sát</th><th>Loại</th><th>Trigger</th><th>Cooldown</th><th>Response rate</th><th>Kết quả / mục tiêu</th><th>Trạng thái</th></tr></thead>
+      <tbody>${DATA.surveys.map((s) => `<tr>
+        <td><b style="font-size:13.5px">${esc(s.name)}</b>
+          <div class="t-meta" style="font-size:12px;margin-top:4px;max-width:38ch">${esc(s.cond)}</div>
+          <div class="t-meta" style="font-size:12px;margin-top:3px">Thang đo: ${esc(s.scale)}</div></td>
+        <td><span class="chip">${s.type}</span></td>
+        <td><code class="mono" style="font-size:12px;color:var(--primary)">${esc(s.trigger)}</code></td>
+        <td class="t-meta">${s.cd} ngày</td>
+        <td><b class="num">${s.rr}%</b><div class="t-meta" style="font-size:12px">n = ${nf(s.n)}</div></td>
+        <td><b class="num" style="font-size:16px">${esc(s.latest)}</b><div class="t-meta" style="font-size:12px">mục tiêu ${esc(s.target)}</div></td>
+        <td>${s.status === 'paused' ? badge('unknown', 'Đang tạm dừng') : badge(s.state)}</td>
+      </tr>`).join('')}</tbody></table>
+    </div>
+    <div class="note" style="margin-top:14px">
+      <b>Quy tắc cooldown toàn cục:</b> mỗi khách chịu tối đa 1 khảo sát trong 14 ngày, và luôn được phép bỏ qua. Đây là ràng buộc trong tracking plan để không làm khách mệt — hệ thống phải tự chặn, không phụ thuộc người vận hành nhớ.
+    </div>
+  </div>`;
+};
+
+/* ---------- Taxonomy ---------- */
+V.taxonomy = () => {
+  const drifts = DATA.tax.filter((n) => n.drift);
+  const D = { 'new-term':'Thuật ngữ mới chưa gán', duplicate:'Có thể trùng nghĩa', shifting:'Ngữ nghĩa đang lệch' };
+  const kids = (pid, lv) => DATA.tax.filter((n) => n.p === pid && n.lv === lv);
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">Taxonomy 5 tầng: 3 tầng trả lời “cái gì”, 2 tầng trả lời “vì sao”.</h1>
+    <p class="t-meta" style="max-width:86ch;margin:0 0 18px">Đây là lớp giữ ngôn ngữ chung giữa các phòng ban. Prototype cho <b>xem</b>, xem <b>lý do phân loại</b>, và <b>sửa ở mức từng record</b>. Không có chức năng gộp/tách node — việc đó cần quy trình quản trị riêng.</p>
+
+    ${drifts.length ? `<div class="card" style="margin-bottom:16px;border-color:var(--watch-line)">
+      ${chead('Cảnh báo drift cần người xử lý', 'Hệ thống phát hiện, con người quyết định', drifts.length, DATA.tax.length, 'node')}
+      <div class="lst">${drifts.map((n) => `<div style="padding:13px 16px">
+        <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+          ${badge('watch', D[n.drift])}<b style="font-size:13.5px">${esc(n.name)}</b>
+          <span class="chip mono">${n.lv}</span><div class="grow"></div><span class="t-meta">${nf(n.n)} record</span>
+        </div>
+        <div class="t-body" style="margin-top:7px;color:var(--ink2)">${esc(n.driftNote)}</div>
+      </div>`).join('')}</div>
+    </div>` : ''}
+
+    <div class="split" style="grid-template-columns:minmax(0,1fr) 380px">
+      <div class="card">
+        ${chead('Cây taxonomy', 'L1 domain › L2 flow › L3 bước · và theme › sub-theme', DATA.tax.length, DATA.tax.length, 'node')}
+        <div class="cbody">
+          <div class="t-lbl" style="margin-bottom:9px">Nhánh keyword — trả lời CÁI GÌ</div>
+          ${DATA.tax.filter((n) => n.lv === 'L1').map((l1) => `
+            <div style="margin-bottom:10px">
+              ${taxRow(l1, 0)}
+              ${kids(l1.id, 'L2').map((l2) => `${taxRow(l2, 1)}${kids(l2.id, 'L3').map((l3) => taxRow(l3, 2)).join('')}`).join('')}
+            </div>`).join('')}
+          <div class="hr"></div>
+          <div class="t-lbl" style="margin-bottom:9px">Nhánh theme — trả lời VÌ SAO</div>
+          ${DATA.tax.filter((n) => n.lv === 'theme').map((th) => `${taxRow(th, 0)}${kids(th.id, 'subtheme').map((sb) => taxRow(sb, 1)).join('')}`).join('')}
+        </div>
+      </div>
+      <div class="card" style="align-self:start">
+        ${chead('Sửa phân loại ở mức record', 'Có audit trail')}
+        <div class="cbody">
+          <div class="note" style="margin-bottom:12px">Ví dụ một record cần sửa — đây là 1 trong 34 record tạo cảnh báo thuật ngữ mới:</div>
+          <div class="quote" style="margin-bottom:12px">
+            <p>“${esc(ev('EV-305').q)}”</p>
+            <div class="qm"><span>🔒 ${esc(ev('EV-305').ck)}</span><span class="mono">${esc(ev('EV-305').ref)}</span></div>
+          </div>
+          <dl class="kv" style="grid-template-columns:auto 1fr;margin-bottom:12px">
+            <dt>Đang gán</dt><dd class="mono" style="font-size:12px">${taxPathAll(ev('EV-305').tax)}</dd>
+            <dt>Thiếu tầng</dt><dd style="color:var(--crit)">L3 — chưa gán bước cụ thể</dd>
+          </dl>
+          <div class="t-lbl" style="margin-bottom:6px">Gán L3 cho record này</div>
+          <select style="width:100%;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px;font-size:13px;margin-bottom:10px">
+            <option>— chọn node L3 —</option>
+            <option>Đối chiếu VNeID / NFC</option>
+            <option>Chụp &amp; đọc CCCD</option>
+            <option>Liveness &amp; Face match</option>
+          </select>
+          <button class="btn pri" style="width:100%;justify-content:center">Lưu và ghi audit</button>
+          <div class="t-meta" style="font-size:12px;margin-top:9px">Bản thật sẽ ghi: ai sửa, lúc nào, từ giá trị nào sang giá trị nào, và dùng bản sửa này để cải thiện phân loại về sau.</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+};
+function taxRow(n, depth) {
+  return `<div style="display:flex;align-items:center;gap:9px;padding:7px 0 7px ${depth * 22}px;border-bottom:1px solid var(--line-soft)">
+    <span class="chip mono" style="font-size:12px;flex:none">${n.lv}</span>
+    <span style="font-size:13.5px;font-weight:${depth === 0 ? 650 : 500}">${esc(n.name)}</span>
+    ${n.drift ? badge('watch', 'drift') : ''}
+    <div class="grow"></div>
+    <span class="t-meta" style="font-size:12px">${nf(n.n)} record</span>
+    <button class="disc" style="font-size:12px" onclick="tog('tx-${n.id}')">${ST.sel['tx-' + n.id] ? 'ẩn' : 'vì sao'}</button>
+  </div>
+  ${ST.sel['tx-' + n.id] ? `<div class="note" style="margin:7px 0 7px ${depth * 22 + 40}px">
+    <div>${esc(n.why)}</div>
+    <div class="t-meta" style="font-size:12px;margin-top:6px">Cập nhật ${esc(n.up)} bởi ${esc(n.by)}</div>
+  </div>` : ''}`;
+}
+
+/* ---------- Agent ---------- */
+V.agents = () => {
+  const all = DATA.ag.flatMap((a) => a.f);
+  const open = all.filter((f) => !SEEN[f.id]);
+  return `<div class="wrap">
+    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">${open.length} cảnh báo chưa được xử lý từ 3 agent.</h1>
+    <p class="t-meta" style="max-width:86ch;margin:0 0 18px">Cả 3 agent đều <b>chỉ đọc</b>: chúng phát hiện, cảnh báo và tổng hợp, không con nào tự ghi dữ liệu hay tự gửi gì cho khách. Mọi hành động chạm khách vẫn phải qua người duyệt.</p>
+    ${DATA.ag.map((a) => {
+      const o = a.f.filter((f) => !SEEN[f.id]);
+      return `<div class="card" style="margin-bottom:14px">
+        ${chead(a.name, a.purpose, o.length, a.f.length, 'cảnh báo chưa xử lý',
+          `<div class="denom">${badge(a.st === 'on' ? 'ok' : 'unknown', a.st === 'on' ? 'Đang bật' : 'Đang tắt')}<br>chạy lần cuối ${esc(a.last)}</div>`)}
+        <div class="lst">${a.f.map((f) => {
+          const seen = SEEN[f.id];
+          return `<div style="padding:14px 16px;${seen ? 'opacity:.5' : ''}" class="row-st ${seen ? '' : SEV[f.sev]}">
+            <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+              ${badge(SEV[f.sev], SEV_LABEL[f.sev])}
+              <b style="font-size:13.5px">${esc(f.title)}</b>
+              <div class="grow"></div>
+              <span class="t-meta">${esc(f.at)}</span>
+              ${seen ? '<span class="chip">Đã xử lý</span>' : `<button class="btn sm" onclick="ack('${f.id}')">Đánh dấu đã xử lý</button>`}
+            </div>
+            <div class="t-body" style="margin-top:7px;color:var(--ink2);max-width:92ch">${esc(f.detail)}</div>
+            ${f.ev.length ? `<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${f.ev.map((e) => `<span class="chip mono">${e}</span>`).join('')}</div>` : ''}
+          </div>`;
+        }).join('')}</div>
+      </div>`;
+    }).join('')}
+    <div class="note" style="margin-top:4px;font-size:12px">Trong prototype, cảnh báo là dữ liệu dựng sẵn — không có scheduler thật đang chạy.</div>
+  </div>`;
+};
+
+/* ---------- Trợ lý (placeholder có nhãn rõ) ---------- */
+V.assistant = () => {
+  const CHIPS = DATA.chips;
+  const q = ST.sel.assistant;
+  const hit = CHIPS.find((c) => c[0] === q);
+  return `<div class="wrap" style="max-width:1000px">
+    <h1 class="t-hero" style="max-width:30ch;margin-bottom:8px">Trợ lý</h1>
+    <div class="note warn" style="margin:14px 0 18px">
+      <b>Đây là placeholder có kịch bản, không phải AI.</b> Prototype không có model và không suy luận gì. Các câu trả lời dưới đây là văn bản viết sẵn trong file, dùng để chốt <i>hình dạng</i> của tính năng: câu hỏi vào bằng chips, câu trả lời ra kèm dẫn nguồn.
+      <div style="margin-top:8px">Cố ý <b>không</b> dùng nhãn kiểu “AI answer · grounded” — nói vậy là tuyên bố sai về năng lực và sẽ mất tin cậy ngay khi có người hỏi sâu.</div>
+    </div>
+
+    <div class="card">
+      ${chead('Câu hỏi có sẵn', 'Chips thay cho ô nhập trống — người dùng không phải đoán nên hỏi gì', CHIPS.length, CHIPS.length, 'câu hỏi')}
+      <div class="cbody">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">${CHIPS.map((c) => `
+          <button class="btn ${q === c[0] ? 'pri' : ''}" onclick="setSel('assistant','${esc(c[0])}')">${esc(c[0])}</button>`).join('')}</div>
+        ${hit ? `
+          <div class="hr"></div>
+          <div class="t-lbl" style="margin-bottom:8px">Trả lời</div>
+          <p class="t-body" style="max-width:88ch;margin:0 0 14px">${esc(hit[1])}</p>
+          <div class="t-lbl" style="margin-bottom:8px">Dẫn nguồn — bấm được về bằng chứng gốc</div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <a href="#/issue/CXI-021" class="chip b">CXI-021</a>
+            <a href="#/feed" class="chip b">Feed · 18 tín hiệu liên quan</a>
+            <a href="#/quantify" class="chip b">Quantify · cohort Android vs iOS</a>
+            <a href="#/sources" class="chip b">Nguồn · eKYC SDK</a>
+          </div>
+          <div class="note" style="margin-top:14px;font-size:12px">Bản thật cần: kiểm tra 100% corpus thay vì mẫu, neo mọi câu trả lời vào taxonomy đã chốt, và có bộ đánh giá chất lượng tiếng Việt trước khi cho người dùng tin.</div>
+        ` : `<div class="empty">Chọn một câu hỏi để xem hình dạng câu trả lời.</div>`}
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ---------- Khách hàng ---------- */
+V.customers = () => `<div class="wrap">
+    <h1 class="t-hero" style="max-width:34ch;margin-bottom:8px">${DATA.cust.length} khách mẫu, mỗi khách một chuỗi tín hiệu có thể lần lại.</h1>
+    <p class="t-meta" style="max-width:86ch;margin:0 0 18px">Đây là Context Graph ở dạng nhẹ nhất: nối khách với tài khoản, bước hành trình, case và khảo sát. Toàn bộ định danh đã pseudonymize — không có tên, CCCD, số điện thoại hay email.</p>
+    <div class="card">
+      ${chead('Danh sách khách mẫu', 'Bấm để xem timeline', DATA.cust.length, DATA.cust.length, 'khách')}
+      <table><thead><tr><th>Khóa khách</th><th>Segment</th><th>Nhóm giá trị</th><th>Tài khoản</th><th>Platform</th><th>Trạng thái hiện tại</th><th>Tín hiệu</th></tr></thead>
+      <tbody>${DATA.cust.map((c) => `<tr class="clickable" onclick="go('customer/${encodeURIComponent(c.key)}')">
+        <td><span class="mono t-item">${esc(c.key)}</span></td>
+        <td class="t-meta">${esc(c.seg)}</td>
+        <td>${c.tier === 'high-value' ? '<span class="chip b">High-value</span>' : `<span class="chip">${c.tier === 'new' ? 'Khách mới' : 'Thường'}</span>`}</td>
+        <td class="mono t-meta">${esc(c.acc)}</td>
+        <td class="t-meta">${esc(c.pf)}</td>
+        <td class="t-meta" style="color:var(--ink)">${esc(c.st)}</td>
+        <td><b class="num">${c.tl.length}</b></td>
+      </tr>`).join('')}</tbody></table>
+    </div>
+  </div>`;
+
+V.customer = (key) => {
+  const c = cust(decodeURIComponent(key));
+  if (!c) return `<div class="empty">Không tìm thấy khách ${esc(key)}.</div>`;
+  const K = { event:['Event','var(--ink3)'], case:['Liên hệ','var(--watch)'], survey:['Khảo sát','var(--primary)'],
+              verbatim:['Câu nói','var(--ink)'], 'action-notice':['Thông báo khép vòng','var(--good)'] };
+  const fails = c.tl.filter((t) => t.o === 'fail').length;
+  const cases = c.tl.filter((t) => t.k === 'case').length;
+  return `<div class="wrap" style="max-width:1050px">
+    <div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">
+      <button class="btn sm" onclick="go('customers')">← Danh sách khách</button>
+      <span class="mono t-item">${esc(c.key)}</span>
+      ${c.tier === 'high-value' ? '<span class="chip b">High-value</span>' : `<span class="chip">${c.tier === 'new' ? 'Khách mới' : 'Thường'}</span>`}
+      <span class="chip">${esc(c.seg)}</span><span class="chip mono">${esc(c.acc)}</span><span class="chip">${esc(c.pf)}</span>
+    </div>
+    <h1 class="t-hero" style="max-width:32ch;margin-bottom:14px">${esc(c.st)}</h1>
+    <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+      ${stat('Tín hiệu ghi nhận', String(c.tl.length), 'trên toàn bộ hành trình', 'Đã pseudonymize')}
+      ${stat('Lần thất bại', String(fails), fails > 2 ? 'Vượt ngưỡng chú ý' : 'Trong ngưỡng', '', fails > 2 ? 'var(--crit)' : undefined)}
+      ${stat('Lần liên hệ hỗ trợ', String(cases), cases > 2 ? 'Repeat contact cao' : '', '', cases > 2 ? 'var(--crit)' : undefined)}
+    </div>
+    <div class="card">
+      ${chead('Timeline', 'Mới nhất ở dưới · bấm bước để mở Bản đồ hành trình', c.tl.length, c.tl.length, 'tín hiệu')}
+      <div class="cbody">
+        <div style="position:relative;padding-left:20px">
+          <div style="position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:var(--line)"></div>
+          ${c.tl.map((t) => `<div style="position:relative;margin-bottom:14px">
+            <span style="position:absolute;left:-19px;top:5px;width:11px;height:11px;border-radius:50%;border:2px solid #fff;
+              background:${t.o === 'fail' ? 'var(--crit)' : t.o === 'success' ? 'var(--good)' : 'var(--ink3)'}"></span>
+            <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+              <span class="t-meta mono" style="font-size:12px">${esc(t.at)}</span>
+              <span class="chip" style="color:${K[t.k][1]}">${K[t.k][0]}</span>
+              ${t.step ? `<a href="#/atlas" class="chip">${step(t.step).code} · ${esc(step(t.step).name)}</a>` : ''}
+              ${t.o === 'fail' ? badge('crit', 'Thất bại') : ''}
+            </div>
+            <div class="t-body" style="margin-top:5px">${t.k === 'verbatim' ? '“' + esc(t.l) + '”' : esc(t.l)}</div>
+            <div class="t-meta" style="font-size:12px;margin-top:3px"><span class="mono">${esc(t.ref)}</span></div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>`;
+};
+
+/* ==========================================================================
+   ===== 4. SHELL, ROUTER, TOUR =====
+   ========================================================================== */
+function render() {
+  /* nav */
+  const pend = ACT.filter((a) => a.ap === 'pending').length;
+  const alerts = DATA.ag.flatMap((a) => a.f).filter((f) => !SEEN[f.id]).length;
+  $('#nav').innerHTML = DATA.nav.map((n) => {
+    if (n.g) return `<div class="g">${n.g}</div>`;
+    const bdg = n.r === 'actions' && pend ? pend : n.r === 'agents' && alerts ? alerts : null;
+    return `<a class="it ${ST.route === n.r ? 'on' : ''}" href="#/${n.r}">
+      <span class="ic">${n.ic}</span>${n.l}${bdg ? `<span class="bdg">${bdg}</span>` : ''}</a>`;
+  }).join('');
+
+  /* topbar */
+  const m = DATA.meta[ST.route] || DATA.meta.dashboard;
+  $('#ptitle').innerHTML = `<b>${m[0]}</b><span>${m[1]}</span>`;
+  $('#fperiod').innerHTML = DATA.periods.map((p) => `<option value="${p.id}" ${p.id === ST.period ? 'selected' : ''}>${p.label} · ${p.range}</option>`).join('');
+  $('#fscope').innerHTML = DATA.scopes.map((s) => `<option value="${s.id}" ${s.id === ST.scope ? 'selected' : ''}>${s.label}</option>`).join('');
+
+  /* tour ribbon */
+  const tb = $('#tour');
+  if (ST.tour > 0) {
+    const t = DATA.tour[ST.tour - 1];
+    tb.className = 'on';
+    tb.innerHTML = `<span class="tn">BƯỚC ${ST.tour}/${DATA.tour.length}</span>
+      <div class="tm"><b>${t.t}</b><span>${t.d}</span></div>
+      <div class="tb">
+        ${ST.tour > 1 ? '<button onclick="tourGo(-1)">← Lùi</button>' : ''}
+        ${ST.tour < DATA.tour.length ? '<button onclick="tourGo(1)">Tiếp →</button>' : '<button onclick="stopTour()">Xong</button>'}
+        <button class="x" onclick="stopTour()">Thoát</button>
+      </div>`;
+  } else { tb.className = ''; tb.innerHTML = ''; }
+
+  /* Banner toàn vẹn dữ liệu — hiện trên MỌI màn nếu fixture bị đứt liên kết */
+  const errs = validateFixture();
+  const banner = errs.length ? `<div class="note crit" style="margin-bottom:16px">
+      <b>⚠ ${errs.length} liên kết dữ liệu mẫu đang sai</b> — sửa trong phần DATA của file này rồi refresh.
+      <ul style="margin:8px 0 0;padding-left:19px">${errs.slice(0, 12).map((x) => `<li style="margin:3px 0" class="mono" >${esc(x)}</li>`).join('')}</ul>
+      ${errs.length > 12 ? `<div style="margin-top:7px">… và ${errs.length - 12} lỗi nữa.</div>` : ''}
+    </div>` : '';
+
+  /* view */
+  const fn = V[ST.route] || V.dashboard;
+  $('#view').innerHTML = banner + fn(ST.arg);
+  $('#view').scrollTop = 0;
+}
+
+function route() {
+  const h = (location.hash || '#/dashboard').replace(/^#\/?/, '');
+  const [r, ...rest] = h.split('/');
+  ST.route = V[r] ? r : 'dashboard';
+  ST.arg = rest.join('/');
+  render();
+}
+/* Nếu hash không đổi thì hashchange không fire — phải tự render, nếu không
+   những thay đổi state khác (ví dụ bật guided tour) sẽ không hiện ra. */
+function go(path) { const h = '#/' + path; if (location.hash === h) render(); else location.hash = h; }
+function setPeriod(v) { ST.period = v; render(); }
+function setScope(v)  { ST.scope = v; render(); }
+function setSub(k, v) { ST.sub[k] = v; render(); }
+function setSel(k, v) { ST.sel[k] = v; render(); }
+function setAtlas(fid){ ST.sel.atlas = fid; const s = DATA.steps.filter((x) => x.flowId === fid); ST.sel.atlasStep = s[0] ? s[0].id : null; render(); }
+function tog(k)       { ST.sel[k] = !ST.sel[k]; render(); }
+function setFeed(k, v){ const f = ST.sel.feed || { cat:'all', step:'all', src:'all' };
+                        if (k === 'reset') ST.sel.feed = { cat:'all', step:'all', src:'all' }; else { f[k] = v; ST.sel.feed = f; } render(); }
+function ack(id)      { SEEN[id] = true; render(); }
+
+/* Chuỗi trạng thái governed action — giữ nguyên logic gate của prototype cũ */
+function advance(id) {
+  const a = action(id);
+  if (a.ap === 'pending')      { a.ap = 'approved'; }
+  else if (a.dl === 'backlog') { a.dl = 'in-progress'; }
+  else if (a.dl === 'in-progress') { a.dl = 'released'; a.rel = 'Bản demo · ' + new Date().toLocaleDateString('vi-VN'); a.iv = 'monitoring'; }
+  else if (!outc(id)) {
+    /* Bước "nhận dữ liệu đánh giá": không được xác nhận kết quả khi chưa có
+       dữ liệu quan sát. validateFixture() sẽ báo lỗi nếu bỏ qua bước này. */
+    const m = metric(a.sm);
+    const base = parseFloat(String(m.value).replace(',', '.')) || 0;
+    const goal = parseFloat(String(m.target).replace(/[^0-9,.]/g, '').replace(',', '.')) || base + 6;
+    DATA.out.push({
+      act:a.id,
+      base:{ v:base, u:'%', p:'Trước bản phát hành', n:412 },
+      post:{ v:Math.round((goal + 1.4) * 10) / 10, u:'%', p:'24 giờ sau bản phát hành (mô phỏng)', n:240 },
+      cohort:'Cohort demo trong phiên', win:'24 giờ · dữ liệu mô phỏng',
+      conf:[], verdict:'improved', by:null,
+    });
+    a.iv = 'monitoring';
+  }
+  else if (outc(id).verdict === 'inconclusive' && a.iv !== 'validated') { go('outcomes'); return; }
+  else if (a.iv !== 'validated') { a.iv = 'validated'; a.lc = 'ready'; }
+  else if (a.lc !== 'closed')    { a.lc = 'closed'; const l = loop(a.iss); if (l) { l.done = l.need; l.by = l.by || 'Thu Hà · Head of CX'; } }
+  render();
+}
+
+function startTour() { ST.tour = 1; go(DATA.tour[0].r); render(); }
+function stopTour()  { ST.tour = 0; render(); }
+function tourGo(d)   { ST.tour = Math.min(DATA.tour.length, Math.max(1, ST.tour + d)); go(DATA.tour[ST.tour - 1].r); render(); }
+
+window.addEventListener('hashchange', route);
+route();
+</script>
+</body>
+</html>
+</script>
+</body>
+</html>

@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CXM Redesign · Enterpret làm gốc + lớp VNDIRECT</title>
+<style>
+:root{
+  --ink:#1C1917; --ink2:#57534E; --ink3:#8C8681; --line:#E5E1DB; --bg:#FAF9F7; --card:#fff;
+  --ok:#3F6212; --okbg:#F8FAF1; --warn:#A16207; --warnbg:#FDFBEB; --crit:#B3261E; --critbg:#FDF1F0;
+  --unk:#8C8681; --unkbg:#F4F2EF; --brand:#D9531E; --brandink:#292420;
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.6 -apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);
+  background:var(--bg);
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:36px 36px;background-blend-mode:normal}
+a{color:var(--brand)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase;letter-spacing:.1em}
+header.top{background:var(--brandink);color:#fff;padding:34px 40px 30px}
+header.top .kicker{font-size:12px;color:#F2A883;font-weight:700}
+header.top h1{margin:12px 0 8px;font-size:34px;line-height:1.15;letter-spacing:-.02em}
+header.top p{margin:0;max-width:72ch;color:#D6D1CB;font-size:15px}
+header.top .meta{margin-top:20px;display:flex;gap:8px;flex-wrap:wrap}
+header.top .meta span{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);padding:5px 11px;border-radius:999px;font-size:12px}
+nav.anchors{position:sticky;top:0;z-index:20;background:rgba(250,249,247,.97);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:0 40px;display:flex;gap:2px;overflow-x:auto}
+nav.anchors a{padding:13px 12px;font-size:13px;font-weight:600;text-decoration:none;color:var(--ink3);white-space:nowrap;border-bottom:2px solid transparent}
+nav.anchors a:hover{color:var(--brand);border-bottom-color:var(--brand)}
+main{padding:0 40px 80px;max-width:1400px}
+section{padding:44px 0;border-bottom:1px solid var(--line)}
+h2{font-size:24px;margin:0 0 6px;letter-spacing:-.015em}
+h2 .num{display:inline-block;width:27px;height:27px;line-height:27px;text-align:center;background:var(--brand);color:#fff;border-radius:8px;font-size:13px;margin-right:10px;vertical-align:2px}
+.lede{color:var(--ink2);max-width:82ch;margin:0 0 24px}
+h3{font-size:16px;margin:30px 0 12px}
+h4.lbl{font-size:12px;margin:24px 0 10px;color:var(--ink3);font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+.card h4{margin:0 0 8px;font-size:14px}
+.card p{margin:0 0 8px;font-size:13.5px;color:var(--ink2)}
+.card p:last-child{margin-bottom:0}
+code{font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--unkbg);padding:1px 5px;border-radius:4px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid}
+.t-crit{color:var(--crit);background:var(--critbg);border-color:#F3C9C4}
+.t-warn{color:var(--warn);background:var(--warnbg);border-color:#EADDA0}
+.t-ok{color:var(--ok);background:var(--okbg);border-color:#DDE8C4}
+.t-unk{color:var(--unk);background:var(--unkbg);border-color:var(--line)}
+.t-new{color:#fff;background:var(--brand);border-color:var(--brand)}
+ul.tight{margin:8px 0 0;padding-left:18px;font-size:13.5px;color:var(--ink2)}
+ul.tight li{margin:4px 0}
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th{text-align:left;background:var(--surface-2,#F4F2EF);font-size:11.5px;font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);padding:11px 12px}
+td{padding:11px 12px;border-top:1px solid var(--line);vertical-align:top}
+.callout{background:var(--warnbg);border:1px solid #EADDA0;border-left:4px solid var(--warn);border-radius:10px;padding:15px 17px;margin:20px 0;font-size:14px}
+.callout.brandc{background:#FDF3EE;border-color:#F3D5C4;border-left-color:var(--brand)}
+.callout.neutral{background:var(--unkbg);border-color:var(--line);border-left-color:var(--ink3)}
+.ask{background:#fff;border:2px solid var(--brand);border-radius:14px;padding:20px;margin-top:16px}
+.ask h4{margin:0 0 6px;font-size:15px;color:var(--brandink)}
+/* nav mockup */
+.navmock{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:13px}
+.navmock .grp{padding:14px 16px 6px;font:11px ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.11em;color:var(--ink3);font-weight:700;background:var(--unkbg);border-top:1px solid var(--line)}
+.navmock .grp:first-child{border-top:none}
+.navmock .row{display:grid;grid-template-columns:180px 1fr;gap:14px;padding:8px 16px;align-items:baseline}
+.navmock .row+.row{border-top:1px solid #F2EFEA}
+.navmock .r{font-weight:650}
+.navmock .r code{background:transparent;padding:0;color:var(--brand);font-weight:700}
+.navmock .d{color:var(--ink2);font-size:12.5px}
+.navmock .row.own{background:#FDFBF9}
+.navmock .own .d b{color:var(--brandink)}
+/* honesty demo */
+.demo2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chartcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+.chartcard .ch{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+.chartcard .ct{font-size:14px;font-weight:650}
+.chartcard .cm{font:10.5px ui-monospace,Menlo,monospace;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;text-align:right;white-space:nowrap}
+.bars{display:flex;flex-direction:column;gap:6px}
+.bars .b{display:grid;grid-template-columns:1fr 46px 90px;gap:8px;align-items:center;font-size:12.5px}
+.bars .b .n{display:flex;align-items:center;gap:6px;min-width:0}
+.bars .b .n i{width:7px;height:7px;border-radius:50%;flex:none}
+.bars .b .n span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bars .b .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:650}
+.bars .b .g{height:9px;border-radius:3px}
+.ts{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}
+.ts div{display:flex;align-items:baseline;gap:14px;margin:3px 0}
+.ts .n{width:118px;flex:none;font:11px ui-monospace,Menlo,monospace;color:var(--ink3)}
+.sw{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.sw .s{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+.sw .s .c{height:54px} .sw .s .t{padding:9px 11px}
+.sw .s b{font-size:12.5px} .sw .s div.l{font-size:11.5px;color:var(--ink3)}
+@media (max-width:1100px){.g4,.g3,.demo2{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="kicker mono">Brainstorm · 27/07/2026 · bản 2</div>
+  <h1>CXM &amp; VoC Platform — Enterpret làm gốc, cộng lớp hành trình của VNDIRECT</h1>
+  <p>Chẩn đoán prototype hiện tại, mô hình gốc lấy từ Enterpret, tám bổ sung của VNDIRECT, IA 13 route và hệ thống hiển thị. Tài liệu này để quyết định; spec đầy đủ ở <code style="background:rgba(255,255,255,.12);color:#F2A883">docs/superpowers/specs/2026-07-27-cxm-voc-redesign-design.md</code></p>
+  <div class="meta">
+    <span>Gốc: Enterpret customer intelligence</span>
+    <span>Demo lấy phê duyệt → bồi thành spec</span>
+    <span>Pilot Mở tài khoản, làm sâu</span>
+    <span>Head of CX + VoC Analyst</span>
+    <span>Cam VNDIRECT trên xám ấm</span>
+  </div>
+</header>
+
+<nav class="anchors">
+  <a href="#chandoan">1 · Chẩn đoán</a>
+  <a href="#goc">2 · Mô hình gốc Enterpret</a>
+  <a href="#bosung">3 · Tám bổ sung VNDIRECT</a>
+  <a href="#ia">4 · IA 13 route</a>
+  <a href="#hienthi">5 · Hệ thống hiển thị</a>
+  <a href="#quyetdinh">6 · Đã chốt &amp; còn mở</a>
+</nav>
+
+<main>
+
+<!-- ============ 1 ============ -->
+<section id="chandoan">
+  <h2><span class="num">1</span>Chẩn đoán prototype hiện tại</h2>
+  <p class="lede">Năm vấn đề đã kiểm chứng trực tiếp trong code, sắp theo mức độ sẽ lộ ra khi demo.</p>
+
+  <div class="grid g2">
+    <div class="card">
+      <h4><span class="tag t-crit">P0</span> &nbsp;Chuỗi Issue → Action bị đứt</h4>
+      <p>Issue Register có 6 issue. Chỉ <code>CXI-024 → CXM-142</code> resolve được trong Action Register.</p>
+      <ul class="tight">
+        <li><code>CXI-019 → CXM-135</code> và <code>CXI-026 → CXM-147</code>: không tồn tại (<code>cxm.ts</code> chỉ tới CXM-144)</li>
+        <li><code>CXI-021/017/013 → CXA-*</code>: chỉ có trong <code>onboarding-pilot.ts</code>, Action Register không thấy</li>
+        <li><code>validateOnboardingPilot()</code> chỉ check nội bộ fixture pilot → lỗi im lặng</li>
+      </ul>
+      <p style="margin-top:8px"><b>Khi demo:</b> người xem bấm vào owner/action trong Issue Register và không đi tới đâu.</p>
+    </div>
+
+    <div class="card">
+      <h4><span class="tag t-crit">P0</span> &nbsp;Ba mô hình hành trình song song</h4>
+      <ul class="tight">
+        <li><code>data/cxm.ts</code> — <code>Phase p1..p7 → Flow → Stage → Touchpoint → Event → KPI</code></li>
+        <li><code>lib/journey-taxonomy.ts</code> — 6 phase lifecycle, nối bằng <code>customerPhaseForLegacyId()</code>: chuỗi ternary + 2 Set touchpoint hardcode</li>
+        <li><code>data/onboarding-pilot.ts</code> — journey thứ ba với step <code>ob-*</code></li>
+      </ul>
+      <p style="margin-top:8px">Bước "Liveness" tồn tại 3 lần: <code>tp-liveness</code>, <code>ob-face</code>, thuộc <code>p2</code>. Đây là lý do filter phase toàn cục <b>phải tắt</b> trên trang chủ.</p>
+      <p>Tracking plan thật dùng khóa bắt buộc <code>journey_station_id</code> + <code>feature_id</code> — không có mặt trong prototype.</p>
+    </div>
+
+    <div class="card">
+      <h4><span class="tag t-warn">P1</span> &nbsp;Hai bộ ngôn ngữ thị giác</h4>
+      <p>Token <code>--primary: 221 83% 32%</code> = <b>navy</b> → sidebar + 7 page.<br>
+         <code>CXControlTower.tsx</code> (route mặc định) hardcode <code>#087264</code>/<code>#123a35</code> = <b>teal</b>.</p>
+      <p><code>index.css:81-97</code> còn lớp override <code>!important</code> sót từ lần chuyển dark→light, ghi đè cả <code>.text-emerald-300</code>.</p>
+    </div>
+
+    <div class="card">
+      <h4><span class="tag t-warn">P1</span> &nbsp;Mật độ chữ không dùng được trong phòng họp</h4>
+      <p><b>198 lần</b> dùng <code>text-[8px]/[9px]/[10px]</code> — 112× 10px, 80× 9px, 6× 8px. 10px ≈ 7.5pt.</p>
+      <p>Mỗi page tự khai <code>min-w-</code> riêng: 1040 / 1050 / 1060 / 1080 / 1100px.</p>
+      <p>Filter toàn cục bị ẩn đúng trên trang chủ — <code>AppShell.tsx:148</code>, điều kiện <code>!isPilot</code>.</p>
+    </div>
+
+    <div class="card" style="grid-column:1/-1">
+      <h4><span class="tag t-warn">P1</span> &nbsp;Thiếu hẳn lớp thu thập tín hiệu — trong khi team đã thiết kế xong</h4>
+      <p><code>template/tracking-plan-cx-mau.xlsx</code> đã định nghĩa đầy đủ:</p>
+      <div class="grid g3" style="margin-top:10px">
+        <div class="card" style="padding:14px;background:var(--bg)">
+          <b style="font-size:13px">Survey program</b>
+          <ul class="tight" style="font-size:12.5px">
+            <li>CES sau mở TK — trigger <code>account_open_completed</code>, mục tiêu ≥4.2</li>
+            <li>CSAT nạp tiền lần đầu — ≥4.3</li>
+            <li>CSAT sau phiên CS + FCR</li>
+            <li>Khảo sát bỏ dở eKYC — chỉ khi mở lại app trong 7 ngày</li>
+            <li>In-app review có điều kiện</li>
+            <li>NPS quý — mẫu 10% khách active</li>
+          </ul>
+        </div>
+        <div class="card" style="padding:14px;background:var(--bg)">
+          <b style="font-size:13px">Quy ước dữ liệu</b>
+          <ul class="tight" style="font-size:12.5px">
+            <li>Cooldown toàn cục: 1 khảo sát / 14 ngày / khách</li>
+            <li>13 context property gắn vào mọi event</li>
+            <li>Event tiền bạc: server là nguồn sự thật</li>
+            <li>Versioning: chỉ thêm/deprecate, không đổi nghĩa</li>
+          </ul>
+        </div>
+        <div class="card" style="padding:14px;background:var(--bg)">
+          <b style="font-size:13px">Masking (bắt buộc)</b>
+          <ul class="tight" style="font-size:12.5px">
+            <li>Tên, CCCD, SĐT, email: không bao giờ log</li>
+            <li>Số tiền: chỉ <code>amount_bucket</code></li>
+            <li>Ảnh eKYC: chỉ log kết quả + fail_reason</li>
+            <li>IP: truncate octet cuối</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:12px">Trong 8 route hiện có <b>không có surface nào</b> cho: vận hành khảo sát, response rate, source health. Route <code>/voice</code> chỉ hiển thị theme đã tổng hợp sẵn — bỏ qua toàn bộ công việc thật của vai VoC Analyst.</p>
+    </div>
+  </div>
+
+  <div class="callout neutral">
+    <b>Ghi nhận, không đưa vào workstream:</b> JSX viết 1 dòng khổng lồ ở <code>IssueHub</code>/<code>POBoard</code>/<code>VoiceOfCustomer</code>; route <code>/legacy-overview</code> vẫn trong nav; 12 lint warning có sẵn.
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="goc">
+  <h2><span class="num">2</span>Mô hình gốc — lấy gì từ Enterpret</h2>
+  <p class="lede">Owner đã lật kết luận cũ trong <code>.swarm/synthesis.md</code> (<i>"should not pursue feature parity with Enterpret"</i>). Enterpret nay là mô hình gốc.</p>
+
+  <h4 class="lbl">Ba primitive lõi — và chúng là artifact do người dùng tạo</h4>
+  <div class="grid g3">
+    <div class="card">
+      <h4><span class="tag t-new">Feed</span></h4>
+      <p>Dòng tín hiệu thô theo thời gian. Filter theo taxonomy, Category, nguồn, segment, bước hành trình. Đọc verbatim đã masking.</p>
+      <p>Toggle <b>verbatim ↔ AI summary</b>. Lưu được thành Saved Item.</p>
+    </div>
+    <div class="card">
+      <h4><span class="tag t-new">Quantify</span></h4>
+      <p>Biến một filter thành chart volume/sentiment theo kỳ. Bar ngang xếp hạng, line theo thời gian, so sánh cohort.</p>
+      <p>Lưu lại, thêm vào Dashboard.</p>
+    </div>
+    <div class="card">
+      <h4><span class="tag t-new">Dashboard</span></h4>
+      <p>Tập hợp các Quantify. <b>Share</b> (Slack/Notion/Linear) và <b>Subscribe</b> theo tần suất.</p>
+      <p>Nút <code>Add</code> cho đúng 3 lựa chọn: <code>Saved Items</code> · <code>New Quantify</code> · <code>New Feed</code>.</p>
+    </div>
+  </div>
+
+  <h4 class="lbl">Adaptive Taxonomy 5 tầng — map sang chứng khoán</h4>
+  <table>
+    <thead><tr><th style="width:13%">Tầng</th><th style="width:20%">Nghĩa</th><th>Ví dụ trong bối cảnh VNDIRECT</th></tr></thead>
+    <tbody>
+      <tr><td><code>L1</code></td><td>Domain</td><td>Mở tài khoản · Dòng tiền · Giao dịch · Margin · Sản phẩm đầu tư · Chăm sóc &amp; khiếu nại · Retention</td></tr>
+      <tr><td><code>L2</code></td><td>Flow</td><td>eKYC · Ký hợp đồng điện tử</td></tr>
+      <tr><td><code>L3</code></td><td>Bước / tính năng</td><td>Liveness &amp; Face match · Chụp CCCD VNeID/NFC</td></tr>
+      <tr><td><code>Theme</code></td><td><b>Vì sao</b></td><td>Thiết bị không tương thích · Hướng dẫn lỗi không rõ</td></tr>
+      <tr><td><code>Sub-theme</code></td><td>Chi tiết của vì sao</td><td>Android tầm trung, ánh sáng yếu</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13.5px;color:var(--ink2);margin-top:10px">L1–L3 trả lời <i>cái gì</i>, Theme/Sub-theme trả lời <i>vì sao</i>. Prototype hiện tại không có tầng nào tương đương. Ba năng lực đi kèm đều lấy: <b>explainable</b> (xem rationale từng phân loại) · <b>sửa ở mức record</b> kèm audit · <b>drift detection</b>.</p>
+
+  <h4 class="lbl">Category — phân loại theo intent, trực giao với taxonomy</h4>
+  <div class="grid g4">
+    <div class="card" style="padding:14px"><b style="font-size:13.5px">Cần hỗ trợ</b><div style="font-size:12px;color:var(--ink3);font-family:ui-monospace,Menlo,monospace">Help</div></div>
+    <div class="card" style="padding:14px"><b style="font-size:13.5px">Đề xuất cải thiện</b><div style="font-size:12px;color:var(--ink3);font-family:ui-monospace,Menlo,monospace">Improvement</div></div>
+    <div class="card" style="padding:14px"><b style="font-size:13.5px">Khiếu nại</b><div style="font-size:12px;color:var(--ink3);font-family:ui-monospace,Menlo,monospace">Complaint</div></div>
+    <div class="card" style="padding:14px"><b style="font-size:13.5px">Khen ngợi</b><div style="font-size:12px;color:var(--ink3);font-family:ui-monospace,Menlo,monospace">Praise</div></div>
+  </div>
+  <p style="font-size:13.5px;color:var(--ink2);margin-top:10px">Rẻ để làm, tăng đáng kể khả năng phân tích. <i>"Khiếu nại về Liveness tăng 18% nhưng Cần hỗ trợ giảm"</i> nghĩa khác hẳn <i>"cả hai đều tăng"</i>.</p>
+
+  <h4 class="lbl">Context Graph · Agent · Trợ lý</h4>
+  <div class="grid g3">
+    <div class="card">
+      <h4>Context Graph</h4>
+      <p>Enterpret nối <code>user → account → opportunity → product → revenue</code>. Với retail brokerage, hình đúng là:</p>
+      <p style="font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--unkbg);padding:8px;border-radius:6px">customer → account → order/transaction → case → journeyStep</p>
+      <p>Cùng mục đích: biến <i>"312 lượt fail"</i> thành <i>"312 lượt, tập trung ở khách Android mới mở TK, 9 khách high-value"</i>.</p>
+    </div>
+    <div class="card">
+      <h4>Ba Agent — đều read-only</h4>
+      <ul class="tight">
+        <li><b>Quality Monitor</b> — nguồn chết, volume lệch baseline</li>
+        <li><b>Escalation</b> — khách high-value có repeat contact</li>
+        <li><b>Newsfeed</b> — bản tin tuần cho Head of CX</li>
+      </ul>
+      <p style="margin-top:8px">Không con nào ghi dữ liệu nghiệp vụ, nên <b>không</b> vi phạm điều kiện DEFER P2 trong benchmark của bạn.</p>
+    </div>
+    <div class="card">
+      <h4>Trợ lý — chips, không phải ô trống</h4>
+      <p>Enterpret không dùng ô prompt trống mà là chips câu hỏi sẵn. Bản của ta:</p>
+      <p style="font-size:12.5px"><i>Điểm gãy cần chú ý · Nguyên nhân gốc · Theme đang xấu đi · Lý do khách rời · Khách nào bị ảnh hưởng · Tạo báo cáo</i></p>
+      <p>Trả lời gồm kết luận + chart + bảng + <b>citation một click</b> về verbatim gốc.</p>
+    </div>
+  </div>
+
+  <div class="callout brandc">
+    <b>Không lấy:</b> <b>Sales Intelligence</b> — graph của Enterpret giả định khách hàng là doanh nghiệp có deal/ARR; VNDIRECT là B2C retail, thay bằng <code>valueTier</code>. &nbsp;<b>MCP Server</b> — là integration, không phải UI. &nbsp;<b>Merge/split taxonomy node</b> — quyền role Editor bên họ; prototype giữ ở mức Member. &nbsp;<b>50+ connector</b> — 6–8 nguồn thật ở VN là đủ để review IA.
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="bosung">
+  <h2><span class="num">3</span>Tám bổ sung của VNDIRECT lên trên Enterpret</h2>
+  <p class="lede">Đây là phần trả lời câu <i>"vì sao không mua Enterpret luôn"</i>.</p>
+
+  <table>
+    <thead><tr><th style="width:4%">#</th><th style="width:22%">Bổ sung</th><th style="width:26%">Enterpret có?</th><th>Vì sao cần</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>Journey layer</b><br>Atlas · <code>stationId</code> · observation theo bước</td><td><span class="tag t-crit">Không</span> Họ hỏi "khách nói gì về feature nào"</td><td>Câu hỏi của CTCK là "khách kẹt ở <b>bước nào</b> trong hành trình nào". Đây là differentiation lớn nhất</td></tr>
+      <tr><td>2</td><td><b>Thiết kế &amp; vận hành khảo sát</b><br>trigger · điều kiện · cooldown · mục tiêu</td><td><span class="tag t-crit">Không</span> Họ chỉ <i>thu</i> khảo sát</td><td>Tracking plan sheet 4 đã thiết kế xong 6 khảo sát. Ai vận hành chúng?</td></tr>
+      <tr><td>3</td><td><b>Data coverage &amp; instrumentation gap</b></td><td><span class="tag t-crit">Không</span> Giả định dữ liệu đã về</td><td>Nhiều bước của VNDIRECT chưa instrument. Phải phân biệt "ổn" với "chưa đo được"</td></tr>
+      <tr><td>4</td><td><b>Metric contract</b><br>grain · formula · source · freshness · owner</td><td><span class="tag t-warn">Không lộ UI</span></td><td>Nhiều phòng ban dùng chung số; không có contract thì tranh luận vô tận</td></tr>
+      <tr><td>5</td><td><b>Approval gate trước hành động chạm khách</b></td><td><span class="tag t-crit">Không</span> Họ route sang Jira</td><td>Ngành chứng khoán: mọi communication tới khách cần người duyệt</td></tr>
+      <tr><td>6</td><td><b>Outcome proof có confounder</b><br>+ verdict <code>inconclusive</code></td><td><span class="tag t-warn">Đo pre/post</span> nhưng không lộ confounder</td><td>Không được trình bày correlation như causality khi cùng kỳ có release khác hoặc thị trường biến động</td></tr>
+      <tr><td>7</td><td><b>Masking rule hiện trong UI</b></td><td><span class="tag t-warn">Có ở backend</span> không hiện</td><td>Quy tắc sheet 1C là yêu cầu pháp chế — reviewer phải thấy nó được tuân thủ</td></tr>
+      <tr><td>8</td><td><b>Regulatory risk trong breakdown ưu tiên</b></td><td><span class="tag t-crit">Không</span></td><td>Một lỗi eKYC có rủi ro pháp lý khác một lỗi UI, dù cùng số khách bị ảnh hưởng</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="ia">
+  <h2><span class="num">4</span>Information Architecture — 13 route, 5 nhóm</h2>
+
+  <div class="callout brandc">
+    <b>Xung đột triết học đã giải quyết:</b> Enterpret là <b>artifact-centric</b> — app đưa primitive, người dùng tự soạn. Được vậy vì user của họ là analyst toàn thời gian. Head of CX của ta <b>không</b> phải analyst.
+    <div style="margin-top:10px">Nên prototype có <b>cả hai lớp</b>: primitive cho VoC Analyst, và <b>Dashboard template dọn sẵn</b> cho Head of CX để họ không bao giờ phải tự soạn Quantify. Đây cũng là cách Enterpret làm — họ ship template kiểu "Track Your Feature".</div>
+  </div>
+
+  <div class="navmock">
+    <div class="grp">Khám phá &nbsp;·&nbsp; gốc Enterpret, artifact primitives</div>
+    <div class="row own"><div class="r"><code>/feed</code> Feed</div><div class="d">Tín hiệu thô · filter · Category · verbatim. <b>Kết thúc ở: insight này có thành issue không</b></div></div>
+    <div class="row"><div class="r"><code>/quantify</code> Quantify</div><div class="d">Filter → chart · lưu lại · so sánh cohort</div></div>
+    <div class="row"><div class="r"><code>/dashboard</code> Dashboard</div><div class="d">Tập Quantify · share · subscribe · <b>template theo vai</b>. Route mặc định</div></div>
+    <div class="row"><div class="r"><code>/assistant</code> Trợ lý</div><div class="d">Prompt chips · trả lời có citation · nhãn ghi rõ là kịch bản demo</div></div>
+
+    <div class="grp">Hành trình &nbsp;·&nbsp; lớp của VNDIRECT, Enterpret không có</div>
+    <div class="row"><div class="r"><code>/atlas</code> Bản đồ hành trình</div><div class="d">7 phase · catalog → flow sequence → step inspector · gộp cả <code>/coverage</code></div></div>
+    <div class="row own"><div class="r"><code>/health</code> Sức khỏe hành trình</div><div class="d">Funnel 6 bước pilot · friction queue có breakdown. <b>Kết thúc ở: xử lý cái nào trước</b></div></div>
+
+    <div class="grp">Xử lý</div>
+    <div class="row"><div class="r"><code>/issues</code> Điểm gãy</div><div class="d">Issue register, filter theo taxonomy/bước/severity/owner</div></div>
+    <div class="row own"><div class="r"><code>/actions</code> Hành động</div><div class="d">Approval gate · owner · release marker. <b>Kết thúc ở: duyệt và release</b></div></div>
+    <div class="row own"><div class="r"><code>/outcomes</code> Kết quả</div><div class="d">Outcome proof · close the loop. <b>Kết thúc ở: khép vòng hay mở lại</b></div></div>
+
+    <div class="grp">Nền dữ liệu</div>
+    <div class="row"><div class="r"><code>/sources</code> Nguồn tín hiệu</div><div class="d">Source health · freshness · <b>nguồn này chết thì số nào sai</b></div></div>
+    <div class="row"><div class="r"><code>/surveys</code> Khảo sát</div><div class="d">Survey program từ tracking plan &nbsp;<span class="tag t-new">bổ sung</span></div></div>
+    <div class="row"><div class="r"><code>/taxonomy</code> Taxonomy</div><div class="d">5 tầng · explainable · drift · sửa ở mức record</div></div>
+    <div class="row"><div class="r"><code>/agents</code> Agent &amp; cảnh báo</div><div class="d">3 agent read-only · finding chưa acknowledge</div></div>
+
+    <div class="grp">Tra cứu &nbsp;·&nbsp; không sở hữu danh sách quyết định</div>
+    <div class="row"><div class="r"><code>/customers</code> Khách hàng</div><div class="d">Context graph · <code>/customers/:key</code> timeline một khách</div></div>
+    <div class="row"><div class="r"><code>/issue/:id</code> Hồ sơ điểm gãy</div><div class="d">5 tab · deep-link từ mọi nơi · <b>CTA thao tác được tại chỗ</b></div></div>
+  </div>
+  <p style="font-size:13px;color:var(--ink3);margin-top:8px">Dòng tô nhạt = chặng sở hữu một quyết định.</p>
+
+  <h3>Bảng chuyển đổi từ 8 route cũ</h3>
+  <table>
+    <thead><tr><th style="width:26%">Route cũ</th><th>Đi đâu</th></tr></thead>
+    <tbody>
+      <tr><td><code>/</code> Control Tower</td><td>Tách: journey health + friction → <code>/health</code>; approval loop → <code>/actions</code>; outcome → <code>/outcomes</code></td></tr>
+      <tr><td><code>/issues</code> Issue Register</td><td><code>/issues</code> (danh sách) + <code>/issue/:id</code> (hồ sơ)</td></tr>
+      <tr><td><code>/board</code> Action Register</td><td><code>/actions</code></td></tr>
+      <tr><td><code>/voice</code> Voice Insights</td><td>Tách 3: theme explorer → <code>/quantify</code> + <code>/taxonomy</code>; verbatim → <code>/feed</code>; nguồn → <code>/sources</code></td></tr>
+      <tr><td><code>/journey</code></td><td><code>/atlas</code></td></tr>
+      <tr><td><code>/coverage</code></td><td>Gộp vào cột 3 của <code>/atlas</code> — độ phủ là thuộc tính của step</td></tr>
+      <tr><td><code>/impact</code></td><td>Tách 2: blast radius cấu trúc → step inspector ở <code>/atlas</code>; ảnh hưởng của issue → tab trong <code>/issue/:id</code></td></tr>
+      <tr><td><code>/legacy-overview</code></td><td>Xóa</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">
+    <b>Trade-off phải nói thẳng:</b> nav từ 7 lên 13 item. Đó là giá của "Enterpret làm gốc" — họ là sản phẩm lớn hơn. Hai lớp chặn để việc này không phá mục tiêu <i>"dễ hiểu nhất"</i>: <b>(a)</b> guided tour chỉ đi qua 6 màn, 7 route còn lại là chiều sâu dùng khi có câu hỏi; <b>(b)</b> Head of CX vào Dashboard template dọn sẵn, không bao giờ cần chạm lớp artifact.
+    <div style="margin-top:10px">Nếu vẫn quá lớn thì cắt <code>/agents</code> và <code>/assistant</code> trước — hai route ít thiết yếu nhất.</div>
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="hienthi">
+  <h2><span class="num">5</span>Hệ thống hiển thị</h2>
+  <p class="lede">IA quyết định tìm thấy ở đâu. Phần này quyết định đọc có hiểu và có tin không — và đây là chỗ prototype hiện tại yếu nhất.</p>
+
+  <h3>5.1 · Hai quy tắc trung thực dữ liệu — học từ UI thật của Enterpret</h3>
+  <p style="font-size:14px;color:var(--ink2);max-width:80ch">Đây là phần giá trị nhất tôi thấy khi xem ảnh app thật của họ, và prototype hiện tại không có cả hai.</p>
+
+  <div class="demo2" style="margin-top:14px">
+    <div class="chartcard" style="border-color:#F3C9C4;background:var(--critbg)">
+      <div class="ch"><div class="ct">Hiện tại — không có denominator, không có kỳ</div></div>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:9px;padding:14px">
+        <div style="font-size:14px;font-weight:650;margin-bottom:10px">Themes cần chú ý</div>
+        <div class="bars">
+          <div class="b"><div class="n"><i style="background:var(--crit)"></i><span>eKYC · Nhận diện khuôn mặt</span></div><div class="v">184</div><div class="g" style="background:var(--crit);width:100%"></div></div>
+          <div class="b"><div class="n"><i style="background:var(--warn)"></i><span>eKYC · Chất lượng OCR</span></div><div class="v">96</div><div class="g" style="background:var(--warn);width:52%"></div></div>
+          <div class="b"><div class="n"><i style="background:var(--ok)"></i><span>Ký hợp đồng · SmartCA</span></div><div class="v">73</div><div class="g" style="background:var(--ok);width:40%"></div></div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--ink2);margin:10px 0 0">Người đọc không biết đây là 3 trong bao nhiêu theme, cũng không biết dữ liệu của kỳ nào. Rất dễ tưởng đây là <i>toàn bộ</i> vấn đề.</p>
+    </div>
+
+    <div class="chartcard" style="border-color:#DDE8C4;background:var(--okbg)">
+      <div class="ch"><div class="ct">Đề xuất — theo pattern Enterpret</div></div>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:9px;padding:14px">
+        <div class="ch">
+          <div class="ct">Themes cần chú ý</div>
+          <div class="cm">3 of 41 theme<br>01/04/2026 – 04/07/2026</div>
+        </div>
+        <div class="bars">
+          <div class="b"><div class="n"><i style="background:var(--crit)"></i><span>eKYC · Nhận diện khuôn mặt</span></div><div class="v">184</div><div class="g" style="background:var(--crit);width:100%"></div></div>
+          <div class="b"><div class="n"><i style="background:var(--warn)"></i><span>eKYC · Chất lượng OCR</span></div><div class="v">96</div><div class="g" style="background:var(--warn);width:52%"></div></div>
+          <div class="b"><div class="n"><i style="background:var(--ok)"></i><span>Ký hợp đồng · SmartCA</span></div><div class="v">73</div><div class="g" style="background:var(--ok);width:40%"></div></div>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--ink2);margin:10px 0 0">Enterpret dùng <code>10 of 68 Themes</code> và <code>Last 3 Months (Apr 01, 2025 – Jul 04, 2026)</code> ở <b>mọi</b> card. Hai chi tiết nhỏ, nhưng đây chính là thiết bị tạo niềm tin.</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>Thành quy tắc bắt buộc:</b> mọi card, chart và danh sách xếp hạng phải hiện <code>X of Y &lt;đơn vị&gt;</code> và kỳ bằng <b>ngày tuyệt đối</b>. Cộng quy tắc thứ ba của riêng ta: mỗi số liệu neo hover ra <b>nguồn + độ tươi + cỡ mẫu</b>.
+  </div>
+
+  <h3>5.2 · Thang chữ: bỏ toàn bộ 8–10px</h3>
+  <div class="grid g2">
+    <div class="card" style="background:var(--critbg);border-color:#F3C9C4">
+      <h4 style="color:var(--crit)">Hiện tại — 198 lần dùng dưới 11px</h4>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;margin-top:8px">
+        <div style="font-size:8px">8px — nhãn nguồn, timestamp (6 lần)</div>
+        <div style="font-size:9px">9px — nhãn section, meta, footer (80 lần)</div>
+        <div style="font-size:10px">10px — mô tả, evidence, hầu hết nội dung (112 lần)</div>
+        <div style="font-size:11px">11px — tiêu đề item trong list (41 lần)</div>
+      </div>
+      <p style="margin-top:10px">Nội dung quan trọng nhất — verbatim của khách — đang nằm ở 10px.</p>
+    </div>
+    <div class="card" style="background:var(--okbg);border-color:#DDE8C4">
+      <h4 style="color:var(--ok)">Đề xuất — 7 bậc, sàn 12px</h4>
+      <div class="ts" style="margin-top:8px">
+        <div><span class="n">12px mono</span><span class="mono" style="font-size:12px;font-weight:600">Nhãn · đơn vị · denominator</span></div>
+        <div><span class="n">13px / 400</span><span style="font-size:13px">Meta, mô tả phụ, timestamp</span></div>
+        <div><span class="n">14px / 400</span><span style="font-size:14px">Nội dung chính, verbatim, evidence</span></div>
+        <div><span class="n">15px / 600</span><span style="font-size:15px;font-weight:600">Tiêu đề item, tên issue</span></div>
+        <div><span class="n">18px / 650</span><span style="font-size:18px;font-weight:650">Tiêu đề khối</span></div>
+        <div><span class="n">24px / 700</span><span style="font-size:24px;font-weight:700;font-variant-numeric:tabular-nums">64,3%</span></div>
+        <div><span class="n">34px / 700</span><span style="font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.15">Câu kết luận</span></div>
+      </div>
+      <p style="margin-top:10px">Nhãn 12px dùng <b>monospace in hoa giãn chữ</b> theo pattern Enterpret — nó tách nhãn khỏi nội dung rõ hơn sans thường, và là một phần lớn tạo cảm giác sản phẩm của họ.</p>
+    </div>
+  </div>
+
+  <h3>5.3 · Palette: cam VNDIRECT trên nền xám ấm</h3>
+
+  <div class="callout brandc">
+    <b>Xung đột phải giải quyết trước:</b> cam là màu thương hiệu, nhưng cam cũng là màu cảnh báo quy ước. Nếu vừa dùng cam cho nút bấm vừa dùng cam-hổ phách cho "cần theo dõi", người xem không phân biệt được <i>"chỗ này bấm được"</i> với <i>"chỗ này có vấn đề"</i>.
+    <div style="margin-top:10px"><b>Quy tắc:</b> cam <b>chỉ</b> dùng cho tương tác và định danh — logo, nav đang chọn, nút hành động chính, focus ring, dòng đang chọn, series chính trong chart. <b>Không bao giờ</b> dùng cam làm màu trạng thái.</div>
+  </div>
+
+  <h4 class="lbl">Xám ấm — chiếm ~90% giao diện</h4>
+  <div class="sw">
+    <div class="s"><div class="c" style="background:#FAF9F7;border-bottom:1px solid var(--line)"></div><div class="t"><b>#FAF9F7</b><div class="l">Nền app</div></div></div>
+    <div class="s"><div class="c" style="background:#FFF;border-bottom:1px solid var(--line)"></div><div class="t"><b>#FFFFFF</b><div class="l">Thẻ, bảng</div></div></div>
+    <div class="s"><div class="c" style="background:#F4F2EF;border-bottom:1px solid var(--line)"></div><div class="t"><b>#F4F2EF</b><div class="l">Nền phụ, header bảng</div></div></div>
+    <div class="s"><div class="c" style="background:#E5E1DB"></div><div class="t"><b>#E5E1DB</b><div class="l">Viền</div></div></div>
+    <div class="s"><div class="c" style="background:#292420"></div><div class="t"><b>#292420</b><div class="l">Dải tối, header band</div></div></div>
+    <div class="s"><div class="c" style="background:#1C1917"></div><div class="t"><b>#1C1917</b><div class="l">Chữ chính</div></div></div>
+    <div class="s"><div class="c" style="background:#57534E"></div><div class="t"><b>#57534E</b><div class="l">Chữ phụ</div></div></div>
+    <div class="s"><div class="c" style="background:#8C8681"></div><div class="t"><b>#8C8681</b><div class="l">Nhãn, meta</div></div></div>
+  </div>
+  <p style="font-size:13.5px;color:var(--ink2);margin-top:10px">Xám <b>ấm</b> (hue ~30), không phải slate lạnh như hiện tại (hue ~215). Xám lạnh cạnh cam ra cảm giác lệch. Nền có <b>lưới mờ</b> — <code>index.css</code> đã có sẵn utility <code>.grid-lines</code>, đúng pattern Enterpret. Trang này đang dùng nó, bạn đang thấy nó.</p>
+
+  <h4 class="lbl">Cam thương hiệu — chỉ tương tác &amp; định danh</h4>
+  <div class="sw">
+    <div class="s"><div class="c" style="background:#D9531E"></div><div class="t"><b>#D9531E</b><div class="l"><code>--primary</code> · placeholder</div></div></div>
+    <div class="s"><div class="c" style="background:#B84415"></div><div class="t"><b>#B84415</b><div class="l">Hover, pressed</div></div></div>
+    <div class="s"><div class="c" style="background:#FDF3EE;border-bottom:1px solid #F3D5C4"></div><div class="t"><b>#FDF3EE</b><div class="l">Nền vùng đang chọn</div></div></div>
+    <div class="s"><div class="c" style="background:#FFF;box-shadow:inset 0 0 0 4px rgba(217,83,30,.22),inset 0 0 0 5px #D9531E;border-bottom:1px solid var(--line)"></div><div class="t"><b>alpha .22</b><div class="l">Focus ring</div></div></div>
+  </div>
+
+  <h4 class="lbl">Bốn trạng thái — phân biệt bằng hình trước, màu sau</h4>
+  <div class="grid g4">
+    <div class="card" style="padding:14px">
+      <div style="font-weight:700;font-size:14px">✓ &nbsp;Đang kiểm soát</div>
+      <div style="font-size:12.5px;color:var(--ink2);margin-top:5px">Đạt hoặc vượt mục tiêu. <b>Không tô màu gì cả</b> — chỉ viền xám mảnh và dấu tick.</div>
+    </div>
+    <div class="card" style="padding:14px;background:var(--warnbg);border-color:#EADDA0;border-left:3px solid var(--warn)">
+      <div style="font-weight:700;font-size:14px;color:var(--warn)">Cần theo dõi</div>
+      <div style="font-size:12.5px;color:var(--ink2);margin-top:5px">Lệch mục tiêu, chưa cần quyết định ngay. Vàng olive + thanh trái 3px.</div>
+    </div>
+    <div class="card" style="padding:14px;background:var(--critbg);border-color:#F3C9C4;border-left:3px solid var(--crit)">
+      <div style="font-weight:700;font-size:14px;color:var(--crit)">Cần xử lý ngay</div>
+      <div style="font-size:12.5px;color:var(--ink2);margin-top:5px">Có người chịu trách nhiệm và có hạn. Đỏ sâu + thanh trái + nhãn đậm.</div>
+    </div>
+    <div class="card" style="padding:14px;background:transparent;border:1px dashed #A8A29E">
+      <div style="font-weight:700;font-size:14px;color:var(--ink3)">— &nbsp;Chưa đo được</div>
+      <div style="font-size:12.5px;color:var(--ink2);margin-top:5px">Thiếu tín hiệu hoặc nguồn quá cũ. Viền nét đứt. <b>Không</b> hiển thị là "tốt".</div>
+    </div>
+  </div>
+
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card">
+      <h4>Vì sao "đang kiểm soát" không có màu</h4>
+      <p>Ba lý do: <b>một</b>, giải phóng vùng màu ấm cho cam thương hiệu; <b>hai</b>, mắt tự đi tới chỗ có màu nên chú ý dồn vào đúng thứ cần xử lý; <b>ba</b>, đây là cách giao diện cao cấp tạo cảm giác sang trọng — màu là điểm nhấn hiếm, không phải lớp sơn.</p>
+      <p><b>Bậc "chưa đo được" quan trọng nhất.</b> Prototype hiện tại không phân biệt "ổn" và "không có dữ liệu" — một bước không có evidence coverage trông giống một bước đang khỏe. Đó là cách nhanh nhất để mất tin cậy khi demo.</p>
+    </div>
+    <div class="card">
+      <h4>Rủi ro tôi thấy và cách chặn</h4>
+      <p>Vàng olive <code>#A16207</code>, đỏ sâu <code>#B3261E</code> và cam <code>#D9531E</code> đều trong vùng ấm — có thể lẫn nếu chỉ nhìn màu. Ba lớp chặn: <b>(a)</b> mỗi trạng thái luôn có nhãn chữ; <b>(b)</b> mỗi trạng thái có hình khác nhau (không viền / thanh trái đặc / nét đứt); <b>(c)</b> cam không xuất hiện trong bất kỳ badge trạng thái nào nên không có chỗ so sánh trực tiếp.</p>
+    </div>
+  </div>
+
+  <h3>5.4 · Khuôn trang &amp; chất cảm</h3>
+  <div class="grid g2">
+    <div class="card">
+      <h4>Bốn tầng, áp cho mọi route</h4>
+      <ul class="tight">
+        <li><b>1 · Kết luận</b> — một câu tiếng Việt thường, 34px</li>
+        <li><b>2 · Số liệu neo</b> — tối đa 4 con số, 24px, hover ra nguồn + độ tươi + cỡ mẫu</li>
+        <li><b>3 · Danh sách ưu tiên</b> — cái cần xử lý trước nằm trên, kèm lý do vì sao nó trên</li>
+        <li><b>4 · Hồ sơ chi tiết</b> — cột phải hoặc drawer, mở theo lựa chọn ở tầng 3</li>
+      </ul>
+      <p style="margin-top:10px"><b>Ba lớp progressive disclosure:</b> lớp 0 luôn hiện (kết luận, số, ai chịu trách nhiệm, hạn) · lớp 1 một click (verbatim, khách bị ảnh hưởng, breakdown ưu tiên, rationale phân loại) · lớp 2 hai click (metric contract, công thức, grain, độ tươi, version).</p>
+      <p><b>Kiểm tra:</b> nếu người không thuộc team CX đọc lớp 0 mà vẫn hiểu vấn đề và biết ai đang xử lý thì layout đạt. Nếu phải mở lớp 1 mới hiểu thì câu kết luận viết sai.</p>
+    </div>
+    <div class="card">
+      <h4>Chất cảm "sang trọng" đến từ đâu</h4>
+      <div class="grid g2" style="gap:12px">
+        <div><b style="font-size:13.5px">Khoảng trắng</b><p style="font-size:13px;margin:4px 0 0">Padding thẻ 20–24px. Sang trọng đến từ không gian, không phải hiệu ứng.</p></div>
+        <div><b style="font-size:13.5px">Tiết chế màu</b><p style="font-size:13px;margin:4px 0 0">Mỗi màn tối đa 2 vùng có màu. Nhiều hơn nghĩa là chưa xếp ưu tiên xong.</p></div>
+        <div><b style="font-size:13.5px">Chữ số</b><p style="font-size:13px;margin:4px 0 0"><code>tabular-nums</code> + tracking âm nhẹ ở cỡ lớn. Cột số thẳng hàng đọc ra chuyên nghiệp ngay.</p></div>
+        <div><b style="font-size:13.5px">Bỏ trang trí</b><p style="font-size:13px;margin:4px 0 0">Không gradient, không glow, không shadow nhiều lớp. Một shadow rất nhẹ, hết.</p></div>
+      </div>
+      <p style="margin-top:12px"><b>Layout:</b> một <code>min-width: 1280px</code> duy nhất thay 5 giá trị hiện tại. Filter toàn cục hiện trên <b>mọi</b> route — bỏ điều kiện <code>!isPilot</code>. Sidebar 5 nhóm có nhãn nhóm monospace in hoa.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="quyetdinh">
+  <h2><span class="num">6</span>Đã chốt &amp; còn mở</h2>
+
+  <h3>Đã chốt</h3>
+  <table>
+    <thead><tr><th style="width:22%">Hạng mục</th><th>Quyết định</th></tr></thead>
+    <tbody>
+      <tr><td><b>Mục đích</b></td><td>Demo lấy phê duyệt trước, chốt xong bồi thành spec cho dev → IA phải đủ mở</td></tr>
+      <tr><td><b>Phạm vi</b></td><td>Giữ pilot <b>Mở tài khoản</b>, làm sâu. Bản đồ vẫn hiển thị toàn bộ 7 phase</td></tr>
+      <tr><td><b>Vai chính</b></td><td>Head of CX + VoC Analyst — hai vai đồng chính, hai điểm vào, hai lớp UI</td></tr>
+      <tr><td><b>Mô hình gốc</b></td><td><b>Enterpret.</b> Lật kết luận <i>"should not pursue feature parity"</i> trong <code>.swarm/synthesis.md</code></td></tr>
+      <tr><td><b>Primitive lõi</b></td><td><code>Feed</code> · <code>Quantify</code> · <code>Dashboard</code> — lấy nguyên từ Enterpret</td></tr>
+      <tr><td><b>Lớp bổ sung</b></td><td>8 hạng mục ở §3, trọng tâm là journey layer</td></tr>
+      <tr><td><b>IA</b></td><td>13 nav item / 5 nhóm + route hồ sơ dùng chung <code>/issue/:id</code></td></tr>
+      <tr><td><b>Taxonomy</b></td><td>Xem 5 tầng + explainable + sửa mức record + cảnh báo drift. <b>Không</b> merge/split node</td></tr>
+      <tr><td><b>Agent</b></td><td>Cả 3, đều read-only nên không vi phạm điều kiện DEFER P2 trong benchmark</td></tr>
+      <tr><td><b>Theme</b></td><td>Cam VNDIRECT trên nền xám ấm, hướng tiết chế. Cam chỉ cho tương tác &amp; định danh</td></tr>
+      <tr><td><b>Demo mode</b></td><td>Guided tour <b>6 màn</b>: Dashboard → Feed → Quantify → Health → Actions → Outcomes</td></tr>
+      <tr><td><b>Route bỏ</b></td><td><code>/legacy-overview</code> xóa · <code>/coverage</code> gộp vào Atlas · <code>/impact</code> tách 2 nơi</td></tr>
+      <tr><td><b>Fixture</b></td><td>6–8 khách · 6 survey · 6–8 nguồn · ~40 taxonomy node · ~30 evidence · 3 agent · 3 Dashboard template</td></tr>
+      <tr><td><b>Thứ tự triển khai</b></td><td><b>Hai pha, không xây 15 route một lượt.</b> Pha 1 = <code>validateFixture()</code> → gộp fixture → design system → 6 route của tour → <code>/issue/:id</code> → tour ribbon. Pha 2 = <code>/atlas</code> trước, rồi <code>/sources</code> <code>/surveys</code> <code>/customers</code>, cuối là <code>/taxonomy</code> <code>/agents</code> <code>/assistant</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout neutral">
+    <b>Ranh giới chia pha lấy từ chính guided tour:</b> tour đi qua đúng 6 route, nên đó là bộ tối thiểu để trình lãnh đạo. Prototype hiện tại là ~3.500 dòng (863 dòng là fixture) — xây 15 route trong một pass là cách chắc chắn nhất để không xong pha nào. <code>/issue/:id</code> bắt buộc nằm ở pha 1 vì nó là thứ chặn lỗi P0 đứt chuỗi Issue → Action.
+  </div>
+
+  <h3>Còn mở</h3>
+  <div class="ask">
+    <h4>Mã cam chính xác theo brand guideline VNDIRECT</h4>
+    <p style="margin:0;font-size:14px;color:var(--ink2)">Đang dùng <code>#D9531E</code> làm placeholder — tôi không đoán mã màu thương hiệu. Khi bạn có mã chính thức, gửi hex và tôi đổi <code>--primary</code>; toàn app theo ngay vì mọi màu đều đi qua đúng một token.</p>
+    <p style="margin:10px 0 0;font-size:14px;color:var(--ink2)"><b>Nếu mã cam thật sáng hoặc rực hơn <code>#D9531E</code>:</b> phải kiểm lại contrast của chữ trắng trên nền cam ở nút hành động chính. Cam sáng cần chữ đen hoặc nền cam đậm hơn cho nút — tôi sẽ điều chỉnh chứ không giữ chữ trắng bằng mọi giá.</p>
+    <p style="margin:10px 0 0;font-size:14px;color:var(--ink2)"><b>Việc bắt buộc khi triển khai:</b> xóa hex <code>#087264</code>/<code>#123a35</code>/<code>#f6f7f4</code> trong <code>CXControlTower.tsx</code>, và xóa lớp override <code>!important</code> ở <code>index.css:81-97</code> — lớp này sót từ lần chuyển dark→light và sẽ chặn việc đổi màu.</p>
+  </div>
+
+  <div class="callout" style="margin-top:20px">
+    <b>Rủi ro lớn nhất của hướng "Enterpret làm gốc":</b> trông giống Enterpret nhưng không có năng lực Enterpret → mất tin cậy. Ba lớp chặn: §12 của spec liệt kê đủ <b>10 điểm đơn giản hóa</b> · nhãn UI trung thực ở <code>/assistant</code> ("câu trả lời demo theo kịch bản", không dùng nhãn "AI answer · grounded" như hiện tại) · <b>không</b> dùng từ "adaptive" cho taxonomy tĩnh trong fixture.
+  </div>
+</section>
+
+</main>
+</body>
+</html>
