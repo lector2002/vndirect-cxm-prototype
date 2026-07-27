@@ -823,21 +823,25 @@ Một reviewer phải làm được liền mạch:
 11. Sang `/agents`, thấy finding chưa acknowledge và acknowledge được.
 12. Nhận biết rõ mọi thay đổi chỉ tồn tại trong session, và Trợ lý là kịch bản không phải AI thật.
 
-Kỹ thuật — kiểm trên `output/cxm-platform-prototype.html`, đã chạy và **đạt** ngày 27/07/2026:
+Kỹ thuật — kiểm trên `output/cxm-platform-prototype.html`. Cột kết quả ghi rõ lần kiểm gần nhất:
 
 | Tiêu chí | Cách kiểm | Kết quả |
 |---|---|---|
-| Toàn vẹn dữ liệu | `validateFixture()` trả về mảng rỗng | ✅ rỗng |
-| Toàn vẹn xuyên suốt vòng xử lý | Chạy `advance()` hết vòng cho 3 action, gọi `validateFixture()` sau **mỗi** bước trung gian | ✅ rỗng ở mọi bước |
-| Không màn nào crash | Gọi cả 14 hàm `V.*` cộng `V.issue()` và `V.customer()` | ✅ 0 lỗi |
-| Sàn chữ 12px | Duyệt DOM mọi màn, đọc `getComputedStyle().fontSize`, tìm giá trị < 12 | ✅ 0 phần tử |
-| Không cuộn ngang | `scrollWidth > clientWidth` trên cả 14 route ở khung 1280 | ✅ không có |
+| Toàn vẹn dữ liệu | `validateFixture()` trả về mảng rỗng | ✅ rỗng · 28/07 |
+| Toàn vẹn xuyên suốt vòng xử lý | Chạy `advance()` hết vòng cho 3 action, gọi `validateFixture()` sau **mỗi** bước trung gian | ✅ rỗng ở mọi bước · 27/07 |
+| Không màn nào crash | Gọi cả 14 hàm `V.*` cộng `V.issue()`; thêm 6 issue × 5 tab, 20 flow, 7 phase, 6 bước × 3 tab | ✅ 0 lỗi, 0 console error/warning · 28/07 |
+| Trạng thái suy ra khớp fixture cũ | `stepState` `metricState` `sourceHealth` trên toàn bộ record, so với các field `state`/`health` đã xóa | ✅ khớp cả 19/19 · 28/07 |
+| Ngưỡng thật sự điều khiển UI | Hạ `failCrit` 15→10 rồi đếm `.sn.crit` **trên DOM**; bấm *Trả về mặc định* | ✅ 1 crit + 2 watch → 2 crit + 1 watch → hoàn nguyên · 28/07 |
+| Sàn chữ 12px | Duyệt DOM mọi màn, đọc `getComputedStyle().fontSize`, tìm giá trị < 12 | ✅ 0 phần tử · 27/07 |
+| Không cuộn ngang ở 1280 | `scrollWidth > clientWidth` trên cả 14 route | ⚠️ **một ngoại lệ có chủ ý:** `.spine` ở `/atlas` tràn 125px ở khung 1280, cuộn ngang **trong khung** (thanh cuộn riêng của card, không phải của trang). Từ ~1400px trở lên vừa khít. · 28/07 |
 | Guided tour | 6 bước, ribbon hiện/ẩn đúng, clamp ở bước cuối, thoát sạch | ✅ đạt |
 | Quy tắc denominator | Mọi card/chart header có `X of Y <đơn vị>` và kỳ bằng ngày tuyệt đối | ✅ qua hàm `chead()`/`denom()` dùng chung |
 | Một token màu | Không hex hardcode ngoài khối `DESIGN TOKENS` | ✅ mọi màu qua `var(--*)` |
 | Tự chứa | Không `import`, không `fetch`, không tài nguyên ngoài — mở bằng `file://` phải chạy | ⬜ **cần owner double-click xác nhận một lần** |
 
 Ba tiêu chí của bản React cũ đã bỏ vì không còn áp dụng: grep `text-[8/9/10px]` trong `pages/`, grep hex trong `pages/`, và `build production + lint`. File HTML không có bước build. `customerPhaseForLegacyId` không tồn tại trong bản mới — chỉ có một mô hình hành trình duy nhất.
+
+**Về ngoại lệ cuộn ngang ở `/atlas`.** Đây là ràng buộc thật, không phải chỗ chưa làm xong. Quy tắc trạng thái ở §10.2 buộc badge không được wrap, và badge dài nhất — *Cần xử lý ngay* — cần ~110px, nên thẻ bước không thể hẹp hơn ~132px. Sáu thẻ đã ăn 792px trong 931px khả dụng ở khung 1280 (1280 − 246 sidebar − padding − thanh cuộn dọc), phần còn lại không đủ cho 5 dải nối có nhãn. Ba cách thoát đều tệ hơn: rút ngắn nhãn trạng thái riêng ở màn này thì nhãn lệch nhau giữa các màn; bỏ nhãn số khách rơi thì mất chính con số cần đọc; xếp bước xuống hai dòng thì mất chiều đọc trái-sang-phải. Nên chấp nhận cuộn ngang **có giới hạn trong một card**, kèm ba thứ bù: thanh cuộn hiện rõ ngay dưới chuỗi bước, câu tổng kết bằng chữ nêu đủ *vào bao nhiêu – còn bao nhiêu – bước nào tệ nhất*, và một câu trong phần chú giải nói trước rằng dưới ~1400px thì chuỗi bước cuộn ngang. Khác hẳn vấn đề gốc: người dùng vẫn thấy ngay 5/6 bước và không phải cuộn để *tìm* được flow.
 
 ## 14. Rủi ro
 

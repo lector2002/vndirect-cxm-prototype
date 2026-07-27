@@ -262,6 +262,15 @@ tr.sel td{background:var(--primary-soft)}
 .cxlbl{margin-top:9px;text-align:center;white-space:nowrap}
 .cxlbl b{display:block;font:700 13px/1.2 ui-monospace,Menlo,monospace;color:var(--crit)}
 .cxlbl span{display:block;font-size:12px;color:var(--ink3);font-weight:600}
+/* Màn hẹp: thu dải nối lại để nhét đủ 6 bước.
+   KHÔNG thu `.sn` xuống dưới ~132px được: badge "Cần xử lý ngay" có
+   white-space:nowrap theo quy tắc trạng thái, hẹp hơn là badge tràn ra.
+   Từ ~1400px trở lên vừa đủ; hẹp hơn nữa thì `.spine` cuộn ngang có chủ ý
+   (thanh cuộn của khung, không phải của cả trang) — xem spec §9.5. */
+@media (max-width:1500px){
+  .cx{width:52px}
+  .spine .sn{min-width:132px}
+}
 
 /* ===================== MÀN CHỈ SỐ & NGƯỠNG ===================== */
 .cfl{min-width:0}
@@ -1941,7 +1950,7 @@ function journeySpine(steps, sid) {
     <div class="note" style="margin-top:15px">
       <b>Đọc theo chiều ngang:</b> ${nf(fx(base))} khách vào bước ${steps[0].code}, còn ${nf(fx(last.completed))} hoàn tất bước ${steps[steps.length - 1].code}
       — mất ${nf(fx(lostAll))} người (${pv(lostAll, base)}%). Riêng bước ${worst.code} ${esc(worst.name)} chiếm ${pv(obs(worst.id).failed, lostAll)}% tổng số rơi.
-      <div class="t-meta" style="font-size:12px;margin-top:7px">Bề dày dải xám = số khách còn đi tiếp so với bước đầu · vạch đỏ gạch chéo = phần rơi ra tại bước bên trái · thanh mảnh trong mỗi thẻ = evidence coverage.
+      <div class="t-meta" style="font-size:12px;margin-top:7px">Bề dày dải xám = số khách còn đi tiếp so với bước đầu · vạch đỏ gạch chéo = phần rơi ra tại bước bên trái · thanh mảnh trong mỗi thẻ = evidence coverage. Trên màn hẹp dưới ~1400px, chuỗi bước cuộn ngang trong khung này.
       Nhãn trạng thái suy ra từ ngưỡng đang đặt ở <a href="#/rules">Chỉ số &amp; ngưỡng</a> (thất bại ≥ ${CFG.step.failWatch}% cần theo dõi, ≥ ${CFG.step.failCrit}% cần xử lý).</div>
     </div>`;
 }
