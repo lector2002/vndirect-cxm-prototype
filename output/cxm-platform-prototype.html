@@ -1132,7 +1132,7 @@ const DATA = {
       owner:'Linh Trần · CX Insight', up:'28/07/2026',
       desc:'Theo dõi riêng nhóm topic có xu hướng xấu, sub-theme bên dưới và cohort chịu ảnh hưởng nặng nhất.',
       qs:[
-        { q:'Topic nào đang lớn nhất?', sub:'Theme trả lời VÌ SAO, khác với L1–L3 trả lời CÁI GÌ.', b:['q1','q11'] },
+        { q:'Topic nào đang lớn nhất?', sub:'Theme trả lời VÌ SAO, khác với L1–L3 trả lời CÁI GÌ. Bảng dưới xếp mọi theme kèm xu hướng 6 kỳ; bấm một dòng để xem verbatim trong ngữ cảnh hành trình.', b:['@topictrend','q1','q11'] },
         { q:'Xu hướng qua 6 kỳ ra sao?', sub:'Một topic lớn mà đang giảm khác hẳn một topic nhỏ mà đang tăng gấp đôi.', b:['q5','q15'] },
         { q:'Ai chịu ảnh hưởng nặng nhất?', sub:'So cohort để biết vấn đề là của cả tập khách hay chỉ một nhóm.', b:['q7','q8'] },
       ] },
@@ -1208,7 +1208,7 @@ const DATA = {
     { g:'Voice of Customer' },
     { r:'voc',       ic:'◐', l:'Tổng quan VoC' },
     { r:'sources',   ic:'⌁', l:'Nguồn dữ liệu' },
-    { r:'topics',    ic:'⋔', l:'Topic' },
+    { r:'topics',    ic:'⋔', l:'Topic & xu hướng' },
     { r:'vocjourney',ic:'❋', l:'VoC theo hành trình' },
     { g:'Công cụ' },
     { r:'quantify',  ic:'▤', l:'Quantify' },
@@ -1262,6 +1262,12 @@ const DATA = {
       t:'Sức khỏe 7 nguồn', d:'Mỗi nguồn có SLA độ trễ riêng — crawl 1 lần/ngày không chấm cùng chuẩn với event stream. Cột cuối cho biết nguồn này hỏng thì chỉ số nào sai theo.' },
     { r:'sources', grp:'Nguồn dữ liệu', sel:'[data-tour="src-profile"]',
       t:'Hồ sơ dữ liệu một nguồn', d:'Bấm một nguồn để mở hồ sơ: volume, độ tươi vs SLA, nền tảng phủ, năm chiều phân bố và đúng hai bản ghi mẫu để biết nguồn đó “nói kiểu gì”. Verbatim đầy đủ nằm trong Topic và VoC theo hành trình.' },
+    { r:'topics', grp:'Topic & xu hướng', sel:'[data-tour="topic-chart"]',
+      t:'Biểu đồ đường theo thời gian', d:'Trục thời gian của VoC: mỗi đường là một topic qua 6 kỳ. Đường đi lên là đang nổi lên, đi xuống là đang lắng xuống; nét đứt kèm ✨ là topic mới trồi lên từ gần sàn. Bấm chip legend để tắt một đường.' },
+    { r:'topics', grp:'Topic & xu hướng', sel:'[data-tour="topic-table"]',
+      t:'Chọn topic để theo dõi', d:'Bảng mọi topic kèm volume, xu hướng và số thay đổi đã phát hành. Bấm ★ để thêm/bớt đường trên biểu đồ; bấm một dòng để mở chi tiết topic đó.' },
+    { r:'topics', grp:'Topic & xu hướng', sel:'[data-tour="topic-detail"]',
+      t:'Chi tiết một topic', d:'Hồ sơ đầy đủ của một topic: chỉ số và sắc thái, xu hướng 6 kỳ, intent và nguồn nói về nó, các chủ đề con, verbatim mẫu và quyết định phân loại nếu đang trôi nghĩa.' },
     { r:'vocjourney', grp:'VoC theo hành trình', sel:'[data-tour="voc-spine"]',
       t:'Tiếng nói theo điểm chạm', d:'Cùng ba nhịp điều hướng với Bản đồ hành trình, nhưng mỗi thẻ hiện khách NÓI GÌ chứ không phải bao nhiêu người rơi. Chỗ hành vi im lặng mà tiếng nói dồn vào là chỗ đáng ngờ.' },
     { r:'vocjourney', grp:'VoC theo hành trình', sel:'[data-tour="voc-inspector"]',
@@ -1952,6 +1958,7 @@ const BLOCKS = {
   '@srcmatrix':   { n:'Độ toàn vẹn nguồn', sec:'voc', go:'sources' },
   '@intent':      { n:'Bốn khối theo intent', sec:'voc', go:'topics', wide:true },
   '@anomlanes':   { n:'Ba làn bất thường', sec:'voc', go:'agents' },
+  '@topictrend':  { n:'Topic & xu hướng 6 kỳ', sec:'voc', go:'vocjourney', wide:true },
   '@toppri':      { n:'Quantified Top — bốn cách xếp', sec:'cxm', go:'work', wide:true },
   '@journeystate':{ n:'Trạng thái hành trình', sec:'cxm', go:'atlas', wide:true },
   '@coverage':    { n:'Độ phủ đo lường', sec:'cxm', go:'atlas' },
@@ -2093,6 +2100,32 @@ function blockBody(k) {
         ${axisLbl('Chỉ tính thay đổi đã phát hành và đã có đủ kỳ quan sát')}
         <div class="note" style="margin-top:11px">${acts - done} thay đổi đã phát hành nhưng <b>chưa có kết quả đo</b> — hoặc chưa đủ kỳ quan sát, hoặc nguồn dùng để đo đang hỏng.
           Khép vòng với khách: ${DATA.loop.filter((l) => l.done >= l.need).length}/${DATA.loop.length} điểm gãy đã liên hệ đủ. <a href="#/work">Mở bảng xử lý</a></div>
+      </div></div>`;
+  }
+  if (k === '@topictrend') {
+    const th = DATA.tax.filter((n) => n.lv === 'theme');
+    const trend = (t) => (t.pts && t.pts.length > 1 ? t.pts[t.pts.length - 1] - t.pts[0] : 0);
+    const thSorted = th.slice().sort((a, b) => b.n - a.n);
+    const rising = thSorted.filter((t) => trend(t) > 0 && t.cat !== 'praise').length;
+    return `<div class="card flat">
+      ${wHead('Topic & xu hướng 6 kỳ', rising, th.length, 'topic đang tăng theo hướng xấu')}
+      <div class="cbody">
+        <table><thead><tr><th style="width:36px"></th><th>Topic</th><th>Intent</th><th>Volume</th><th>Xu hướng 6 kỳ</th><th>Thay đổi</th><th>Sub-theme</th><th>Trạng thái</th></tr></thead>
+        <tbody>${thSorted.map((t) => {
+          const d = trend(t), bad = t.cat !== 'praise' ? d > 0 : d < 0, subs = taxKids(t.id);
+          const inChart = (ST.sel.topicLines || []).indexOf(t.id) > -1, fixes = (t.cat !== 'praise' && d < 0) ? themeFixes(t) : [];
+          return `<tr class="clickable" onclick="drillTopic('${t.id}')">
+            <td><button class="disc" onclick="event.stopPropagation();toggleTopicLine('${t.id}')" title="${inChart ? 'Bỏ khỏi' : 'Thêm vào'} biểu đồ đường" style="font-size:16px;line-height:1;color:${inChart ? 'var(--primary)' : 'var(--ink3)'}">${inChart ? '★' : '☆'}</button></td>
+            <td><b style="font-size:13.5px">${esc(t.name)}</b><div class="t-meta" style="font-size:12px;margin-top:3px;max-width:46ch">${esc(t.why)}</div></td>
+            <td>${catChip(t.cat)}</td>
+            <td><b class="num">${nf(fx(t.n))}</b></td>
+            <td>${t.pts ? sparkline(t.pts, bad ? 'var(--crit)' : 'var(--good)') : '<span class="t-meta">—</span>'}</td>
+            <td><b class="num" style="color:${bad ? 'var(--crit)' : 'var(--good)'}">${d > 0 ? '+' : ''}${nf(d)}</b>${fixes.length ? `<div class="t-meta" style="font-size:11px;color:var(--good)">✓ ${fixes.length} đã phát hành</div>` : ''}</td>
+            <td>${subs.length ? subs.map((s) => `<span class="chip">${esc(s.name)}</span>`).join(' ') : '<span class="t-meta">—</span>'}</td>
+            <td>${t.drift ? badge('watch', D_DRIFT[t.drift]) : t.demo ? badge('unknown', 'Dữ liệu demo') : badge('ok', 'Ổn định')}</td>
+          </tr>`;
+        }).join('')}</tbody></table>
+        ${axisLbl('Volume · xu hướng 6 kỳ · Topic trả lời VÌ SAO. Bấm một dòng để xem verbatim trong ngữ cảnh hành trình.')}
       </div></div>`;
   }
   return `<div class="note crit">Khối "${esc(k)}" không tồn tại.</div>`;
@@ -2322,7 +2355,7 @@ V.vocjourney = () => {
     ${(() => { const n = tax(ST.sel.vocTax); if (!n) return '';
       return `<div class="note bd" style="margin-bottom:14px">Bạn vừa mở từ node <b>${esc(n.name)}</b> (${esc(n.lv === 'subtheme' ? 'sub-theme' : n.lv)}${n.maps ? '' : ', chưa gắn điểm chạm nào nên màn mở ở vị trí mặc định'}).
         <button class="disc" style="margin-left:8px" onclick="setSel('vocTax',null)">bỏ đánh dấu</button>
-        <button class="disc" style="margin-left:8px" onclick="setTax('${n.id}');go('topics')">xem node trong Topic VoC →</button></div>`;
+        <button class="disc" style="margin-left:8px" onclick="setTax('${n.id}');go('topics')">xem node trong Topic →</button></div>`;
     })()}
 
     <div class="prail">${DATA.phases.map((p) => {
@@ -3412,21 +3445,61 @@ const DRIFT_FIX = {
   duplicate:   ['Gộp hai node', 'Giữ tách, làm rõ định nghĩa', 'Bỏ qua'],
   shifting:    ['Tách node mới', 'Viết lại định nghĩa', 'Bỏ qua'],
 };
+
+/* Topic "mới trồi lên": kỳ đầu ≤ 40% kỳ cuối và đang tăng, hoặc thuật ngữ mới chưa gán. */
+const isFreshTopic = (t) => t.drift === 'new-term' || (t.pts && t.pts.length > 1 && t.pts[t.pts.length - 1] - t.pts[0] > 0 && t.pts[0] <= t.pts[t.pts.length - 1] * 0.4);
+/* Bước mà theme tập trung (theo bằng chứng) + thay đổi ĐÃ phát hành chạm đúng bước đó. */
+const themeStep = (t) => { const m = {}; DATA.ev.filter((e) => e.tax.indexOf(t.id) > -1).forEach((e) => { if (e.step) m[e.step] = (m[e.step] || 0) + 1; }); return Object.keys(m).sort((a, b) => m[b] - m[a])[0] || null; };
+const themeFixes = (t) => { const s = themeStep(t); return s ? ACT.filter((a) => a.dl === 'released' && iss(a.iss).step === s) : []; };
+
+/* Biểu đồ đường nhiều topic qua 6 kỳ. Trục dọc = volume tuyệt đối. Đường nét đứt +
+   vòng tròn rỗng ở kỳ đầu = topic mới trồi lên. Legend là các nút toggle (bấm để bỏ). */
+const LINE_PAL = ['#D9531E', '#2563EB', '#16A34A', '#9333EA', '#0891B2', '#CA8A04', '#DB2777', '#475569'];
+function topicLineChart(ids) {
+  const series = (ids || []).map((id) => tax(id)).filter((t) => t && t.pts && t.pts.length > 1);
+  if (!series.length) return `<div class="note">${badge('unknown')} Chưa chọn topic nào để vẽ. Bấm <b>★</b> ở bảng dưới để thêm đường vào biểu đồ.</div>`;
+  const P = Math.max(...series.map((s) => s.pts.length));
+  const maxV = Math.max(1, ...series.flatMap((s) => s.pts));
+  const W = 760, H = 300, ml = 46, mr = 14, mt = 12, mb = 30, pw = W - ml - mr, ph = H - mt - mb;
+  const X = (i) => ml + (i / (P - 1)) * pw, Y = (v) => mt + ph - (v / maxV) * ph;
+  const grid = [0, maxV / 2, maxV].map((v) => `<line x1="${ml}" y1="${Y(v).toFixed(1)}" x2="${W - mr}" y2="${Y(v).toFixed(1)}" stroke="var(--line)"/><text x="${ml - 7}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end" font-size="11" fill="var(--ink3)">${nf(Math.round(v))}</text>`).join('');
+  const xlab = Array.from({ length: P }, (_, i) => `<text x="${X(i).toFixed(1)}" y="${H - 10}" text-anchor="middle" font-size="11" fill="var(--ink3)">${i === P - 1 ? 'nay' : '−' + (P - 1 - i)}</text>`).join('');
+  const paths = series.map((s, si) => {
+    const c = LINE_PAL[si % LINE_PAL.length], fresh = isFreshTopic(s);
+    const pts = s.pts.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    const end = `<circle cx="${X(s.pts.length - 1).toFixed(1)}" cy="${Y(s.pts[s.pts.length - 1]).toFixed(1)}" r="3.5" fill="${c}"/>`;
+    const st = fresh ? `<circle cx="${X(0).toFixed(1)}" cy="${Y(s.pts[0]).toFixed(1)}" r="3.2" fill="#fff" stroke="${c}" stroke-width="1.6"/>` : '';
+    return `<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2.2" ${fresh ? 'stroke-dasharray="6 4"' : ''}/>${end}${st}`;
+  }).join('');
+  const legend = series.map((s, si) => { const c = LINE_PAL[si % LINE_PAL.length];
+    return `<button class="chip" onclick="toggleTopicLine('${s.id}')" title="Bỏ đường này khỏi biểu đồ" style="cursor:pointer">
+      <i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};margin-right:6px;vertical-align:-1px"></i>${esc(s.name)}${isFreshTopic(s) ? ' ✨' : ''} <b style="color:var(--ink3)">✕</b></button>`;
+  }).join('');
+  return `<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px">${legend}</div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;height:auto;display:block" role="img" aria-label="Biểu đồ đường xu hướng topic">${grid}${paths}${xlab}</svg>
+    ${axisLbl('Trục dọc là volume tuyệt đối · trục ngang là 6 kỳ gần nhất · đường nét đứt kèm ✨ = topic mới trồi lên từ gần sàn')}`;
+}
+function toggleTopicLine(id) { const a = ST.sel.topicLines || []; ST.sel.topicLines = a.indexOf(id) > -1 ? a.filter((x) => x !== id) : a.concat(id); render(); }
+
 V.topics = () => {
   const drifts = DATA.tax.filter((n) => n.drift);
-  const q = (ST.sel.txq || '').trim().toLowerCase();
-  const sel = tax(ST.sel.tx) || tax('x-th-device');
-  const kids = taxKids(sel.id), path = taxUp(sel);
-  const evs = DATA.ev.filter((e) => e.tax.indexOf(sel.id) > -1);
-  const l1 = DATA.tax.filter((n) => n.lv === 'L1'), th = DATA.tax.filter((n) => n.lv === 'theme');
-  const hits = q ? DATA.tax.filter((n) => n.name.toLowerCase().indexOf(q) > -1) : [];
-  const mx = (arr) => Math.max(1, ...arr.map((n) => n.n));
-  const thSorted = th.slice().sort((a, b) => b.n - a.n);
+  const th = DATA.tax.filter((n) => n.lv === 'theme');
   const trend = (t) => (t.pts && t.pts.length > 1 ? t.pts[t.pts.length - 1] - t.pts[0] : 0);
+  const thSorted = th.slice().sort((a, b) => b.n - a.n);
+  /* Ba nhóm chuyển động qua 6 kỳ — trục THỜI GIAN, thứ mà Nguồn và VoC theo
+     hành trình không trả lời. */
+  const rising  = thSorted.filter((t) => t.cat !== 'praise' && trend(t) > 0);
+  const falling = thSorted.filter((t) => t.cat !== 'praise' && trend(t) < 0);
+  const fresh   = thSorted.filter((t) => isFreshTopic(t));
+  /* Đường mặc định của biểu đồ: vài mover mạnh nhất mỗi nhóm. Lazy-init vào ST để
+     giữ lựa chọn toggle của người dùng qua các lần render (không persist qua refresh). */
+  const defLines = [...rising.slice(0, 3), ...falling.slice(0, 2), ...fresh.slice(0, 1)].map((t) => t.id).filter((v, i, a) => a.indexOf(v) === i);
+  if (!ST.sel.topicLines) ST.sel.topicLines = defLines;
+  const lines = ST.sel.topicLines;
 
   return `<div class="wrap">
     <h1 class="t-hero" style="max-width:38ch;margin-bottom:8px">${th.length} topic đang mở, ${thSorted.filter((t) => trend(t) > 0 && t.cat !== 'praise').length} đang tăng theo hướng xấu.</h1>
-    <p class="t-meta" style="max-width:90ch;margin:0 0 16px">Topic trả lời <b>vì sao</b> khách nói — khác với L1–L3 trả lời <b>về cái gì</b>. Cột xu hướng là 6 kỳ gần nhất. Bấm một dòng để mở bằng chứng và lý do phân loại.</p>
+    <p class="t-meta" style="max-width:90ch;margin:0 0 16px">Trục <b>thời gian</b> của VoC: cái gì đang <b>nổi lên</b>, cái gì đã <b>lắng xuống</b> (kèm thay đổi đã phát hành nếu có), cái gì <b>mới xuất hiện</b> — qua 6 kỳ gần nhất. Bấm một topic để xem chi tiết, verbatim và quyết định phân loại.</p>
 
     ${drifts.length ? `<div class="note warn" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -3436,44 +3509,24 @@ V.topics = () => {
       <div style="margin-top:7px">Hệ thống phát hiện, con người quyết định. Không có gộp/tách tự động — bấm một node để xem đề xuất và chọn.</div>
     </div>` : ''}
 
-    <div class="card" style="margin-bottom:16px">
-      ${chead('Tất cả topic', 'Volume · xu hướng 6 kỳ · intent chủ đạo · điểm chạm tập trung', thSorted.length, thSorted.length, 'topic')}
-      <table><thead><tr><th>Topic</th><th>Intent</th><th>Volume</th><th>Xu hướng 6 kỳ</th><th>Thay đổi</th><th>Sub-theme</th><th>Trạng thái</th></tr></thead>
-      <tbody>${thSorted.map((t) => {
-        const d = trend(t), bad = t.cat !== 'praise' ? d > 0 : d < 0;
-        const subs = taxKids(t.id);
-        return `<tr class="clickable" onclick="setTax('${t.id}')">
-          <td><b style="font-size:13.5px">${esc(t.name)}</b>
-            <div class="t-meta" style="font-size:12px;margin-top:3px;max-width:46ch">${esc(t.why)}</div></td>
-          <td>${catChip(t.cat)}</td>
-          <td><b class="num">${nf(fx(t.n))}</b></td>
-          <td>${t.pts ? sparkline(t.pts, bad ? 'var(--crit)' : 'var(--good)') : '<span class="t-meta">—</span>'}</td>
-          <td><b class="num" style="color:${bad ? 'var(--crit)' : 'var(--good)'}">${d > 0 ? '+' : ''}${nf(d)}</b></td>
-          <td>${subs.length ? subs.map((s) => `<span class="chip">${esc(s.name)}</span>`).join(' ') : '<span class="t-meta">—</span>'}</td>
-          <td>${t.drift ? badge('watch', D_DRIFT[t.drift]) : t.demo ? badge('unknown', 'Dữ liệu demo') : badge('ok', 'Ổn định')}</td>
-        </tr>`;
-      }).join('')}</tbody></table>
+    <div class="card" data-tour="topic-chart" style="margin-bottom:16px">
+      ${chead('Chuyển động chủ đề qua 6 kỳ', `${rising.length} nổi lên · ${falling.length} lắng xuống · ${fresh.length} mới xuất hiện — đường nét đứt kèm ✨ là topic mới trồi lên. Bấm ★ ở bảng dưới để thêm/bớt đường; bấm chip legend để tắt một đường.`, lines.length, thSorted.length, 'đường đang vẽ')}
+      <div class="cbody">${topicLineChart(lines)}</div>
     </div>
 
-    <div class="split" style="grid-template-columns:360px minmax(0,1fr)">
-      <div class="card" style="align-self:start">
-        ${chead('Chọn node', q ? 'Đang lọc theo từ khóa' : 'Vì sao trước, cái gì sau',
-          q ? hits.length : l1.length + th.length, DATA.tax.length, 'node')}
-        <div class="cbody">
-          <input class="srchin" id="txq" type="text" value="${esc(ST.sel.txq || '')}"
-                 placeholder="Tìm node theo tên…" oninput="setTaxQ(this.value)" style="margin-bottom:12px">
-          ${q ? (hits.length
-            ? `<div style="display:grid;gap:2px">${hits.map((n) => taxNode(n, mx(hits), sel.id)).join('')}</div>`
-            : `<div class="empty" style="padding:24px">Không có node nào khớp “${esc(ST.sel.txq)}”.</div>`)
-          : `<div class="t-lbl" style="margin-bottom:7px">Vì sao · ${th.length} theme</div>
-             <div style="display:grid;gap:2px">${thSorted.map((n) => taxNode(n, mx(th), sel.id)).join('')}</div>
-             <div class="hr"></div>
-             <div class="t-lbl" style="margin-bottom:7px">Cái gì · ${l1.length} L1, khớp 1–1 với phase</div>
-             <div style="display:grid;gap:2px">${l1.map((n) => taxNode(n, mx(l1), sel.id)).join('')}</div>`}
-        </div>
-      </div>
+    <div data-tour="topic-table" style="margin-bottom:16px">${blockBody('@topictrend')}</div>
 
-      <div class="card" style="align-self:start">
+    ${(() => {
+      const sel = tax(ST.sel.tx);
+      if (!sel || (sel.lv !== 'theme' && sel.lv !== 'subtheme'))
+        return `<div class="note">Bấm một topic ở trên để xem chi tiết: xu hướng 6 kỳ, sub-theme, điểm chạm tập trung, verbatim mẫu và quyết định phân loại nếu có.</div>`;
+      const kids = taxKids(sel.id), path = taxUp(sel), evs = DATA.ev.filter((e) => e.tax.indexOf(sel.id) > -1);
+      const dd = sel.pts && sel.pts.length > 1 ? sel.pts[sel.pts.length - 1] - sel.pts[0] : 0;
+      const fixes = themeFixes(sel), stId = themeStep(sel), stName = stId && step(stId) ? step(stId).name : null;
+      const sen = evs.length ? evs.reduce((a, e) => a + e.sen, 0) / evs.length : null;
+      const catCount = {}; evs.forEach((e) => { catCount[e.cat] = (catCount[e.cat] || 0) + 1; });
+      const srcCount = {}; evs.forEach((e) => { srcCount[e.src] = (srcCount[e.src] || 0) + 1; });
+      return `<div class="card" data-tour="topic-detail" style="align-self:start">
         ${chead(esc(sel.name), LV_LABEL[sel.lv], evs.length, DATA.ev.length, 'record mẫu gán vào node này',
           `<div class="denom">${nf(sel.n)} record<br>cập nhật ${esc(sel.up)}</div>`)}
         <div class="cbody">
@@ -3482,6 +3535,23 @@ V.topics = () => {
               ? `<span class="chip b">${esc(n.name)}</span>`
               : `<button class="chip" style="cursor:pointer" onclick="setTax('${n.id}')">${esc(n.name)}</button><span class="dim">›</span>`).join('')}
           </div>
+
+          <div class="grid g4" style="margin:0 0 14px">
+            ${stat('Volume kỳ', nf(fx(sel.n)), 'record gán vào node', '')}
+            ${stat('Thay đổi 6 kỳ', (dd > 0 ? '+' : '') + nf(dd), dd > 0 && sel.cat !== 'praise' ? 'đang xấu đi' : dd < 0 ? 'đang đỡ hơn' : 'đi ngang', '', dd > 0 && sel.cat !== 'praise' ? 'var(--crit)' : dd < 0 ? 'var(--good)' : undefined)}
+            ${stat('Sắc thái TB', sen === null ? '—' : (sen > 0 ? '+' : '') + sen.toFixed(1).replace('.', ','), 'sentiment mẫu', '', sen !== null && sen < 0 ? 'var(--crit)' : undefined)}
+            ${stat('Đã phát hành', String(fixes.length), fixes.length ? 'thay đổi chạm bước tập trung' : 'chưa nối được thay đổi', '', fixes.length ? 'var(--good)' : undefined)}
+          </div>
+
+          ${sel.pts ? `<div class="t-lbl" style="margin-bottom:6px">Xu hướng 6 kỳ</div>
+            <div style="margin-bottom:7px">${sparkline(sel.pts, dd > 0 && sel.cat !== 'praise' ? 'var(--crit)' : 'var(--good)')}</div>
+            <button class="disc" onclick="toggleTopicLine('${sel.id}')" style="margin-bottom:14px">${(ST.sel.topicLines || []).indexOf(sel.id) > -1 ? '★ Đang trong biểu đồ đường' : '☆ Thêm vào biểu đồ đường'}</button>` : ''}
+
+          ${Object.keys(catCount).length ? `<div class="t-lbl" style="margin-bottom:6px">Intent trong node này</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">${Object.keys(catCount).sort((a, b) => catCount[b] - catCount[a]).map((c) => `<span style="display:inline-flex;align-items:center;gap:5px">${catChip(c)}<b class="num">${catCount[c]}</b></span>`).join('')}</div>` : ''}
+
+          ${Object.keys(srcCount).length ? `<div class="t-lbl" style="margin-bottom:6px">Nguồn nói về node này</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${Object.keys(srcCount).sort((a, b) => srcCount[b] - srcCount[a]).map((s) => `<span class="chip">${esc(src(s).name)} <b class="num">${srcCount[s]}</b></span>`).join('')}</div>` : ''}
 
           ${sel.maps ? `<div class="t-meta" style="margin-bottom:12px">Gắn với điểm chạm:
             <span class="chip">${esc((phase(sel.maps) || group(sel.maps) || flow(sel.maps) || step(sel.maps) || {}).name || sel.maps)}</span>
@@ -3498,9 +3568,17 @@ V.topics = () => {
             <div class="t-meta" style="font-size:12px;margin-top:7px">Không có gộp/tách tự động. Hệ thống chỉ phát hiện và đề xuất — quyết định thuộc về người quản trị taxonomy, và mọi thay đổi cần audit trail.</div>
           </div>` : ''}
 
-          ${kids.length ? `<div class="t-lbl" style="margin-bottom:8px">${kids.length} node con — bấm để đi sâu thêm một tầng</div>
-            <div style="display:grid;gap:2px;margin-bottom:14px">${kids.map((n) => taxNode(n, mx(kids), sel.id)).join('')}</div>`
-          : `<div class="note" style="margin-bottom:14px">${badge('unknown')} <b>Node lá</b> — không có tầng con. Đây là mức chi tiết nhất của nhánh này.</div>`}
+          ${kids.length ? `<div class="hr"></div>
+            <div class="t-lbl" style="margin-bottom:8px">${kids.length} chủ đề con — bấm để đi sâu</div>
+            <table style="margin-bottom:14px"><thead><tr><th>Chủ đề con</th><th>Volume</th><th>Xu hướng 6 kỳ</th><th>Tỷ trọng</th></tr></thead>
+            <tbody>${kids.slice().sort((a, b) => b.n - a.n).map((n) => { const kd = n.pts && n.pts.length > 1 ? n.pts[n.pts.length - 1] - n.pts[0] : 0;
+              return `<tr class="clickable" onclick="setTax('${n.id}')">
+                <td><b style="font-size:13px">${esc(n.name)}</b>${n.drift ? ` ${badge('watch', 'drift')}` : ''}</td>
+                <td><b class="num">${nf(n.n)}</b></td>
+                <td>${n.pts ? sparkline(n.pts, kd > 0 && sel.cat !== 'praise' ? 'var(--crit)' : 'var(--good)') : '<span class="t-meta">—</span>'}</td>
+                <td class="t-meta">${sel.n ? Math.round(n.n / sel.n * 100) : 0}%</td>
+              </tr>`; }).join('')}</tbody></table>`
+          : `<div class="note" style="margin-bottom:14px">${badge('unknown')} <b>Node lá</b> — không có chủ đề con. Đây là mức chi tiết nhất của nhánh này.</div>`}
 
           <div class="t-lbl" style="margin-bottom:7px">Vì sao node này tồn tại</div>
           <p class="t-body" style="max-width:78ch;margin:0 0 7px;color:var(--ink2)">${esc(sel.why)}</p>
@@ -3546,8 +3624,8 @@ V.topics = () => {
             </div>
             <div class="t-meta" style="font-size:12px;margin-top:9px">Nút này chưa nối state — bản thật sẽ ghi: ai sửa, lúc nào, từ giá trị nào sang giá trị nào, và dùng bản sửa để cải thiện phân loại về sau.</div>` : ''}
         </div>
-      </div>
-    </div>
+      </div>`;
+    })()}
   </div>`;
 };
 
@@ -4142,6 +4220,7 @@ function tourPrep(s) {
   if (s.r === 'voc') ST.sel.set.voc = 'b-voc-all';
   if (s.r === 'atlas') { ST.sel.atlas = 'f-open-2026'; ST.sel.atlasPhase = null; ST.sel.atlasStep = null; ST.sub.atlasTab = 'sig'; }
   if (s.r === 'sources') { ST.sub.srcTab = 'health'; ST.sel.srcOpen = s.sel.indexOf('src-profile') > -1 ? 'src-zalo' : null; }
+  if (s.r === 'topics') ST.sel.tx = 'x-th-device';
   if (s.r === 'work') ST.sub.work = 'lanes';
   if (s.r === 'vocjourney') { ST.sel.vocPhase = 'p2'; ST.sub.vocTab = s.sel.indexOf('voc-inspector') > -1 ? 'verb' : 'topic'; }
 }

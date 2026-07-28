@@ -67,7 +67,8 @@ Hướng mới: **lấy Enterpret (customer intelligence platform) làm mô hìn
 ## Đã build trong file HTML — 11 nav item · 12 view · hai phần tách bạch
 **Phân định**: VoC **tạo insight** · CXM **quản lý** issue, action, outcome, close-the-loop.
 - **CXM · Quản trị trải nghiệm:** `#/cxm` (Tổng quan, có bộ chọn set) `#/atlas` `#/work`
-- **Voice of Customer:** `#/voc` (Tổng quan, có bộ chọn set) `#/sources` `#/topics` `#/vocjourney`
+- **Voice of Customer:** `#/voc` (Tổng quan, có bộ chọn set) `#/sources` `#/topics` (**Radar chủ đề** — trục thời gian) `#/vocjourney`
+  - **`#/topics` redesign 29/07:** bỏ node-browser L1-L3 (trùng atlas/vocjourney). Thành **radar theo thời gian**: một **biểu đồ đường đa topic qua 6 kỳ** (`topicLineChart()`, đường nét đứt + ✨ = topic mới trồi lên, chip legend bấm để tắt đường), bảng `@topictrend` có **cột ★ toggle** thêm/bớt đường (`toggleTopicLine()`, `ST.sel.topicLines` lazy-init, không persist), và **chi tiết topic** bật khi chọn (chỉ số + sắc thái + intent/nguồn breakdown + bảng sub-topic + verbatim + drift). Mục "đang lắng xuống" nối với thay đổi ĐÃ phát hành qua `themeStep()`/`themeFixes()`. `@topictrend` cũng nhúng được vào set VoC "Topic đang xấu đi". Governance drift ở lại màn này, không dời sang `#/rules`.
 - **Công cụ:** `#/quantify` (query builder 44 tổ hợp) `#/assistant`
 - **Quản trị:** `#/rules` `#/agents`
 - **Route ẩn:** `#/cxm/<set>` · `#/voc/<set>` (chia sẻ set bằng URL) · `#/issue/<id>`
@@ -92,7 +93,7 @@ Duyệt từng feedback một không dẫn tới quyết định nào. Thay bằ
 bố của feedback trong nguồn đó (intent · sentiment · nền tảng · topic · phase), và **đúng 2** bản
 ghi mẫu để biết nguồn đó "nói kiểu gì". Verbatim đầy đủ vẫn nằm trong `#/topics`, tab Verbatim của
 `#/vocjourney`, và `#/issue/<id>` — tức là luôn trong ngữ cảnh, không phải một dòng tin thô để cuộn.
-- Guided tour **spotlight 15 stop** trên 6 màn cốt lõi (nút "Chạy bản giới thiệu" ở đáy sidebar): mỗi stop làm mờ nền, khoét sáng đúng một component thật (gắn `data-tour="..."`) và hiện popover giải thích component đó là gì / đọc thế nào. Bấm ← Lùi / Tiếp → để chuyển bước, Thoát / Esc để dừng. `DATA.tour` khai `{r, grp, sel, t, d}`; `tourPrep()` đặt state để anchor chắc tồn tại; selector không thấy thì popover về giữa màn (fallback). Spec: `docs/superpowers/specs/2026-07-29-guided-tour-spotlight-design.md`.
+- Guided tour **spotlight 18 stop** trên 7 màn (cxm · atlas · voc · sources · **topics** · vocjourney · work) (nút "Chạy bản giới thiệu" ở đáy sidebar): mỗi stop làm mờ nền, khoét sáng đúng một component thật (gắn `data-tour="..."`) và hiện popover giải thích component đó là gì / đọc thế nào. Bấm ← Lùi / Tiếp → để chuyển bước, Thoát / Esc để dừng. `DATA.tour` khai `{r, grp, sel, t, d}`; `tourPrep()` đặt state để anchor chắc tồn tại (gồm chọn sẵn topic `x-th-device` cho stop chi tiết); selector không thấy thì popover về giữa màn (fallback). Spec: `docs/superpowers/specs/2026-07-29-guided-tour-spotlight-design.md`.
 - Filter kỳ + phạm vi trên mọi màn, `validateFixture()` chạy mỗi lần render (nay kiểm thêm mỗi tour stop có đủ `sel`/`grp`).
 
 ## Mô hình Enterpret đã áp dụng (xác minh từ helpcenter.enterpret.com, không suy đoán)
