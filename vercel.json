@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd app && pnpm run build",
-  "outputDirectory": "app/dist",
-  "installCommand": "cd app && pnpm install --frozen-lockfile"
+  "buildCommand": "mkdir -p _site && cp output/cxm-platform-prototype.html _site/index.html",
+  "outputDirectory": "_site",
+  "installCommand": "echo skip"
 }

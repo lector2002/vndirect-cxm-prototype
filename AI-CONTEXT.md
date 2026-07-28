@@ -62,7 +62,7 @@ Hướng mới: **lấy Enterpret (customer intelligence platform) làm mô hìn
 1. Cần owner cung cấp **mã cam chính thức** theo brand guideline VNDIRECT. Đang dùng placeholder `#D9531E` ở biến `--primary` trong `<style>` — đổi một dòng là cả app đổi theo.
 2. Owner quyết định có xóa React app trong `app/` hay giữ lại để đối chiếu.
 3. Nếu cần sửa nội dung: mọi nhãn, số liệu, verbatim nằm trong object `DATA` ở đầu `<script>`, có comment tiếng Việt. Sửa xong refresh browser. `validateFixture()` sẽ báo banner đỏ nếu làm đứt liên kết nào.
-4. **Workflow `.github/workflows/deploy-pages.yml` đang deploy `app/dist` (React app cũ), KHÔNG deploy file HTML prototype.** Nếu muốn publish bản đang dùng thì phải sửa workflow — hiện push lên `main` chỉ build lại bản cũ.
+4. ~~Workflow deploy `app/dist` (React cũ), không deploy prototype.~~ **Đã sửa 28/07:** `deploy-pages.yml` và `vercel.json` giờ publish thẳng `output/cxm-platform-prototype.html` thành `index.html`. Link Pages `https://lector2002.github.io/vndirect-cxm-prototype/` phục vụ bản mới ngay khi push vào `main`. React app trong `app/` không còn nằm trên đường deploy nào (xem mục 2 về việc có xóa hay không).
 
 ## Đã build trong file HTML — 11 nav item · 12 view · hai phần tách bạch
 **Phân định**: VoC **tạo insight** · CXM **quản lý** issue, action, outcome, close-the-loop.

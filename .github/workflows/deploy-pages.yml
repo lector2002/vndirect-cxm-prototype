@@ -22,20 +22,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: app/package-lock.json
-      - name: Install dependencies
-        working-directory: app
-        run: npm install --package-lock=false --registry=https://registry.npmjs.org
-      - name: Build application
-        working-directory: app
-        run: npm run build
+      # Prototype là 1 file HTML tự chứa, không cần build.
+      # Publish nó thành index.html để link Pages phục vụ bản mới nhất.
+      - name: Dựng site tĩnh từ prototype
+        run: |
+          mkdir -p _site
+          cp output/cxm-platform-prototype.html _site/index.html
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: app/dist
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
