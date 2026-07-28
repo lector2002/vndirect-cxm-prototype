@@ -92,7 +92,8 @@ Duyệt từng feedback một không dẫn tới quyết định nào. Thay bằ
 bố của feedback trong nguồn đó (intent · sentiment · nền tảng · topic · phase), và **đúng 2** bản
 ghi mẫu để biết nguồn đó "nói kiểu gì". Verbatim đầy đủ vẫn nằm trong `#/topics`, tab Verbatim của
 `#/vocjourney`, và `#/issue/<id>` — tức là luôn trong ngữ cảnh, không phải một dòng tin thô để cuộn.
-- Guided tour 6 bước (nút "Chạy bản giới thiệu" ở đáy sidebar), filter kỳ + phạm vi trên mọi màn, `validateFixture()` chạy mỗi lần render.
+- Guided tour **spotlight 15 stop** trên 6 màn cốt lõi (nút "Chạy bản giới thiệu" ở đáy sidebar): mỗi stop làm mờ nền, khoét sáng đúng một component thật (gắn `data-tour="..."`) và hiện popover giải thích component đó là gì / đọc thế nào. Bấm ← Lùi / Tiếp → để chuyển bước, Thoát / Esc để dừng. `DATA.tour` khai `{r, grp, sel, t, d}`; `tourPrep()` đặt state để anchor chắc tồn tại; selector không thấy thì popover về giữa màn (fallback). Spec: `docs/superpowers/specs/2026-07-29-guided-tour-spotlight-design.md`.
+- Filter kỳ + phạm vi trên mọi màn, `validateFixture()` chạy mỗi lần render (nay kiểm thêm mỗi tour stop có đủ `sel`/`grp`).
 
 ## Mô hình Enterpret đã áp dụng (xác minh từ helpcenter.enterpret.com, không suy đoán)
 - **Quantify = query 4 phần**: Show me (11 chiều) × Metric (Count/Percentage) × Chart (Bar/Donut) × Time. Mọi ô là **dropdown trên tập hữu hạn** — có builder thật nhưng người dùng thấy ngay giới hạn. Ghi chú *"cố ý không làm query engine tự do"* trong `V.quantify` đã được gỡ có chủ ý.

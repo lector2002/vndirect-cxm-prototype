@@ -408,17 +408,26 @@ tr.sel td{background:var(--primary-soft)}
 .note.bd{background:var(--primary-soft);border-color:var(--primary-line)}
 .empty{padding:40px;text-align:center;color:var(--ink3);font-size:13.5px}
 
-/* ===================== TOUR RIBBON ===================== */
-#tour{display:none}
-#tour.on{display:flex;align-items:center;gap:14px;padding:11px 22px;background:var(--ink-dark);color:#fff;flex:none}
-#tour .tn{font:700 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.11em;color:#F2A883;flex:none}
-#tour .tm{font-size:13.5px;min-width:0}
-#tour .tm b{display:block;font-size:14px}
-#tour .tm span{color:#CFC9C2;font-size:12.5px}
-#tour .tb{margin-left:auto;display:flex;gap:7px;flex:none}
-#tour .tb button{border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.1);color:#fff;border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:600}
-#tour .tb button:hover{background:rgba(255,255,255,.2)}
-#tour .tb button.x{border-color:transparent;background:none;color:#CFC9C2}
+/* ===================== TOUR SPOTLIGHT ===================== */
+/* Coach-mark: #tourmask bắt click toàn màn để không bấm nhầm ra ngoài tour;
+   #tourhole khoét sáng component đích bằng box-shadow lan rộng; #tourpop là
+   popover giải thích, neo cạnh component. */
+#tourmask{position:fixed;inset:0;z-index:60;display:none}
+#tourmask.on{display:block}
+#tourhole{position:absolute;border-radius:10px;border:2px solid var(--primary);
+  box-shadow:0 0 0 9999px rgba(23,20,17,.60);transition:left .22s,top .22s,width .22s,height .22s;pointer-events:none}
+#tourpop{position:fixed;z-index:61;width:344px;max-width:88vw;background:#fff;
+  border:1px solid var(--line);border-radius:13px;box-shadow:0 20px 54px rgba(0,0,0,.32);
+  padding:15px 17px 14px;display:none}
+#tourpop.on{display:block}
+#tourpop .tn{font:700 11.5px/1 ui-monospace,Menlo,monospace;letter-spacing:.09em;color:var(--primary)}
+#tourpop b{display:block;font-size:15px;margin:7px 0 5px}
+#tourpop p{font-size:13px;line-height:1.55;color:var(--ink2);margin:0}
+#tourpop .tb{margin-top:13px;display:flex;gap:7px;align-items:center}
+#tourpop .tb button{border:1px solid var(--line);background:#fff;color:var(--ink1);border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:600;cursor:pointer}
+#tourpop .tb button:hover{background:var(--wash)}
+#tourpop .tb button.pri{border-color:var(--primary);background:var(--primary);color:#fff}
+#tourpop .tb button.x{margin-left:auto;border-color:transparent;background:none;color:var(--ink3)}
 
 .mono{font-family:ui-monospace,Menlo,monospace}
 .hr{height:1px;background:var(--line);margin:16px 0}
@@ -427,7 +436,6 @@ tr.sel td{background:var(--primary-soft)}
 </head>
 <body>
 <div style="display:flex;flex-direction:column;height:100vh">
-  <div id="tour"></div>
   <div class="app" style="flex:1;min-height:0">
     <aside class="side">
       <div class="brand">
@@ -459,6 +467,10 @@ tr.sel td{background:var(--primary-soft)}
     </div>
   </div>
 </div>
+
+<!-- Guided tour spotlight: mask bắt click, hole khoét sáng component, pop giải thích -->
+<div id="tourmask"><div id="tourhole"></div></div>
+<div id="tourpop"></div>
 
 <script>
 /* ==========================================================================
@@ -1222,17 +1234,44 @@ const DATA = {
     issue:['Hồ sơ điểm gãy','Bằng chứng, ảnh hưởng, cohort, xử lý và kết quả'],
   },
 
-  /* --- Guided tour 6 bước dùng khi trình bày trước lãnh đạo.
-         CẢNH BÁO: `r` phải là route CÓ THẬT. tourGo() gọi go(r) trực tiếp nên
-         một route sai sẽ làm hỏng giữa buổi trình bày, không chỉ khi gõ hash tay.
-         Bước 4 trước đây trỏ 'health' — route đã bị xóa. --- */
+  /* --- Guided tour spotlight 15 stop, dùng khi trình bày trước lãnh đạo.
+         Mỗi stop khoét sáng ĐÚNG một component thật rồi giải thích nó là gì,
+         đọc thế nào. Bấm ← Lùi / Tiếp → để chuyển bước.
+         CẢNH BÁO: `r` phải là route CÓ THẬT (tourEnter() gọi go(r) trực tiếp).
+         `sel` là CSS selector tới component đích — data-tour="..." đã gắn trong
+         template view; nếu không tìm thấy element thì popover về giữa màn (fallback),
+         tour KHÔNG vỡ. `grp` là nhãn nhóm màn hiện trên popover. --- */
   tour: [
-    { r:'cxm',       t:'Trải nghiệm đang ra sao', d:'Tổng quan CXM trả lời bốn câu của người điều hành: chỗ nào gãy, xử lý cái nào trước, ai đang làm gì, thay đổi có tác dụng không. Đổi set ở hàng chip trên cùng.' },
-    { r:'atlas',     t:'Gãy ở bước nào',      d:'32 flow trên 6 phase, 25 có nguồn xác minh. Riêng pilot Mở tài khoản có dữ liệu quan sát: mất 1 trong 6 người ở bước nhận diện khuôn mặt.' },
-    { r:'voc',       t:'Khách đang nói gì',   d:'Tổng quan VoC là bộ câu hỏi khác hẳn: tiếng nói tới từ đâu, nói về phần nào của hành trình, nói gì, cái gì đang bất thường.' },
-    { r:'sources',   t:'Tiếng nói tới từ đâu',d:'Bảy nguồn, hai đang có vấn đề. Bấm một nguồn để xem feedback trong đó trông thế nào về mặt data.' },
-    { r:'vocjourney',t:'Nói ở điểm chạm nào', d:'Bước 05 Ký hợp đồng chỉ rơi 6% nên hành vi trông ổn, nhưng tiếng nói lại dồn vào đúng đó.' },
-    { r:'work',      t:'Ai xử lý, có tác dụng không', d:'Bốn làn công việc, cộng chế độ xếp theo ưu tiên. Làn Đang verify so trước–sau và chặn kết luận khi còn confounder.' },
+    { r:'cxm', grp:'Tổng quan CXM', sel:'[data-tour="setchips"]',
+      t:'Bộ chọn set câu hỏi', d:'Mỗi chip là một bộ câu hỏi điều hành viết sẵn cho một vai trò. Đổi chip là đổi cả loạt câu hỏi và widget bên dưới. Bật ✎ Tùy chỉnh để thêm/bớt khối vào set.' },
+    { r:'cxm', grp:'Tổng quan CXM', sel:'[data-tour="blk-@toppri"]',
+      t:'Điểm gãy nào xử lý trước', d:'Bảng xếp hạng điểm gãy. Có bốn cách xếp khác nhau — thứ tự đổi theo cách xếp, và chính sự đổi đó là thông tin. Cột rủi ro tuân thủ là phần thêm của VNDIRECT, không có trong mô hình gốc.' },
+    { r:'cxm', grp:'Tổng quan CXM', sel:'[data-tour="blk-@outcomes"]',
+      t:'Thay đổi có tác dụng không', d:'Làn kết quả đo trước–sau. Luôn có bậc “chưa kết luận được” khi còn yếu tố nhiễu — cố ý không mặc định mọi thay đổi đều là cải thiện.' },
+    { r:'atlas', grp:'Bản đồ hành trình', sel:'[data-tour="atlas-prail"]',
+      t:'Rail 6 phase', d:'Sáu phase hành trình xếp ngang. Chấm màu cho biết mỗi phase có bao nhiêu flow đã đo / có nguồn / chờ nguồn. Bấm một phase để lọc nhóm sản phẩm và flow ở hàng dưới.' },
+    { r:'atlas', grp:'Bản đồ hành trình', sel:'[data-tour="atlas-spine"]',
+      t:'Xương sống bước & dải nối', d:'Đọc theo chiều ngang: bề dày dải xám = số khách còn đi tiếp so với bước đầu, vạch đỏ gạch chéo = phần rơi ngay tại bước bên trái. Nhìn thẳng vào chỗ phễu thắt lại.' },
+    { r:'atlas', grp:'Bản đồ hành trình', sel:'[data-tour="atlas-inspector"]',
+      t:'Hồ sơ bước — 3 tab', d:'Chọn một bước để mở ba tab: Touchpoint & signal · Chỉ số liên kết · Độ phủ dữ liệu. Nhãn trạng thái được SUY RA từ ngưỡng ở màn Chỉ số & ngưỡng, không hardcode.' },
+    { r:'voc', grp:'Tổng quan VoC', sel:'[data-tour="blk-@intent"]',
+      t:'Khách đang nói gì (4 intent)', d:'Bốn khối theo intent, khớp đúng bốn Category của mô hình gốc. Bấm một thanh để mở Topic tương ứng. Chip xám dưới mỗi thanh là sub-theme.' },
+    { r:'voc', grp:'Tổng quan VoC', sel:'[data-tour="blk-@anomlanes"]',
+      t:'Ba làn bất thường', d:'Bất thường trong tiếng nói, trong hành vi, và của chính nguồn dữ liệu. Làn thứ ba chặn đọc nhầm “repeat contact giảm” thành tin tốt, khi thực ra là mất nguồn.' },
+    { r:'sources', grp:'Nguồn dữ liệu', sel:'[data-tour="src-table"]',
+      t:'Sức khỏe 7 nguồn', d:'Mỗi nguồn có SLA độ trễ riêng — crawl 1 lần/ngày không chấm cùng chuẩn với event stream. Cột cuối cho biết nguồn này hỏng thì chỉ số nào sai theo.' },
+    { r:'sources', grp:'Nguồn dữ liệu', sel:'[data-tour="src-profile"]',
+      t:'Hồ sơ dữ liệu một nguồn', d:'Bấm một nguồn để mở hồ sơ: volume, độ tươi vs SLA, nền tảng phủ, năm chiều phân bố và đúng hai bản ghi mẫu để biết nguồn đó “nói kiểu gì”. Verbatim đầy đủ nằm trong Topic và VoC theo hành trình.' },
+    { r:'vocjourney', grp:'VoC theo hành trình', sel:'[data-tour="voc-spine"]',
+      t:'Tiếng nói theo điểm chạm', d:'Cùng ba nhịp điều hướng với Bản đồ hành trình, nhưng mỗi thẻ hiện khách NÓI GÌ chứ không phải bao nhiêu người rơi. Chỗ hành vi im lặng mà tiếng nói dồn vào là chỗ đáng ngờ.' },
+    { r:'vocjourney', grp:'VoC theo hành trình', sel:'[data-tour="voc-inspector"]',
+      t:'Tab Verbatim — bằng chứng', d:'Hồ sơ điểm chạm mở sẵn ở tab Verbatim: câu nói thật của khách, luôn kèm ngữ cảnh điểm chạm — không phải một dòng tin thô để cuộn.' },
+    { r:'work', grp:'Bảng xử lý', sel:'[data-tour="work-lanes"]',
+      t:'Bốn làn công việc', d:'Việc còn cần tay người, xếp theo trạng thái xử lý: cần gán → chờ duyệt → đang sửa → đang verify. Nút “Xếp theo ưu tiên” phía trên đổi sang cách xếp xuyên làn.' },
+    { r:'work', grp:'Bảng xử lý', sel:'[data-tour="work-lane-approve"]',
+      t:'Cổng duyệt trên thẻ', d:'Làn Chờ duyệt: mỗi thẻ ghi rõ ai là người duyệt ngay trên nút hành động. Không duyệt được khi thẻ chưa có owner — cổng bắt buộc với mọi thay đổi chạm khách.' },
+    { r:'work', grp:'Bảng xử lý', sel:'[data-tour="work-lane-verify"]',
+      t:'Làn verify — chặn khi còn nhiễu', d:'So trước–sau trên từng thẻ. Còn yếu tố nhiễu (confounder) thì không được kết luận là cải thiện; dải trước/sau tô đúng hướng tốt–xấu theo dấu trong target.' },
   ],
 
   /* --- Câu hỏi và câu trả lời của màn Trợ lý. ĐÂY LÀ KỊCH BẢN VIẾT SẴN, không phải AI. --- */
@@ -1749,9 +1788,15 @@ function validateFixture() {
     if (q.kind === 'series' && q.shown > q.total) e.push(`Quantify ${q.id}: shown ${q.shown} > total ${q.total}`);
   });
 
-  /* 18 · Guided tour phải trỏ route CÓ THẬT.
-     tourGo() gọi go(r) trực tiếp nên route sai làm hỏng giữa buổi trình bày. */
-  DATA.tour.forEach((t, i) => { if (!V[t.r]) e.push(`tour bước ${i + 1}: route "${t.r}" không tồn tại`); });
+  /* 18 · Guided tour phải trỏ route CÓ THẬT và khai đủ selector + nhãn nhóm.
+     tourEnter() gọi go(r) trực tiếp nên route sai làm hỏng giữa buổi trình bày;
+     thiếu sel/grp thì popover trống hoặc mất nhãn bước. (Anchor có tồn tại thật
+     hay không thì kiểm lúc chạy trong tourShow — fallback về giữa màn.) */
+  DATA.tour.forEach((t, i) => {
+    if (!V[t.r]) e.push(`tour bước ${i + 1}: route "${t.r}" không tồn tại`);
+    if (!t.sel) e.push(`tour bước ${i + 1}: thiếu selector "sel"`);
+    if (!t.grp) e.push(`tour bước ${i + 1}: thiếu nhãn nhóm "grp"`);
+  });
   DATA.nav.filter((n) => n.r).forEach((n) => { if (!V[n.r]) e.push(`nav "${n.l}": route "${n.r}" không tồn tại`); });
 
   return e;
@@ -2082,7 +2127,7 @@ function renderSet(secKey) {
       <p>${S.intro}</p>
     </div>
 
-    <div class="fchips" style="margin-bottom:7px">
+    <div class="fchips" data-tour="setchips" style="margin-bottom:7px">
       ${sets.map((x) => `<button class="${x.id === cur.id ? 'on' : ''}" onclick="setBoard('${secKey}','${x.id}')">
         ${esc(x.name)}${ST.boards[x.id] ? ' <b class="mono" title="đã tùy chỉnh">•</b>' : ''}</button>`).join('')}
       <button onclick="setSub('edit-${secKey}',${edit ? 'false' : 'true'})">${edit ? '✓ Xong' : '✎ Tùy chỉnh'}</button>
@@ -2105,7 +2150,7 @@ function renderSet(secKey) {
         ${bs.length ? `<div class="blks">${bs.map((b) => {
           const wide = b[0] === '@' ? BLOCKS[b].wide : false;
           const body = b[0] === '@' ? blockBody(b) : qWidget(qt(b), { click:blkClick(b) });
-          return `<div class="blk ${wide ? 'wide' : ''}">
+          return `<div class="blk ${wide ? 'wide' : ''}" data-tour="blk-${b}">
             ${edit ? `<button class="blkx" title="Bỏ khối này khỏi set" onclick="blkDel('${cur.id}',${qi},'${b}')">×</button>` : ''}
             ${body}</div>`;
         }).join('')}</div>` : `<div class="empty">Câu hỏi này chưa có khối nào.${edit ? '' : ' Bấm <b>Tùy chỉnh</b> ở trên để thêm.'}</div>`}
@@ -2310,7 +2355,7 @@ V.vocjourney = () => {
 
     ${!fl ? '' : `<div class="card" style="margin-bottom:14px">
       ${chead(fl.name, sts.length ? 'Chuỗi điểm chạm — mỗi thẻ hiện tiếng nói tại đó' : 'Flow này chưa nằm trong pilot', sts.length, sts.length, 'điểm chạm')}
-      <div class="cbody">${sts.length ? `<div class="spine">${sts.map((s) => {
+      <div class="cbody">${sts.length ? `<div class="spine" data-tour="voc-spine">${sts.map((s) => {
         const th = themesAt(s.id), sen = senAt(s.id), n = evOf(s.id).length;
         const top = th[0];
         return `<button class="sn ${sen === null ? '' : sen < -0.5 ? 'crit' : sen < 0 ? 'watch' : 'ok'} ${s.id === sid ? 'on' : ''}"
@@ -2350,7 +2395,7 @@ function vocInspector(sid) {
   const rows = Object.entries(m).map(([id, c]) => ({ t:tax(id), c })).sort((a, b) => b.c - a.c);
   const cats = Object.keys(DATA.cats).map((k) => ({ id:k, l:DATA.cats[k].label, c:DATA.cats[k].color, v:evs.filter((e) => e.cat === k).length })).filter((x) => x.v);
 
-  return `<div class="card">
+  return `<div class="card" data-tour="voc-inspector">
     ${chead('Điểm chạm ' + s.code + ' · ' + s.name, esc(s.stationId) + ' · phụ trách ' + esc(s.owner), evs.length, DATA.ev.length, 'bằng chứng mẫu')}
     <div class="tabs">${TABS.map(([k, l]) => `<button class="${tab===k?'on':''}" onclick="setSub('vocTab','${k}')">${l}</button>`).join('')}</div>
     <div class="cbody">
@@ -2519,10 +2564,10 @@ V.work = () => {
     </div>` : ''}
     ${ST.sub.work === 'pri' ? '' : `
 
-    <div class="lanes">${LANES.map((L) => {
+    <div class="lanes" data-tour="work-lanes">${LANES.map((L) => {
       const list = ACT.filter((a) => laneOf(a) === L.k)
         .sort((x, y) => iss(y.iss).pri.total - iss(x.iss).pri.total);
-      return `<div class="lane ${L.k === 'assign' && list.length ? 'hot' : ''}">
+      return `<div class="lane ${L.k === 'assign' && list.length ? 'hot' : ''}" data-tour="work-lane-${L.k}">
         <div class="lh"><span class="lnum">${L.n}</span><b>${L.l}</b><span class="lc">${list.length}</span></div>
         <div class="lsub">${L.sub}</div>
         <div class="lbody">${list.length ? list.map((a) => workCard(a)).join('')
@@ -2954,7 +2999,7 @@ V.atlas = () => {
     <h1 class="t-hero" style="max-width:38ch;margin-bottom:8px">${DATA.flows.length} flow trên ${DATA.phases.length} phase, ${DATA.flows.filter((f) => f.verified).length} flow có nguồn xác minh, ${observed} flow đang có dữ liệu quan sát.</h1>
     <p class="t-meta" style="max-width:92ch;margin:0 0 16px">Chọn phase ở hàng trên, chọn nhóm sản phẩm và flow ở hàng dưới, rồi đọc chuỗi bước theo chiều ngang. Bề dày dải nối cho biết <b>còn bao nhiêu khách đi tiếp</b>; vạch đỏ cho biết <b>rơi bao nhiêu ở bước trước đó</b>. Màn này đo <b>hành vi</b>; tiếng nói của khách tại cùng những điểm chạm này nằm ở <a href="#/vocjourney">VoC theo hành trình</a>.</p>
 
-    <div class="prail">${DATA.phases.map((p) => {
+    <div class="prail" data-tour="atlas-prail">${DATA.phases.map((p) => {
       const fl = DATA.flows.filter((f) => phaseOf(f) === p.id);
       return `<button class="${p.id === pid ? 'on' : ''}" onclick="setAtlasPhase('${p.id}')"
               title="${esc(p.name)} · ${fl.length} flow">
@@ -3040,7 +3085,7 @@ function journeySpine(steps, sid) {
     </div>`;
   };
 
-  return `<div class="spine">${steps.map((s, i) =>
+  return `<div class="spine" data-tour="atlas-spine">${steps.map((s, i) =>
       node(s) + (i < steps.length - 1 ? conn(i) : '')).join('')}</div>
     <div class="note" style="margin-top:15px">
       <b>Đọc theo chiều ngang:</b> ${nf(fx(base))} khách vào bước ${steps[0].code}, còn ${nf(fx(last.completed))} hoàn tất bước ${steps[steps.length - 1].code}
@@ -3063,7 +3108,7 @@ function stepInspector(sid) {
   const gaps = sgs.filter((g) => g.st === 'gap' || g.st === 'designed');
   const relIss = DATA.iss.filter((i) => i.step === sid);
 
-  return `<div class="card">
+  return `<div class="card" data-tour="atlas-inspector">
     ${chead('Bước ' + s.code + ' · ' + s.name, esc(s.stationId) + ' · phụ trách ' + esc(s.owner), sgs.length, DATA.signals.length, 'signal',
       `<div class="denom">${badge(st)}<br>${period().range}</div>`)}
     <div class="cbody" style="padding-bottom:6px">
@@ -3195,7 +3240,7 @@ function srcProfile(id) {
   const senRows   = toRows(cnt((e) => SEN_BUCKET(e.sen)), (k) => SEN_LABEL[k], (k) => SEN_COLOR[k]);
   const pfRows    = toRows(cnt((e) => e.pf), (k) => PF_LABEL[k] || k);
 
-  return `<div class="card" style="margin-top:16px;border-color:var(--primary)">
+  return `<div class="card" data-tour="src-profile" style="margin-top:16px;border-color:var(--primary)">
     ${chead('Hồ sơ dữ liệu · ' + s.name, esc(s.note), evs.length, DATA.ev.length, 'bằng chứng mẫu',
       `<div class="denom"><span class="mk ${mk[1]}">${mk[0]}</span> ${esc(SRC_LABEL[h])}<br>
        <button class="disc" onclick="setSel('srcOpen',null)">đóng hồ sơ</button></div>`)}
@@ -3291,7 +3336,7 @@ V.sources = () => {
 
     ${tab === 'health' ? `<div class="card">
       ${chead('Sức khỏe từng nguồn', 'Nguồn có vấn đề xếp lên đầu', DATA.sources.length, DATA.sources.length, 'nguồn')}
-      <table><thead><tr><th>Nguồn</th><th>Loại</th><th>Nền tảng</th><th>Volume kỳ</th><th>Độ trễ / SLA</th><th>Nhận lần cuối</th><th>Trạng thái</th><th>Nguồn này sai thì metric nào sai</th></tr></thead>
+      <table data-tour="src-table"><thead><tr><th>Nguồn</th><th>Loại</th><th>Nền tảng</th><th>Volume kỳ</th><th>Độ trễ / SLA</th><th>Nhận lần cuối</th><th>Trạng thái</th><th>Nguồn này sai thì metric nào sai</th></tr></thead>
       <tbody>${DATA.sources.slice().sort((a, b) => (sourceHealth(a) === 'ok' ? 1 : 0) - (sourceHealth(b) === 'ok' ? 1 : 0)).map((s) => {
         const h = sourceHealth(s); return `<tr class="clickable" onclick="drillSource('${s.id}')">
         <td><b style="font-size:13.5px">${esc(s.name)}</b><div class="t-meta" style="font-size:12px;margin-top:3px">${esc(s.note)}</div></td>
@@ -3862,19 +3907,9 @@ function render() {
   $('#fperiod').innerHTML = DATA.periods.map((p) => `<option value="${p.id}" ${p.id === ST.period ? 'selected' : ''}>${p.label} · ${p.range}</option>`).join('');
   $('#fscope').innerHTML = DATA.scopes.map((s) => `<option value="${s.id}" ${s.id === ST.scope ? 'selected' : ''}>${s.label}</option>`).join('');
 
-  /* tour ribbon */
-  const tb = $('#tour');
-  if (ST.tour > 0) {
-    const t = DATA.tour[ST.tour - 1];
-    tb.className = 'on';
-    tb.innerHTML = `<span class="tn">BƯỚC ${ST.tour}/${DATA.tour.length}</span>
-      <div class="tm"><b>${t.t}</b><span>${t.d}</span></div>
-      <div class="tb">
-        ${ST.tour > 1 ? '<button onclick="tourGo(-1)">← Lùi</button>' : ''}
-        ${ST.tour < DATA.tour.length ? '<button onclick="tourGo(1)">Tiếp →</button>' : '<button onclick="stopTour()">Xong</button>'}
-        <button class="x" onclick="stopTour()">Thoát</button>
-      </div>`;
-  } else { tb.className = ''; tb.innerHTML = ''; }
+  /* tour spotlight — vẽ SAU khi view render xong (rect mới ổn định), xem tourShow() */
+  if (ST.tour > 0) requestAnimationFrame(tourShow);
+  else { $('#tourmask').classList.remove('on'); $('#tourpop').classList.remove('on'); }
 
   /* Banner toàn vẹn dữ liệu — hiện trên MỌI màn nếu fixture bị đứt liên kết */
   const errs = validateFixture();
@@ -4098,9 +4133,67 @@ function advance(id) {
   render();
 }
 
-function startTour() { ST.tour = 1; go(DATA.tour[0].r); render(); }
-function stopTour()  { ST.tour = 0; render(); }
-function tourGo(d)   { ST.tour = Math.min(DATA.tour.length, Math.max(1, ST.tour + d)); go(DATA.tour[ST.tour - 1].r); render(); }
+/* ---- Guided tour spotlight ----
+   tourPrep đặt state để component đích CHẮC CHẮN tồn tại khi render (set mặc
+   định, flow pilot, mở hồ sơ nguồn, làn công việc...). tourEnter đổi route rồi
+   go() sẽ render — render() lịch tourShow() qua rAF. */
+function tourPrep(s) {
+  if (s.r === 'cxm') ST.sel.set.cxm = 'b-cxm-exec';
+  if (s.r === 'voc') ST.sel.set.voc = 'b-voc-all';
+  if (s.r === 'atlas') { ST.sel.atlas = 'f-open-2026'; ST.sel.atlasPhase = null; ST.sel.atlasStep = null; ST.sub.atlasTab = 'sig'; }
+  if (s.r === 'sources') { ST.sub.srcTab = 'health'; ST.sel.srcOpen = s.sel.indexOf('src-profile') > -1 ? 'src-zalo' : null; }
+  if (s.r === 'work') ST.sub.work = 'lanes';
+  if (s.r === 'vocjourney') { ST.sel.vocPhase = 'p2'; ST.sub.vocTab = s.sel.indexOf('voc-inspector') > -1 ? 'verb' : 'topic'; }
+}
+function tourEnter() { const s = DATA.tour[ST.tour - 1]; tourPrep(s); go(s.r); }
+function startTour() { ST.tour = 1; tourEnter(); }
+function stopTour()  { ST.tour = 0; $('#tourmask').classList.remove('on'); $('#tourpop').classList.remove('on'); render(); }
+function tourGo(d)   { ST.tour = Math.min(DATA.tour.length, Math.max(1, ST.tour + d)); tourEnter(); }
+
+/* Vẽ popover + khoét sáng cho stop hiện tại. Selector không thấy element →
+   popover về giữa màn (fallback), tour không vỡ. */
+function tourShow() {
+  if (ST.tour < 1) return;
+  const t = DATA.tour[ST.tour - 1];
+  const mask = $('#tourmask'), hole = $('#tourhole'), pop = $('#tourpop');
+  pop.innerHTML = `<span class="tn">BƯỚC ${ST.tour}/${DATA.tour.length} · ${esc(t.grp)}</span>
+    <b>${esc(t.t)}</b><p>${esc(t.d)}</p>
+    <div class="tb">
+      ${ST.tour > 1 ? '<button onclick="tourGo(-1)">← Lùi</button>' : ''}
+      ${ST.tour < DATA.tour.length ? '<button class="pri" onclick="tourGo(1)">Tiếp →</button>' : '<button class="pri" onclick="stopTour()">Xong</button>'}
+      <button class="x" onclick="stopTour()">Thoát</button>
+    </div>`;
+  mask.classList.add('on'); pop.classList.add('on');
+  const el = t.sel && document.querySelector(t.sel);
+  if (el) {
+    el.scrollIntoView({ block:'center', inline:'nearest' });
+    requestAnimationFrame(() => {
+      const r = el.getBoundingClientRect(), pad = 8;
+      hole.style.display = 'block';
+      hole.style.left = (r.left - pad) + 'px'; hole.style.top = (r.top - pad) + 'px';
+      hole.style.width = (r.width + pad * 2) + 'px'; hole.style.height = (r.height + pad * 2) + 'px';
+      placePop(pop, r);
+    });
+  } else {
+    hole.style.display = 'none';
+    pop.style.transform = 'translate(-50%,-50%)';
+    pop.style.left = '50%'; pop.style.top = '50%';
+  }
+}
+/* Đặt popover: dưới element nếu đủ chỗ → trên → giữa; kẹp ngang trong viewport. */
+function placePop(pop, r) {
+  pop.style.transform = 'none';
+  const pw = pop.offsetWidth, ph = pop.offsetHeight, gap = 14, vw = innerWidth, vh = innerHeight;
+  let top;
+  if (r.bottom + gap + ph <= vh) top = r.bottom + gap;
+  else if (r.top - gap - ph >= 0) top = r.top - gap - ph;
+  else top = Math.max(gap, (vh - ph) / 2);
+  let left = r.left + r.width / 2 - pw / 2;
+  left = Math.max(gap, Math.min(left, vw - pw - gap));
+  pop.style.left = left + 'px'; pop.style.top = top + 'px';
+}
+window.addEventListener('resize', () => { if (ST.tour > 0) tourShow(); });
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ST.tour > 0) stopTour(); });
 
 window.addEventListener('hashchange', route);
 route();
