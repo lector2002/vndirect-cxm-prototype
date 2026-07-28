@@ -18,7 +18,9 @@ Một file tự chứa. Double-click là chạy, không cần server, không c�
 3. **`#/sources` Nguồn dữ liệu** — bấm một dòng để mở **hồ sơ dữ liệu** của nguồn đó: feedback trong nguồn ấy trông thế nào về mặt data. Đây là thứ thay cho màn Feed cũ.
 4. **`#/rules` Chỉ số & ngưỡng** — nơi đặt "thế nào là cần theo dõi, thế nào là cần xử lý ngay". Thử hạ ô *Cần xử lý ngay* từ 15% xuống 10% rồi mở lại Bản đồ hành trình: bước 02 chuyển sang đỏ. Thử đổi **ngưỡng Z-score** từ 1,5 lên 3,0 rồi mở Tổng quan VoC: chart bất thường thôi khoanh điểm. Bấm **Trả về mặc định** để hoàn nguyên. Cấu hình chỉ tồn tại trong phiên — refresh là về mặc định, vì prototype không có backend.
 
-**`cxm-redesign-options.html`** — tài liệu quyết định: chẩn đoán bản cũ, mô hình gốc Enterpret, 8 bổ sung của VNDIRECT, IA và hệ thống hiển thị. Đọc file này để hiểu *vì sao* prototype được thiết kế như vậy.
+**`cxm-redesign-options.html`** — tài liệu quyết định **bản 23/07**: chẩn đoán bản cũ, mô hình gốc Enterpret, 8 bổ sung của VNDIRECT. Vẫn hữu ích để hiểu *vì sao* chọn hướng Enterpret.
+
+> ⚠️ Phần **IA và hệ thống hiển thị** trong file đó **đã lỗi thời** — nó còn mô tả `/health Sức khỏe hành trình` và nhóm `Nền dữ liệu`, cả hai không còn. IA hiện tại xem ở §Z của spec 28/07.
 
 Spec đầy đủ: `../docs/superpowers/specs/2026-07-28-journey-voc-redesign-design.md` (kèm phụ lục `../docs/journey-provenance-audit.md`).
 Spec 27/07 `../docs/superpowers/specs/2026-07-27-cxm-voc-redesign-design.md` đã bị thay thế ở IA, phase model, `#/health` và nhóm Nền dữ liệu — giữ để đối chiếu.
