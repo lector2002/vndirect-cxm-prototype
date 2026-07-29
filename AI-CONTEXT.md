@@ -4,6 +4,11 @@
 > Level: Small
 > Status: active · đang chờ owner review bản bấm được
 
+> ⚠️ **ĐỌC TRƯỚC KHI SỬA — nguồn sự thật để DEPLOY**
+> Site live `https://lector2002.github.io/vndirect-cxm-prototype/` **CHỈ** build từ **`output/cxm-platform-prototype.html`** (workflow `.github/workflows/deploy-pages.yml` copy nó thành `index.html` mỗi khi push `main`).
+> React app trong `app/` **KHÔNG nằm trên đường deploy nào** — sửa `app/` sẽ **không** làm đổi site live.
+> **Bài học 29/07/2026:** đã sửa nhầm `app/` (route `/voice`) rồi push → site không đổi, vì deploy đọc file HTML tự chứa. Khi user nói "topic / xu hướng / chart trên site" → đó là các view trong `output/cxm-platform-prototype.html` (vd `#/topics`), KHÔNG phải React app. Quy trình đúng: sửa thẳng file HTML → verify (parse JS + chạy `route()` qua Node vm hoặc mở browser) → commit → push → Action tự deploy → hard-refresh để xác nhận.
+
 ## Project
 VNDIRECT CXM prototype là desktop UI/UX prototype giúp đội CX khám phá, đo lường và quản trị hành trình khách hàng. Dự án chỉ mô phỏng giao diện, tính năng và workflow; không triển khai backend, data source hoặc integration thật.
 
@@ -69,6 +74,7 @@ Hướng mới: **lấy Enterpret (customer intelligence platform) làm mô hìn
 - **CXM · Quản trị trải nghiệm:** `#/cxm` (Tổng quan, có bộ chọn set) `#/atlas` `#/work`
 - **Voice of Customer:** `#/voc` (Tổng quan, có bộ chọn set) `#/sources` `#/topics` (**Radar chủ đề** — trục thời gian) `#/vocjourney`
   - **`#/topics` redesign 29/07:** bỏ node-browser L1-L3 (trùng atlas/vocjourney). Thành **radar theo thời gian**: một **biểu đồ đường đa topic qua 6 kỳ** (`topicLineChart()`, đường nét đứt + ✨ = topic mới trồi lên, chip legend bấm để tắt đường), bảng `@topictrend` có **cột ★ toggle** thêm/bớt đường (`toggleTopicLine()`, `ST.sel.topicLines` lazy-init, không persist), và **chi tiết topic** bật khi chọn (chỉ số + sắc thái + intent/nguồn breakdown + bảng sub-topic + verbatim + drift). Mục "đang lắng xuống" nối với thay đổi ĐÃ phát hành qua `themeStep()`/`themeFixes()`. `@topictrend` cũng nhúng được vào set VoC "Topic đang xấu đi". Governance drift ở lại màn này, không dời sang `#/rules`.
+  - **`#/topics` cập nhật (bản deploy mới nhất):** (1) biểu đồ đường dùng **trục ngang theo tháng** (`MONTHS12`, hàm `monthly(t)` suy 12 điểm từ `pts` — **không đụng `pts`** để giữ nguyên `trend()`/`isFreshTopic()`/`sparkline()`/Z-score); (2) **toggle 3m/6m/1y dùng lại được** (`rangeToggle(key)` + `setRange()`, state ở `ST.sel.range[key]` theo từng chart) đặt trên chart topics và chart chi tiết; (3) **chi tiết topic tách sang route riêng `#/topic/<id>`** (`V.topic(id)`, vào bằng `go('topic/'+id)`/`drillTopic()`) thay cho detail mở inline — có nút quay lại + chart lớn theo tháng; breadcrumb/chủ đề con điều hướng bằng `go('topic/...')`. Còn lại (đang lan sang các chart khác): các bar chart khác vẫn dùng period global `d7/d30/m3` — kế hoạch chuyển hết sang toggle riêng rồi bỏ period global.
 - **Công cụ:** `#/quantify` (query builder 44 tổ hợp) `#/assistant`
 - **Quản trị:** `#/rules` `#/agents`
 - **Route ẩn:** `#/cxm/<set>` · `#/voc/<set>` (chia sẻ set bằng URL) · `#/issue/<id>`
