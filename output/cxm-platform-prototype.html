@@ -482,9 +482,10 @@ const DATA = {
 
   /* --- Kỳ dữ liệu. QUY TẮC: luôn hiện ngày tuyệt đối, không chỉ nhãn tương đối --- */
   periods: [
-    { id:'d7',  label:'7 ngày gần nhất',   range:'21/07/2026 – 27/07/2026', factor:0.25 },
-    { id:'d30', label:'30 ngày gần nhất',  range:'28/06/2026 – 27/07/2026', factor:1 },
-    { id:'m3',  label:'3 tháng gần nhất',  range:'28/04/2026 – 27/07/2026', factor:2.8 },
+    /* Khoảng thời gian 3m/6m/1y. Giữ nguyên id (d7/d30/m3) để không vỡ tham chiếu; chỉ đổi nhãn/khoảng/factor. */
+    { id:'d7',  label:'3 tháng gần nhất',  range:'28/04/2026 – 27/07/2026', factor:2.8 },
+    { id:'d30', label:'6 tháng gần nhất',  range:'28/01/2026 – 27/07/2026', factor:5.6 },
+    { id:'m3',  label:'1 năm gần nhất',    range:'28/07/2025 – 27/07/2026', factor:11 },
   ],
 
   /* --- Phạm vi hành trình --- */
