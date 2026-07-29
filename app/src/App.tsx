@@ -8,6 +8,7 @@ import ImpactAnalysis from '@/pages/ImpactAnalysis';
 import POBoard from '@/pages/POBoard';
 import IssueHub from '@/pages/IssueHub';
 import VoiceOfCustomer from '@/pages/VoiceOfCustomer';
+import VoiceTopicDetail from '@/pages/VoiceTopicDetail';
 import CXControlTower from '@/pages/CXControlTower';
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/board" element={<POBoard />} />
           <Route path="/issues" element={<IssueHub />} />
           <Route path="/voice" element={<VoiceOfCustomer />} />
+          <Route path="/voice/:topicId" element={<VoiceTopicDetail />} />
         </Routes>
       </AppShell>
     </CXMProvider>

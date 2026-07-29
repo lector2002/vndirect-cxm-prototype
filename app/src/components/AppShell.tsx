@@ -10,7 +10,6 @@ import {
   Activity,
   PanelLeftClose,
   PanelLeftOpen,
-  CalendarDays,
   SlidersHorizontal,
   HeartHandshake,
   Fingerprint,
@@ -19,7 +18,6 @@ import { cn } from '@/lib/utils';
 import { totalCoverage, allEventPaths } from '@/lib/cxm-utils';
 import { CUSTOMER_PHASES } from '@/lib/journey-taxonomy';
 import { useCXM } from '@/store/CXMContext';
-import { TIME_FRAMES, timeFrameById } from '@/lib/timeframe';
 
 const NAV = [
   { to: '/', label: 'CX Control Tower', icon: Fingerprint, end: true, group: 'Customer Experience' },
@@ -48,9 +46,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const totalEvents = allEventPaths().length;
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { selectedCustomerPhaseId, setSelectedCustomerPhaseId, selectedTimeFrameId, setSelectedTimeFrameId } = useCXM();
-  const timeFrame = timeFrameById(selectedTimeFrameId);
-  const page = PAGE_META[location.pathname as keyof typeof PAGE_META] ?? PAGE_META['/'];
+  const { selectedCustomerPhaseId, setSelectedCustomerPhaseId } = useCXM();
+  const pageKey = location.pathname.startsWith('/voice/') ? '/voice' : location.pathname;
+  const page = PAGE_META[pageKey as keyof typeof PAGE_META] ?? PAGE_META['/'];
   const isPilot = location.pathname === '/';
 
   return (
@@ -156,18 +154,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 <option value="all">Tất cả phase</option>
                 {CUSTOMER_PHASES.map((phase) => <option key={phase.id} value={phase.id}>{phase.code} · {phase.name}</option>)}
               </select>
-              <div className="h-4 w-px bg-border" />
-              <CalendarDays className="ml-1 h-3.5 w-3.5 shrink-0 text-primary" />
-              <select
-                value={selectedTimeFrameId}
-                onChange={(event) => setSelectedTimeFrameId(event.target.value as typeof selectedTimeFrameId)}
-                className="h-6 max-w-40 bg-transparent px-1 text-xs font-medium text-secondary-foreground outline-none"
-                title="Khoảng thời gian dữ liệu"
-              >
-                {TIME_FRAMES.map((frame) => <option key={frame.id} value={frame.id}>{frame.label}{frame.snapshot ? ' · Demo' : ''}</option>)}
-              </select>
             </div>}
-            {!isPilot && timeFrame.snapshot && <span className="text-[10px] font-medium text-amber-700">Demo snapshot</span>}
           </div>
         </header>
 

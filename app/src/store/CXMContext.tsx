@@ -29,7 +29,7 @@ export function CXMProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<POTask[]>(PO_TASKS);
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [selectedCustomerPhaseId, setSelectedCustomerPhaseId] = useState<CustomerPhaseId | 'all'>('all');
-  const [selectedTimeFrameId, setSelectedTimeFrameId] = useState<TimeFrameId>('today');
+  const [selectedTimeFrameId, setSelectedTimeFrameId] = useState<TimeFrameId>('last-30d');
 
   const moveTask = useCallback((id: string, col: TaskColumn) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, column: col } : t)));
