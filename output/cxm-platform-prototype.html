@@ -457,8 +457,6 @@ tr.sel td{background:var(--primary-soft)}
         <div class="grow"></div>
         <span class="pill"><i></i>UI prototype · Demo data</span>
         <div class="filters">
-          <label for="fperiod">Kỳ</label>
-          <select id="fperiod" onchange="setPeriod(this.value)"></select>
           <label for="fscope">Phạm vi</label>
           <select id="fscope" onchange="setScope(this.value)"></select>
         </div>
@@ -1296,7 +1294,7 @@ const DATA = {
 /* ==========================================================================
    ===== 2. HELPERS =====
    ========================================================================== */
-let ST = { period:'d30', scope:'onboarding', route:'cxm', tour:0, sub:{},
+let ST = { scope:'onboarding', route:'cxm', tour:0, sub:{},
            sel:{ set:{ voc:'b-voc-all', cxm:'b-cxm-exec' } },
            /* Set đã bị owner sửa trong phiên. Chỉ chứa set NÀO ĐÃ ĐỘNG TỚI —
               set chưa động vẫn đọc thẳng từ DATA.dash, nên "Trả về mặc định"
@@ -1366,8 +1364,11 @@ const SUB_CH = ['Email', 'Slack', 'Email + Slack'];
 
 const $  = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
-const period = () => DATA.periods.find((p) => p.id === ST.period);
-const fx = (n) => Math.round(n * period().factor);
+/* Bỏ kỳ global: fx() cố định ở baseline 6 tháng (factor 5.6) — mọi số liệu scalar
+   giữ nguyên đúng như bản mặc định cũ. Timeframe giờ là per-chart qua ST.sel.range. */
+const BASE_FACTOR = 5.6;
+const BASE_LABEL = '6 tháng gần nhất', BASE_RANGE = '28/01/2026 – 27/07/2026';
+const fx = (n) => Math.round(n * BASE_FACTOR);
 const nf = (n) => Number(n).toLocaleString('vi-VN');
 const pct = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : 0);
 /* Cùng con số nhưng viết theo quy ước tiếng Việt — dùng khi in ra cho người đọc */
@@ -1532,7 +1533,7 @@ const freshLabel = (h) => (h == null ? '—' : h < 24 ? `trễ ${h} giờ`
 
 /* QUY TẮC DENOMINATOR: mọi card/chart hiện "X of Y đơn vị" + kỳ ngày tuyệt đối */
 const denom = (shown, total, unit) =>
-  `<div class="denom">${shown} of ${total} ${esc(unit)}<br>${period().range}</div>`;
+  `<div class="denom">${shown} of ${total} ${esc(unit)}<br>${BASE_RANGE}</div>`;
 
 const chead = (title, sub, shown, total, unit, right) => `
   <div class="chead">
@@ -1827,7 +1828,7 @@ const V = {};
    Bỏ bất kỳ phần nào là người xem mất một mảnh ngữ cảnh cần để tin con số. */
 const wHead = (title, shown, total, unit) => `
   <div class="chead">
-    <div class="ct"><b>${esc(title)}</b><span>${esc(period().label)} (${esc(period().range)})</span></div>
+    <div class="ct"><b>${esc(title)}</b><span>6 tháng gần nhất (28/01/2026 – 27/07/2026)</span></div>
     <div class="denom">Đang hiện Top ${shown}<br>trên ${total} ${esc(unit)}</div>
   </div>`;
 
@@ -2010,7 +2011,7 @@ function blockBody(k) {
     const open = DATA.iss.filter((i) => action(i.act) && action(i.act).lc !== 'closed');
     const by = (fn) => open.slice().sort((a, b) => fn(b) - fn(a))
       .map((i) => ({ id:i.id, l:i.title, v:fn(i), c:i.sev === 'critical' ? 'var(--crit)' : i.sev === 'high' ? 'var(--watch)' : 'var(--ink3)' }));
-    return `<div class="grid g4">
+    return `<div class="grid g2">
       ${topCard('Top theo số khách ảnh hưởng', by((i) => i.imp.aff), 'khách bị ảnh hưởng', null)}
       ${topCard('Top theo khách giá trị cao', by((i) => i.imp.hv), 'khách high-value', 'Thay cho Sum(LTV) — fixture không có trường LTV, bịa số tiền là tạo niềm tin sai.')}
       ${topCard('Top theo tác động CES', by((i) => Math.abs(i.imp.csat) * 10), 'điểm CES × 10', 'Thay cho Impact on NPS — khảo sát NPS đang tạm dừng, CES thì đang chạy với n=612.')}
@@ -2157,7 +2158,7 @@ function renderSet(secKey) {
 
   return `<div class="wrap">
     <div class="hero">
-      <div class="kick">${esc(S.label)} · ${esc(period().label)} · ${esc(period().range)}</div>
+      <div class="kick">${esc(S.label)} · ${esc(BASE_LABEL)} · ${esc(BASE_RANGE)}</div>
       <h1 class="t-hero">${esc(S.lead())}</h1>
       <p>${S.intro}</p>
     </div>
@@ -2285,7 +2286,7 @@ V.quantify = () => {
             ${pick(['chart','Kiểu chart'], [['rank', CHARTS.rank], ['donut', CHARTS.donut]], b.chart)}
             <div class="hr"></div>
             <div class="t-lbl" style="margin-bottom:5px">Khoảng thời gian</div>
-            <div class="t-meta" style="font-size:12px">Đang dùng bộ lọc kỳ ở thanh trên: <b>${esc(period().label)}</b> (${esc(period().range)}). Enterpret có thêm Since và Between — ở đây rút gọn còn ba kỳ có sẵn trong fixture.</div>
+            <div class="t-meta" style="font-size:12px">Đang dùng bộ lọc kỳ ở thanh trên: <b>${esc(BASE_LABEL)}</b> (${esc(BASE_RANGE)}). Enterpret có thêm Since và Between — ở đây rút gọn còn ba kỳ có sẵn trong fixture.</div>
             <div class="hr"></div>
             <div class="t-lbl" style="margin-bottom:5px">So sánh</div>
             <div class="t-meta" style="font-size:12px">So sánh theo thời gian và theo filter khác nằm trong bốn tổ hợp chuỗi đã lưu ở cột phải — chuỗi thời gian không suy ra được từ số tổng hợp nên không dựng động được.</div>
@@ -3145,7 +3146,7 @@ function stepInspector(sid) {
 
   return `<div class="card" data-tour="atlas-inspector">
     ${chead('Bước ' + s.code + ' · ' + s.name, esc(s.stationId) + ' · phụ trách ' + esc(s.owner), sgs.length, DATA.signals.length, 'signal',
-      `<div class="denom">${badge(st)}<br>${period().range}</div>`)}
+      `<div class="denom">${badge(st)}<br>${BASE_RANGE}</div>`)}
     <div class="cbody" style="padding-bottom:6px">
       <div class="grid g4">
         ${stat('Vào bước', nf(fx(o.entered)), '', '')}
@@ -4022,7 +4023,6 @@ function render() {
   /* topbar */
   const m = DATA.meta[ST.route] || DATA.meta.dashboard;
   $('#ptitle').innerHTML = `<b>${m[0]}</b><span>${m[1]}</span>`;
-  $('#fperiod').innerHTML = DATA.periods.map((p) => `<option value="${p.id}" ${p.id === ST.period ? 'selected' : ''}>${p.label} · ${p.range}</option>`).join('');
   $('#fscope').innerHTML = DATA.scopes.map((s) => `<option value="${s.id}" ${s.id === ST.scope ? 'selected' : ''}>${s.label}</option>`).join('');
 
   /* tour spotlight — vẽ SAU khi view render xong (rect mới ổn định), xem tourShow() */
@@ -4073,7 +4073,6 @@ function route() {
 /* Nếu hash không đổi thì hashchange không fire — phải tự render, nếu không
    những thay đổi state khác (ví dụ bật guided tour) sẽ không hiện ra. */
 function go(path) { const h = '#/' + path; if (location.hash === h) render(); else location.hash = h; }
-function setPeriod(v) { ST.period = v; render(); }
 function setScope(v)  { ST.scope = v; render(); }
 function setSub(k, v) { ST.sub[k] = v; render(); }
 function setSel(k, v) { ST.sel[k] = v; render(); }
