@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { demoData } from "../data/fixtures/demo.ts";
 import { dims, seed } from "../data/fixtures/seed.ts";
 import type { Customer, CxmData, QuantifyShow } from "../data/schema/index.ts";
-import { qRun, qRunCross, qRunSegment, qRunSplit, ROW_BUILDERS } from "./quantify.ts";
+import { qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, ROW_BUILDERS, UNKNOWN_ROW_ID } from "./quantify.ts";
 
 function findShow(id: string): QuantifyShow {
   const q = seed.qt.find((x) => x.id === id);
@@ -338,5 +338,78 @@ describe("qRunSplit", () => {
     // seed thật: chỉ KH•••9F1 có nav biết được; bỏ nó đi là known=0 (cùng ca đã dùng cho qRunSegment).
     const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.nav !== "1-5tỷ") };
     expect(qRunSplit({ ...acqByNav, show: "nav", split: "acq" }, miniData, dims).kind).toBe("refuse");
+  });
+});
+
+/* qRunDrill — bản ghi thật dưới một hàng. Bài kiểm CHÍNH ở đây không phải "có trả về dòng nào không"
+   mà là `kind` có nói đúng QUAN HỆ với con số trên thanh hay không: 'sample' (số tổng hợp sẵn, lệch
+   hàng chục lần) vs 'full' (số chính là số bản ghi). Lẫn hai cái là dựng một panel nói dối. */
+describe("qRunDrill", () => {
+  const q1 = findShow("q1");
+  const acq = findShow("q19");
+
+  it("trục agg (theme): kind='sample' — total là số TỔNG HỢP, lines chỉ là tập mẫu, lệch ~50 lần", () => {
+    const res = qRunDrill(q1, demoData, dims, "x-th-device");
+    expect(res.kind).toBe("sample");
+    if (res.kind !== "sample") throw new Error("unreachable");
+    // Oracle: TaxNode 'x-th-device'.n = 412; data.ev có đúng 8 bản ghi mang theme này; pool = 17.
+    expect(res.total).toBe(412);
+    expect(res.lines).toHaveLength(8);
+    expect(res.poolN).toBe(17);
+    // Nguồn in TÊN, không in id — 'src-ekyc' → 'eKYC SDK'.
+    expect(res.lines[0].meta).toContain("eKYC SDK");
+    expect(res.lines[0].meta).not.toContain("src-ekyc");
+  });
+
+  it("trục agg, hàng KHÔNG có bằng chứng nào: vẫn kind='sample' với total thật, lines rỗng", () => {
+    /* 10/14 theme trong demoData rơi vào ca này (17 bản ghi cho 14 theme). Phải trả total=210 chứ
+       KHÔNG phải 'none': hàng đó có số thật trên thanh, chỉ là chưa có bằng chứng mẫu gắn vào — hai
+       chuyện khác nhau và panel nói hai câu khác nhau. */
+    const res = qRunDrill(q1, demoData, dims, "x-th-wait");
+    expect(res.kind).toBe("sample");
+    if (res.kind !== "sample") throw new Error("unreachable");
+    expect(res.total).toBe(210);
+    expect(res.lines).toHaveLength(0);
+  });
+
+  it("trục ev (cat): kind='full' — total === số dòng, vì số trên thanh CHÍNH LÀ số bản ghi đếm được", () => {
+    const res = qRunDrill({ ...q1, show: "cat" }, demoData, dims, "complaint");
+    expect(res.kind).toBe("full");
+    if (res.kind !== "full") throw new Error("unreachable");
+    expect(res.total).toBe(9);
+    expect(res.lines).toHaveLength(res.total);
+  });
+
+  it("trục cust (acq): liệt kê KHÁCH, cắt ở DRILL_MAX nhưng total giữ số thật", () => {
+    const res = qRunDrill(acq, demoData, dims, "tự tìm");
+    expect(res.kind).toBe("full");
+    if (res.kind !== "full") throw new Error("unreachable");
+    // Oracle khớp live-check chart q19: 'tự tìm' = 62 khách.
+    expect(res.total).toBe(62);
+    // Cắt 50 dòng, KHÔNG cắt total — nếu total cũng bị cắt thì panel nói sai mẫu số.
+    expect(res.lines).toHaveLength(50);
+    // Khoá khách đã mask sẵn trong fixture; meta là 2 thuộc tính KHÁC trục đang xếp hàng.
+    expect(res.lines[0].text).toMatch(/^KH•••/);
+    expect(res.lines[0].meta).not.toContain("Kênh mở TK");
+  });
+
+  it("hàng 'Không xác định': kind='unknown', TÁCH LẠI hai sentinel mà chart đã gộp (bài học D0)", () => {
+    const res = qRunDrill(acq, demoData, dims, UNKNOWN_ROW_ID);
+    expect(res.kind).toBe("unknown");
+    if (res.kind !== "unknown") throw new Error("unreachable");
+    // Oracle khớp dòng coverage của q19: 8 chưa biết + 9 thiếu = 17.
+    expect(res.unknownYet).toBe(8);
+    expect(res.missing).toBe(9);
+    expect(res.total).toBe(res.unknownYet + res.missing);
+    // Mỗi dòng phải nói RÕ loại nào — cách chữa hai loại ngược nhau.
+    expect(res.lines.some((l) => l.meta.includes("chưa biết"))).toBe(true);
+    expect(res.lines.some((l) => l.meta.includes("thiếu"))).toBe(true);
+  });
+
+  it("rowId không có thật → kind='none' với lý do, KHÔNG mở panel trắng", () => {
+    const res = qRunDrill(acq, demoData, dims, "không-có-thật");
+    expect(res.kind).toBe("none");
+    if (res.kind !== "none") throw new Error("unreachable");
+    expect(res.reason).toContain("Kênh mở TK");
   });
 });

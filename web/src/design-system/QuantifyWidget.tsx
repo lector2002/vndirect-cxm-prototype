@@ -1,7 +1,7 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { Cfg, CxmData, Dim, DimRow, QuantifyItem, QuantifyShow, QuantifyView } from "../data/schema/index.ts";
 import { BASE_FACTOR, fx } from "../domain/format.ts";
-import { qRun, qRunCross, qRunSegment, qRunSplit } from "../domain/quantify.ts";
+import { qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, UNKNOWN_ROW_ID } from "../domain/quantify.ts";
 // scopeTotal = định nghĩa DUY NHẤT của mẫu số "tín hiệu khách hàng" (VOC_SCOPE). Hàm thuần trên
 // CxmData nên sống ở domain/, KHÔNG ở features/ — design-system không được phụ thuộc vào features.
 // (S2.5 từng import ngược từ features/overview/sec.ts; Opus đã dời.)
@@ -13,6 +13,7 @@ import { ChartLegend, type ChartLegendItem } from "./ChartLegend.tsx";
 import { CrossTable } from "./CrossTable.tsx";
 import { DataTable } from "./DataTable.tsx";
 import { Donut } from "./Donut.tsx";
+import { DrillPanel, type DrillContent, type DrillRecordKind } from "./DrillPanel.tsx";
 import { nf, pv } from "./format.ts";
 import { LineChart } from "./LineChart.tsx";
 import { paintCategorical } from "./paintCategorical.ts";
@@ -84,6 +85,20 @@ function foldRowTail(painted: DimRow[], all: DimRow[]): DimRow[] {
   const v = all.slice(painted.length).reduce((a, r) => a + r.v, 0);
   // Nhãn "(+N)" khớp Donut.tsx từng chữ — cùng khái niệm thì phải cùng cách gọi tên.
   return [...painted, { id: ROW_OTHER_ID, l: `Khác (+${collapsed})`, v, c: "var(--cat-other)" }];
+}
+
+/* Nội dung panel khi bấm chính hàng gộp "Khác (+N)". KHÔNG gọi qRunDrill được: hàng đó không phải một
+   thực thể nào trong data — nó do `foldRowTail` ở ĐÂY dựng ra, và chỉ tầng này biết đuôi bị cắt gồm
+   những nhóm nào. Trả về DANH SÁCH NHÓM (tên + số), không phải bản ghi: bấm "Khác" là hỏi "trong đó
+   có gì", không phải "ai đã nói gì".
+   Cố ý vẫn mở panel thay vì để hàng đó không bấm được: một hàng trơ giữa các hàng bấm được đọc thành
+   "chỗ này lỗi". */
+function groupsContent(tail: DimRow[], fmt: (v: number) => string): DrillContent {
+  return {
+    kind: "groups",
+    lines: tail.map((r) => ({ id: r.id, text: r.l, meta: fmt(r.v) })),
+    total: tail.length,
+  };
 }
 
 /* Nhãn trục — phần thứ 4 (bắt buộc) của anatomy widget theo ghi chú wHead() prototype (dòng
@@ -247,6 +262,11 @@ function buildSegDescription(seg: { known: number; unknown: number; missing: num
    dòng 2021). Nhận toàn bộ data/dims qua props (không đọc store) để component thuần theo props. */
 export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, onTitleClick, months }: QuantifyWidgetProps) {
   const period = periodLabel(data);
+  /* Hàng đang mở drill-down. State sống Ở ĐÂY, không thêm prop cho caller: đặt trong widget thì MỌI
+     chỗ render nó (Library, Detail, Builder preview, Overview) có drill-down mà không cần nối gì —
+     đúng cái owner lo khi loại phương án (b) ("chart theme click được, chart khác không → mặt UI
+     không nhất quán"). Hook phải gọi TRƯỚC mọi nhánh return bên dưới (series/cross-tab). */
+  const [drillRow, setDrillRow] = useState<DimRow | null>(null);
 
   if (item.kind === "series") {
     /* S2.6a (R3): item series KHÔNG có denomStrip (không có rows để đếm; Card.subtitle đã mang kỳ)
@@ -338,7 +358,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
     const shownKnown = effectiveView === "table" ? paintedKnown : foldRowTail(paintedKnown, seg.rows);
     const chartRows: DimRow[] =
       unkV > 0
-        ? [...shownKnown, { id: "__unknown__", l: "Không xác định", v: unkV, c: "var(--unk)" }]
+        ? [...shownKnown, { id: UNKNOWN_ROW_ID, l: "Không xác định", v: unkV, c: "var(--unk)" }]
         : shownKnown;
     // Bars.total = tổng cohort thật (known+unknown+missing = data.cust.length), không phải sum(chartRows.v).
     const segTotal = seg.known + seg.unknown + seg.missing;
@@ -367,6 +387,16 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
           ? `Chia màu theo "${dims[item.split ?? ""]?.label ?? item.split}" chỉ hiện được ở dạng thanh — chuyển sang view Chart để xem.`
           : null;
 
+    /* Trục khách: bản ghi dưới một hàng là KHÁCH, không phải verbatim — `Evidence` có khoá khách
+       (`ck`) nhưng đo 03/08 trên demoData chỉ 7/15 khoá khớp một dòng `data.cust`, nên đi qua join đó
+       thì gần như mọi hàng mở ra rỗng, còn danh sách khách là số thật và đếm đủ. Xem qRunDrill. */
+    const segDrill: DrillContent | null = !drillRow
+      ? null
+      : drillRow.id === ROW_OTHER_ID
+        ? groupsContent(seg.rows.slice(paintedKnown.length), (v) => `${nf(v)} khách`)
+        : qRunDrill(item, data, dims, drillRow.id);
+    const segDrillKind: DrillRecordKind = drillRow?.id === ROW_OTHER_ID ? "group" : "cust";
+
     return (
       <Card
         title={item.name}
@@ -379,7 +409,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
           {effectiveView === "table" ? (
             <DataTable rows={chartRows} labelHeader={dim.label} scaled={false} />
           ) : item.chart === "donut" ? (
-            <Donut rows={chartRows} centerLabel={BASE_NOUN[dim.base]} scaled={false} pinnedLastId="__unknown__" />
+            <Donut rows={chartRows} centerLabel={BASE_NOUN[dim.base]} scaled={false} pinnedLastId={UNKNOWN_ROW_ID} />
           ) : (
             <>
               <Bars
@@ -389,6 +419,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
                 total={segTotal}
                 segments={splitSegments}
                 stackPct={isPctStack}
+                onRowClick={setDrillRow}
               />
               <ChartLegend items={legendItems} />
             </>
@@ -400,6 +431,17 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
             hiện ở màn chi tiết (QuantifyDetail). */}
         <div className="text-[11.5px] text-ink-3 mt-2">{segDescription}</div>
         {splitNote ? <div data-testid="split-note" className="text-[11.5px] text-ink-3 mt-1">{splitNote}</div> : null}
+        {/* Đặt TRONG Card cho gần chỗ sinh ra nó; Modal tự portal ra body nên không bị overflow của
+            card cắt. Render có điều kiện (không chỉ `open`) để không dựng panel khi chưa bấm gì. */}
+        {drillRow && segDrill ? (
+          <DrillPanel
+            open
+            rowLabel={drillRow.l}
+            content={segDrill}
+            recordKind={segDrillKind}
+            onClose={() => setDrillRow(null)}
+          />
+        ) : null}
       </Card>
     );
   }
@@ -416,6 +458,14 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
   const { vAxis, bottomAxis } = chartAxisLabels(item, dim, effectiveView);
   // D0a: fx() chỉ hợp lệ cho volume TỔNG HỢP (dim.base==='agg') — q3 (base='ev') không được scale.
   const scaled = dim?.base === "agg";
+  /* Trục agg/ev: bản ghi dưới một hàng là BẰNG CHỨNG. Với agg, số trên thanh là tổng hợp sẵn nên danh
+     sách chỉ là tập mẫu — qRunDrill trả kind:'sample' và DrillPanel buộc phải nói ra chênh lệch đó. */
+  const drill: DrillContent | null = !drillRow
+    ? null
+    : drillRow.id === ROW_OTHER_ID
+      ? groupsContent(allRows.slice(paintedRows.length), (v) => nf(scaled ? fx(v) : v))
+      : qRunDrill(item, data, dims, drillRow.id);
+  const drillKind: DrillRecordKind = drillRow?.id === ROW_OTHER_ID ? "group" : "ev";
 
   return (
     <Card title={item.name} subtitle={period} denomStrip={denomStrip} actions={actions} onTitleClick={onTitleClick}>
@@ -426,11 +476,20 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
           <Donut rows={shownRows} centerLabel={dim ? BASE_NOUN[dim.base] : undefined} scaled={scaled} />
         ) : (
           <>
-            <Bars rows={shownRows} pctMode={item.metric === "pct"} scaled={scaled} />
+            <Bars rows={shownRows} pctMode={item.metric === "pct"} scaled={scaled} onRowClick={setDrillRow} />
             <ChartLegend items={buildLegend(shownRows, data)} />
           </>
         )}
       </VAxisLabel>
+      {drillRow && drill ? (
+        <DrillPanel
+          open
+          rowLabel={drillRow.l}
+          content={drill}
+          recordKind={drillKind}
+          onClose={() => setDrillRow(null)}
+        />
+      ) : null}
     </Card>
   );
 }

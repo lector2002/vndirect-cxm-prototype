@@ -418,6 +418,23 @@ schema rộng hơn không làm chúng hết đúng:
 - **Ghi "yêu cầu data" thành danh sách.** Mỗi field mình tự thêm vào model là một dòng nguồn thật phải
   cấp về sau; không ghi thì đến lúc tích hợp không ai biết chart nào phụ thuộc field nào.
 
+### 📋 YÊU CẦU DATA (danh sách sống — mở 03/08 khi dựng drill-down)
+
+Đây là chỗ giữ lời hứa ở gạch đầu dòng trên. Mỗi dòng là **một thứ nguồn thật phải cấp**, kèm **màn
+nào đang bị què vì thiếu nó** và **số đo chứng minh**, chứ không phải mong muốn chung.
+
+| # | Yêu cầu | Vì sao (đo được, 03/08 trên `demoData`) | Màn bị ảnh hưởng |
+|---|---|---|---|
+| **D-1** | **Mật độ `Evidence` tương đương cohort.** Hiện `data.ev` có **17 bản ghi** cho **14 theme** và **300 khách**. | **10/14 theme có 0 bằng chứng** ⇒ bấm vào là panel rỗng. Hàng lớn nhất (`x-th-device`) ghi **412** mà chỉ có **8** bằng chứng — lệch ~50 lần. Nguồn `src-ga` ghi **41.200** có **2**. | Drill-down (mọi trục `agg`); "Evidence mẫu" ở `ThemeDetailPage` |
+| **D-2** | **`Evidence.ck` phải TOÀN VẸN** — mỗi `ck` trỏ tới một dòng `Customer` thật, hoặc là sentinel `'Ẩn danh'` khai báo rõ. | `ck` **đã tồn tại** trong schema (`voc.ts:99`) — nhận định cũ "Evidence không có khoá khách" là **SAI, đã bác 03/08**. Nhưng có **15 giá trị `ck` khác nhau, chỉ 7 khớp** `cust.key`; 7 khoá trỏ vào hư không. `validate.ts` **chưa có luật nào** kiểm việc này ⇒ đúng loại "join im lặng trả 0 dòng" mà mục obligations ở trên đã cảnh báo. | Module D **section 2** (chia màu trục theme theo nhóm khách); drill-down verbatim cho trục khách |
+| **D-3** | **Nhãn `st` (trạng thái hành trình) trên `Customer`** nếu muốn toggle nhóm khách theo bước đang mắc. | Field `st` có sẵn nhưng **chưa có `dims` entry nào** dùng nó, nên chưa vào được picker chia màu. | Yêu cầu toggle nhóm khách (owner nêu 03/08) |
+
+**Kỷ luật đi kèm:** cho tới khi D-1/D-2 được cấp, **KHÔNG sinh thêm verbatim để lấp chỗ rỗng.** Quyền
+"được yêu cầu data" là quyền **đòi**, không phải quyền **bịa**: bịa 800 verbatim làm panel trông đầy
+sẽ phá đúng bất biến (a) (`domain/` không có hằng số tỷ lệ bịa — data thật vào là số thật ra). Panel
+hiện nói thẳng "chưa có bằng chứng mẫu nào cho hàng này, tập mẫu có 17 bản ghi" — đó là fixture đang
+nói thật về chính nó, không phải defect.
+
 ### Thứ tự section — tracer bullet KHÔNG cần join
 
 | # | Nội dung | Vì sao trước/sau |

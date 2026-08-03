@@ -2,6 +2,8 @@ export { Card } from "./Card.tsx";
 export type { CardProps } from "./Card.tsx";
 export { Modal } from "./Modal.tsx";
 export type { ModalProps } from "./Modal.tsx";
+export { DrillPanel } from "./DrillPanel.tsx";
+export type { DrillContent, DrillPanelProps, DrillRecordKind } from "./DrillPanel.tsx";
 export { Bars } from "./Bars.tsx";
 export type { BarsProps } from "./Bars.tsx";
 export { Donut } from "./Donut.tsx";

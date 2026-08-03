@@ -364,6 +364,155 @@ export function qRunSplit(
   return { kind: "draw", byRow, legend: order.map((o) => ({ label: o.label, color: o.c })) };
 }
 
+/* ---------- DRILL-DOWN: các BẢN GHI THẬT nằm dưới một hàng (owner chốt 03/08, phương án (a)) ------
+   "Bấm một thanh → mở danh sách bằng chứng/verbatim đã lọc theo hàng đó" — vòng lặp của
+   Enterpret/Chattermill. Hàm thuần trên (item, data, dims, rowId) nên sống ở đây, KHÔNG ở widget:
+   `QuantifyWidget` ở tầng design-system, việc của nó là vẽ, không phải quyết định bản ghi nào thuộc
+   hàng nào.
+
+   ĐIỀU QUAN TRỌNG NHẤT hàm này phải nói được: danh sách trả về có phải TOÀN BỘ hàng đó hay chỉ là
+   TẬP MẪU. Ba trục ba quan hệ khác nhau với con số trên thanh, và gộp chúng lại là dựng một màn nói
+   dối:
+   - trục agg (theme/keyword/nguồn): số trên thanh lấy từ `TaxNode.n`/`Source.vol` — TỔNG HỢP SẴN,
+     không đếm từ `data.ev`. Đo trên demoData 03/08: theme "Thiết bị" ghi **412** mà tập mẫu chỉ có
+     **8** bằng chứng; nguồn `src-ga` ghi **41.200** mà có **2**. Lệch ~50 lần ⇒ kind:'sample'.
+   - trục ev (cat/sen/pf): số trên thanh CHÍNH LÀ số bản ghi đếm được ⇒ kind:'full', liệt kê đủ.
+   - trục cust: bản ghi là KHÁCH, không phải verbatim ⇒ kind:'full' trên `data.cust`.
+
+   Vì sao trục cust KHÔNG mở verbatim, dù `Evidence.ck` có khoá khách: đo 03/08 trên demoData —
+   `data.ev` có 17 bản ghi / 15 khoá `ck` khác nhau cho 300 khách, và chỉ **7** khoá khớp một dòng
+   `data.cust`. Đi qua join đó thì gần như mọi hàng trục khách mở ra RỖNG, trong khi danh sách khách
+   là số thật và đếm đủ. Muốn verbatim cho trục khách thì phải YÊU CẦU DATA (mật độ evidence tương
+   đương cohort + `ck` toàn vẹn) — xem docs/REBUILD-STATUS.md, danh sách "yêu cầu data". */
+
+/** Id hàng "Không xác định" mà tầng hiển thị ghim cuối mọi chart trục khách. Khai Ở ĐÂY vì NGHĨA của
+    nó (gộp hai sentinel `chưa-biết` + `thiếu`) là chuyện của domain; `QuantifyWidget` import về dùng
+    thay cho literal viết tay — trước đổi này cùng chuỗi "__unknown__" nằm rải 3 chỗ trong một file,
+    đúng kiểu trùng lặp mà chú thích SPLIT_UNKNOWN_ID ở trên đã cảnh báo. */
+export const UNKNOWN_ROW_ID = "__unknown__";
+
+/** Trần số dòng in ra. Một hàng trục khách có thể tới ~60 khách (demoData 300): in hết biến panel
+    thành bảng dài không ai đọc, mà `total` đã nói đủ mẫu số. KHÔNG áp cho `data.ev` (17 bản ghi,
+    không bao giờ chạm trần) nhưng vẫn để chung một đường cắt cho cả hai. */
+const DRILL_MAX = 50;
+
+export type DrillLine = { id: string; text: string; meta: string };
+
+export type DrillResult =
+  /** Hàng dựng từ số TỔNG HỢP SẴN ⇒ `lines` chỉ là tập mẫu. `total` = số trên thanh, `poolN` = cỡ
+      toàn bộ tập mẫu (`data.ev.length`) — tầng hiển thị BẮT BUỘC nói ra cả hai, nếu không người xem
+      đọc "8 bằng chứng" thành "hàng này có 8". */
+  | { kind: "sample"; lines: DrillLine[]; total: number; poolN: number }
+  /** Hàng đếm từ chính các bản ghi đang liệt kê ⇒ `total` là số thật; `lines` có thể bị DRILL_MAX cắt. */
+  | { kind: "full"; lines: DrillLine[]; total: number }
+  /** Hàng "Không xác định": tách LẠI hai loại sentinel mà chart đã gộp — đây là bài học D0 làm cho
+      xem được, và là hàng đáng bấm nhất (nó trả lời "17 khách không xác định kia là ai"). */
+  | { kind: "unknown"; lines: DrillLine[]; total: number; unknownYet: number; missing: number }
+  | { kind: "none"; reason: string };
+
+/* Trục có rows dựng từ số tổng hợp sẵn — xem chú thích khối ở trên. */
+const AGG_TAX_AXES = new Set(["theme", "l1", "l2", "l3", "sub"]);
+
+/* Thuộc tính khách in kèm mỗi dòng, theo THỨ TỰ ƯU TIÊN cố định; trục đang xếp hàng bị loại (in lại
+   đúng giá trị vừa bấm là nhiễu), rồi lấy 2 cái đầu. Tất định, không phải chọn tuỳ hàng. */
+const CUST_META_AXES = ["seg", "tier", "nav", "acq"] as const;
+
+/* Một `rowId` thuộc bản ghi nào — mỗi trục một phép so, không có trục nào dùng chung được. Trả null
+   cho trục chưa có đường tra (vd trục cust đi nhánh riêng ở trên, hoặc trục mới thêm mà quên nối). */
+function evMatcher(show: string, rowId: string): ((e: Evidence) => boolean) | null {
+  if (AGG_TAX_AXES.has(show)) return (e) => e.tax.includes(rowId);
+  if (show === "src") return (e) => e.src === rowId;
+  if (show === "cat") return (e) => e.cat === rowId;
+  if (show === "sen") return (e) => senBucket(e.sen) === rowId;
+  if (show === "pf") return (e) => e.pf === rowId;
+  return null;
+}
+
+export function qRunDrill(
+  item: QuantifyShow,
+  data: CxmData,
+  dims: Record<string, Dim>,
+  rowId: string,
+): DrillResult {
+  const dim = dims[item.show];
+  if (!dim) return { kind: "none", reason: `Trục "${item.show}" không tồn tại trong dims.` };
+
+  if (dim.base === "cust") {
+    const getter = CUST_FIELD[item.show];
+    if (!getter) {
+      return {
+        kind: "none",
+        reason: `Trục "${item.show}" khai base:'cust' nhưng thiếu getter khách (bug nội bộ — CUST_FIELD/dims lệch nhau).`,
+      };
+    }
+    /* `key` đã mask sẵn trong fixture ("KH•••7A2") — KHÔNG unmask, và KHÔNG dùng làm React key một
+       mình: 300 khách sinh ra từ generateCustomers có thể trùng chuỗi mask. Ghép thêm chỉ số. */
+    const lineId = (key: string, i: number) => `${key}#${i}`;
+
+    if (rowId === UNKNOWN_ROW_ID) {
+      const hit = data.cust.filter((c) => isSegUnknown(getter(c)));
+      let unknownYet = 0;
+      let missing = 0;
+      for (const c of hit) {
+        if (getter(c) === UNKNOWN_YET) unknownYet += 1;
+        else if (getter(c) === MISSING) missing += 1;
+      }
+      return {
+        kind: "unknown",
+        lines: hit.slice(0, DRILL_MAX).map((c, i) => ({
+          id: lineId(c.key, i),
+          text: c.key,
+          /* Cách CHỮA hai loại ngược nhau nên dòng meta phải nói rõ loại nào, không chỉ "không xác
+             định": `chưa-biết` là khách chưa tới chỗ biết được (chờ, không phải lỗi), `thiếu` là lỗi
+             thu thập (phải đi sửa pipeline). */
+          meta: getter(c) === UNKNOWN_YET ? "chưa biết — khách chưa tới chỗ biết được" : "thiếu — lỗi thu thập",
+        })),
+        total: hit.length,
+        unknownYet,
+        missing,
+      };
+    }
+
+    const hit = data.cust.filter((c) => getter(c) === rowId);
+    if (hit.length === 0) {
+      /* rows của qRunSegment/qRun chỉ sinh từ giá trị ĐANG CÓ nên hàng 0 khách không tồn tại — tới
+         đây là dims/rows lệch nhau, nói thẳng thay vì mở một panel trắng. */
+      return { kind: "none", reason: `Không khách nào có giá trị "${rowId}" ở trục ${dim.label}.` };
+    }
+    const metaAxes = CUST_META_AXES.filter((k) => k !== item.show).slice(0, 2);
+    return {
+      kind: "full",
+      lines: hit.slice(0, DRILL_MAX).map((c, i) => ({
+        id: lineId(c.key, i),
+        text: c.key,
+        meta: metaAxes.map((k) => `${dims[k]?.label ?? k}: ${CUST_FIELD[k]?.(c) ?? "—"}`).join(" · "),
+      })),
+      total: hit.length,
+    };
+  }
+
+  const match = evMatcher(item.show, rowId);
+  if (!match) {
+    return { kind: "none", reason: `Trục "${item.show}" chưa có đường tra bản ghi gốc.` };
+  }
+  const hit = data.ev.filter(match);
+  /* Nguồn in TÊN, không in id ("Google Analytics" chứ không "src-ga") — `ThemeDetailPage` in thô
+     `e.src` nhưng ở đó chuỗi nằm trong ngữ cảnh một theme đã biết; panel này liệt kê chéo nhiều
+     nguồn nên id thô thành khó đọc. */
+  const lines = hit.slice(0, DRILL_MAX).map((e) => ({
+    id: e.id,
+    text: e.q,
+    meta: `${data.sources.find((s) => s.id === e.src)?.name ?? e.src} · ${e.at}`,
+  }));
+
+  if (dim.base === "ev") return { kind: "full", lines, total: hit.length };
+
+  /* base==='agg': lấy lại số TRÊN THANH từ chính engine thay vì nhận qua tham số — caller truyền sai
+     số thì panel nói sai mẫu số, mà đây đúng là chỗ không được sai. */
+  const rowV = qRun(item, data, dims).find((r) => r.id === rowId)?.v ?? 0;
+  return { kind: "sample", lines, total: rowV, poolN: data.ev.length };
+}
+
 /* ---------- CROSS-TAB: ghép 2 chiều, chỉ tính thật trên data.ev ---------- */
 
 export type CrossAxisRow = { id: string; l: string; c?: string; tot: number };

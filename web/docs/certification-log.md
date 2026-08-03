@@ -1287,4 +1287,85 @@ hàng có tên**, nếu sắp theo giá trị thì nó phải nằm thứ 3. Ghi
 nhạt `--cat-other` làm đúng việc — thanh dài nhưng không giành mắt.
 
 **CHƯA commit** ở thời điểm ghi dòng trên; commit ngay sau live-check này (owner đã cho phép:
-"cho phép commit push và xóa các file ko cần thiết").
+"cho phép commit push và xóa các file ko cần thiết"). → đã commit `8d9b1e1`, đã push.
+
+## 03/08/2026 (tiếp 6) — Drill-down từ thanh (phương án (a) owner chốt), CÓ LIVE-CHECK
+
+Owner chốt: *"1 làm a đi"* — nghĩa là **bấm một thanh mở danh sách bằng chứng/verbatim đã lọc theo hàng
+đó**, thay vì phương án (b) (chỉ theme click được, tạo mặt UI không nhất quán).
+
+### Hai nhận định của CHÍNH TÔI bị bác bằng số đo, trước khi viết dòng code nào
+
+**(1) "`Evidence` không có khoá khách" — SAI.** Field `ck` đã có ở `voc.ts:99` và chứa đúng khoá khách
+đã mask (`ck:'KH•••7A2'`, sentinel `'Ẩn danh'` cho bằng chứng vô danh). Tên viết tắt `ck` làm tôi đọc
+qua nó suốt hai phiên và ghi vào cả `REBUILD-STATUS.md` lẫn charter Module D rằng join không tồn tại.
+**Nhưng** join đó **hỏng**: 15 giá trị `ck` khác nhau, **chỉ 7 khớp** một dòng `cust.key`; 7 khoá trỏ
+vào hư không và `validate.ts` không có luật nào bắt. Đúng loại "join im lặng trả 0 dòng" mà tôi đã tự
+viết cảnh báo — và nó đã nằm sẵn trong fixture, chưa ai chạm nên chưa lộ. → ghi thành **D-2** trong
+danh sách "yêu cầu data"; **không tự sửa 7 bản ghi** (repoint `ck` là bịa một mối quan hệ).
+
+**(2) "Thêm khoá khách vào `Evidence` sẽ cho trục khách mở được verbatim" — SAI về mặt hữu dụng.**
+`data.ev` có **17 bản ghi** cho **300 khách**; rải 17 qua 300 thì gần như mọi hàng trục khách mở ra
+rỗng. Thêm join không sửa được sự rỗng, chỉ **di chuyển** nó. Cùng phép đo cho thấy **10/14 theme có 0
+bằng chứng**, hàng lớn nhất ghi **412** mà có **8** (lệch ~50 lần), `src-ga` ghi **41.200** có **2**.
+
+**Hệ quả thiết kế:** trần của mọi drill-down verbatim là 17 bản ghi. Nên **KHÔNG sinh thêm verbatim**
+để panel trông đầy — quyền "được yêu cầu data" là quyền **đòi**, không phải quyền **bịa** (bịa văn bản
+verbatim phá đúng bất biến (a)). Thay vào đó **làm cho sự rỗng đọc được**: panel nói thẳng "hàng này
+đếm 2.307 tín hiệu tổng hợp, CHƯA có bằng chứng mẫu nào gắn vào nó, tập mẫu có 17 bản ghi".
+
+### Thiết kế: `kind` mã hoá QUAN HỆ với con số trên thanh, không mã hoá loại bản ghi
+
+Việc chính của panel không phải liệt kê mà là **nói đúng mẫu số**. Ba trục ba quan hệ, gộp lại là dựng
+một màn nói dối:
+
+| Trục | Nguồn số trên thanh | `kind` | Câu panel phải nói |
+|---|---|---|---|
+| `theme`/`l1`/`l2`/`l3`/`sub`/`src` (agg) | `TaxNode.n` / `Source.vol` — **tổng hợp sẵn** | `sample` | "…tín hiệu tổng hợp — con số đó **KHÔNG đếm từ danh sách dưới**" |
+| `cat`/`sen`/`pf` (ev) | đếm từ chính `data.ev` | `full` | "đủ N bằng chứng — **đúng con số trên thanh**" |
+| `seg`/`tier`/`age`/`nav`/`tenure`/`acq` (cust) | đếm từ `data.cust` | `full` | như trên, danh từ "khách" |
+| hàng `Không xác định` | gộp 2 sentinel | `unknown` | **tách lại** "8 chưa biết và 9 thiếu (lỗi thu thập)" |
+| hàng `Khác (+N)` | do `foldRowTail` dựng | `groups` | "là các **NHÓM**, không phải bản ghi" |
+
+`fx()` **phải** áp trong nhánh `sample`: `kind:'sample'` ⟺ `base:'agg'` ⟺ đúng tập mà `Bars` vẽ số đã
+scale. Không áp thì panel in `412` trong khi thanh in `2,3K` — cùng một hàng, hai số, người xem không
+biết tin cái nào.
+
+Ba quyết định phụ: (a) `qRunDrill` sống ở `domain/`, không ở widget — widget chỉ vẽ; (b) state mở panel
+sống **trong `QuantifyWidget`**, không thêm prop, nên Library/Detail/Builder/Overview có drill-down mà
+không phải nối gì (đúng chỗ owner lo về "mặt UI không nhất quán"); (c) `Modal wide` thay vì dựng
+drawer mới — chênh lệch duy nhất là bề rộng + vùng cuộn, mọi hành vi đóng/mở phải y hệt.
+
+**Hàng gộp `Khác (+N)` vẫn bấm được** dù không phải thực thể: một hàng trơ giữa các hàng bấm được đọc
+thành "chỗ này lỗi". Nó mở ra danh sách **nhóm**, và `qRunDrill` không xử lý nó — chỉ tầng hiển thị
+biết đuôi bị cắt gồm những nhóm nào.
+
+### LIVE-CHECK (đọc DOM thật, `vite --port 5199`)
+
+| Hàng bấm | Kỳ vọng | Thật trên trang |
+|---|---|---|
+| q1 hàng 1 (`x-th-device`) | sample, 8 dòng, số khớp thanh `2,3K` | tiêu đề `Thiết bị / môi trường không tương thích`; `Hàng này đếm 2.307 tín hiệu tổng hợp — con số đó KHÔNG đếm từ danh sách dưới. Đang liệt kê 8 bằng chứng mẫu, trong tập 17 bản ghi…`; 8 dòng ✔ |
+| — dòng đầu | verbatim trong ngoặc kép + **tên** nguồn | `“Mã lỗi LIGHT_CONDITION sau 3 lần thử.” / eKYC SDK · 27/07 · 14:42` (không phải `src-ekyc`) ✔ |
+| q1 hàng 11 (`Khác (+4)`) | 4 nhóm, Σ khớp thanh `1,6K` | `gộp 4 nhóm nhỏ… là các NHÓM, không phải bản ghi`; 493+414+347+325 = **1.579 ≈ 1,6K** ✔ |
+| q19 hàng cuối (`Không xác định`, 17) | tách 8 chưa biết / 9 thiếu | `17 khách không xác định: 8 chưa biết và 9 thiếu (lỗi thu thập)…`; 17 dòng, mỗi dòng ghi rõ loại ✔ |
+| q19 hàng 1 (`tự tìm`, 62) | cắt 50 dòng, total giữ 62 | `Đang liệt kê 50 khách đầu trong 62 — … số trên thanh vẫn là 62` ✔ |
+| Esc | đóng panel | đóng ✔ |
+| khoá khách | **không unmask** | `KH•••1N1`, `KH•••8O2` — in nguyên dạng đã mask trong fixture ✔ |
+
+**Bẫy gặp khi live-check, đáng ghi:** `location.hash = '#/quantify'` **không** đưa được từ màn chi tiết
+về thư viện — chi tiết sống trong **state của `QuantifyPage`**, không phải route. Phép đo q19 đầu tiên
+vì thế đọc lại panel của q1 và cho `barsN=11` thay vì 6; phải bấm nút "← Về thư viện". Nếu tin phép đo
+đầu thì đã ghi vào log một kết quả sai mà mọi con số trong đó đều "hợp lý".
+
+**Test:** 12 test mới (6 `domain/quantify.test.ts` cho `qRunDrill`, 6 `QuantifyWidget.drill.test.tsx`
+cho chỗ NỐI widget↔domain — test riêng `DrillPanel` với content tự dựng sẽ xanh cả khi widget nối sai
+`kind`). **0 test cũ phải sửa** — kể cả 2 test `no-drill` (`QuantifyDetail.test.tsx:81`,
+`QuantifyLibrary.test.tsx:139`): chúng khẳng định "không có `<a>` điều hướng sang tab khác", còn panel
+này là Modal, không dùng `<a>`. Đã kiểm bằng cách chạy suite, không bằng suy luận.
+
+**Verify:** `npx tsc -b` exit 0 · **645 test / 69 file xanh** · `npx vite build` exit 0 (2,15s,
+`index-DRlkBsUS.js` 443,62 kB) · live-check bảng trên.
+
+**Còn nợ:** drill-down chỉ nối cho `Bars`; `Donut` và view bảng chưa bấm được (ngoài phạm vi câu owner
+hỏi — "bấm một thanh"). Nếu về sau nối thì `DataTable`/`Donut` phải dùng ĐÚNG `qRunDrill` này, đừng
+viết đường thứ hai.
