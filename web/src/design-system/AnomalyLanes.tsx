@@ -1,0 +1,66 @@
+import type { Agent, AgentFindingLane } from "../data/schema/index.ts";
+import { Note } from "./Note.tsx";
+import type { NoteTone } from "./Note.tsx";
+
+/* Ba làn bất thường — port 1-1 anomalyLanes() (prototype dòng 2361-2388). Phân loại theo BẢN CHẤT
+   của cái bất thường (khách nói khác đi / event hệ thống lệch / ống dẫn hỏng), không theo agent
+   nào phát hiện ra nó. Làn lấy TRỰC TIẾP từ field `f.lane` khai báo tường minh trên AgentFinding
+   — KHÔNG đoán từ tiêu đề bằng regex. Bản đầu của tác giả gốc làm vậy và gán nhầm ngay finding
+   quan trọng nhất: "Volume lỗi liveness vượt baseline" khớp chữ "volume" nên rơi vào làn phản hồi
+   dù lane thật của nó là 'behaviour', khiến làn hành vi trống rỗng (xem AF-03 trong seed). */
+const LANES: { key: Exclude<AgentFindingLane, null>; label: string; desc: string }[] = [
+  { key: "voice", label: "Trong phản hồi", desc: "Khách nói khác đi so với baseline" },
+  { key: "behaviour", label: "Trong hành vi", desc: "Event hệ thống lệch baseline" },
+  { key: "pipeline", label: "Của chính nguồn dữ liệu", desc: "Ống dẫn hỏng — số tụt vì mất nguồn, không phải vì đã sửa xong" },
+];
+
+function noteTone(sev: string): NoteTone {
+  if (sev === "critical") return "crit";
+  if (sev === "high") return "warn";
+  return "default";
+}
+
+export type AnomalyLanesProps = {
+  agents: Agent[];
+};
+
+export function AnomalyLanes({ agents }: AnomalyLanesProps) {
+  const all = agents.flatMap((g) => g.f.map((f) => ({ ...f, agentName: g.name })));
+  const noneCount = all.filter((f) => f.lane === null).length;
+
+  return (
+    <div>
+      {LANES.map(({ key, label, desc }) => {
+        const hits = all.filter((f) => f.lane === key);
+        return (
+          <div key={key} data-testid={`lane-${key}`} className="mb-[13px]">
+            <div className="t-lbl">
+              {label} <b className="font-mono">{hits.length}</b>
+            </div>
+            <div className="t-meta text-[12px] mt-[3px] mb-[7px]">{desc}</div>
+            {hits.length ? (
+              hits.map((f) => (
+                <div key={f.id} className="mb-1.5">
+                  <Note tone={noteTone(f.sev)}>
+                    <b>{f.title}</b> <span className="t-meta">· {f.at} · {f.agentName}</span>
+                    <div className="mt-1">{f.detail}</div>
+                  </Note>
+                </div>
+              ))
+            ) : (
+              <div className="t-meta text-[12px]">Không có cảnh báo trong làn này.</div>
+            )}
+          </div>
+        );
+      })}
+      {noneCount ? (
+        <div className="t-meta text-[12px] mb-1.5">
+          {noneCount} mục không phải bất thường (bản tin định kỳ) nên không nằm trong ba làn — xem ở <a href="#/agents">Agent & cảnh báo</a>.
+        </div>
+      ) : null}
+      <div className="t-meta text-[12px]">
+        Ngưỡng và người nhận cảnh báo đặt ở <a href="#/rules">Chỉ số & ngưỡng</a> · chi tiết agent ở <a href="#/agents">Agent & cảnh báo</a>.
+      </div>
+    </div>
+  );
+}

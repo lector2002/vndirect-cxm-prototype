@@ -1,0 +1,13 @@
+export { fx, esc, BASE_FACTOR } from "./format.ts";
+export { scopeSources, scopeTotal } from "./scope.ts";
+export { zScores, isAnomaly, countAnomalies } from "./stats.ts";
+export { stepState, stepWhy, metricState, sourceHealth, laneOf } from "./state.ts";
+export type { DerivedState, SourceHealth, LaneKey } from "./state.ts";
+export { getPrimaryAction, advanceAction, advanceBlockedReason } from "./loop.ts";
+export type { LoopStageKey, PrimaryAction } from "./loop.ts";
+export { qRun, qRunCross } from "./quantify.ts";
+export type { CrossAxisRow, QuantifyCrossResult } from "./quantify.ts";
+export { buildSearchIndex, queryIndex } from "./search.ts";
+export type { SearchKind, SearchEntry } from "./search.ts";
+export { themeSegments } from "./themeSegments.ts";
+export type { ThemeAxis, ThemeSegment } from "./themeSegments.ts";

@@ -1,0 +1,79 @@
+﻿export type Period = {
+  id: string;
+  label: string;
+  range: string;
+  factor: number;
+};
+
+export type Scope = {
+  id: string;
+  label: string;
+};
+
+export type Phase = {
+  id: string;
+  code: string;
+  name: string;
+};
+
+export type Group = {
+  id: string;
+  phaseId: string;
+  name: string;
+  desc: string;
+};
+
+export type Flow = {
+  id: string;
+  groupId: string;
+  name: string;
+  owner: string;
+  version: string;
+  src: string;
+  verified: boolean;
+  observed: boolean;
+  note: string;
+};
+
+export type Step = {
+  id: string;
+  flowId: string;
+  code: string;
+  name: string;
+  stationId: string;
+  owner: string;
+};
+
+export type Obs = {
+  stepId: string;
+  entered: number;
+  completed: number;
+  failed: number;
+  effort: number;
+  cov: number;
+};
+
+export type Touchpoint = {
+  id: string;
+  stepId: string;
+  name: string;
+  channel: string;
+  owner: string;
+  users: number;
+  desc: string;
+};
+
+export type SignalSt = 'live' | 'designed' | 'gap' | 'validating';
+
+export type Signal = {
+  id: string;
+  tpId: string;
+  name: string;
+  st: SignalSt;
+  pf: string[];
+  es: string;
+  vol: number;
+  seen: string | null;
+  metrics: string[];
+  desc: string;
+};

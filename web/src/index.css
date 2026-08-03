@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===================== DESIGN TOKENS (port từ prototype) =====================
+   Cam VNDIRECT — chỉ dùng cho TƯƠNG TÁC và ĐỊNH DANH, không bao giờ làm màu trạng thái. */
+:root {
+  --primary: #d9531e;
+  --primary-hover: #b84415;
+  --primary-soft: #fdf3ee;
+  --primary-line: #f3d5c4;
+  --primary-ring: rgba(217, 83, 30, 0.22);
+
+  /* Xám ấm — ~90% giao diện */
+  --bg: #faf9f7;
+  --surface: #ffffff;
+  --surface2: #f4f2ef;
+  --line: #e5e1db;
+  --line-soft: #f0ede8;
+  --ink-dark: #292420;
+  --ink: #1c1917;
+  --ink2: #57534e;
+  --ink3: #8c8681;
+
+  /* 4 trạng thái. "Đang kiểm soát" KHÔNG có màu riêng — chủ ý. */
+  --watch: #a16207;
+  --watch-bg: #fdfbeb;
+  --watch-line: #eadda0;
+  --crit: #b3261e;
+  --crit-bg: #fdf1f0;
+  --crit-line: #f3c9c4;
+  --unk: #8c8681;
+  --good: #3f6212;
+  --good-bg: #f8faf1;
+  --good-line: #dde8c4;
+
+  /* Tone thứ 5 — THÔNG TIN / CHƯA HOÀN THIỆN. Không phải trạng thái sức khỏe: dùng cho
+     Note tone="info" và nhãn in-development/placeholder (REDESIGN-PLAN-HANDOFF.md:28 chốt
+     Atlas phải show rõ placeholder, trước đây không có token nào cho đúng việc đó). */
+  --info: #2c5f8a;
+  --info-bg: #f2f7fb;
+  --info-line: #cfe0ee;
+
+  /* ---- Thang màu PHÂN LOẠI (categorical) ----
+     Việc duy nhất: phân biệt CHUỖI/LÁT dữ liệu và intent (CxmData.cats). TUYỆT ĐỐI KHÔNG
+     mang nghĩa trạng thái — nếu một hạng mục cần báo "đang gãy" thì dùng --crit/--watch,
+     không phải màu ở đây. Lý do tồn tại: trước đây mọi bar mặc định --ink3 nên donut 14 lát
+     là 14 lát xám giống nhau, và cats phải đi vay --crit/--good làm màu phân loại — khiến
+     mọi chart intent trông như báo động và đỏ mất nghĩa "cần xử lý ngay".
+     Hue tách hẳn khỏi 4 màu đã dùng (primary cam ~15°, crit đỏ ~5°, watch hổ phách ~40°,
+     good ô-liu ~75°). Cả 5 đạt contrast >= 4,9:1 trên --surface nên dùng làm CHỮ được. */
+  --cat-1: #3b5ea8; /* indigo   6,3:1 */
+  --cat-2: #6f4a9c; /* tím      6,7:1 */
+  --cat-3: #a3436b; /* hồng đất 5,9:1 */
+  --cat-4: #2f7d6a; /* lục lam  4,9:1 */
+  --cat-5: #5a6570; /* xám lam  5,9:1 */
+  /* Nhóm "Khác (+N)" — chủ ý nhạt để lùi về sau. CHỈ làm nền thanh/lát, KHÔNG dùng cho chữ
+     (contrast ~2,2:1, không đạt AA). */
+  --cat-other: #b8b2ac;
+
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.05);
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    min-width: 1280px;
+    font: 14px/1.55 -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    background-image: linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 38px 38px;
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+}
+
+/* ===================== THANG CHỮ — 7 bậc, sàn 12px ===================== */
+@layer components {
+  .t-lbl {
+    font: 700 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink3);
+  }
+  .t-meta {
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .t-body {
+    font-size: 14px;
+  }
+  .t-item {
+    font-size: 15px;
+    font-weight: 600;
+  }
+  /* D7a (owner chốt 02/08): câu hỏi section phải CẦM TRỊCH cụm card trả lời nó — Enterpret để câu
+     hỏi chữ lớn đậm NGOÀI card, các card bên dưới là những cách trả lời. S2.6a đã hạ tiêu đề card
+     xuống 13,5px; ở 18px câu hỏi gần bằng tiêu đề card nên cụm không đọc ra là "cùng trả lời một
+     câu". 21px/700 tạo thang rõ 34 (t-hero) → 21 (câu hỏi) → 13,5 (tiêu đề card).
+     Consumer DUY NHẤT: OverviewPage.tsx (<h2> câu hỏi section) — đổi ở đây không lan sang chỗ khác. */
+  .t-block {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.008em;
+  }
+  .t-num {
+    font-size: 24px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .t-hero {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    line-height: 1.16;
+    margin: 0;
+  }
+  .dim {
+    color: var(--ink3);
+  }
+  .dim2 {
+    color: var(--ink2);
+  }
+}
