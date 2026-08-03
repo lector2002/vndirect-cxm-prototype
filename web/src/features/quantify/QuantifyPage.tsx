@@ -89,7 +89,17 @@ export function QuantifyPage() {
   function openBuilderFor(id: string) {
     const item = data.qt.find((q) => q.id === id);
     if (item && item.kind === "show") {
-      setQb({ show: item.show, metric: item.metric, chart: item.chart, by: item.by ?? null, view: item.view ?? "chart" });
+      /* split/stack PHẢI có trong map này: thiếu thì mở q19 (item có `split`) ra sửa rồi Lưu đè sẽ
+         âm thầm ghi mất phần chia màu — mất định nghĩa chart, không phải lỗi hiển thị. */
+      setQb({
+        show: item.show,
+        metric: item.metric,
+        chart: item.chart,
+        by: item.by ?? null,
+        view: item.view ?? "chart",
+        split: item.split,
+        stack: item.stack,
+      });
       setEditId(id);
       setQview("build");
     }

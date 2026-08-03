@@ -1,6 +1,36 @@
-export type ChartKind = 'rank' | 'anomaly' | 'trend' | 'donut' | 'cohort';
+/* Kiểu VẼ (mark), tách theo kind — chốt 03/08 sau khảo sát nền tảng tạo chart.
+
+   Trước đổi này cả hai kind dùng chung một `ChartKind`, nên type CHO PHÉP hai tổ hợp không có đường
+   render nào: `{kind:'show', chart:'trend'}` (ảnh chụp một chiều mà đòi vẽ đường thời gian) và
+   `{kind:'series', chart:'donut'}`. Chúng chỉ bị chặn lúc chạy, không phải lúc biên dịch.
+
+   Đây mới là chỗ sai — KHÔNG phải bản thân vách `show`/`series`. Vega-Lite tách `mark` khỏi `data`
+   đúng vì lý do này, và nó vẫn GIỮ phân biệt kiểu dữ liệu (temporal/nominal) chứ không xoá đi. Phép
+   thử để không hợp nhất phẳng hai kind: tách mark giữ nguyên chữ ký cả bốn hàm `qRun*` (đều nhận
+   `QuantifyShow`), còn hợp nhất phẳng buộc dispatch lại theo hình dạng encoding — tức mở lại phần
+   hạch toán known/unknown/missing đang gánh bất biến "mẫu số không lặng lẽ loại nhóm chưa biết", mà
+   không được thêm khả năng nào.
+
+   Đã đếm trên seed.ts trước khi tách: `rank` 13 + `donut` 1 đều là `kind:'show'`; `trend` 2 +
+   `cohort` 2 + `anomaly` 1 đều là `kind:'series'` ⇒ phân hoạch SẠCH, không cần migration, không đổi
+   literal nào. */
+export type ShowMark = 'rank' | 'donut';
+export type SeriesMark = 'trend' | 'cohort' | 'anomaly';
+/** Hợp của hai bộ mark. Giữ lại cho chỗ phải nói về mark mà CHƯA narrow theo kind — hiện là bộ lọc
+    "kiểu chart" ở `quantifyFilter.ts` (lọc trên cả hai kind cùng lúc). ĐỪNG dùng nó cho field `chart`
+    của một kind cụ thể: làm vậy là quay lại đúng chỗ vừa sửa. */
+export type ChartKind = ShowMark | SeriesMark;
 
 export type QuantifyView = 'chart' | 'table';
+
+/* Cách xếp các đoạn màu của breakdown (Module D section 1, owner chốt 03/08).
+   - 'abs' (MẶC ĐỊNH khi `stack` vắng): bề rộng thanh vẫn ∝ giá trị hàng, đoạn màu chia trong phần
+     fill đó ⇒ giữ được SỐ TUYỆT ĐỐI, thứ mà dòng "Phủ X%" dưới chart đang dựa vào.
+   - 'pct': mọi thanh dài bằng nhau, đoạn màu = tỷ trọng trong hàng ⇒ so HÌNH DẠNG giữa các hàng dễ
+     hơn, nhưng ĐÁNH MẤT so sánh độ lớn giữa các hàng. Đây là mất mát thật, có chủ đích, nên nhãn
+     trục đáy phải nói rõ (QuantifyWidget) — không được để người xem tưởng thanh dài bằng nhau
+     nghĩa là các nhóm bằng nhau. */
+export type StackMode = 'abs' | 'pct';
 
 // ----- Show item (single metric display) -----
 export type QuantifyShow = {
@@ -9,8 +39,18 @@ export type QuantifyShow = {
   name: string;
   show: string;
   metric: string;
-  chart: ChartKind;
+  chart: ShowMark;
   by?: string;
+  /* Chiều CHIA MÀU trong thanh (breakdown — tiêu chí 2 của owner: "chia thành các segment màu nhỏ
+     trong bar như tuổi/nav"). Khoá của `dims`, KHÔNG phải `by`: `by` mang nghĩa "ghép chéo trên mẫu
+     evidence" và nghĩa đó đã ăn vào qRunCross/CrossTable/validate rule 16 + hai guard builder — mượn
+     nó là phá đúng ba chốt đó. Hai field LOẠI TRỪ NHAU (quy tắc Looker Studio: một chart không vừa
+     ghép chéo vừa chia màu), validate rule 16 chặn.
+     Section 1 chỉ tính được khi CẢ `show` LẪN `split` là base:'cust' — hai field nằm trên cùng một
+     dòng `Customer` nên group-by hai chiều là phép đếm THẬT. Trục agg/ev là section 2. */
+  split?: string;
+  /** Chỉ có nghĩa khi có `split`. Vắng ⇒ 'abs'. Xem StackMode. */
+  stack?: StackMode;
   view?: QuantifyView;
   note?: string;
 };
@@ -25,7 +65,7 @@ export type QuantifySeries = {
   id: string;
   kind: 'series';
   name: string;
-  chart: ChartKind;
+  chart: SeriesMark;
   dim: string;
   unit: string;
   shown: number;
@@ -33,6 +73,11 @@ export type QuantifySeries = {
   t: QuantifySeriesPoint[];
   note?: string;
   by?: undefined;
+  /* Cùng lý do `by?: undefined` đã có ở đây: khai tường minh là `undefined` để union QuantifyItem
+     narrow được, và để `item.split` đọc trên QuantifyItem không lỗi type. Series là chuỗi thời gian
+     nhiều đường — breakdown trong thanh không áp dụng (vách show/series, ngoài phạm vi section này). */
+  split?: undefined;
+  stack?: undefined;
   view?: QuantifyView;
 };
 

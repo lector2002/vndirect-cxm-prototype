@@ -9,6 +9,9 @@ import type {
   TaxNode,
 } from "../data/schema/index.ts";
 import { isSegUnknown, MISSING, UNKNOWN_YET } from "../data/segment.ts";
+/* Palette phân loại phía domain — dùng CHUNG với themeSegments.ts (đã export ở đó 03/08) thay vì
+   khai bản sao thứ ba; xem ghi chú layer tại themeSegments.ts:10-14. */
+import { CAT_CYCLE } from "./themeSegments.ts";
 
 /* Quantify ENGINE — port 1-1 từ prototype (output/cxm-platform-prototype.html): DIMS (~dòng 1425),
    qRun() (~dòng 1477), evTaxLv() (~dòng 1420), qRunCross() (~dòng 1931). Không side-effect, không
@@ -212,6 +215,153 @@ export function qRunSegment(
     .map(([id, v]) => ({ id, l: id, v }))
     .sort((a, b) => b.v - a.v);
   return { kind: "draw", rows, known, unknown, missing };
+}
+
+/* ---------- BREAKDOWN: chia thanh thành đoạn màu theo chiều khách THỨ HAI ----------
+   Tiêu chí 2 của owner ("data sẽ được chia thành các segment màu nhỏ trong bar như tuổi/nav"), theo
+   mô hình chung của 4 nền tảng đã tham khảo: dataset · metric · chiều chính · CHIỀU CHIA MÀU · kiểu
+   chart · stacking · top-N + "Other".
+
+   MỌI SỐ Ở ĐÂY LÀ SỐ THẬT, ĐẾM TỪ DÒNG `data.cust` — không một hằng số tỷ lệ bịa nào (khác
+   groupSegments() ở themeSegments.ts, nơi tỷ trọng sinh từ hạt char-code nên cắm data thật vào vẫn
+   bịa). Điều kiện để làm được: CẢ trục hàng LẪN trục chia màu đều base:'cust', tức hai giá trị nằm
+   trên CÙNG MỘT DÒNG khách ⇒ group-by hai chiều là phép đếm thuần. Trục agg/ev (theme/keyword) không
+   có khoá khách trên `Evidence` nên KHÔNG đi qua đây (xem docs/REBUILD-STATUS.md, Module D section 2). */
+
+/** Trần số nhãn có màu riêng; phần còn lại gộp một đoạn "Khác" (owner chốt 03/08: top 6 — khớp số
+    thanh q17/q18 đang vẽ). Vượt trần là nhiều màu hơn mắt phân biệt được, không phải nhiều tin hơn. */
+const SPLIT_TOP_N = 6;
+
+const SPLIT_OTHER_ID = "__split_other__";
+/* Id RIÊNG, KHÔNG dùng lại "__unknown__" của tầng hiển thị (QuantifyWidget ghim thanh đó cuối bằng
+   đúng chuỗi ấy): một là id ĐOẠN trong thanh, một là id HÀNG — trùng chuỗi là mời nhầm về sau. */
+const SPLIT_UNKNOWN_ID = "__split_unknown__";
+
+export type SplitSegment = { id: string; label: string; n: number; c: string };
+
+export type SplitChart =
+  /** `item.split` vắng — chart không có breakdown. Không phải lỗi. */
+  | { kind: "off" }
+  /** Có `split` nhưng KHÔNG tính thật được — nêu lý do cho tầng vẽ in ra, đúng bài học `unsupported`
+      của CrossTable: vẽ thanh một màu im lặng sẽ đọc thành "đã chia màu, và mọi khách cùng một nhóm". */
+  | { kind: "refuse"; reason: string }
+  | {
+    kind: "draw";
+    /** rowId (giá trị trục hàng, khớp `id` của rows do qRunSegment trả) → các đoạn, đã bỏ đoạn n=0.
+        BẤT BIẾN: Σn của một hàng === `v` của hàng đó ở qRunSegment — mọi khách có giá trị trục hàng
+        biết được rơi vào ĐÚNG MỘT bucket, nên đoạn màu không bao giờ mô tả một tổng khác. */
+    byRow: Record<string, SplitSegment[]>;
+    /** Thứ tự + màu dùng CHUNG cho mọi hàng (xếp hạng toàn cục) để so ngang giữa các hàng được. */
+    legend: { label: string; color: string }[];
+  };
+
+export function qRunSplit(
+  item: QuantifyShow,
+  data: CxmData,
+  dims: Record<string, Dim>,
+): SplitChart {
+  if (!item.split) return { kind: "off" };
+
+  const rowDim = dims[item.show];
+  const splitDim = dims[item.split];
+  if (!splitDim) {
+    return { kind: "refuse", reason: `Chiều chia màu "${item.split}" không tồn tại trong dims.` };
+  }
+  if (item.split === item.show) {
+    return {
+      kind: "refuse",
+      reason: `Chia màu theo đúng chiều đang xếp hàng ("${item.show}") thì mỗi thanh chỉ có một đoạn — không thêm thông tin nào.`,
+    };
+  }
+  /* Suy từ `base`, KHÔNG hardcode danh sách id — cùng lý do đã nêu ở qRunSegment/custAxisUnsupported. */
+  if (rowDim?.base !== "cust" || splitDim.base !== "cust") {
+    const culprit = rowDim?.base !== "cust" ? item.show : item.split;
+    return {
+      kind: "refuse",
+      reason: `Chia màu chỉ tính thật được khi CẢ hai chiều là thuộc tính khách (base:'cust') — khi đó hai giá trị nằm trên cùng một dòng khách nên đếm được. Trục "${culprit}" không phải, nên không có đường tính nào mà không phải bịa tỷ lệ.`,
+    };
+  }
+  const rowGetter = CUST_FIELD[item.show];
+  const splitGetter = CUST_FIELD[item.split];
+  if (!rowGetter || !splitGetter) {
+    /* So `=== undefined` tường minh, KHÔNG dùng ternary trên chính hàm (`rowGetter ? … : …`): TS2774
+       báo lỗi ở đó vì CUST_FIELD là Record<string, fn> nên phần tử được coi là luôn có. */
+    const missingAxis = rowGetter === undefined ? item.show : item.split;
+    return {
+      kind: "refuse",
+      reason: `Trục "${missingAxis}" khai base:'cust' nhưng thiếu getter khách (bug nội bộ — CUST_FIELD/dims lệch nhau).`,
+    };
+  }
+
+  /* CHỈ khách có giá trị trục hàng BIẾT ĐƯỢC mới được chia màu. Thanh "Không xác định" của trục hàng
+     cố ý giữ một màu đặc: chẻ nó ra là đi nói "ta biết gì về nhóm ta không biết". Chính bộ lọc này
+     giữ bất biến Σđoạn === v của hàng, vì `v` của qRunSegment đếm đúng tập không-sentinel này. */
+  const scoped = data.cust.filter((c) => !isSegUnknown(rowGetter(c)));
+  if (scoped.length === 0) {
+    return {
+      kind: "refuse",
+      reason: `Trục "${item.show}": chưa khách nào tới chỗ biết được giá trị, nên không có thanh nào để chia màu.`,
+    };
+  }
+
+  /* Xếp hạng giá trị split TOÀN CỤC (trên toàn bộ `scoped`), KHÔNG theo từng hàng — mọi hàng phải
+     dùng cùng một bộ nhãn/màu, nếu không thì "màu thứ ba" của hàng A và hàng B là hai thứ khác nhau
+     và chart mất khả năng so ngang. Hệ quả cần biết: một giá trị chỉ lớn ở hàng đang bị TOP_N của
+     tầng hiển thị cắt bỏ vẫn có thể chiếm một suất màu. Tất định và giải thích được nên chấp nhận. */
+  const totals = new Map<string, number>();
+  let unkTotal = 0;
+  for (const c of scoped) {
+    const v = splitGetter(c);
+    /* Sentinel của trục CHIA MÀU gộp thành MỘT đoạn "Không xác định" — ở đây KHÔNG tách
+       chưa-biết/thiếu như qRunSegment, vì phân biệt đó là câu chuyện của trục chính (dòng "Phủ X%"
+       dưới chart), còn trong một thanh nó thành hai đoạn xám sát nhau không đọc được. */
+    if (isSegUnknown(v)) {
+      unkTotal += 1;
+      continue;
+    }
+    totals.set(v, (totals.get(v) ?? 0) + 1);
+  }
+
+  const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  const top = ranked.slice(0, SPLIT_TOP_N);
+  const topSet = new Set(top);
+  const collapsed = ranked.length - top.length;
+
+  const order: { id: string; label: string; c: string }[] = [
+    ...top.map((id, i) => ({ id, label: id, c: CAT_CYCLE[i % CAT_CYCLE.length] })),
+    /* Nhãn "Khác" NÓI RÕ đang gộp bao nhiêu giá trị — "Khác" trần không cho biết nó che 2 nhóm hay 40. */
+    ...(collapsed > 0
+      ? [{ id: SPLIT_OTHER_ID, label: `Khác (${collapsed} ${splitDim.unit})`, c: "var(--ink3)" }]
+      : []),
+    /* Ghim CUỐI, màu `--unk` — CÙNG token với thanh "Không xác định" của trục hàng vì cùng một nghĩa
+       "không đếm được", không phải thêm một nhóm nữa. */
+    ...(unkTotal > 0 ? [{ id: SPLIT_UNKNOWN_ID, label: "Không xác định", c: "var(--unk)" }] : []),
+  ];
+
+  const bucketOf = (v: string): string =>
+    isSegUnknown(v) ? SPLIT_UNKNOWN_ID : topSet.has(v) ? v : SPLIT_OTHER_ID;
+
+  const counts = new Map<string, Map<string, number>>();
+  for (const c of scoped) {
+    const rid = rowGetter(c);
+    const b = bucketOf(splitGetter(c));
+    let m = counts.get(rid);
+    if (!m) {
+      m = new Map();
+      counts.set(rid, m);
+    }
+    m.set(b, (m.get(b) ?? 0) + 1);
+  }
+
+  const byRow: Record<string, SplitSegment[]> = {};
+  for (const [rid, m] of counts) {
+    // Bỏ đoạn n=0: vẽ ra width 0 (không hover được) và tooltip "X: 0" không nói gì.
+    byRow[rid] = order
+      .filter((o) => (m.get(o.id) ?? 0) > 0)
+      .map((o) => ({ id: o.id, label: o.label, n: m.get(o.id) ?? 0, c: o.c }));
+  }
+
+  return { kind: "draw", byRow, legend: order.map((o) => ({ label: o.label, color: o.c })) };
 }
 
 /* ---------- CROSS-TAB: ghép 2 chiều, chỉ tính thật trên data.ev ---------- */

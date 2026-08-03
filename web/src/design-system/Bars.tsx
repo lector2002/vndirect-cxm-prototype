@@ -47,6 +47,21 @@ export type BarsProps = {
       "chưa gán"). Mỗi đoạn có tooltip `title` = "label: nf(n)". Vắng/rỗng cho một row → fill row
       đó giữ nguyên 1 màu (r.c ?? DEFAULT_BAR_COLOR) như cũ. */
   segments?: (row: DimRow) => { label: string; n: number; c: string }[];
+  /** Stacking 100% (Module D section 1): mọi thanh CÓ ĐOẠN dài bằng nhau, đoạn màu thành tỷ trọng
+   *  trong hàng ⇒ dễ so HÌNH DẠNG giữa các hàng, nhưng ĐÁNH MẤT so sánh độ lớn. Cố ý chỉ áp cho hàng
+   *  thực sự có `segments`: thanh full-width mà không chia đoạn sẽ nói dối rằng mọi nhóm bằng nhau.
+   *  Caller PHẢI đổi nhãn trục để nói rõ bề rộng không còn mã hoá giá trị (xem QuantifyWidget). */
+  stackPct?: boolean;
+  /** Chú giải màu NGAY DƯỚI TỪNG THANH (owner chốt 03/08: "cần cho thêm phần legend note các màu
+   *  phân chia là nhóm nào"). Chỉ dành cho caller mà màu đoạn gán THEO HÀNG, không toàn cục —
+   *  `themeSegments()` gán `CAT_CYCLE[i]` theo thứ hạng TRONG một theme và mỗi theme có bộ
+   *  sub-theme/nhóm khách RIÊNG, nên cùng một màu ở hai thanh là hai thứ khác nhau. Một dải legend
+   *  toàn cục ở đó sẽ nói điều KHÔNG ĐÚNG (và cũng không đủ màu: ~12 nhãn khác nhau trên 8 theme mà
+   *  CAT_CYCLE chỉ có 5). Ngược lại `QuantifyWidget` dùng `ChartLegend` một dải chung được, vì
+   *  `qRunSplit` gán màu MỘT LẦN từ mảng `order` dùng chung cho mọi hàng — ĐỪNG gộp hai chỗ này lại.
+   *  Cố ý KHÔNG in `n`: legend trả lời "màu này là nhóm nào", còn số đã có ở bề rộng đoạn + tooltip;
+   *  in thêm số sẽ trưng tỷ trọng DEMO của trục "Nhóm khách" ra như thể là phép đo. */
+  segmentLegend?: boolean;
 };
 
 /* S2.6a (spec 2026-08-01-card-enterpret-spec.md, R4): grid đổi từ `label | value | bar` sang
@@ -59,7 +74,7 @@ export type BarsProps = {
    `total`/`onRowClick`/`kids` port thêm từ rankBars() (dòng 1866-1883): tooltip `title` khôi phục
    đúng dòng 1874, chip con đúng dòng 1878-1879. Mọi prop mới đều optional và không đổi output khi
    vắng — hành vi mặc định (không click, không total, không kids) y hệt bản trước khi thêm. */
-export function Bars({ rows, pctMode, total, onRowClick, kids, formatValue, scaled = true, axisLabel, segments }: BarsProps) {
+export function Bars({ rows, pctMode, total, onRowClick, kids, formatValue, scaled = true, axisLabel, segments, stackPct, segmentLegend }: BarsProps) {
   const max = Math.max(...rows.map((r) => r.v), 1);
   const totalUsed = total ?? rows.reduce((a, r) => a + r.v, 0);
   // D0a: fx() chỉ hợp lệ khi caller xác nhận `scaled` (dim.base==='agg'); mặc định true giữ hành vi
@@ -106,7 +121,9 @@ export function Bars({ rows, pctMode, total, onRowClick, kids, formatValue, scal
               <div
                 className="h-full rounded-[4px] overflow-hidden flex"
                 style={{
-                  width: `${Math.max(2, (r.v / max) * 100)}%`,
+                  /* stackPct CHỈ áp khi hàng có đoạn: thanh full-width không chia đoạn sẽ đọc thành
+                     "nhóm này bằng mọi nhóm khác". Hàng không có đoạn giữ nguyên ∝ r.v/max. */
+                  width: stackPct && rowSegments.length ? "100%" : `${Math.max(2, (r.v / max) * 100)}%`,
                   background: rowSegments.length ? undefined : r.c ?? DEFAULT_BAR_COLOR,
                 }}
               >
@@ -120,6 +137,21 @@ export function Bars({ rows, pctMode, total, onRowClick, kids, formatValue, scal
               </div>
             </div>
             <div className="text-right font-bold text-[13px] tabular-nums">{valueOf(r)}</div>
+            {/* Ngưỡng > 1: thanh chỉ có MỘT đoạn thì màu không mã hoá gì để phải giải mã (vd theme
+                chưa có sub-theme nào → 1 đoạn xám), thêm chip vào đó chỉ là nhiễu. */}
+            {segmentLegend && rowSegments.length > 1 ? (
+              <div data-testid={`bars-seglegend-${r.id}`} className="col-span-3 flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                {rowSegments.map((s, i) => (
+                  <span key={i} className="inline-flex items-center gap-1.5 text-[12px] text-ink-2">
+                    <span
+                      className="inline-block w-3 h-3 rounded-[3px] flex-none border border-black/5"
+                      style={{ background: s.c }}
+                    />
+                    {s.label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             {rowKids.length ? (
               <div className="col-span-3 flex flex-wrap gap-1.5 mt-1">
                 {rowKids.map((k) => (

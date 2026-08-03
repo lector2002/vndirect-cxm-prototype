@@ -24,18 +24,28 @@ describe("QuantifyWidget — show item (không by)", () => {
     expect(screen.getByTestId("data-table")).toBeInTheDocument();
   });
 
-  it("mặc định (không limit): q1 (theme, 14 rows, chart='rank') cắt TOP_N = 10 thanh", () => {
+  /* Đuôi Top-N của trục HÀNG giờ được GỘP thành "Khác (+N)" thay vì biến mất (03/08, sau khảo sát
+     nền tảng: Looker Studio bật "Group the rest as Others" mặc định, và Donut.tsx trong nhà đã gộp từ
+     D6a — thanh không gộp là cùng một câu hỏi cho hai bức tranh khác nhau). Test cũ assert 10/5 —
+     SỬA thành 11/6, đúng cùng lối test donut đã sửa 14 → 6 ở dưới. */
+  it("mặc định (không limit): q1 (theme, 14 rows) → 10 thanh có tên + 1 thanh 'Khác (+4)' ghim cuối", () => {
     render(<QuantifyWidget item={findItem("q1")} data={seed} dims={dims} />);
-    expect(screen.getByTestId("bars").children).toHaveLength(10);
+    const bars = screen.getByTestId("bars");
+    expect(bars.children).toHaveLength(11);
+    // Ghim CUỐI và nói rõ gộp mấy nhóm — "Khác" trần không cho biết nó che 4 nhóm hay 40.
+    expect(bars.children[10]).toHaveTextContent("Khác (+4)");
     // Kỳ tuyệt đối vẫn hiện (chuyển từ denom sang subtitle dưới tiêu đề — part 2 anatomy không mất).
     expect(screen.getByText(/6 tháng gần nhất \(28\/01\/2026 – 27\/07\/2026\)/)).toBeInTheDocument();
   });
 
-  it("limit điều khiển số thanh: limit=5 → 5 thanh; limit=total (14) → tất cả", () => {
+  it("limit điều khiển số thanh: limit=5 → 5 + 'Khác (+9)'; limit=total (14) → 14, KHÔNG có thanh gộp", () => {
     const { rerender } = render(<QuantifyWidget item={findItem("q1")} data={seed} dims={dims} limit={5} />);
-    expect(screen.getByTestId("bars").children).toHaveLength(5);
+    expect(screen.getByTestId("bars").children).toHaveLength(6);
+    expect(screen.getByTestId("bars").children[5]).toHaveTextContent("Khác (+9)");
     rerender(<QuantifyWidget item={findItem("q1")} data={seed} dims={dims} limit={14} />);
+    // Không cắt gì ⇒ KHÔNG thêm thanh gộp: "Khác (+0)" là hàng rỗng nghĩa, không phải cho đủ bộ.
     expect(screen.getByTestId("bars").children).toHaveLength(14);
+    expect(screen.queryByText(/^Khác \(\+/)).not.toBeInTheDocument();
   });
 
   /* D6a (owner chốt 02/08): donut vẫn CHẠY trên toàn bộ 14 rows (không cắt Top 10 như rank/bảng —

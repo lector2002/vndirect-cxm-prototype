@@ -70,7 +70,7 @@
   body {
     margin: 0;
     min-width: 1280px;
-    font: 14px/1.55 -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font: 15.5px/1.55 -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: var(--ink);
     background: var(--bg);
     background-image: linear-gradient(var(--line) 1px, transparent 1px),
@@ -87,20 +87,20 @@
 /* ===================== THANG CHỮ — 7 bậc, sàn 12px ===================== */
 @layer components {
   .t-lbl {
-    font: 700 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+    font: 700 13px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--ink3);
   }
   .t-meta {
-    font-size: 13px;
+    font-size: 14.5px;
     color: var(--ink2);
   }
   .t-body {
-    font-size: 14px;
+    font-size: 15.5px;
   }
   .t-item {
-    font-size: 15px;
+    font-size: 16.5px;
     font-weight: 600;
   }
   /* D7a (owner chốt 02/08): câu hỏi section phải CẦM TRỊCH cụm card trả lời nó — Enterpret để câu
@@ -109,18 +109,18 @@
      câu". 21px/700 tạo thang rõ 34 (t-hero) → 21 (câu hỏi) → 13,5 (tiêu đề card).
      Consumer DUY NHẤT: OverviewPage.tsx (<h2> câu hỏi section) — đổi ở đây không lan sang chỗ khác. */
   .t-block {
-    font-size: 21px;
+    font-size: 22px;
     font-weight: 700;
     letter-spacing: -0.008em;
   }
   .t-num {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
   }
   .t-hero {
-    font-size: 34px;
+    font-size: 36px;
     font-weight: 700;
     letter-spacing: -0.022em;
     line-height: 1.16;
@@ -133,3 +133,33 @@
     color: var(--ink2);
   }
 }
+
+/* ===================== BÙ CỠ CHỮ TOÀN HỆ THỐNG (owner chốt 03/08) =====================
+   Owner: "cỡ chữ trong hệ thống nói chung cần to hơn vì đang quá bé, khó nhìn."
+
+   Làm ở ĐÚNG MỘT CHỖ bằng bảng ánh xạ, KHÔNG đi sửa ~96 chỗ `text-[Npx]` rải trong TSX: sửa rải rác
+   thì lần sau muốn chỉnh lại thang phải đi tìm đủ 96 chỗ và chắc chắn sót, còn ở đây đổi một dòng là
+   cả hệ thống đổi theo. Khối này nằm SAU `@tailwind utilities` (dòng 3) và KHÔNG bọc @layer, nên với
+   cùng specificity 0,1,0 nó thắng cascade nhờ thứ tự nguồn.
+
+   Sàn mới 12,5px (cũ 10,5px). Bậc NHỎ được cộng nhiều hơn bậc lớn — chỗ khó đọc là chữ nhỏ, còn tiêu
+   đề vốn đã đủ to; cộng đều mọi bậc sẽ nén mất thang tương phản giữa chúng.
+   Muốn đổi thang về sau: sửa DUY NHẤT bảng này (và thang .t-* ở @layer components bên trên). */
+.text-\[10\.5px\] { font-size: 12.5px; }
+.text-\[11px\] { font-size: 12.5px; }
+.text-\[11\.5px\] { font-size: 13px; }
+.text-\[12px\] { font-size: 13.5px; }
+.text-\[12\.5px\] { font-size: 14px; }
+.text-\[13px\] { font-size: 14.5px; }
+.text-\[13\.5px\] { font-size: 15px; }
+.text-\[14px\] { font-size: 15.5px; }
+.text-\[15px\] { font-size: 16.5px; }
+.text-\[16px\] { font-size: 17.5px; }
+.text-\[26px\] { font-size: 28px; }
+.text-\[28px\] { font-size: 30px; }
+
+/* Bậc mặc định của Tailwind đang dùng lẫn với các bậc px trên — không nâng thì cùng một card có chỗ
+   14,5px chỗ 12px, thang vỡ. line-height giữ thoáng để chữ to hơn không dính dòng. */
+.text-xs { font-size: 13.5px; line-height: 1.45; }
+.text-sm { font-size: 15.5px; line-height: 1.5; }
+.text-base { font-size: 17px; line-height: 1.55; }

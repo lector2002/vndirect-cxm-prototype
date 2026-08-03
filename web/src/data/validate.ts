@@ -376,7 +376,12 @@ export function validateFixture(
 
   /* 16. Saved Quantify */
   {
-    const knownCharts = new Set(["rank", "anomaly", "trend", "donut", "cohort"]);
+    /* Mark tách theo kind (03/08). Set PHẲNG cũ gộp cả 5 mark nên `{kind:'show', chart:'trend'}` đi
+       qua được — tổ hợp không có đường render nào. Type `ShowMark`/`SeriesMark` đã chặn ở biên dịch;
+       luật này chặn ở RUNTIME cho nguồn không do TS dựng (JSON/API thật khi tích hợp), đúng việc của
+       validateFixture. */
+    const showMarks = new Set(["rank", "donut"]);
+    const seriesMarks = new Set(["trend", "cohort", "anomaly"]);
     const knownViews = new Set(["chart", "table"]);
     const knownMetrics = new Set(data.metrics.map((m: Metric) => m.id));
     knownMetrics.add("count");
@@ -387,7 +392,10 @@ export function validateFixture(
         if (!dims[q.show]) e.push(`Quantify ${q.id}: chiều "${q.show}" không tồn tại`);
         if (!knownMetrics.has(q.metric)) e.push(`Quantify ${q.id}: chỉ số "${q.metric}" không tồn tại`);
       }
-      if (!knownCharts.has(q.chart)) e.push(`Quantify ${q.id}: chart "${q.chart}" không tồn tại`);
+      const okMarks = q.kind === "show" ? showMarks : seriesMarks;
+      if (!okMarks.has(q.chart)) {
+        e.push(`Quantify ${q.id}: chart "${q.chart}" không dùng được cho kind '${q.kind}'`);
+      }
       if (q.kind === "series" && q.shown > q.total) e.push(`Quantify ${q.id}: shown ${q.shown} > total ${q.total}`);
       if (q.view && !knownViews.has(q.view)) e.push(`Quantify ${q.id}: view "${q.view}" không hợp lệ`);
       if (q.kind === "series" && q.view === "table") e.push(`Quantify ${q.id}: series không hỗ trợ view table`);
@@ -395,6 +403,35 @@ export function validateFixture(
       if (q.kind === "show" && q.by) {
         if (!dims[q.show] || !dims[q.show].evAttr) e.push(`Quantify ${q.id}: hàng "${q.show}" thiếu evAttr`);
         if (!dims[q.by] || !dims[q.by].evAttr) e.push(`Quantify ${q.id}: cột "${q.by}" thiếu evAttr`);
+      }
+      /* Breakdown `split` (Module D section 1, owner chốt 03/08) — CỐ Ý KHÔNG nới luật `by` ở trên:
+         `split` là đường RIÊNG, không đi qua evidence, nên ba chốt đang giữ nhánh `unsupported` của
+         CrossTable không tới được (xem CrossTable.tsx:23) vẫn còn nguyên. */
+      if (q.kind === "show" && q.split) {
+        if (!dims[q.split]) e.push(`Quantify ${q.id}: chiều chia màu "${q.split}" không tồn tại`);
+        if (q.split === q.show) e.push(`Quantify ${q.id}: chiều chia màu trùng chiều hàng "${q.show}"`);
+        /* Section 1 chỉ tính THẬT được khi cả hai chiều là thuộc tính khách — hai giá trị khi đó nằm
+           trên CÙNG MỘT dòng Customer. Trục agg/ev không có khoá khách trên Evidence nên mọi tỷ trọng
+           sẽ là số bịa; chặn ở đây thay vì để tầng vẽ lặng lẽ hiện thanh một màu. */
+        if (dims[q.show]?.base !== "cust" || dims[q.split]?.base !== "cust") {
+          e.push(`Quantify ${q.id}: chia màu chỉ hợp lệ khi CẢ "${q.show}" và "${q.split}" là base:'cust'`);
+        }
+        /* Loại trừ nhau (quy tắc Looker Studio): một chart không vừa ghép chéo vừa chia màu — hai thao
+           tác cùng chiếm chiều thứ hai, làm cùng lúc thì không đọc ra ô nào thuộc phép nào. */
+        if (q.by) e.push(`Quantify ${q.id}: không dùng đồng thời ghép chéo (by) và chia màu (split)`);
+        if (q.chart === "donut") e.push(`Quantify ${q.id}: donut không hiện được chia màu`);
+      }
+      if (q.kind === "show" && q.stack) {
+        if (q.stack !== "abs" && q.stack !== "pct") e.push(`Quantify ${q.id}: stack "${q.stack}" không hợp lệ`);
+        if (!q.split) e.push(`Quantify ${q.id}: stack chỉ có nghĩa khi có chia màu (split)`);
+        /* HAI MẪU SỐ KHÁC NHAU trên cùng một hình. `metric:'pct'` = % trên TỔNG cohort (đi vào nhãn
+           số trong thanh qua Bars.pctMode); `stack:'pct'` = tỷ trọng TRONG từng hàng (đi vào bề rộng
+           đoạn). Bật cả hai thì QuantifyWidget in nhãn trục dọc "% trên tổng" trong khi nhãn đáy nói
+           "(100%) trong từng <đơn vị>" — người xem không biết con số đang so với cái gì. Không phải
+           giới hạn kỹ thuật: đây là hình NÓI SAI, nên chặn ở đây thay vì để tầng vẽ tự đoán. */
+        if (q.stack === "pct" && q.metric === "pct") {
+          e.push(`Quantify ${q.id}: metric 'pct' (% trên tổng) và stack 'pct' (tỷ trọng trong hàng) là hai mẫu số khác nhau — không dùng đồng thời`);
+        }
       }
     }
   }

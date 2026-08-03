@@ -200,6 +200,29 @@ describe("validateFixture", () => {
     expect(r.some((e) => e.includes("thiếu theme cha"))).toBe(true);
   });
 
+  /* 16 (03/08): mark tách theo kind. Set phẳng cũ gộp cả 5 mark nên `{kind:'show', chart:'trend'}` —
+     ảnh chụp một chiều mà đòi vẽ đường thời gian — đi qua được. Phải CAST vì type `ShowMark` giờ đã
+     chặn tổ hợp này ở biên dịch; luật runtime là để đỡ nguồn JSON/API thật khi tích hợp, cùng lối đã
+     dùng cho guard `unsupported` của CrossTable. */
+  it("16: kind 'show' mang mark của series ('trend') → chặn", () => {
+    const d = structuredClone(seed) as CxmData;
+    const bad = { id: "q-badmark", kind: "show", show: "theme", metric: "count", chart: "trend", name: "bad" };
+    d.qt = [bad as unknown as (typeof d.qt)[number], ...d.qt];
+    const r = validateFixture(d, dims, seedNav, seedTour);
+    expect(r.some((e) => e.includes("không dùng được cho kind 'show'"))).toBe(true);
+  });
+
+  /* 16 (thêm 03/08 sau khảo sát nền tảng): `metric:'pct'` là % trên TỔNG cohort, `stack:'pct'` là tỷ
+     trọng TRONG từng hàng — hai mẫu số. Bật cả hai thì QuantifyWidget in nhãn trục dọc "% trên tổng"
+     trong khi nhãn đáy nói "(100%) trong từng <đơn vị>": hình NÓI SAI, không phải giới hạn kỹ thuật.
+     Trước luật này tổ hợp đó qua được cả validate lẫn builder. */
+  it("16: metric 'pct' + stack 'pct' trên cùng item → chặn (hai mẫu số)", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.qt = d.qt.map((q) => (q.id === "q19" && q.kind === "show" ? { ...q, metric: "pct", stack: "pct" as const } : q));
+    const r = validateFixture(d, dims, seedNav, seedTour);
+    expect(r.some((e) => e.includes("hai mẫu số khác nhau"))).toBe(true);
+  });
+
   /* Group 10: Dashboard set */
   it("10: sec sai", () => {
     const d = structuredClone(seed) as CxmData;

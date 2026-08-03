@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
+/* demoData (300 khách sinh TẤT ĐỊNH) — cần cho qRunSplit vì seed.cust chỉ có 7 khách, không đủ để ô
+   breakdown nào có số đáng đọc. seed vẫn dùng cho các ca biên (refuse/known=0). */
+import { demoData } from "../data/fixtures/demo.ts";
 import { dims, seed } from "../data/fixtures/seed.ts";
-import type { CxmData, QuantifyShow } from "../data/schema/index.ts";
-import { qRun, qRunCross, qRunSegment, ROW_BUILDERS } from "./quantify.ts";
+import type { Customer, CxmData, QuantifyShow } from "../data/schema/index.ts";
+import { qRun, qRunCross, qRunSegment, qRunSplit, ROW_BUILDERS } from "./quantify.ts";
 
 function findShow(id: string): QuantifyShow {
   const q = seed.qt.find((x) => x.id === id);
@@ -215,5 +218,125 @@ describe("qRunSegment", () => {
     const item: QuantifyShow = { id: "test-seg-zero", kind: "show", show: "nav", metric: "count", chart: "rank", name: "test" };
     const res = qRunSegment(item, miniData, dims);
     expect(res.kind).toBe("refuse");
+  });
+});
+
+/* ---------- qRunSplit — breakdown trục khách (Module D section 1, owner chốt 03/08) ----------
+   Đây là chỗ chứng minh yêu cầu "thuật toán cần sử dụng được thật, chỉ mượn data demo": mọi số kiểm
+   dưới đây được tính LẠI ĐỘC LẬP bằng `demoData.cust.filter(...)` thuần ngay trong test, không qua
+   qRunSplit — nên nếu hàm bịa bất kỳ tỷ lệ nào, assert đỏ. Số hardcode kèm theo là chốt hồi quy: nó
+   đỏ nếu generator của demo.ts đổi mà không ai để ý. */
+describe("qRunSplit", () => {
+  const acqByNav: QuantifyShow = {
+    id: "t-split-acq-nav", kind: "show", name: "Kênh mở TK × NAV",
+    show: "acq", split: "nav", metric: "count", chart: "rank",
+  };
+
+  it("không có `split` → off, KHÔNG phải refuse (chart thường, không phải lỗi)", () => {
+    expect(qRunSplit(findShow("q17"), demoData, dims).kind).toBe("off");
+  });
+
+  it("BẤT BIẾN: Σ đoạn của mỗi hàng === v của hàng đó ở qRunSegment", () => {
+    /* Bất biến QUAN TRỌNG NHẤT của cả section: Bars chuẩn hoá bề rộng đoạn theo Σseg TRONG fill, nên
+       Σđoạn ≠ v thì thanh vẫn đầy nhưng các tooltip cộng lại ra một tổng KHÁC con số in ở cột giá
+       trị — chart nói hai điều khác nhau về cùng một hàng mà không ai thấy. */
+    for (const [show, split] of [["acq", "nav"], ["nav", "age"], ["age", "tier"], ["tenure", "seg"]] as const) {
+      const item: QuantifyShow = { id: `t-inv-${show}`, kind: "show", name: "t", show, split, metric: "count", chart: "rank" };
+      const seg = qRunSegment(item, demoData, dims);
+      const sp = qRunSplit(item, demoData, dims);
+      if (seg.kind !== "draw") throw new Error(`kỳ vọng draw (segment) cho ${show}`);
+      if (sp.kind !== "draw") throw new Error(`kỳ vọng draw (split) cho ${show}×${split}`);
+      for (const r of seg.rows) {
+        const segs = sp.byRow[r.id] ?? [];
+        expect(segs.reduce((a, s) => a + s.n, 0)).toBe(r.v);
+      }
+      /* Tổng MỌI đoạn === known, KHÔNG phải cust.length: khách có giá trị trục hàng là sentinel cố ý
+         KHÔNG được chia màu (thanh "Không xác định" giữ một màu đặc). */
+      expect(Object.values(sp.byRow).flat().reduce((a, s) => a + s.n, 0)).toBe(seg.known);
+    }
+  });
+
+  it("oracle độc lập: hàng 'banner' của acq×nav khớp số đếm tay trên demoData.cust", () => {
+    const sp = qRunSplit(acqByNav, demoData, dims);
+    if (sp.kind !== "draw") throw new Error("kỳ vọng draw");
+    const byLabel = Object.fromEntries(sp.byRow["banner"].map((s) => [s.label, s.n]));
+
+    // (a) đếm tay, KHÔNG qua qRunSplit — đường tính hoàn toàn khác
+    const hand = (nav: string) => demoData.cust.filter((c) => c.acq === "banner" && c.nav === nav).length;
+    for (const nav of ["<50tr", "50-200tr", "200tr-1tỷ", "1-5tỷ", ">5tỷ"]) {
+      expect(byLabel[nav]).toBe(hand(nav));
+    }
+    // "Không xác định" gộp CẢ 'chưa-biết' LẪN 'thiếu' của trục chia màu
+    expect(byLabel["Không xác định"]).toBe(hand("chưa-biết") + hand("thiếu"));
+
+    // (b) chốt hồi quy trên generator demo.ts hiện tại (Σ = 60 = số khách acq='banner')
+    expect(byLabel).toEqual({
+      "200tr-1tỷ": 5, "50-200tr": 4, "<50tr": 1, "1-5tỷ": 2, ">5tỷ": 2, "Không xác định": 46,
+    });
+    expect(sp.byRow["banner"].reduce((a, s) => a + s.n, 0)).toBe(60);
+  });
+
+  it("legend dùng CHUNG cho mọi hàng, 'Không xác định' ghim CUỐI", () => {
+    const sp = qRunSplit(acqByNav, demoData, dims);
+    if (sp.kind !== "draw") throw new Error("kỳ vọng draw");
+    // 5 thành viên NavBand + 1 "Không xác định"; chưa tới trần SPLIT_TOP_N=6 nên KHÔNG có "Khác".
+    expect(sp.legend).toHaveLength(6);
+    expect(sp.legend[sp.legend.length - 1].label).toBe("Không xác định");
+    expect(sp.legend.some((l) => l.label.startsWith("Khác"))).toBe(false);
+    /* Mọi nhãn đoạn của MỌI hàng phải nằm trong legend — nếu không, "màu thứ ba" của hàng A và hàng B
+       là hai thứ khác nhau và chart mất khả năng so ngang. */
+    const known = new Set(sp.legend.map((l) => l.label));
+    for (const segs of Object.values(sp.byRow)) {
+      for (const s of segs) expect(known.has(s.label)).toBe(true);
+    }
+  });
+
+  /* "Khác" KHÔNG tới được bằng data thật ở section 1: mọi union trục khách có tối đa 5 thành viên
+     (NavBand/AcqChannel=5, AgeBand/TenureBand=4, seg/tier=3) < SPLIT_TOP_N=6. Nhánh này là lưới an
+     toàn cho section 2 (theme/keyword có hàng chục giá trị) và cho data thật nhiều band hơn — cùng
+     kiểu với guard `unsupported` của CrossTable. Phải cast mới dựng được 8 giá trị nav. */
+  it("Other: >6 giá trị → gộp đúng phần dư vào MỘT đoạn 'Khác (N ...)', không rơi mất khách nào", () => {
+    const base = demoData.cust[0];
+    // v1 xuất hiện 8 lần, v2 7 lần, … v8 1 lần ⇒ top6 = v1..v6, dồn v7(2)+v8(1) = 3 vào "Khác".
+    const cust = ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"].flatMap((v, i) =>
+      Array.from({ length: 8 - i }, (_, j) => ({ ...base, key: `KH•••X${i}${j}`, acq: "banner", nav: v }) as Customer),
+    );
+    const sp = qRunSplit(acqByNav, { ...demoData, cust }, dims);
+    if (sp.kind !== "draw") throw new Error("kỳ vọng draw");
+    const other = sp.byRow["banner"].find((s) => s.label.startsWith("Khác"));
+    // Nhãn NÓI RÕ gộp bao nhiêu giá trị ("phân khúc" = dims.nav.unit) — "Khác" trần che 2 hay 40 như nhau.
+    expect(other?.label).toBe("Khác (2 phân khúc)");
+    expect(other?.n).toBe(3);
+    // Bất biến vẫn giữ: 8+7+6+5+4+3+2+1 = 36, không khách nào rơi mất khi gộp.
+    expect(sp.byRow["banner"].reduce((a, s) => a + s.n, 0)).toBe(36);
+  });
+
+  it("refuse: split trùng show (mỗi thanh chỉ còn một đoạn)", () => {
+    const res = qRunSplit({ ...acqByNav, split: "acq" }, demoData, dims);
+    expect(res.kind).toBe("refuse");
+    if (res.kind !== "refuse") throw new Error("unreachable");
+    expect(res.reason).toMatch(/acq/);
+  });
+
+  it("refuse: trục chia màu KHÔNG phải thuộc tính khách → nêu rõ vì sao không tính thật được", () => {
+    const res = qRunSplit({ ...acqByNav, split: "theme" }, demoData, dims);
+    expect(res.kind).toBe("refuse");
+    if (res.kind !== "refuse") throw new Error("unreachable");
+    expect(res.reason).toMatch(/theme/);
+    // Phải nói ra lý do THẬT: không có đường tính nào mà không bịa tỷ lệ.
+    expect(res.reason).toMatch(/bịa tỷ lệ/);
+  });
+
+  it("refuse: trục hàng không phải thuộc tính khách (theme × nav)", () => {
+    const res = qRunSplit({ ...acqByNav, show: "theme", split: "nav" }, demoData, dims);
+    expect(res.kind).toBe("refuse");
+    if (res.kind !== "refuse") throw new Error("unreachable");
+    expect(res.reason).toMatch(/theme/);
+  });
+
+  it("refuse: known=0 ở trục hàng → không có thanh nào để chia màu", () => {
+    // seed thật: chỉ KH•••9F1 có nav biết được; bỏ nó đi là known=0 (cùng ca đã dùng cho qRunSegment).
+    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.nav !== "1-5tỷ") };
+    expect(qRunSplit({ ...acqByNav, show: "nav", split: "acq" }, miniData, dims).kind).toBe("refuse");
   });
 });

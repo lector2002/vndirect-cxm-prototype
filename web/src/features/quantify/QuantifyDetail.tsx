@@ -68,8 +68,11 @@ export function QuantifyDetail({
         ← Về thư viện
       </button>
 
-      {/* Metadata + thao tác dời lên Card.actions (S2.6b) — QuantifyWidget đã tự render item.note
-          bên trong Card (mọi nhánh) nên KHÔNG lặp note ở đây. */}
+      {/* Metadata + thao tác dời lên Card.actions (S2.6b).
+          03/08: `item.note` (nhận định về chart) ĐÃ BỎ khỏi mọi card của QuantifyWidget theo owner chốt
+          "card nên clean nhất có thể", nên nó được render Ở ĐÂY — dưới card, và CHỈ ở màn chi tiết.
+          Đó cũng là chỗ đúng về nghĩa: card trên dashboard chỉ trình bày số, còn diễn giải thuộc màn mà
+          người dùng chủ động mở ra để đọc. Vẫn đúng 1 lần trên toàn màn (QuantifyDetail.test.tsx:44). */}
       <QuantifyWidget
         item={item}
         data={data}
@@ -156,6 +159,14 @@ export function QuantifyDetail({
           </div>
         }
       />
+
+      {/* Nhận định về chart — NGOÀI card, để card giữ đúng vai "trình bày số". Đây là nơi DUY NHẤT
+          `item.note` còn hiện trong app kể từ 03/08. */}
+      {item.note ? (
+        <div data-testid="qdetail-note" className="t-meta mt-4 max-w-[92ch]">
+          {item.note}
+        </div>
+      ) : null}
     </div>
   );
 }

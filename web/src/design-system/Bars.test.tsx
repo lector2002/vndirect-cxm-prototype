@@ -203,5 +203,44 @@ describe("Bars", () => {
       expect(fill.children).toHaveLength(0);
       expect(fill.style.background).toBe("var(--ink3)");
     });
+
+    /* `segmentLegend` (owner chốt 03/08) — chú giải màu NGAY DƯỚI TỪNG THANH. Phải theo hàng vì caller
+       duy nhất (@themestack) gán màu theo thứ hạng TRONG một theme, nên một dải chung sẽ nói sai. Test
+       khoá cả ba mặt: có chip đúng nhãn+màu, KHÔNG in `n` (tránh trưng tỷ trọng demo như phép đo), và
+       vắng prop thì không thêm gì (regression cho mọi caller cũ). */
+    describe("segmentLegend (chú giải màu theo hàng)", () => {
+      const twoSegs = () => [
+        { label: "Nhóm 1", n: 60, c: "var(--cat-1)" },
+        { label: "Nhóm 2", n: 40, c: "var(--cat-2)" },
+      ];
+
+      it("hàng có ≥2 đoạn → hiện chip nhãn + ô màu đúng thứ tự, và KHÔNG in số n", () => {
+        render(<Bars rows={[{ id: "a", l: "Alpha", v: 100 }]} segments={twoSegs} segmentLegend />);
+        const legend = screen.getByTestId("bars-seglegend-a");
+        expect(legend).toHaveTextContent("Nhóm 1");
+        expect(legend).toHaveTextContent("Nhóm 2");
+        expect(legend.textContent).not.toContain("60");
+        const swatches = legend.querySelectorAll("span > span");
+        expect(swatches).toHaveLength(2);
+        expect((swatches[0] as HTMLElement).style.background).toBe("var(--cat-1)");
+        expect((swatches[1] as HTMLElement).style.background).toBe("var(--cat-2)");
+      });
+
+      it("hàng chỉ có 1 đoạn → không hiện legend (màu không mã hoá gì để phải giải mã)", () => {
+        render(
+          <Bars
+            rows={[{ id: "a", l: "Alpha", v: 100 }]}
+            segments={() => [{ label: "Chưa gán sub-theme", n: 100, c: "var(--ink3)" }]}
+            segmentLegend
+          />,
+        );
+        expect(screen.queryByTestId("bars-seglegend-a")).not.toBeInTheDocument();
+      });
+
+      it("có segments nhưng KHÔNG truyền segmentLegend → không thêm chip nào (regression)", () => {
+        render(<Bars rows={[{ id: "a", l: "Alpha", v: 100 }]} segments={twoSegs} />);
+        expect(screen.queryByTestId("bars-seglegend-a")).not.toBeInTheDocument();
+      });
+    });
   });
 });

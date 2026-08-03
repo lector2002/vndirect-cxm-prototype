@@ -1152,3 +1152,139 @@ config** — chỉ dùng cờ CLI để chẩn đoán, vì nới vĩnh viễn s�
 
 **Verify cuối:** `npx tsc -b` exit 0 · **605 test / 68 file xanh** · `npx vite build` xanh (2,38s).
 Commit `76ef3ef`.
+
+---
+
+## 03/08/2026 (tiếp 3) — Module D section 1: chia màu trong thanh (`split`) + stacking + legend, CÓ LIVE-CHECK
+
+**Phạm vi owner chốt:** breakdown = chia màu các đoạn BÊN TRONG thanh (`split`), stacking `abs` mặc định
+/ `pct` bật được, bucket "Khác", **chỉ trên trục `base:'cust'`**; loại `pf` khỏi picker; top 6 + "Khác";
+đoạn "Khác" nằm CẠNH dải "Không xác định", không gộp; **mọi chart có đoạn chia màu phải có legend giải
+mã màu→nhóm**; bỏ dòng `item.note` khỏi card; tăng font toàn cục.
+
+**9 file sửa:** `data/schema/quantify.ts` · `data/validate.ts` (rule 16) · `data/fixtures/seed.ts` (q19) ·
+`domain/quantify.ts` (`qRunSplit`) · `domain/themeSegments.ts` · `design-system/Bars.tsx`
+(prop `segmentLegend`) · `design-system/QuantifyWidget.tsx` · `features/quantify/QuantifyBuilder.tsx` ·
+`features/quantify/QuantifyPage.tsx`. Test mới: 15 test trên 4 file.
+
+### Live-check `#/cxm/b-cxm-pilot` — card q19 (`acq` × `nav`, 300 khách demo)
+
+| # | Kiểm | Kết quả |
+|---|---|---|
+| 1 | Thanh có đoạn màu | ✅ `tự tìm 62` · `banner 60` · `giới thiệu 60` · `chi nhánh 59` · `đối tác 42` · `Không xác định 17` |
+| 2 | Legend giải mã màu | ✅ 6 mục: `200tr-1tỷ` `50-200tr` `<50tr` `1-5tỷ` `>5tỷ` `Không xác định` |
+| 3 | Dòng phủ | ✅ `Phủ 94,3% (283/300 khách có dữ liệu). Nhóm "Không xác định" gồm 8 chưa biết và 9 thiếu (lỗi thu thập).` |
+| 4 | Cộng đúng cohort | 62+60+60+59+42+17 = **300** ✅ · 283+8+9 = **300** ✅ |
+| 5 | `item.note` trên card | ✅ KHÔNG còn (owner: "card nên clean nhất có thể") |
+| 6 | Console error/warn | ✅ `<no console messages found>` |
+
+**Điều đáng ghi nhất cho yêu cầu "thuật toán phải dùng được thật":** bất biến *Σ đoạn màu = giá trị
+thanh* và *known + chưa-biết + thiếu = cohort* đúng ở **300 khách sinh ra**, không chỉ ở 7 dòng
+`seed.cust`. Số đoạn màu là số ĐẾM ĐƯỢC trên cùng một dòng `Customer` (`acq` và `nav` đều `base:'cust'`)
+— không có hằng số tỷ lệ nào bị bịa, khác hẳn trục "Nhóm khách" của `@themestack` (`demoRatios()`).
+
+### Live-check `#/voc/b-voc-all` — `@themestack` legend theo HÀNG
+
+`evaluate_script` trả `legendCount: 5`, mỗi hàng một bộ nhãn KHÁC nhau:
+`x-th-device :: Android tầm trung | Khách 50+` · `x-th-status :: iOS | Khách high-value` ·
+`x-th-fee :: Khách mới | Khách lâu năm | Nhà đầu tư chủ động | Khách VIP`.
+Đó chính là **bằng chứng một dải legend chung ở đây sẽ nói SAI**: `themeSegments()` gán `CAT_CYCLE[i]`
+theo thứ hạng TRONG một theme, mỗi theme có bộ nhãn riêng ⇒ cùng một màu ở hai thanh là hai thứ khác
+nhau (và 5 màu không phủ nổi ~12 nhãn). Ngược lại `QuantifyWidget` dùng `ChartLegend` một dải chung
+được, vì `qRunSplit` gán màu MỘT LẦN từ mảng `order` dùng chung. **Đừng gộp hai chỗ này lại.**
+Legend theo hàng cố ý KHÔNG in `n` — legend trả lời "màu này là nhóm nào", in thêm số sẽ trưng tỷ trọng
+DEMO ra như thể là phép đo.
+
+### Bài học đọc output vitest (ghi lại để lần sau không tự lừa mình)
+
+Lần chạy đầu báo `Test Files 62 passed (62)` và **exit 0**, trông như xanh hoàn toàn. Nhưng
+`find src -name "*.test.ts*" | wc -l` = **68** — mẫu số 62 là số file **chạy được**, không phải số file
+tồn tại; 6 file bị bỏ do máy quá tải (CPU 100%). Chạy lại với `--maxWorkers=2`: **68/68 file, 629 test,
+exit 0**. Hai điều phải nhớ: (1) luôn đối chiếu mẫu số với `find`, đọc cả dòng `Errors`; (2) **đừng tin
+exit code khi có `| tail`** — pipe làm exit code luôn bằng 0. Cờ đúng là `--maxWorkers=2`;
+`--poolOptions.forks.maxForks` và `--minWorkers` **không tồn tại** (CACError).
+
+### Quyết định thiết kế đã khoá bằng test
+
+1. **"Khác" không thể xảy ra ở section 1**: mọi trục `base:'cust'` đều ≤ 5 giá trị mà `SPLIT_TOP_N` = 6.
+   Guard vẫn giữ và vẫn được test qua fixture dựng tay (cast) — để section 2 (trục agg/ev, nhiều bậc
+   hơn) không phải viết lại.
+2. **Chống mất dữ liệu âm thầm**: `QuantifyPage.openBuilderFor` phải map cả `split`/`stack`; thiếu thì
+   mở q19 ra sửa rồi "Lưu đè" sẽ xoá mất định nghĩa chia màu.
+3. **Không undo âm thầm trong builder**: donut bị LOẠI khỏi danh sách chart khi đang chia màu (thay vì
+   để bấm donut lặng lẽ xoá `split`); và `setField` ưu tiên field vừa bấm cho loại trừ `by`↔`split`.
+4. **Loại `pf` bằng `base === 'cust'`**, không hardcode `k !== 'pf'` — `dims.pf` là `base:'ev'` nên bộ
+   lọc base đã loại nó về mặt cấu trúc; thêm luật thứ hai chỉ tạo chỗ để hai luật lệch nhau.
+
+### ⚠ CÒN MỞ — cần owner quyết (1 câu, không chặn)
+
+Card q19 hiện có **hai nhãn "Không xác định" cùng màu xám `var(--unk)`** mà nghĩa KHÁC nhau: thanh
+"Không xác định" (17) = chưa biết `acq`; mục legend "Không xác định" = chưa biết `nav` bên trong mỗi
+thanh. Đề xuất: đổi nhãn trong legend thành `Không xác định (Phân khúc NAV)` — sửa 1 chuỗi trong mảng
+`order` của `qRunSplit`, kèm cập nhật khoá ghim trong `domain/quantify.test.ts`.
+
+**Verify cuối:** `npx tsc -b` exit 0 · **629 test / 68 file xanh** (`--maxWorkers=2 --testTimeout=30000`)
+· `npx vite build` xanh (4,28s) · live-check 2 màn, 0 console error/warn. **CHƯA commit** (owner chưa yêu cầu).
+
+---
+
+## 03/08/2026 (tiếp 5) — Khảo sát nền tảng tạo chart → sửa 2 defect + tách mark (chứng thực tĩnh)
+
+Owner yêu cầu: *"sử dụng 1 subagent opus đi tìm hiểu các nền tảng tạo chart và đưa ra ý kiến về các
+update/chỉnh sửa so với phiên bản hiện tại trước khi tiếp tục làm"*, rồi *"ok làm đi"*.
+Báo cáo khảo sát: `output/chart-platform-review.md` (3 nhóm: BI đại trà · VoC/CX chuyên ngành ·
+grammar-of-graphics).
+
+### Bốn phát hiện đã TỰ KIỂM CHỨNG trên code (không relay nguyên văn báo cáo)
+
+| # | Khẳng định | Kiểm trên code | Kết |
+|---|---|---|---|
+| 1 | `metric:'pct'` × `stack:'pct'` cho hình tự mâu thuẫn, đi tới được qua UI | `QuantifyWidget.tsx:352,356` bật cả `pctMode` lẫn `stackPct`; nhãn trục `:95` vs nhãn đáy `:327`; `validate.ts:416-418` không chặn; `setField` không chặn | **ĐÚNG** → đã sửa |
+| 2 | Đuôi Top-N của trục hàng không được gom | `QuantifyWidget.tsx:376` slice; `Donut.tsx:15` đã có `OTHER_COLOR` | **ĐÚNG nhưng phải chỉnh chữ**: báo cáo nói "cắt âm thầm" — thực ra `:377` có `denomStrip` báo "Top N trên M". Đuôi *không có mặt trong hình*, khác với *không được báo* |
+| 3 | `Evidence.tax: string[]` ⇒ đếm đôi khách qua 2 theme, phá `Σđoạn === v` | `validate.ts` rule 9 đã buộc **đúng 1 node theme/evidence** (`validate.test.ts:183-191`) | **HẸP HƠN báo cáo**: không đếm đôi trong một evidence. Vấn đề thật: khách có nhiều evidence ở nhiều theme ⇒ **Σ hàng ≠ cohort** — câu hỏi *cách đọc mẫu số*, phải chốt trước section 2 |
+| 4 | Chart `#/quantify` không click xuống được | `:350`, `:391` đều không truyền `onRowClick` dù `Bars` đã nhận | **ĐÚNG** → chưa làm, xem cuối mục |
+
+### Hai chỗ `REBUILD-STATUS.md` tự bác (owner cho phép sửa)
+
+1. *"Trục dọc thứ hai thì đến Metabase cũng chưa có"* — **sai**, Metabase có `Split y-axis when
+   necessary`. Hoãn vẫn được nhưng phải vì lý do khác (nằm sau vách mark).
+2. Luật loại trừ Looker (*breakdown XOR nhiều chỉ số*) từng được ghi là **"ngữ nghĩa phổ quát"** và đưa
+   vào danh sách "4 bất biến không tháo" — **sai**, đó là **house rule sản phẩm** của Looker; Metabase
+   cho ≥2 metric + grouping column, giải bằng mark khác nhau cho từng series. ⇒ **hạ bậc**: vẫn là lựa
+   chọn thiết kế đáng giữ, nhưng **không được dùng để chặn tiêu chí #4** của owner.
+
+### Bài học kỹ thuật đáng ghi
+
+Thêm hàng `"Khác (+N)"` làm **3 test `QuantifyWidget` đỏ theo cách không ngờ**: `buildLegend:212`
+(`items.length !== definedColors.length → return []`) coi màu `--cat-other` là "màu thật không khớp
+intent nào" nên trả legend RỖNG — tức thêm một hàng lại làm **mất chú giải của cả chart**. Guard đó
+đúng và phải giữ (nó chặn cảnh gắn legend 1 mục lên 6 chart không mang khái niệm intent); cách sửa là
+**loại hàng gộp ra TRƯỚC khi đối chiếu**, không phải nới guard.
+
+Và một quyết định thu hẹp có chủ đích: **không gộp đuôi ở view bảng** — nhờ đó
+`QuantifyDetail.test.tsx` (CountFilter đổi số dòng) không phải sửa, và bảng giữ đúng nghĩa "liệt kê".
+
+**Test:** 2 test cũ của `QuantifyWidget.test.tsx` phải sửa (10 → 11 thanh, 5 → 6) vì **hành vi đổi có
+chủ đích** — đúng cùng tiền lệ mà chính file đó ghi ở dòng 41-44 (test donut từng sửa 14 → 6 ở D6a).
+Thêm 4 test mới (2 builder gate, 2 validate rule).
+
+**Verify cuối:** `npx tsc -b` exit 0 · **633 test / 68 file xanh** (`--maxWorkers=2 --testTimeout=30000`).
+
+**LIVE-CHECK (trả nợ ngay sau đó, cùng ngày, `vite --port 5199` → `#/quantify` → thẻ "Volume theo
+Theme"):** đọc DOM thật, không phải test.
+
+| Kiểm | Kỳ vọng | Thật trên trang |
+|---|---|---|
+| Số thanh | 10 có tên + 1 gộp = **11** | `bars.children.length === 11` ✔ |
+| Hàng gộp ở đâu | ghim **cuối**, không xen vào thứ tự | phần tử thứ 11 = `Khác (+4) · 1,6K` ✔ |
+| Màu hàng gộp | `--cat-other`, khác `--cat-N` và khác `--unk` | `background: var(--cat-other)` ✔ |
+| Legend intent còn không | 4 mục (đây đúng là chỗ đã vỡ) | `Khiếu nại / Cần hỗ trợ / Đề xuất cải thiện / Khen ngợi` ✔ |
+| `denomStrip` tính TRƯỚC khi gộp | "Top 10 trên 14", không phải 11 | `Đang hiện Top 10 trên 14 theme · trên tổng 317.699 tín hiệu từ 7 nguồn` ✔ |
+
+Một điều nhìn ra được **chỉ khi xem hình**, không test nào bắt: `Khác (+4) = 1,6K` **to hơn 8 trong 10
+hàng có tên**, nếu sắp theo giá trị thì nó phải nằm thứ 3. Ghim cuối là **có chủ ý** (cùng lối
+`Donut.tsx`, cùng lối Looker Studio): "Khác" không phải một nhóm để so, nó là **phần còn lại**. Màu
+nhạt `--cat-other` làm đúng việc — thanh dài nhưng không giành mắt.
+
+**CHƯA commit** ở thời điểm ghi dòng trên; commit ngay sau live-check này (owner đã cho phép:
+"cho phép commit push và xóa các file ko cần thiết").

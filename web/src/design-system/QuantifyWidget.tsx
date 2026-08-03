@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Cfg, CxmData, Dim, DimRow, QuantifyItem, QuantifyShow, QuantifyView } from "../data/schema/index.ts";
 import { BASE_FACTOR, fx } from "../domain/format.ts";
-import { qRun, qRunCross, qRunSegment } from "../domain/quantify.ts";
+import { qRun, qRunCross, qRunSegment, qRunSplit } from "../domain/quantify.ts";
 // scopeTotal = định nghĩa DUY NHẤT của mẫu số "tín hiệu khách hàng" (VOC_SCOPE). Hàm thuần trên
 // CxmData nên sống ở domain/, KHÔNG ở features/ — design-system không được phụ thuộc vào features.
 // (S2.5 từng import ngược từ features/overview/sec.ts; Opus đã dời.)
@@ -59,6 +59,32 @@ const MIN_POINTS_FOR_ANOMALY = 4;
    domain/quantify.ts (bản thật) đã BỎ slicing này khỏi engine — chỉ trả rows đã sort — nên tầng
    hiển thị SỞ HỮU quy tắc này ở đây (follow-up #1 nêu trong P1.1a). */
 const TOP_N = 10;
+
+/* Đuôi bị Top-N cắt của trục HÀNG → gộp thành MỘT hàng "Khác (+N)" thay vì biến mất khỏi hình.
+   Tiền lệ NGAY TRONG NHÀ: `Donut.tsx` đã gộp đúng như vậy (`OTHER_COLOR = var(--cat-other)`), nên
+   trước đổi này cùng một câu hỏi vẽ bằng donut và bằng thanh cho HAI bức tranh khác nhau — donut giữ
+   đuôi, thanh mất đuôi. Chuẩn ngành cũng vậy (Looker Studio bật "Group the rest as Others" mặc định).
+   Dải `denomStrip` vẫn giữ: nó nói "Top N trên M" tức số nhóm CÓ TÊN RIÊNG, vẫn đúng sau khi gộp.
+
+   ĐỪNG gộp "Khác" vào "Không xác định". "Khác" là các nhóm ĐẾM ĐƯỢC nhưng nhỏ; "Không xác định" là
+   phần KHÔNG đếm được (chưa biết + thiếu). Gộp hai thứ đó lại đúng là lỗi D0. Vì thế màu cũng phải
+   khác: `--cat-other` (nhạt, lùi về sau) ≠ `--unk`.
+
+   Gọi SAU paintCategorical: hàm đó gán `--cat-N` xoay vòng theo index nên nếu gộp trước thì màu
+   `--cat-other` bị ghi đè.
+
+   CHỈ dùng cho CHART, KHÔNG cho view bảng. Bảng có việc là LIỆT KÊ: người dùng đổi mốc số dòng để đọc
+   thêm từng giá trị, gộp chúng lại thành một dòng "Khác" là lấy đi đúng thứ họ vừa xin — và mẫu số đã
+   có ở `denomStrip`. Cùng lý do Looker Studio để "Others" cho chart còn bảng thì phân trang. */
+const ROW_OTHER_ID = "__row_other__";
+
+function foldRowTail(painted: DimRow[], all: DimRow[]): DimRow[] {
+  const collapsed = all.length - painted.length;
+  if (collapsed <= 0) return painted;
+  const v = all.slice(painted.length).reduce((a, r) => a + r.v, 0);
+  // Nhãn "(+N)" khớp Donut.tsx từng chữ — cùng khái niệm thì phải cùng cách gọi tên.
+  return [...painted, { id: ROW_OTHER_ID, l: `Khác (+${collapsed})`, v, c: "var(--cat-other)" }];
+}
 
 /* Nhãn trục — phần thứ 4 (bắt buộc) của anatomy widget theo ghi chú wHead() prototype (dòng
    1850-1857): "Bỏ bất kỳ phần nào là người xem mất một mảnh ngữ cảnh cần để tin con số." Port 1-1
@@ -170,7 +196,13 @@ const UNASSIGNED_BAR_COLOR = "var(--ink3)";
    - Mọi màu XUẤT HIỆN (kể cả undefined, coi là một "màu" riêng) phải khớp `data.cats[k].color` —
      một màu lạ (không thuộc cats) làm cả legend vô nghĩa, trả [].
    - Số màu phân biệt PHẢI < số hàng đang hiện — bằng nhau nghĩa là màu không gom nhóm gì. */
-function buildLegend(shownRows: DimRow[], data: CxmData): ChartLegendItem[] {
+function buildLegend(allShown: DimRow[], data: CxmData): ChartLegendItem[] {
+  /* Hàng gộp đuôi ("Khác (+N)", màu `--cat-other`) phải bị LOẠI trước khi đối chiếu với data.cats.
+     Nó không phải một intent, nên để lẫn vào thì `items.length !== definedColors.length` ở dưới thành
+     đúng và hàm trả RỖNG — tức thêm hàng "Khác" lại làm MẤT chú giải intent của cả chart (đã thấy: 3
+     test QuantifyWidget đỏ). Cố ý KHÔNG thêm một mục legend cho "Khác": khác với đoạn màu trong thanh,
+     hàng có NHÃN riêng ngay cạnh nó rồi — thêm mục legend chỉ là nói lại. */
+  const shownRows = allShown.filter((r) => r.id !== ROW_OTHER_ID);
   if (shownRows.length === 0) return [];
   const distinctColors = new Set(shownRows.map((r) => r.c));
   if (distinctColors.size >= shownRows.length) return [];
@@ -249,7 +281,6 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
               : "vòng tròn = vượt ngưỡng Z-score"}
           </div>
         ) : null}
-        {item.note ? <div className="text-xs text-ink-3 mt-2">{item.note}</div> : null}
       </Card>
     );
   }
@@ -262,7 +293,6 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
         {/* Spec cho phép CrossTable dùng cho cả 2 view khi chart phức tạp — ưu tiên đúng số hơn
             stacked bar riêng (xem ghi chú P1.1b, cần Opus xác nhận). */}
         <CrossTable cx={cx} />
-        {item.note ? <div className="text-xs text-ink-3 mt-2">{item.note}</div> : null}
       </Card>
     );
   }
@@ -281,10 +311,13 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
       return (
         <Card title={item.name} subtitle={period} actions={actions} onTitleClick={onTitleClick}>
           <div className="text-[13px] text-ink-3">{seg.reason}</div>
-          {item.note ? <div className="text-xs text-ink-3 mt-2">{item.note}</div> : null}
         </Card>
       );
     }
+
+    /* Breakdown (Module D section 1, owner chốt 03/08): chia mỗi thanh thành đoạn màu theo chiều
+       khách THỨ HAI. Số do domain đếm THẬT trên cùng một dòng Customer — xem qRunSplit. */
+    const split = qRunSplit(item, data, dims);
 
     const knownShown = item.chart === "donut" ? seg.rows : seg.rows.slice(0, limit ?? TOP_N);
     const paintedKnown = paintCategorical(knownShown);
@@ -300,14 +333,39 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
        (không xoay vòng theo paintCategorical vì đây không phải một nhóm intent, mà là "không đếm
        được"). value=0 (mọi khách đều biết được) thì không thêm hàng thừa. */
     const unkV = seg.unknown + seg.missing;
+    /* Gộp đuôi TRƯỚC khi ghim "Không xác định" ⇒ thứ tự ra đúng yêu cầu owner: các nhóm có tên →
+       "Khác (+N)" → "Không xác định" cuối. "Khác" nằm CẠNH, không bao giờ gộp vào. */
+    const shownKnown = effectiveView === "table" ? paintedKnown : foldRowTail(paintedKnown, seg.rows);
     const chartRows: DimRow[] =
       unkV > 0
-        ? [...paintedKnown, { id: "__unknown__", l: "Không xác định", v: unkV, c: "var(--unk)" }]
-        : paintedKnown;
+        ? [...shownKnown, { id: "__unknown__", l: "Không xác định", v: unkV, c: "var(--unk)" }]
+        : shownKnown;
     // Bars.total = tổng cohort thật (known+unknown+missing = data.cust.length), không phải sum(chartRows.v).
     const segTotal = seg.known + seg.unknown + seg.missing;
     // Dòng mô tả coverage bằng CHỮ dưới chart — xem buildSegDescription() ở trên.
     const segDescription = buildSegDescription(seg, segTotal);
+
+    /* ---- Đấu nối breakdown vào tầng vẽ ----
+       Chỉ chart dạng THANH vẽ được đoạn màu: donut và bảng không có chỗ cho nó. KHÔNG im lặng bỏ qua —
+       im lặng thì người dùng tưởng đã chia màu mà không thấy màu nào; nói ra bằng `splitNote`. */
+    const isPctStack = item.stack === "pct";
+    const splitDrawn = split.kind === "draw" && effectiveView !== "table" && item.chart !== "donut";
+    const splitSegments =
+      split.kind === "draw" && splitDrawn ? (r: DimRow) => split.byRow[r.id] ?? [] : undefined;
+    /* Legend PHẢI giải mã thang màu ĐANG vẽ: có breakdown thì màu mã hoá NHÓM CHIA (split.legend —
+       nhãn + màu dùng chung cho mọi hàng nên so ngang được), không phải intent (buildLegend). Dùng sai
+       bảng là chú giải cho một thang màu khác thang đang hiện. */
+    const legendItems = split.kind === "draw" && splitDrawn ? split.legend : buildLegend(chartRows, data);
+    /* stack='pct' làm mọi thanh dài bằng nhau ⇒ bề rộng KHÔNG còn mã hoá số lượng. Nói ở NHÃN TRỤC
+       (đúng chỗ: đây là phát biểu về trục), không nhồi thêm một dòng chữ dưới card. */
+    const segBottomLabel =
+      isPctStack && splitDrawn ? `Tỷ trọng trong từng ${dim.unit} (100%) — bề rộng KHÔNG mã hoá số lượng` : segBottomAxis;
+    const splitNote =
+      split.kind === "refuse"
+        ? split.reason
+        : split.kind === "draw" && !splitDrawn
+          ? `Chia màu theo "${dims[item.split ?? ""]?.label ?? item.split}" chỉ hiện được ở dạng thanh — chuyển sang view Chart để xem.`
+          : null;
 
     return (
       <Card
@@ -317,20 +375,31 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
         actions={actions}
         onTitleClick={onTitleClick}
       >
-        <VAxisLabel label={segVAxis} bottomLabel={segBottomAxis}>
+        <VAxisLabel label={segVAxis} bottomLabel={segBottomLabel}>
           {effectiveView === "table" ? (
             <DataTable rows={chartRows} labelHeader={dim.label} scaled={false} />
           ) : item.chart === "donut" ? (
             <Donut rows={chartRows} centerLabel={BASE_NOUN[dim.base]} scaled={false} pinnedLastId="__unknown__" />
           ) : (
             <>
-              <Bars rows={chartRows} pctMode={item.metric === "pct"} scaled={false} total={segTotal} />
-              <ChartLegend items={buildLegend(chartRows, data)} />
+              <Bars
+                rows={chartRows}
+                pctMode={item.metric === "pct"}
+                scaled={false}
+                total={segTotal}
+                segments={splitSegments}
+                stackPct={isPctStack}
+              />
+              <ChartLegend items={legendItems} />
             </>
           )}
         </VAxisLabel>
+        {/* Dòng độ phủ KHÔNG phải "nhận định" mà là MẪU SỐ đếm được — bất biến của thiết kế (mẫu số
+            luôn là toàn bộ cohort nên nhóm chưa biết không bị lặng lẽ loại). Dòng `item.note` (nhận
+            định) đã bỏ khỏi mọi card theo owner chốt 03/08 "card nên clean nhất có thể"; note giờ chỉ
+            hiện ở màn chi tiết (QuantifyDetail). */}
         <div className="text-[11.5px] text-ink-3 mt-2">{segDescription}</div>
-        {item.note ? <div className="text-xs text-ink-3 mt-2">{item.note}</div> : null}
+        {splitNote ? <div data-testid="split-note" className="text-[11.5px] text-ink-3 mt-1">{splitNote}</div> : null}
       </Card>
     );
   }
@@ -339,8 +408,11 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
   // Donut hiện tất cả lát; rank/bảng cắt theo limit từ filter số lượng (mặc định TOP_N).
   // paintCategorical NGAY SAU KHI CẮT — chart chưa có màu intent nào thì gán --cat-N xoay vòng theo
   // index (hết cảnh mọi bar xám); chart đã có intent color (>=1 row.c) thì trả nguyên rows.
-  const shownRows = paintCategorical(item.chart === "donut" ? allRows : allRows.slice(0, limit ?? TOP_N));
-  const denomStrip = dim ? buildDenomStrip(shownRows, allRows.length, dim, data) : null;
+  const paintedRows = paintCategorical(item.chart === "donut" ? allRows : allRows.slice(0, limit ?? TOP_N));
+  /* denomStrip tính trên `paintedRows` (số nhóm CÓ TÊN RIÊNG), KHÔNG trên shownRows — nếu tính sau khi
+     gộp thì hàng "Khác" bị đếm như một nhóm nữa và mẫu số nói sai. */
+  const denomStrip = dim ? buildDenomStrip(paintedRows, allRows.length, dim, data) : null;
+  const shownRows = effectiveView === "table" ? paintedRows : foldRowTail(paintedRows, allRows);
   const { vAxis, bottomAxis } = chartAxisLabels(item, dim, effectiveView);
   // D0a: fx() chỉ hợp lệ cho volume TỔNG HỢP (dim.base==='agg') — q3 (base='ev') không được scale.
   const scaled = dim?.base === "agg";
@@ -359,7 +431,6 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
           </>
         )}
       </VAxisLabel>
-      {item.note ? <div className="text-xs text-ink-3 mt-2">{item.note}</div> : null}
     </Card>
   );
 }

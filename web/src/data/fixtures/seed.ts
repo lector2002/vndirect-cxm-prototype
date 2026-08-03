@@ -563,6 +563,16 @@ export const seed: CxmData = {
     { id:'q18',kind:'show', show:'nav', metric:'count', chart:'rank', name:'Khách theo phân khúc NAV',
       note:'NAV chỉ biết được sau khi khách nạp tiền lần đầu, nên phần "chưa biết" ở đây là QUY LUẬT hành trình, không phải lỗi dữ liệu — không có gì để sửa.' },
 
+    /* Item ĐẦU TIÊN dùng `split` (breakdown — Module D section 1, owner chốt 03/08). Chọn acq × nav
+       vì CẢ HAI là base:'cust' nên hai giá trị nằm trên CÙNG một dòng Customer ⇒ mỗi đoạn màu là số
+       ĐẾM ĐƯỢC, không có hằng số tỷ lệ nào bị bịa (khác trục "Nhóm khách" của @themestack). Đó cũng
+       là điều kiện validate rule 16 đòi, và là lý do KHÔNG chọn `pf` làm trục chia màu: dims.pf là
+       base:'ev' (dòng 759), không nối được với khách.
+       KHÔNG set `stack`: vắng ⇒ 'abs', giữ bề rộng thanh ∝ số khách nên dòng "Phủ X%" dưới chart vẫn
+       đọc được; người dùng tự bật 'pct' trong builder khi muốn so hình dạng. */
+    { id:'q19',kind:'show', show:'acq', split:'nav', metric:'count', chart:'rank', name:'Kênh mở TK × Phân khúc NAV',
+      note:'Mỗi thanh là một kênh mở TK, các đoạn màu bên trong là phân khúc NAV của chính nhóm khách đó — đếm trực tiếp trên dòng khách, không suy ra từ tỷ lệ. Đoạn "Không xác định" nằm CẠNH các đoạn có tên, không gộp vào chúng: nó là phần chưa biết được NAV, khác hẳn một phân khúc nhỏ.' },
+
     { id:'q5', kind:'series', chart:'trend', name:'Trend theme "Thiết bị không tương thích"', dim:'Theme · xu hướng', unit:'kỳ', shown:6, total:6,
       t:[{l:'Positive share (%)',p:[54,52,50,48,46,44,42,40,36,31,26,19]}],
       note:'Xu hướng giảm liên tục, mất 23 điểm trong 6 kỳ gần nhất. Đây là tín hiệu chính tạo CXI-021.' },
@@ -640,7 +650,7 @@ export const seed: CxmData = {
            Và đây là chỗ đúng về nghĩa: dims.acq nhãn "Kênh mở TK", khớp thẳng pilot Mở tài khoản. */
         { q:'Ta biết được bao nhiêu về khách trong cohort?',
           sub:'Tỉ lệ phủ là số ĐẾM ĐƯỢC, không phải số khai: mẫu số luôn là toàn bộ cohort nên nhóm chưa biết không bị lặng lẽ loại khỏi mẫu. Dải xám cuối mỗi thanh là phần không đếm được.',
-          b:['q17','q18'] },
+          b:['q17','q18','q19'] },
         { q:'Chỉ số của pilot ra sao?', sub:'Liveness dưới mục tiêu 6 kỳ liên tiếp, và khoảng cách Android–iOS đang giãn.', b:['q6','q7'] },
       ] },
     { id:'b-cxm-out', sec:'cxm', name:'Hiệu quả sau thay đổi', role:'Head of CX / PO', shared:false,

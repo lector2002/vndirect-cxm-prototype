@@ -316,7 +316,10 @@ Amplitude · Mixpanel để bám mô hình chuẩn ngành.
    của owner là hai CHẾ ĐỘ THAY NHAU, không cộng vào nhau.** Builder phải ép luật này.
 2. **"Chọn cách biểu diễn từng data" là *visualization setting*, không phải cấu trúc data** (Metabase):
    series tồn tại trước, rồi mới gán từng series là line/bar/area. ⇒ #4 = thêm map `{series → kiểu vẽ}`.
-   **Trục dọc thứ hai thì đến Metabase cũng chưa có — đừng hứa ở đợt đầu.**
+   ~~**Trục dọc thứ hai thì đến Metabase cũng chưa có — đừng hứa ở đợt đầu.**~~
+   **SAI, đã bác 03/08 (khảo sát lại):** Metabase **có** `Split y-axis when necessary`. Câu cũ lấy một
+   khẳng định sai làm lý do hoãn — hoãn thì vẫn được, nhưng phải vì lý do khác (nó nằm sau vách mark),
+   không phải vì "nền tảng lớn cũng chưa có".
 3. **Ô "Other" là chuẩn ngành ta đang thiếu:** Amplitude top 13 + "Other"; Mixpanel ≤10 nhóm +
    "Rest of the World". Ta cắt `TOP_N=10` và **đuôi biến mất** khỏi chart. Tiền lệ để sửa đã có trong
    nhà: `subthemeSegments` dùng dải xám `"Chưa gán sub-theme"` cho phần dư.
@@ -345,6 +348,10 @@ vẫn bịa. Cách hoà giải dưới đây là **CÁCH ĐỌC CỦA CLAUDE, CH
 Evidence"*; chỉ thị bổ sung đến sau mới làm nhánh bị loại thành nhánh duy nhất khả thi. Ai đọc file
 này về sau: **đây là suy luận cần xác nhận, không phải quyết định đã chốt.**
 
+> **CẬP NHẬT 03/08 (tiếp 4) — chốt này ĐÃ ĐƯỢC THÁO.** Owner cho phép sửa data model. Xem
+> `### ✅ OWNER CHỐT 03/08 (tiếp 4)` ngay dưới đây; bảng ba tầng bên dưới vẫn đúng nhưng đổi vai:
+> tầng demo giờ chỉ **điền giá trị**, không còn phải **phát minh ra quan hệ**.
+
 | Tầng | Quy tắc |
 |---|---|
 | `domain/` | group-by/join **thật**, đếm từ dòng. **KHÔNG hằng số bịa nào.** Data thật vào ⇒ số thật, **không sửa code** |
@@ -364,12 +371,145 @@ vì worker đụng phải giữa section sẽ hoặc tự nới, hoặc tắc:**
    Mọi test render breakdown sẽ assert trên data gần rỗng, trừ khi nới `ev` — mà đó là sửa **fixture
    thật**, không phải fixture demo. Đây là lý do thứ tự section bên dưới quan trọng.
 
+### ✅ OWNER CHỐT 03/08 (tiếp 4) — ĐƯỢC PHÉP SỬA DATA MODEL ĐỂ PHỤC VỤ CHART
+
+**Nguyên văn owner:** *"được phép điều chỉnh data model để fulfill các dạng chart mà tôi muốn, đây chỉ
+là dựng bản lý tưởng, có thể yêu cầu data dựa trên các nhu cầu để tạo chart lý tưởng của mình."*
+
+**Đảo chiều ràng buộc.** Trước 03/08 mặc định là *chart phải bó theo schema đang có*, nên mọi chỗ schema
+không đỡ được đều rơi vào "bịa tỷ lệ" hoặc "để sau". Từ nay: **schema đi theo nhu cầu chart.** Đây là
+bản lý tưởng — được quyền **yêu cầu data**, và cái gì nguồn thật chưa có thì đó là **yêu cầu tích hợp**
+ghi lại, không phải lý do làm số giả.
+
+**Tháo ba chốt đang chặn:**
+
+| Chốt cũ | Ghi ở | Trạng thái mới |
+|---|---|---|
+| `Evidence` không có khoá khách ⇒ trục `agg`/`ev` × nhóm khách phải bịa tỷ lệ | mục *Độ trung thực* trên | **Tháo.** Nhánh "thêm khoá khách vào `Evidence`" từ *bị owner loại* → thành **nhánh chính**. `demoRatios()` không còn là đường duy nhất |
+| Vách `show`/`series` khoá #3 (line) và #4 (nhiều lớp) | mục *Điểm chặn thật* trên | **Tháo.** Được phép mở/hợp nhất union `QuantifyItem`. Vẫn là **module riêng**, không nhét vào Module D |
+| `seed.ts` chỉ có 17 bản ghi `ev` ⇒ breakdown ra 1-3 mẫu | hệ quả (2) ở trên | **Tháo.** Được nới fixture thật để test breakdown có mẫu đủ |
+
+**Bốn thứ quyền này KHÔNG tháo** — chúng là bất biến *trung thực*, không phải giới hạn kỹ thuật, nên
+schema rộng hơn không làm chúng hết đúng:
+
+1. **`domain/` không được có hằng số tỷ lệ bịa.** Mục đích sửa schema là để số **đếm được**, không phải
+   để bịa cho dễ. Data thật cắm vào ⇒ số thật, **không sửa code**.
+2. **`'chưa-biết'` (`UNKNOWN_YET`) ≠ `'thiếu'` (`MISSING`)** — không gộp trong `domain/`.
+3. **Mẫu số không được lặng lẽ loại nhóm chưa biết** (bài học defect D0).
+4. **Luật loại trừ Looker Studio** — *một chỉ số + breakdown* **XOR** *nhiều chỉ số, không breakdown*.
+   ⚠ **Đã hạ bậc 03/08 (khảo sát lại):** trước đó ghi đây là "**ngữ nghĩa** phổ quát" — **không đúng**.
+   Đó là **house rule của Looker Studio**; Metabase cho ≥2 metric + grouping column và giải bằng cách
+   gán **mark khác nhau** cho từng series. Nên luật này **yếu hơn ba bất biến trên**: nó là lựa chọn
+   thiết kế đáng giữ cho người dùng nghiệp vụ (một hình một mẫu số), **nhưng đừng dùng nó để chặn tiêu
+   chí #4** của owner (nhiều lớp data, chọn kiểu vẽ từng lớp) — đúng đường mà Metabase đã đi. Tương tự: nhãn "demo"/"minh hoạ" vẫn do **cờ trên dữ liệu** điều khiển để tự tắt khi nguồn
+   thật vào.
+
+**Việc bắt buộc kèm theo MỖI lần sửa schema** (thiếu là lỗi im lặng, không phải lỗi hiển thị):
+
+- **`validate.ts` phải có rule cho field mới.** Riêng khoá khách trên `Evidence` cần rule **referential
+  integrity** (khoá phải tồn tại trong `data.cust`) — không có thì join sai sẽ ra **0 mẫu im lặng**,
+  đúng loại lỗi trông như "chưa có data".
+- **`seed.ts` phải cập nhật cùng lúc**, vì `validate.test.ts:8` đòi `validateFixture(seed, …) === []`.
+- **Quyết định lại rule 16** (`validate.ts:396-397`): có join thật thì trục khách ghép chéo **được**, nên
+  lý do kỹ thuật của lệnh cấm mất. Nhưng **đề xuất vẫn GIỮ `split` tách khỏi `by`** — vì lý do thật của
+  rule 16 là luật loại trừ (4) ở trên, không phải thiếu join. Nếu về sau vẫn nới: `unsupported` guard
+  **bắt đầu chạy thật** và comment `CrossTable.test.tsx:35` ("KHÔNG ĐƯỢC có") thành **sai** — phải sửa
+  cả hai trong cùng lần.
+- **Ghi "yêu cầu data" thành danh sách.** Mỗi field mình tự thêm vào model là một dòng nguồn thật phải
+  cấp về sau; không ghi thì đến lúc tích hợp không ai biết chart nào phụ thuộc field nào.
+
 ### Thứ tự section — tracer bullet KHÔNG cần join
 
 | # | Nội dung | Vì sao trước/sau |
 |---|---|---|
 | **1** | `split` + stacking + "Other" **chỉ trên trục `base:'cust'`** (`q17`/`q18`) | Hai field trên **cùng dòng `Customer`** ⇒ group-by hai chiều thật: **0 đổi schema, 0 chạm `Evidence`, 0 câu hỏi rule 16, số THẬT**. Chạy hết sáu-file-chạm end-to-end và live-check được ngay trên `#/cxm/b-cxm-pilot` |
-| **2** | Trục `agg`/`ev` chia theo nhóm khách (join demo + cờ demo + nhãn) | Chỉ scope sau khi section 1 chốt được **hình dạng field**. Nếu owner đổi ý về nhánh join, **section 1 vẫn ship được** |
+| **2** | Trục `agg`/`ev` chia theo nhóm khách — **join THẬT qua khoá khách thêm vào `Evidence`** (owner chốt 03/08 tiếp 4 cho sửa schema), giá trị do `demo.ts` sinh tất định + cờ demo | Chỉ scope sau khi section 1 chốt được **hình dạng field**. ~~Nếu owner đổi ý về nhánh join~~ — owner **đã** chốt nhánh join; section 1 đã ship nên không bị ảnh hưởng |
+
+### Section 1 — ĐÃ XONG (03/08)
+
+Chín file chạm (nhiều hơn danh sách "sáu file" dự kiến bên dưới — thêm `Bars.tsx` cho prop vẽ,
+`themeSegments.ts` cho palette dùng chung, và `QuantifyPage.tsx` cho map item→builder):
+
+| File | Việc |
+|---|---|
+| `data/schema/quantify.ts` | `StackMode` + `split?`/`stack?` trên `QuantifyShow`; `split?: undefined` trên `QuantifySeries` để union narrow được |
+| `data/validate.ts` | rule 16 **THÊM** nhánh `split`/`stack` — **KHÔNG nới** luật `by` cũ, nên ba chốt giữ `unsupported` không tới được vẫn nguyên |
+| `domain/quantify.ts` | `qRunSplit()` — group-by hai chiều trên cùng dòng `Customer`, **0 hằng số tỷ lệ bịa**; top 6 + "Khác", "Không xác định" là đoạn RIÊNG |
+| `domain/themeSegments.ts` | export `CAT_CYCLE` để `qRunSplit` dùng chung, tránh bản sao thứ ba của palette |
+| `design-system/Bars.tsx` | prop `stackPct` (100%) + prop `segmentLegend` (chú giải màu **theo hàng**) |
+| `design-system/QuantifyWidget.tsx` | nhánh render split; legend đổi sang `split.legend`; nhãn trục nói rõ khi `pct` |
+| `features/quantify/QuantifyBuilder.tsx` | picker `split` (lọc `base:'cust'`) + picker `stack`; 5 guard chuẩn hoá trong `setField` |
+| `features/quantify/QuantifyPage.tsx` | `openBuilderFor` map thêm `split`/`stack` — thiếu là **Lưu đè ghi mất định nghĩa chart** |
+| `data/fixtures/seed.ts` | `q19` (`show:'acq'`, `split:'nav'`), gắn vào câu 3 của `b-cxm-pilot` |
+
+Verify: `tsc -b` exit 0 · vitest **68/68 file, 614 test, 0 error** · `vite build` OK.
+(Lần chạy trước đó in `62 passed (62)` — mẫu số đó là số file **chạy được**, không phải 68 file tồn
+tại: 6 worker không start nổi vì CPU 100%. Bài học: đọc dòng `Errors` và đối chiếu số file với `find`,
+đừng tin exit code — `| tail` làm exit code luôn bằng 0.)
+
+Hai quyết định thiết kế cần biết trước khi sửa tiếp:
+
+1. **"Khác" hiện KHÔNG tới được trên section 1.** Mọi trục khách có ≤5 giá trị, còn `SPLIT_TOP_N` = 6.
+   Guard vẫn giữ (section 2 và data thật sẽ cần) và được test bằng fixture cast — cùng lối `unsupported`.
+2. **Legend `@themestack` là CHÚ GIẢI THEO HÀNG, không phải một dải chung** — và **đừng gộp** nó với
+   `ChartLegend` của `QuantifyWidget`. Lý do: `themeSegments()` gán `CAT_CYCLE[i]` theo thứ hạng TRONG
+   một theme, mỗi theme lại có bộ sub-theme/nhóm khách riêng ⇒ cùng một màu ở hai thanh là hai thứ khác
+   nhau; một dải chung ở đó **nói điều không đúng** (và cũng không đủ màu: ~12 nhãn trên 8 theme mà
+   `CAT_CYCLE` chỉ có 5). Ngược lại `qRunSplit` gán màu MỘT LẦN từ mảng `order` dùng chung cho mọi hàng
+   nên `ChartLegend` một dải là đúng ở đó. Legend theo hàng cố ý **không in `n`**: trục "Nhóm khách" của
+   `@themestack` có tỷ trọng DEMO, in số ra là trưng số bịa như phép đo.
+
+### Section A + B — XONG (03/08, sau khảo sát nền tảng `output/chart-platform-review.md`)
+
+**A1. Chặn `metric:'pct'` × `stack:'pct'`.** Hai field này là **hai mẫu số khác nhau**: `metric:'pct'`
+= % trên TỔNG cohort (vào nhãn số qua `Bars.pctMode`), `stack:'pct'` = tỷ trọng TRONG từng hàng (vào bề
+rộng đoạn). Bật cả hai thì `QuantifyWidget` in nhãn trục dọc `"% trên tổng"` trong khi nhãn đáy nói
+`"(100%) trong từng <đơn vị>"` — hình NÓI SAI. Trước đổi này tổ hợp đó **qua được cả validate lẫn
+builder** (defect do chính section 1 mở ra). Chặn ở `validate.ts` rule 16 **và** ở `setField` của
+builder (builder dựng payload trước khi validate chạy; thiếu guard thứ hai thì user lưu được rồi mới
+thấy banner đỏ). Lối "field vừa bấm thắng" giữ nguyên như gate `by`↔`split`.
+
+**A2. Gộp đuôi Top-N của trục HÀNG thành `"Khác (+N)"`.** `Donut.tsx` đã gộp từ D6a
+(`OTHER_COLOR = var(--cat-other)`), còn chart dạng **thanh** thì cắt và đuôi biến mất ⇒ cùng một câu hỏi
+vẽ hai kiểu cho hai bức tranh khác nhau. Looker Studio bật "Group the rest as Others" **mặc định**.
+Bốn quyết định kèm theo:
+- **KHÔNG gộp cho view bảng.** Bảng có việc là liệt kê; người dùng đổi mốc số dòng để đọc thêm từng
+  giá trị, gộp lại là lấy đi đúng thứ họ vừa xin — mẫu số đã có ở `denomStrip`. (Looker cũng để "Others"
+  cho chart, bảng thì phân trang.) Đây là lý do `QuantifyDetail.test.tsx` không phải sửa.
+- **"Khác" ≠ "Không xác định", không bao giờ gộp.** "Khác" là các nhóm ĐẾM ĐƯỢC nhưng nhỏ; "Không xác
+  định" là phần KHÔNG đếm được. Màu khác nhau (`--cat-other` vs `--unk`), và thứ tự là *nhóm có tên →
+  Khác → Không xác định* (ghim cuối).
+- **`denomStrip` tính TRƯỚC khi gộp** (`paintedRows`, không phải `shownRows`): tính sau thì hàng "Khác"
+  bị đếm như một nhóm nữa và mẫu số nói sai.
+- **`buildLegend` phải LOẠI hàng "Khác" trước khi đối chiếu `data.cats`.** Không loại thì
+  `items.length !== definedColors.length` thành đúng và hàm trả rỗng — tức thêm hàng "Khác" lại làm
+  **mất chú giải intent của cả chart** (đã thấy 3 test đỏ). Cố ý KHÔNG thêm mục legend cho "Khác": khác
+  với đoạn màu trong thanh, hàng có nhãn riêng ngay cạnh nó rồi.
+
+**B. Tách `ChartKind` → `ShowMark` | `SeriesMark`.** Chỗ sai **không phải** vách `show`/`series` mà là
+`chart: ChartKind` bị hàn dùng chung, nên type cho phép `{kind:'show', chart:'trend'}` và
+`{kind:'series', chart:'donut'}` — hai tổ hợp không có đường render nào, chỉ bị chặn lúc chạy. Đã đếm
+`seed.ts` trước khi tách: `rank` 13 + `donut` 1 đều `kind:'show'`; `trend` 2 + `cohort` 2 + `anomaly` 1
+đều `kind:'series'` ⇒ **phân hoạch sạch, 0 migration, 0 literal bị đổi, `tsc -b` xanh ngay lần đầu**.
+`ChartKind` **giữ lại** làm alias hợp, chỉ cho `quantifyFilter.ts` (lọc trên cả hai kind cùng lúc).
+`validate.ts` đổi set phẳng 5 mark thành **hai set theo kind** — luật runtime này để đỡ nguồn JSON/API
+thật khi tích hợp, vì type đã chặn ở biên dịch.
+
+**Khuyến nghị kiến trúc đã chốt: KHÔNG hợp nhất phẳng `show`/`series` theo encoding kiểu Vega-Lite.**
+Phép thử phân định: tách mark **giữ nguyên chữ ký cả bốn hàm** `qRun`/`qRunSegment`/`qRunSplit`/
+`qRunCross` (đều nhận `QuantifyShow`), còn hợp nhất phẳng buộc dispatch lại theo hình dạng encoding —
+tức **mở lại phần hạch toán `known`/`unknown`/`missing`** đang gánh bất biến "mẫu số không lặng lẽ loại
+nhóm chưa biết", mà **không được thêm khả năng nào**. Vega-Lite tách `mark` khỏi `data` và dùng `layer`
+để đặt nhiều kiểu vẽ cạnh nhau; nó **không** xoá phân biệt kiểu dữ liệu.
+
+Verify: `tsc -b` exit 0 · vitest **68/68 file, 633 test, exit 0**.
+
+**Đính chính về `Evidence.tax: string[]`** (báo cáo khảo sát nêu như rủi ro chặn section 2): rủi ro
+**hẹp hơn** thế. `validate.ts` rule 9 đã buộc **mỗi evidence đúng 1 node theme** (test khoá ở
+`validate.test.ts:183-191`, thông điệp "đúng 1 node theme"), nên một evidence **không** đếm đôi một
+khách qua hai theme. Cái còn lại thật sự phải chốt: một khách có NHIỀU evidence ở nhiều theme là bình
+thường và đúng ⇒ **Σ các hàng theme ≠ cohort**. Đó là câu hỏi *cách đọc mẫu số*, không phải lỗi đếm —
+và phải chốt TRƯỚC khi code section 2, không phải giữa lúc code.
 
 ### Cạm bẫy phải tránh khi giao worker
 

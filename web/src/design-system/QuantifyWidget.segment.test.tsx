@@ -76,6 +76,44 @@ describe("QuantifyWidget — trục base:'cust' đi qua qRunSegment (S2.C3b)", (
   });
 });
 
+/* Module D section 1 — wiring `qRunSplit` vào widget. Oracle đếm tay trên seed.cust (7 khách): acq biết
+   đủ 7/7, nav chỉ KH•••9F1 = '1-5tỷ' còn 6 khách 'chưa-biết' ⇒ thang màu có ĐÚNG 2 bậc: '1-5tỷ' và
+   'Không xác định'. Điều dễ sai nhất ở tầng vẽ không phải con số mà là DÙNG SAI BẢNG LEGEND: có chia
+   màu thì màu mã hoá NHÓM CHIA, không phải intent — chú giải cho một thang khác thang đang hiện là loại
+   lỗi không test nào khác trong repo bắt được. */
+describe("QuantifyWidget — chia màu (split) dùng legend của thang màu ĐANG vẽ", () => {
+  const q19 = seed.qt.find((x) => x.id === "q19");
+
+  it("q19 (acq × nav) → legend đúng 2 bậc của trục CHIA MÀU, không có split-note", () => {
+    if (!q19) throw new Error("fixture q19 (show='acq', split='nav') phải tồn tại trong seed");
+    render(<QuantifyWidget item={q19} data={seed} dims={dims} />);
+    const legend = screen.getByTestId("chart-legend");
+    expect(legend).toHaveTextContent("1-5tỷ");
+    expect(legend).toHaveTextContent("Không xác định");
+    // Đúng 2 bậc: nav chỉ có 1 giá trị biết được nên không thể có bậc thứ ba (kể cả "Khác").
+    expect(legend.children).toHaveLength(2);
+    expect(legend).not.toHaveTextContent("Khác");
+    expect(screen.queryByTestId("split-note")).not.toBeInTheDocument();
+  });
+
+  it("split trỏ vào trục KHÔNG phải base:'cust' → hiện split-note nêu lý do, chart vẫn vẽ được", () => {
+    // Dựng tay: validate rule 16 chặn tổ hợp này nên nó KHÔNG có (và không được có) trong seed —
+    // cùng lối đã dùng cho guard `unsupported` của CrossTable.
+    const bad: QuantifyShow = {
+      id: "test-split-bad",
+      kind: "show",
+      show: "acq",
+      split: "theme",
+      metric: "count",
+      chart: "rank",
+      name: "test split sai trục",
+    };
+    render(<QuantifyWidget item={bad} data={seed} dims={dims} />);
+    expect(screen.getByTestId("bars")).toBeInTheDocument();
+    expect(screen.getByTestId("split-note")).toHaveTextContent(/thuộc tính khách/);
+  });
+});
+
 describe("QuantifyWidget — trục KHÔNG phải cust vẫn dùng qRun như cũ (chống regression S2.C3b)", () => {
   it("q1 (show='theme', base='agg') → vẫn render Bars bình thường, KHÔNG có seg-coverage", () => {
     const themeItem = seed.qt.find((x) => x.id === "q1");

@@ -80,6 +80,11 @@ export function ThemeStackBlock({ data, onGo }: ThemeStackBlockProps) {
         <Bars
           rows={rows}
           segments={(r) => themeSegments(data, r.id, axis)}
+          /* Legend NGAY DƯỚI TỪNG THANH, không phải một dải chung (owner chốt 03/08). Bắt buộc phải
+             theo hàng: themeSegments() gán màu theo THỨ HẠNG TRONG một theme và mỗi theme có bộ
+             sub-theme/nhóm khách riêng ⇒ cùng màu ở hai thanh là hai thứ khác nhau. Xem Bars.tsx
+             (prop segmentLegend) để biết vì sao chỗ này KHÔNG dùng ChartLegend như QuantifyWidget. */
+          segmentLegend
           onRowClick={onGo ? (r) => onGo(`topic/${r.id}`) : undefined}
           axisLabel={axisLabelOf(axis)}
         />

@@ -9,8 +9,10 @@ export type ThemeSegment = { label: string; n: number; c: string; demo?: boolean
 
 /* Palette phân loại cố định — TRÙNG hằng CAT_CYCLE của design-system/paintCategorical.ts (var(--cat-1)
    .. var(--cat-5), token đã có sẵn trong index.css). KHÔNG import từ design-system: domain đứng DƯỚI
-   design-system trong layer (data→store→domain→design-system→features) nên không được import ngược. */
-const CAT_CYCLE = ["var(--cat-1)", "var(--cat-2)", "var(--cat-3)", "var(--cat-4)", "var(--cat-5)"];
+   design-system trong layer (data→store→domain→design-system→features) nên không được import ngược.
+   ĐÃ export (03/08) để domain/quantify.ts (qRunSplit — breakdown trục khách) dùng CHUNG thay vì tạo
+   bản sao THỨ BA của cùng palette — đúng loại trùng lặp mà ghi chú ngay trên đây đang cảnh báo. */
+export const CAT_CYCLE = ["var(--cat-1)", "var(--cat-2)", "var(--cat-3)", "var(--cat-4)", "var(--cat-5)"];
 
 /** Nhãn nhóm khách demo khi theme không có VoiceInsight nào (data.ins rỗng cho theme đó). */
 const DEMO_GROUPS = ["Khách mới", "Khách lâu năm", "Nhà đầu tư chủ động", "Khách VIP"];

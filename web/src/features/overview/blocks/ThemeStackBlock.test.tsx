@@ -76,6 +76,31 @@ describe("ThemeStackBlock", () => {
     expect(bars.children[0]).not.toHaveAttribute("role");
   });
 
+  /* Owner chốt 03/08: "chart có chia nhỏ bar theo nhóm khách/sub-theme thì cần cho thêm phần legend
+     note các màu phân chia là nhóm nào". Legend ở đây phải THEO HÀNG: themeSegments() gán CAT_CYCLE[i]
+     theo thứ hạng TRONG một theme, mỗi theme lại có bộ nhãn riêng, nên một dải chung sẽ nói sai (và
+     cũng không đủ màu — 5 màu cho ~12 nhãn). Hai test dưới khoá đúng điều đó cho CẢ hai trục. */
+  it("trục 'Nhóm khách' (mặc định) → mỗi thanh có legend riêng, nhãn khớp nhóm THẬT của theme đó", () => {
+    render(<ThemeStackBlock data={seed} cfg={cfgDefault} />);
+    const legend = screen.getByTestId("bars-seglegend-x-th-device");
+    // x-th-device có VoiceInsight seg=['Android tầm trung','Khách 50+'] → legend đúng 2 nhãn đó.
+    expect(legend).toHaveTextContent("Android tầm trung");
+    expect(legend).toHaveTextContent("Khách 50+");
+    // Legend của theme khác là bộ nhãn KHÁC → bằng chứng màu không so được giữa các thanh.
+    expect(screen.getByTestId("bars-seglegend-x-th-status")).not.toHaveTextContent("Android tầm trung");
+  });
+
+  it("trục 'Sub-theme' → theme có subtheme thì có legend; theme không có subtheme (1 đoạn) thì không", () => {
+    render(<ThemeStackBlock data={seed} cfg={cfgDefault} />);
+    fireEvent.click(screen.getByRole("button", { name: "Sub-theme" }));
+    const legend = screen.getByTestId("bars-seglegend-x-th-device");
+    expect(legend).toHaveTextContent("Android tầm trung, ánh sáng yếu");
+    expect(legend).toHaveTextContent("Giấy tờ bị chói hoặc mờ");
+    // Legend là CHÚ GIẢI MÀU, không phải bảng số — n đã có ở bề rộng đoạn + tooltip.
+    expect(legend.textContent).not.toContain("238");
+    expect(screen.queryByTestId("bars-seglegend-x-th-fee")).not.toBeInTheDocument();
+  });
+
   it("không có theme nào → thông báo trống, KHÔNG render Bars", () => {
     const data: CxmData = { ...seed, tax: seed.tax.filter((t) => t.lv !== "theme") };
     render(<ThemeStackBlock data={data} cfg={cfgDefault} />);
