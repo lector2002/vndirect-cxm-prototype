@@ -165,13 +165,15 @@ function genOne(rng: () => number, usedKeys: Set<string>): GenCustomer {
      tiền vào một tài khoản chưa mở xong. */
   const deposited = isDone ? rng() < 0.7 : false;
 
-  /* nav — QUY LUẬT: biết được khi (đã mở xong TK VÀ đã nạp tiền) HOẶC khách chuyển từ CTCK khác
-     (nhóm này khai NAV ngay lúc chuyển sang, không cần đợi nạp tiền ở TK mới). */
-  const navKnownByDeposit = isDone && deposited;
-  const navKnown = navKnownByDeposit || isTransfer;
-  const nav: NavBand | typeof UNKNOWN_YET = navKnown
+  /* nav — LUÔN CÓ GIÁ TRỊ, không có sentinel (owner chốt 04/08: "NAV sẽ lấy trực tiếp từ giá trị tài
+     sản hiện tại của KH nên ko thể có ko xác định"). Bản trước đây coi NAV là trường phải đợi khai
+     báo (chỉ biết sau khi nạp tiền / khách chuyển từ CTCK khác) nên 79% khách rơi vào 'chưa-biết' —
+     sai nguồn dữ liệu: NAV đọc thẳng từ tài sản đang có nên khách chưa nạp tiền vẫn tính được, bằng 0.
+     Khách chưa có đồng nào ⇒ dải thấp nhất '<50tr' (owner chốt dồn vào đây, không thêm dải '0đ'). */
+  const hasAssets = (isDone && deposited) || isTransfer;
+  const nav: NavBand = hasAssets
     ? pickWeighted(rng, isTransfer ? NAV_BANDS_TRANSFER : NAV_BANDS_STANDARD)
-    : UNKNOWN_YET;
+    : "<50tr";
 
   /* tenure — QUY LUẬT: biết được khi đã mở xong tài khoản (done); trước đó hành trình chưa tới
      chỗ có thể tính tenure quan hệ. */
@@ -179,12 +181,13 @@ function genOne(rng: () => number, usedKeys: Set<string>): GenCustomer {
     ? pickWeighted(rng, seg === SEG_MOI ? TENURE_FRESH : TENURE_ESTABLISHED)
     : UNKNOWN_YET;
 
-  /* tier — high-value CHỈ gán khi NAV đã chắc chắn biết (khách chuyển từ CTCK khác, hoặc đã mở
-     xong + đã nạp tiền + NAV thuộc dải cao) — đúng bất biến C1 (high-value ⟹ nav không sentinel). */
+  /* tier — high-value gán theo NAV thuộc dải cao. Không còn phải canh "NAV đã biết chưa" như bản cũ:
+     chỉ khách CÓ tài sản mới rút được dải cao (nhóm không có tài sản bị ghim '<50tr' ở trên), nên điều
+     kiện dải cao đã hàm ý có tài sản — thêm `hasAssets &&` chỉ là một luật thứ hai để trôi lệch. */
   let tier: string;
   if (isTransfer) {
     tier = "high-value";
-  } else if (navKnown && (nav === "1-5tỷ" || nav === ">5tỷ")) {
+  } else if (nav === "1-5tỷ" || nav === ">5tỷ") {
     tier = "high-value";
   } else if (pos === "s1" || pos === "s2") {
     tier = rng() < 0.7 ? "new" : "standard";
@@ -228,19 +231,12 @@ export function generateCustomers(n: number): Customer[] {
      Chọn theo THỨ TỰ sinh (không random thêm) để số lượng luôn > 0 một cách tất định, không phụ
      thuộc may rủi của một lần rút PRNG có thể ra toàn trượt. */
 
-  /* Ổ 1: ~4% khách ĐÃ NẠP TIỀN nhưng nav bị pipeline làm rớt — chỉ chọn trong nhóm nav biết được
-     QUA ĐƯỜNG NẠP TIỀN (không đụng khách chuyển từ CTCK khác — NAV của họ đến từ tự khai lúc
-     chuyển, không qua pipeline nạp tiền nên không dính bug này), và KHÔNG được chọn khách
-     high-value (bất biến C1: high-value ⟹ nav không sentinel). */
-  const navBugPool = list.filter(
-    (c) => c._deposited && c.seg !== SEG_TRANSFER && c.tier !== "high-value" && c.nav !== UNKNOWN_YET,
-  );
-  const navBugCount = Math.max(3, Math.round(navBugPool.length * 0.04));
-  for (let i = 0; i < Math.min(navBugCount, navBugPool.length); i++) {
-    (navBugPool[i] as Customer).nav = MISSING;
-  }
+  /* Ổ 'thiếu' của nav đã BỎ (owner chốt 04/08). Nó dựng trên tiền đề "NAV đi qua pipeline nạp tiền
+     nên pipeline làm rớt được" — mà NAV đọc trực tiếp từ tài sản hiện tại thì không có bước nào để
+     rớt. Trục nav từ nay KHÔNG có sentinel nào (cả 'chưa-biết' lẫn 'thiếu'); phần minh hoạ "hai loại
+     không biết khác nhau" nằm hết ở trục acq bên dưới, chỗ bug thu thập là thật. */
 
-  /* Ổ 2: ~3% tổng khách có acq 'thiếu' — kênh mở TK mới ra mắt, CRM chưa tích hợp ghi nguồn. */
+  /* Ổ 'thiếu' của acq: ~3% tổng khách — kênh mở TK mới ra mắt, CRM chưa tích hợp ghi nguồn. */
   const acqBugCount = Math.max(5, Math.round(n * 0.03));
   let acqBugPicked = 0;
   for (const c of list) {

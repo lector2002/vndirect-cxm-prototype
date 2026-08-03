@@ -388,7 +388,20 @@ export function QuantifyBuilder({
         </div>
 
         <div>
-          <QuantifyWidget item={live} data={data} dims={dims} cfg={cfg} view={qb.view} />
+          {/* onSplitChange: preview có chip strip đổi chiều chia màu (QuantifyWidget/SplitToggle) NẰM
+              CẠNH picker `qbuilder-picker-split` của builder — hai control cho cùng một field. Nối vào
+              CHÍNH `setField("split")` để chỉ có một writer: chỉ `qb.split` đi vào payload lúc Lưu, nên
+              nếu chip giữ state riêng thì người dùng bấm chip, thấy chart đổi, bấm Lưu và mất im lặng
+              cú đổi đó. Đi qua setField ⇒ mọi guard sẵn có (donut ⇒ bỏ split, split===show ⇒ bỏ, tắt
+              split ⇒ bỏ stack) vẫn chạy y như bấm picker. */}
+          <QuantifyWidget
+            item={live}
+            data={data}
+            dims={dims}
+            cfg={cfg}
+            view={qb.view}
+            onSplitChange={(next) => setField("split", next)}
+          />
         </div>
       </div>
     </div>

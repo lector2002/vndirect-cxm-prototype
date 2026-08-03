@@ -132,7 +132,13 @@ export type Customer = {
   pf: string;
   st: string;
   age: AgeBand | SegUnknown;
-  nav: NavBand | SegUnknown;
+  /** KHÔNG có sentinel — khác ba trục còn lại. NAV đọc TRỰC TIẾP từ giá trị tài sản hiện tại của
+   *  khách (owner chốt 04/08: "NAV sẽ lấy trực tiếp từ giá trị tài sản hiện tại của KH nên ko thể có
+   *  ko xác định"), nên luôn tính ra được: khách chưa mở xong TK hoặc mở xong mà chưa nạp tiền thì
+   *  tài sản = 0đ ⇒ rơi vào dải thấp nhất '<50tr' (owner chốt dồn vào dải này, không thêm dải '0đ').
+   *  Hệ quả khi đọc chart: '<50tr' nghĩa là "chưa có hoặc còn rất ít tài sản" — phần lớn nhóm này là
+   *  khách chưa nạp tiền, KHÔNG đọc thành "khách nhỏ đã đầu tư". */
+  nav: NavBand;
   tenure: TenureBand | SegUnknown;
   acq: AcqChannel | SegUnknown;
 };

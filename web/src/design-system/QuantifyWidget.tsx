@@ -44,6 +44,12 @@ export type QuantifyWidgetProps = {
    *  dùng cho mọi caller ngoài Overview — QuantifyLibrary/Detail/Builder — chưa cần range).
    *  KHÔNG áp cho item.kind==='show' (rank/donut/table là snapshot, không có chuỗi thời gian). */
   months?: number;
+  /** Có mặt ⇒ chip strip đổi chiều chia màu KHÔNG dùng state trong widget nữa mà báo lên caller, và
+   *  `item.split` do caller truyền xuống là nguồn duy nhất. Chỉ builder cần: ở đó cạnh preview còn
+   *  picker `qbuilder-picker-split` GHI vào cùng một thứ, mà chỉ giá trị của picker mới đi vào payload
+   *  lúc Lưu — hai writer thì người dùng bấm chip, thấy chart đổi, bấm Lưu và mất im lặng cú đổi đó.
+   *  Bỏ trống (Library/Detail/Overview) = widget tự giữ state, đúng hành vi "xem tại chỗ". */
+  onSplitChange?: (next: string | undefined) => void;
 };
 
 /* Fallback render-safe khi cfg chưa được truyền — KHÔNG phải ngưỡng nghiệp vụ chính thức, chỉ để
@@ -261,7 +267,7 @@ function buildSegDescription(seg: { known: number; unknown: number; missing: num
 
 /* Widget vạn năng render một QuantifyItem — orchestrator port tinh thần từ qWidget() (prototype
    dòng 2021). Nhận toàn bộ data/dims qua props (không đọc store) để component thuần theo props. */
-export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, onTitleClick, months }: QuantifyWidgetProps) {
+export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, onTitleClick, months, onSplitChange }: QuantifyWidgetProps) {
   const period = periodLabel(data);
   /* Hàng đang mở drill-down. State sống Ở ĐÂY, không thêm prop cho caller: đặt trong widget thì MỌI
      chỗ render nó (Library, Detail, Builder preview, Overview) có drill-down mà không cần nối gì —
@@ -269,14 +275,15 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
      không nhất quán"). Hook phải gọi TRƯỚC mọi nhánh return bên dưới (series/cross-tab). */
   const [drillRow, setDrillRow] = useState<DimRow | null>(null);
   /* Chiều chia màu do NGƯỜI XEM chọn tại chỗ (owner chốt 03/08, lát 1) — ghi đè `item.split` ghim cứng
-     trong fixture. Cũng KHÔNG thêm prop, cùng lý do như drillRow: mọi chỗ render widget có toggle mà
-     không phải nối gì. Hook phải gọi TRƯỚC mọi nhánh return bên dưới.
+     trong fixture. Mặc định state sống Ở ĐÂY, cùng lý do như drillRow: Library/Detail/Overview có
+     toggle mà không phải nối gì. Hook phải gọi TRƯỚC mọi nhánh return bên dưới.
 
-     Lưu KÈM `base` = giá trị `item.split` lúc bấm, không chỉ lưu value: trong builder preview người
-     dùng đổi `split` bằng picker của builder, `item` đổi theo — lúc đó `base` lệch nên override tự
-     rụng và picker thắng. Không cần useEffect, và không có cảnh chip cũ âm thầm đè lên cú bấm vừa rồi
-     ở builder (kiểu "hoàn tác im lặng" mà QuantifyBuilder đã nêu là khó lần ra nhất). */
-  const [splitPick, setSplitPick] = useState<{ base: string | undefined; value: string | undefined } | null>(null);
+     Chỉ builder truyền `onSplitChange` để LÁI state của nó thay cho state này (uncontrolled →
+     controlled) — không phải để "đồng bộ hai chỗ", mà để builder chỉ còn MỘT writer cho `split`: chỗ
+     nào ghi được vào payload lúc Lưu thì chỗ đó là chủ. Không cần lo override cũ hồi sinh khi item đổi
+     `split`: đổi `split` chỉ xảy ra qua builder, mà QuantifyPage return sớm theo `qview` nên màn
+     Library unmount — quay lại là state này đã mới. */
+  const [splitPick, setSplitPick] = useState<{ value: string | undefined } | null>(null);
 
   if (item.kind === "series") {
     /* S2.6a (R3): item series KHÔNG có denomStrip (không có rows để đếm; Card.subtitle đã mang kỳ)
@@ -350,7 +357,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
        nên tắt chia màu là phải bỏ luôn `stack`, không để field mồ côi làm `segBottomLabel` nói về một
        cách xếp đoạn không còn tồn tại. Ngược lại, ĐỔI chiều mà vẫn chia thì GIỮ `stack`: cách xếp đoạn
        là lựa chọn về CÁCH ĐỌC (tuyệt đối / tỷ trọng), không thuộc riêng chiều nào. */
-    const effSplit = splitPick && splitPick.base === item.split ? splitPick.value : item.split;
+    const effSplit = !onSplitChange && splitPick ? splitPick.value : item.split;
     const effItem: QuantifyShow =
       effSplit === item.split ? item : { ...item, split: effSplit, stack: effSplit ? item.stack : undefined };
 
@@ -459,7 +466,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
         <SplitToggle
           options={splitOptions}
           value={effSplit}
-          onChange={(next) => setSplitPick({ base: item.split, value: next })}
+          onChange={onSplitChange ?? ((next) => setSplitPick({ value: next }))}
           lockedReason={splitLocked}
         />
         <VAxisLabel label={segVAxis} bottomLabel={segBottomLabel}>

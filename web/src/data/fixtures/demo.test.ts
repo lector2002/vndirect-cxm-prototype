@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { generateCustomers, demoData } from "./demo.ts";
 import { dims, seedNav, seedTour, cfgDefault, seed } from "./seed.ts";
 import { validateFixture } from "../validate.ts";
-import { isSegUnknown, UNKNOWN_YET, MISSING } from "../segment.ts";
+import { UNKNOWN_YET, MISSING } from "../segment.ts";
 import type { Customer, AgeBand, NavBand, TenureBand, AcqChannel } from "../schema/index.ts";
 
 /* Đếm known/chưa-biết/thiếu cho MỘT trục — dùng isSegUnknown/UNKNOWN_YET/MISSING của segment.ts,
@@ -45,17 +45,25 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
     }
   });
 
-  it("nav và acq: cả ba nhóm known/chưa-biết/thiếu đều > 0 (có cả hai loại 'không biết')", () => {
-    for (const axis of ["nav", "acq"] as const) {
-      const values = demoData.cust.map((c) => c[axis] as string);
-      const { known, unknown, missing } = counts(values);
-      expect(known, `${axis}.known`).toBeGreaterThan(0);
-      expect(unknown, `${axis}.unknown`).toBeGreaterThan(0);
-      expect(missing, `${axis}.missing`).toBeGreaterThan(0);
-    }
+  /* acq là trục DUY NHẤT còn đủ cả hai loại "không biết" sau 04/08 — trước đó nav cũng có, nhưng owner
+     chốt NAV lấy trực tiếp từ tài sản hiện tại nên không còn đường nào để "chưa biết" hay "bị rớt". */
+  it("acq: cả ba nhóm known/chưa-biết/thiếu đều > 0 (còn giữ được cả hai loại 'không biết')", () => {
+    const values = demoData.cust.map((c) => c.acq as string);
+    const { known, unknown, missing } = counts(values);
+    expect(known, "acq.known").toBeGreaterThan(0);
+    expect(unknown, "acq.unknown").toBeGreaterThan(0);
+    expect(missing, "acq.missing").toBeGreaterThan(0);
   });
 
-  it("age/tenure: không có ổ 'thiếu' cố ý (chỉ known/chưa-biết) — chỉ nav/acq mới có bug thu thập", () => {
+  it("nav: KHÔNG có sentinel nào — mọi khách đều có dải (chưa có tài sản ⇒ '<50tr')", () => {
+    const values = demoData.cust.map((c) => c.nav as string);
+    const { known, unknown, missing } = counts(values);
+    expect(known).toBe(300);
+    expect(unknown).toBe(0);
+    expect(missing).toBe(0);
+  });
+
+  it("age/tenure: không có ổ 'thiếu' cố ý (chỉ known/chưa-biết) — chỉ acq mới có bug thu thập", () => {
     for (const axis of ["age", "tenure"] as const) {
       const values = demoData.cust.map((c) => c[axis] as string);
       const { missing } = counts(values);
@@ -109,9 +117,14 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
     }
   });
 
-  it("bất biến: tier 'high-value' luôn có nav không phải sentinel", () => {
+  /* Bất biến C1 cũ ("high-value ⟹ nav không sentinel", chống survivorship bias) nay là tập con của test
+     "nav: KHÔNG có sentinel nào" ở trên nên bỏ. Thay bằng điều kiện MẠNH HƠN còn ý nghĩa: high-value
+     phải nằm ở dải NAV cao thật (hoặc là khách chuyển từ CTCK khác) — chặn cảnh gán tier tuỳ ý. */
+  it("bất biến: tier 'high-value' luôn ở dải NAV cao, hoặc là khách chuyển từ CTCK khác", () => {
     for (const c of demoData.cust) {
-      if (c.tier === "high-value") expect(isSegUnknown(c.nav)).toBe(false);
+      if (c.tier !== "high-value") continue;
+      const ok = c.nav === "1-5tỷ" || c.nav === ">5tỷ" || c.seg === "Khách chuyển từ CTCK khác";
+      expect(ok, `${c.key}: tier high-value nhưng nav="${c.nav}" seg="${c.seg}"`).toBe(true);
     }
   });
 

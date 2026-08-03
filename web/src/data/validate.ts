@@ -460,7 +460,16 @@ export function validateFixture(
 
     for (const c of data.cust) {
       if (!AGE_BANDS.has(c.age) && !isSegUnknown(c.age)) e.push(`khách ${c.key}: age "${c.age}" không hợp lệ`);
-      if (!NAV_BANDS.has(c.nav) && !isSegUnknown(c.nav)) e.push(`khách ${c.key}: nav "${c.nav}" không hợp lệ`);
+      /* nav là trục DUY NHẤT không nhận sentinel (owner chốt 04/08: NAV lấy trực tiếp từ tài sản hiện
+         tại nên luôn tính ra được — khách chưa nạp tiền là 0đ, thuộc '<50tr'). Bắt cả 'chưa-biết' và
+         'thiếu' ở đây, vì fixture demo sinh lúc chạy nên tsc không canh được. */
+      if (!NAV_BANDS.has(c.nav)) {
+        e.push(
+          isSegUnknown(c.nav)
+            ? `khách ${c.key}: nav "${c.nav}" là sentinel — NAV lấy từ tài sản hiện tại nên phải luôn có dải (chưa có tài sản ⇒ "<50tr")`
+            : `khách ${c.key}: nav "${c.nav}" không hợp lệ`,
+        );
+      }
       if (!TENURE_BANDS.has(c.tenure) && !isSegUnknown(c.tenure)) e.push(`khách ${c.key}: tenure "${c.tenure}" không hợp lệ`);
       if (!ACQ_CHANNELS.has(c.acq) && !isSegUnknown(c.acq)) e.push(`khách ${c.key}: acq "${c.acq}" không hợp lệ`);
 
@@ -469,11 +478,8 @@ export function validateFixture(
         e.push(`khách ${c.key}: seg "Khách 50+" nhưng age "${c.age}" khác 50+`);
       }
 
-      /* Đã xếp high-value thì PHẢI biết NAV — nếu không, chính chỗ đó là survivorship bias:
-         chỉ những khách đã đi hết hành trình (nên có NAV) mới lọt vào high-value. */
-      if (c.tier === "high-value" && isSegUnknown(c.nav)) {
-        e.push(`khách ${c.key}: tier high-value nhưng nav "${c.nav}" là sentinel (thiếu NAV của khách high-value)`);
-      }
+      /* Rule "high-value ⟹ nav không sentinel" (bất biến C1 cũ) đã BỎ: rule nav ngay trên bắt sentinel
+         cho MỌI khách nên nó chỉ là tập con — giữ lại là hai chỗ nói cùng một điều, rồi lệch nhau. */
     }
   }
 

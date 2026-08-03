@@ -516,19 +516,19 @@ export const seed: CxmData = {
   ],
   cust: [
 { key:'KH•••7A2', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Bỏ dở tại bước 03',
-      age:'25-34', nav:'chưa-biết', tenure:'chưa-biết', acq:'banner' },
+      age:'25-34', nav:'<50tr', tenure:'chưa-biết', acq:'banner' },
     { key:'KH•••1C9', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Bỏ dở tại bước 03, đã gọi hỗ trợ',
-      age:'35-49', nav:'chưa-biết', tenure:'chưa-biết', acq:'banner' },
+      age:'35-49', nav:'<50tr', tenure:'chưa-biết', acq:'banner' },
     { key:'KH•••4B8', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Hoàn tất sau 4 lần thử',
-      age:'25-34', nav:'chưa-biết', tenure:'<6 tháng', acq:'tự tìm' },
+      age:'25-34', nav:'<50tr', tenure:'<6 tháng', acq:'tự tìm' },
     { key:'KH•••9F1', seg:'Khách chuyển từ CTCK khác',  tier:'high-value', pf:'android', st:'Đã hoàn tất, có 3 lần liên hệ',
       age:'35-49', nav:'1-5tỷ', tenure:'>5 năm', acq:'giới thiệu' },
     { key:'KH•••8B4', seg:'Mới mở TK',                  tier:'standard',   pf:'ios',     st:'Bỏ dở tại bước 05',
-      age:'25-34', nav:'chưa-biết', tenure:'chưa-biết', acq:'đối tác' },
+      age:'25-34', nav:'<50tr', tenure:'chưa-biết', acq:'đối tác' },
     { key:'KH•••5F6', seg:'Mới mở TK',                  tier:'standard',   pf:'ios',     st:'Hoàn tất · đã được liên hệ khép vòng',
-      age:'35-49', nav:'chưa-biết', tenure:'<6 tháng', acq:'chi nhánh' },
+      age:'35-49', nav:'<50tr', tenure:'<6 tháng', acq:'chi nhánh' },
     { key:'KH•••2C8', seg:'Khách 50+',                  tier:'standard',   pf:'android', st:'Chưa hoàn tất, cần hỗ trợ',
-      age:'50+', nav:'chưa-biết', tenure:'chưa-biết', acq:'chi nhánh' },
+      age:'50+', nav:'<50tr', tenure:'chưa-biết', acq:'chi nhánh' },
   ],
   qt: [
 { id:'q1', kind:'show', show:'theme', metric:'count', chart:'rank', name:'Volume theo Theme',
@@ -561,7 +561,7 @@ export const seed: CxmData = {
     { id:'q17',kind:'show', show:'acq', metric:'count', chart:'rank', name:'Khách theo kênh mở TK',
       note:'Dải xám "Không xác định" gộp hai loại NGƯỢC NHAU: khách chưa tới chỗ biết được, và khách đáng lẽ phải có giá trị mà thiếu (lỗi thu thập). Dòng dưới chart tách rõ từng loại — chữa hai loại đó là hai việc khác nhau.' },
     { id:'q18',kind:'show', show:'nav', metric:'count', chart:'rank', name:'Khách theo phân khúc NAV',
-      note:'NAV chỉ biết được sau khi khách nạp tiền lần đầu, nên phần "chưa biết" ở đây là QUY LUẬT hành trình, không phải lỗi dữ liệu — không có gì để sửa.' },
+      note:'NAV lấy trực tiếp từ giá trị tài sản hiện tại nên MỌI khách đều có phân khúc — trục này không có nhóm "không xác định". Đọc kèm một điều: dải "<50tr" gồm cả khách chưa nạp tiền (tài sản 0đ), nên nó nói "chưa có/còn rất ít tài sản", không nói "khách nhỏ đã đầu tư".' },
 
     /* Item ĐẦU TIÊN dùng `split` (breakdown — Module D section 1, owner chốt 03/08). Chọn acq × nav
        vì CẢ HAI là base:'cust' nên hai giá trị nằm trên CÙNG một dòng Customer ⇒ mỗi đoạn màu là số
@@ -571,7 +571,7 @@ export const seed: CxmData = {
        KHÔNG set `stack`: vắng ⇒ 'abs', giữ bề rộng thanh ∝ số khách nên dòng "Phủ X%" dưới chart vẫn
        đọc được; người dùng tự bật 'pct' trong builder khi muốn so hình dạng. */
     { id:'q19',kind:'show', show:'acq', split:'nav', metric:'count', chart:'rank', name:'Kênh mở TK × Phân khúc NAV',
-      note:'Mỗi thanh là một kênh mở TK, các đoạn màu bên trong là phân khúc NAV của chính nhóm khách đó — đếm trực tiếp trên dòng khách, không suy ra từ tỷ lệ. Đoạn "Không xác định" nằm CẠNH các đoạn có tên, không gộp vào chúng: nó là phần chưa biết được NAV, khác hẳn một phân khúc nhỏ.' },
+      note:'Mỗi thanh là một kênh mở TK, các đoạn màu bên trong là phân khúc NAV của chính nhóm khách đó — đếm trực tiếp trên dòng khách, không suy ra từ tỷ lệ. NAV không có nhóm "không xác định" (lấy từ tài sản hiện tại), nên tổng các đoạn màu bằng đúng bề rộng thanh; riêng dải "<50tr" gồm cả khách chưa nạp tiền.' },
 
     { id:'q5', kind:'series', chart:'trend', name:'Trend theme "Thiết bị không tương thích"', dim:'Theme · xu hướng', unit:'kỳ', shown:6, total:6,
       t:[{l:'Positive share (%)',p:[54,52,50,48,46,44,42,40,36,31,26,19]}],

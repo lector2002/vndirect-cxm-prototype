@@ -177,6 +177,28 @@ describe("QuantifyBuilder — gate chia màu: mutual exclusion + clear khi show 
   });
 });
 
+/* (i) — lát 1: preview của builder có THÊM chip strip đổi chiều chia màu (SplitToggle trong
+   QuantifyWidget) đứng cạnh picker `qbuilder-picker-split`. Hai control cho cùng một field, mà chỉ
+   `qb.split` đi vào payload lúc Lưu ⇒ chip BUỘC phải ghi vào qb, không được giữ state riêng trong
+   widget. Không có test này thì lỗi là loại tệ nhất: chart đổi trước mắt, bấm Lưu, mất im lặng. */
+describe("QuantifyBuilder — chip strip trong preview ghi vào CÙNG qb.split với picker (một writer)", () => {
+  it("bấm chip 'Độ tuổi' trong preview → setQb nhận split='age' (không phải chỉ đổi hình)", () => {
+    const setQb = vi.fn();
+    render(<QuantifyBuilder {...baseProps({ qb: { ...QB_DEF, show: "acq" }, setQb })} />);
+    fireEvent.click(within(screen.getByTestId("split-toggle")).getByRole("button", { name: dims.age.label }));
+    expect(setQb).toHaveBeenCalledWith(expect.objectContaining({ show: "acq", split: "age" }));
+  });
+
+  it("bấm chip 'Không chia' khi đang có stack='pct' → qua setField nên stack cũng bị dọn", () => {
+    const setQb = vi.fn();
+    render(
+      <QuantifyBuilder {...baseProps({ qb: { ...QB_DEF, show: "acq", split: "nav", stack: "pct" }, setQb })} />,
+    );
+    fireEvent.click(within(screen.getByTestId("split-toggle")).getByRole("button", { name: "Không chia" }));
+    expect(setQb).toHaveBeenCalledWith(expect.objectContaining({ split: undefined, stack: undefined }));
+  });
+});
+
 /* (j) — hai mẫu số "%" không được bật cùng lúc. `metric:'pct'` là % trên TỔNG cohort (vào nhãn số),
    `stack:'pct'` là tỷ trọng TRONG hàng (vào bề rộng); bật cả hai thì nhãn trục dọc nói "% trên tổng"
    còn nhãn đáy nói "(100%) trong từng <đơn vị>" — cùng một hình, hai mẫu số. Trước 03/08 tổ hợp này

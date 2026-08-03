@@ -151,7 +151,7 @@ describe("qRunCross", () => {
 describe("qRunSegment", () => {
   // Oracle đếm tay trên seed.cust thật (7 khách, dòng ~518-531 seed.ts):
   // age:    25-34,35-49,25-34,35-49,25-34,35-49,50+           → known=7 unknown=0 missing=0
-  // nav:    chưa-biết x6, '1-5tỷ' x1 (KH•••9F1)                → known=1 unknown=6 missing=0
+  // nav:    '<50tr' x6, '1-5tỷ' x1 (KH•••9F1)                  → known=7 unknown=0 missing=0
   // tenure: chưa-biết x4, '<6 tháng' x2, '>5 năm' x1           → known=3 unknown=4 missing=0
   // acq:    banner,banner,tự tìm,giới thiệu,đối tác,chi nhánh,chi nhánh → known=7 unknown=0 missing=0
   it("age — mọi khách đã biết, known=7", () => {
@@ -164,14 +164,20 @@ describe("qRunSegment", () => {
     expect(res.rows.reduce((a, r) => a + r.v, 0)).toBe(res.known);
   });
 
-  it("nav — chỉ 1/7 khách đã có NAV, 6 còn lại chưa-biết (nội dung thật của trục, không phải lỗi)", () => {
+  /* nav là trục DUY NHẤT không có sentinel (owner chốt 04/08: NAV lấy trực tiếp từ giá trị tài sản
+     hiện tại nên luôn tính ra được — chưa nạp tiền là 0đ, thuộc '<50tr'). Test này vì thế đồng thời
+     là chốt chặn: nếu ai đó trả sentinel về cho nav thì unknown>0 và nó đỏ ngay. */
+  it("nav — mọi khách đều có dải NAV, known=7 (không có nhóm 'chưa biết' trên trục này)", () => {
     const item: QuantifyShow = { id: "test-seg-nav", kind: "show", show: "nav", metric: "count", chart: "rank", name: "test" };
     const res = qRunSegment(item, seed, dims);
     if (res.kind !== "draw") throw new Error("kỳ vọng draw");
-    expect(res.known).toBe(1);
-    expect(res.unknown).toBe(6);
+    expect(res.known).toBe(7);
+    expect(res.unknown).toBe(0);
     expect(res.missing).toBe(0);
-    expect(res.rows).toEqual([{ id: "1-5tỷ", l: "1-5tỷ", v: 1 }]);
+    expect(res.rows).toEqual([
+      { id: "<50tr", l: "<50tr", v: 6 },
+      { id: "1-5tỷ", l: "1-5tỷ", v: 1 },
+    ]);
   });
 
   it("tenure — known=3 unknown=4", () => {
@@ -212,10 +218,10 @@ describe("qRunSegment", () => {
   });
 
   it("known=0 (chưa khách nào biết) → refuse, KHÔNG vẽ matrix rỗng như thật", () => {
-    // Dựng fixture tối giản: loại bỏ đúng khách duy nhất có nav thật (KH•••9F1) khỏi seed thật,
-    // còn lại toàn 'chưa-biết' → known=0. Không sửa seed.ts, chỉ override cục bộ cho test này.
-    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.nav !== "1-5tỷ") };
-    const item: QuantifyShow = { id: "test-seg-zero", kind: "show", show: "nav", metric: "count", chart: "rank", name: "test" };
+    /* Dựng fixture tối giản: giữ đúng 4 khách có tenure 'chưa-biết' → known=0. Trục dùng ở đây ĐỔI TỪ
+       nav SANG tenure (04/08): nav không còn sentinel nên known=0 không thể xảy ra trên nav nữa. */
+    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.tenure === "chưa-biết") };
+    const item: QuantifyShow = { id: "test-seg-zero", kind: "show", show: "tenure", metric: "count", chart: "rank", name: "test" };
     const res = qRunSegment(item, miniData, dims);
     expect(res.kind).toBe("refuse");
   });
@@ -266,22 +272,26 @@ describe("qRunSplit", () => {
     for (const nav of ["<50tr", "50-200tr", "200tr-1tỷ", "1-5tỷ", ">5tỷ"]) {
       expect(byLabel[nav]).toBe(hand(nav));
     }
-    // "Không xác định" gộp CẢ 'chưa-biết' LẪN 'thiếu' của trục chia màu
-    expect(byLabel["Không xác định"]).toBe(hand("chưa-biết") + hand("thiếu"));
+    /* KHÔNG có đoạn "Không xác định" trên trục nav (owner chốt 04/08: NAV lấy từ tài sản hiện tại).
+       Giữ assert phủ định để nếu sentinel quay lại thì đỏ ngay tại đây, không âm thầm thành một đoạn xám. */
+    expect(byLabel["Không xác định"]).toBeUndefined();
+    expect(hand("chưa-biết") + hand("thiếu")).toBe(0);
 
     // (b) chốt hồi quy trên generator demo.ts hiện tại (Σ = 60 = số khách acq='banner')
     expect(byLabel).toEqual({
-      "200tr-1tỷ": 5, "50-200tr": 4, "<50tr": 1, "1-5tỷ": 2, ">5tỷ": 2, "Không xác định": 46,
+      "200tr-1tỷ": 5, "50-200tr": 4, "<50tr": 47, "1-5tỷ": 2, ">5tỷ": 2,
     });
     expect(sp.byRow["banner"].reduce((a, s) => a + s.n, 0)).toBe(60);
   });
 
-  it("legend dùng CHUNG cho mọi hàng, 'Không xác định' ghim CUỐI", () => {
+  it("legend dùng CHUNG cho mọi hàng, đúng 5 dải NAV (trục này không có 'Không xác định')", () => {
     const sp = qRunSplit(acqByNav, demoData, dims);
     if (sp.kind !== "draw") throw new Error("kỳ vọng draw");
-    // 5 thành viên NavBand + 1 "Không xác định"; chưa tới trần SPLIT_TOP_N=6 nên KHÔNG có "Khác".
-    expect(sp.legend).toHaveLength(6);
-    expect(sp.legend[sp.legend.length - 1].label).toBe("Không xác định");
+    /* 5 thành viên NavBand, KHÔNG có bậc "Không xác định" (nav luôn có dải kể từ 04/08); chưa tới trần
+       SPLIT_TOP_N=6 nên cũng KHÔNG có "Khác". Luật "ghim Không xác định xuống CUỐI" chuyển sang test
+       ngay dưới (chia màu theo acq — trục còn sentinel thật), không mất độ phủ. */
+    expect(sp.legend).toHaveLength(5);
+    expect(sp.legend.some((l) => l.label === "Không xác định")).toBe(false);
     expect(sp.legend.some((l) => l.label.startsWith("Khác"))).toBe(false);
     /* Mọi nhãn đoạn của MỌI hàng phải nằm trong legend — nếu không, "màu thứ ba" của hàng A và hàng B
        là hai thứ khác nhau và chart mất khả năng so ngang. */
@@ -289,6 +299,30 @@ describe("qRunSplit", () => {
     for (const segs of Object.values(sp.byRow)) {
       for (const s of segs) expect(known.has(s.label)).toBe(true);
     }
+  });
+
+  /* Luật "Không xác định ghim CUỐI legend" — chuyển từ acq×nav sang age×acq sau 04/08: trục nav hết
+     sentinel nên không còn chạm được nhánh này, còn acq thì có cả 'chưa-biết' (attribution chưa
+     resolve) lẫn 'thiếu' (CRM chưa ghi nguồn). Ghim cuối để nhóm không-biết không chen giữa các bậc
+     có tên và bị đọc như một hạng mục ngang hàng. */
+  it("chia màu theo acq (trục CÓ sentinel) → 'Không xác định' ghim CUỐI legend", () => {
+    const ageByAcq: QuantifyShow = {
+      id: "t-split-age-acq", kind: "show", name: "Độ tuổi × Kênh mở TK",
+      show: "age", split: "acq", metric: "count", chart: "rank",
+    };
+    const sp = qRunSplit(ageByAcq, demoData, dims);
+    if (sp.kind !== "draw") throw new Error("kỳ vọng draw");
+    // 5 AcqChannel + 1 "Không xác định" = 6, đúng trần SPLIT_TOP_N nên vẫn chưa có "Khác".
+    expect(sp.legend).toHaveLength(6);
+    expect(sp.legend[sp.legend.length - 1].label).toBe("Không xác định");
+    // Đếm lại độc lập: 8 'chưa-biết' + 9 'thiếu' = 17 khách acq không biết, không được rơi mất.
+    const unknownAcq = demoData.cust.filter((c) => c.acq === "chưa-biết" || c.acq === "thiếu");
+    const unknownSegs = Object.values(sp.byRow)
+      .flat()
+      .filter((s) => s.label === "Không xác định")
+      .reduce((a, s) => a + s.n, 0);
+    // Chỉ tính khách có age BIẾT được (hàng của chart là age) — phần còn lại không có hàng để nằm.
+    expect(unknownSegs).toBe(unknownAcq.filter((c) => c.age !== "chưa-biết" && c.age !== "thiếu").length);
   });
 
   /* "Khác" KHÔNG tới được bằng data thật ở section 1: mọi union trục khách có tối đa 5 thành viên
@@ -335,9 +369,10 @@ describe("qRunSplit", () => {
   });
 
   it("refuse: known=0 ở trục hàng → không có thanh nào để chia màu", () => {
-    // seed thật: chỉ KH•••9F1 có nav biết được; bỏ nó đi là known=0 (cùng ca đã dùng cho qRunSegment).
-    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.nav !== "1-5tỷ") };
-    expect(qRunSplit({ ...acqByNav, show: "nav", split: "acq" }, miniData, dims).kind).toBe("refuse");
+    // Giữ 4 khách tenure 'chưa-biết' ⇒ known=0 (cùng ca đã dùng cho qRunSegment; đổi từ nav sang
+    // tenure vì nav hết sentinel từ 04/08 nên không dựng được known=0 trên nó nữa).
+    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.tenure === "chưa-biết") };
+    expect(qRunSplit({ ...acqByNav, show: "tenure", split: "acq" }, miniData, dims).kind).toBe("refuse");
   });
 });
 

@@ -1447,3 +1447,89 @@ lại bằng chính hàm đang test: một test chỉ xem "đoạn màu có xu�
 **Đọc đúng phạm vi:** lát 1 chứng minh **tương tác + luật disable** chạy đúng trên 3 chart mà số đã
 thật sẵn. Động cơ owner nêu ("thấy vấn đề → toggle xem tập trung nhóm nào") mới được phục vụ ở **lát
 2** (toggle trên chart theme/keyword/nguồn) — lát này chưa phải cái đó, đừng đọc demo thành feature.
+
+---
+
+## 04/08/2026 — Hai việc sau lát 1: bịt lỗ "hai writer" ở builder, và bỏ "không xác định" khỏi trục NAV
+
+### A. Builder có HAI chỗ ghi `item.split`, chỉ một chỗ được lưu
+
+Lát 1 đặt chip strip vào `QuantifyWidget`, mà builder render `<QuantifyWidget item={live}>` NGAY CẠNH
+picker `qbuilder-picker-split` của nó. Khi `show` là trục khách thì cả hai control cùng hiện và cùng
+đổi chart — nhưng **chỉ `qb.split` đi vào payload lúc Lưu**. Hệ quả: bấm chip → chart đổi → bấm Lưu →
+mất im lặng cú đổi đó. Đây là lỗi tôi tự tạo ra ở commit `d64c2f8` và **không test nào bắt được**, vì
+11 test của lát 1 không test màn builder.
+
+| | trước | sau |
+|---|---|---|
+| chip trong preview builder | state riêng trong widget → chart đổi, `qb` không đổi | gọi `onSplitChange` → `setField("split")`, đúng chỗ được lưu |
+| guard của builder (donut ⇒ bỏ split, `split===show` ⇒ bỏ, tắt split ⇒ bỏ `stack`) | chip không đi qua | chip đi qua `setField` nên chạy y như bấm picker |
+| Library/Detail/Overview | state trong widget | KHÔNG đổi (không truyền `onSplitChange`) |
+
+Cách sửa: thêm prop **tuỳ chọn** `onSplitChange?: (next: string \| undefined) => void`. Có prop ⇒ widget
+không giữ state, `item.split` do caller là nguồn duy nhất (uncontrolled → controlled). Đây đúng là prop
+mà lát 1 cố tránh, nhưng tránh nó phải trả bằng một cách mất dữ liệu im lặng — không đáng.
+
+**Tự bác một lo lắng sai của chính lát 1:** comment cũ nói phải lưu kèm `base` để override "tự rụng"
+khi builder đổi `split`. Kiểm lại `QuantifyPage.tsx`: `qview === "build"` **return sớm**, nên màn
+Library unmount hẳn khi vào builder — không có đường nào để override cũ hồi sinh. Đã bỏ `base`, state
+gọn lại còn `{ value } | null`, và comment nói đúng lý do thật.
+
+**Live-check (builder, `show='Kênh mở TK'`):** bấm chip `Phân khúc NAV` trong preview → nút `Phân khúc
+NAV` của `qbuilder-picker-split` chuyển sang `bg-primary text-white`, picker "cách xếp đoạn màu" xuất
+hiện. Trước fix picker vẫn nằm ở "— không chia màu —" trong khi chart đã có đoạn màu.
+
+**Test:** 2 test mới ở `QuantifyBuilder.test.tsx` (chip → `setQb` nhận `split:'age'`; chip "Không chia"
+khi đang `stack:'pct'` → `stack` cũng bị dọn, chứng minh đi qua `setField`).
+
+### B. NAV không có "không xác định" nữa — owner bác quy luật cũ
+
+> "NAV sẽ lấy trực tiếp từ giá trị tài sản hiện tại của KH nên ko thể có ko xác định"
+
+Quy luật cũ trong `demo.ts` coi NAV là trường **phải đợi khai báo**: chỉ biết khi (mở xong TK + đã nạp
+tiền) hoặc khách chuyển từ CTCK khác. Đo trước khi sửa: **236/300 khách (79%) có NAV sentinel** — 210
+khách chưa mở xong TK (s1 27 · s2 47 · s3 75 · s5 61), 20 khách mở xong chưa nạp, 3 khách `thiếu`. Sai
+ở **nguồn dữ liệu**, không phải ở tỷ lệ: NAV đọc thẳng từ tài sản đang có nên khách chưa nạp vẫn tính
+được, bằng 0.
+
+**Owner chốt phương án dồn hết vào `<50tr`, giữ 5 dải.** Tôi có nêu điểm yếu trước khi hỏi và owner
+quyết: dải `<50tr` thành 247/300 (82%), nên chart NAV gần như một cột, và cột đó nói "chưa có tài sản"
+chứ không nói "khách nhỏ". Phương án tôi khuyến nghị (thêm dải `0đ — chưa có tài sản`) bị loại. Vì thế
+**note của q18/q19 phải tự nói ra điều đó** — không nói là chart lừa người đọc bằng cách im lặng.
+
+| chỗ | đổi |
+|---|---|
+| `schema/cxm.ts` | `nav: NavBand \| SegUnknown` → `nav: NavBand` (trục khách DUY NHẤT không có sentinel) |
+| `fixtures/demo.ts` | `hasAssets = (isDone && deposited) \|\| isTransfer`; không có tài sản ⇒ `'<50tr'` |
+| `fixtures/demo.ts` | **bỏ ổ `thiếu` của nav** — tiền đề của nó ("pipeline nạp tiền làm rớt NAV") không còn |
+| `fixtures/demo.ts` | tier high-value chỉ còn xét dải NAV cao (điều kiện dải cao đã hàm ý có tài sản) |
+| `fixtures/seed.ts` | 6 khách `nav:'chưa-biết'` → `'<50tr'`; `KH•••9F1` giữ `'1-5tỷ'` |
+| `fixtures/seed.ts` | note q18/q19 viết lại: nói rõ `<50tr` gồm cả khách chưa nạp tiền |
+| `validate.ts` | rule 19: nav sentinel = LỖI (thông điệp riêng); bỏ rule C1 "high-value ⟹ nav không sentinel" vì đã thành tập con |
+
+**Hai loại "không biết" vẫn còn nguyên chỗ minh hoạ:** trục `acq` giữ cả `chưa-biết` (8) và `thiếu` (9)
+— chỗ bug thu thập là thật. Chỉ nav rời khỏi câu chuyện đó.
+
+**Ba nhánh test mất chỗ chạm phải CHUYỂN TRỤC, không được xoá** (nav hết sentinel ⇒ không dựng được
+`known=0` hay "gộp Không xác định" trên nav nữa): 3 test ở `QuantifyWidget.segment.test.tsx` + 2 test
+`refuse` ở `domain/quantify.test.ts` chuyển sang `tenure`; luật "ghim Không xác định xuống CUỐI legend"
+chuyển sang một test MỚI dùng `age × acq`. Nếu chỉ sửa số cho xanh thì ba hành vi này mất phủ im lặng.
+
+**Số đo lại (live, `demoData` 300 khách):**
+
+| | trước | sau |
+|---|---|---|
+| phân bố nav | `chưa-biết` 233 · `thiếu` 3 · 200tr-1tỷ 16 · 50-200tr 16 · <50tr 14 · 1-5tỷ 10 · >5tỷ 8 | `<50tr` **247** · 50-200tr 18 · 200tr-1tỷ 17 · 1-5tỷ 10 · >5tỷ 8 |
+| q18 dòng phủ | `Phủ ...` có nhóm không xác định | **`Phủ 100% (300/300 khách có dữ liệu).`** |
+| q19 legend | 6 bậc, cuối là `Không xác định` | 5 bậc, hết bậc xám |
+| q19 hàng `tự tìm` (62) | `3+6+6+3+2+42` | `48+6+3+3+2` |
+| q17 (trục acq) | — | GIỮ `Không xác định 17` + `8 chưa biết / 9 thiếu` ✔ |
+| chip disable | q18 khoá NAV, q17/q19 khoá Kênh mở TK | KHÔNG đổi ✔ |
+
+**Verify:** `npx tsc -b` exit 0 · **661 test / 70 file xanh** (656 → +2 builder, +2 validate, +1 legend
+`age × acq`) · `npx vite build` exit 0 (1,03s, `index-DA2M6wwv.js` 445,26 kB) · live-check bảng trên.
+
+**Còn nợ (nói ra, không sửa trong lát này):** khi đang chia màu, bấm vào một **đoạn** màu vẫn nổi lên
+hàng nên drill panel mở ra nói về CẢ hàng (vd bấm đoạn `<50tr: 48` mở panel 62 khách). Câu trong panel
+vẫn đúng về hàng nên không phải lời sai, nhưng đây là chỗ duy nhất của feature này có thể làm người
+dùng bất ngờ — xếp cùng hàng với Donut/table chưa click được.

@@ -72,14 +72,15 @@ describe("QuantifyWidget — toggle chiều chia màu: lựa chọn tới đư�
   it("q19: đổi NAV → Độ tuổi thì CẢ nhãn legend LẪN số từng đoạn của hàng 'tự tìm' (62 khách) đổi theo", () => {
     render(<QuantifyWidget item={findItem("q19")} data={demoData} dims={dims} />);
     expect(screen.getByTestId("bars").children[0]).toHaveTextContent("tự tìm");
-    // Trạng thái đầu = split 'nav' của fixture: 3+6+6+3+2+42 = 62.
+    /* Trạng thái đầu = split 'nav' của fixture: 48+6+3+3+2 = 62. KHÔNG có đoạn "Không xác định" — owner
+       chốt 04/08 NAV lấy trực tiếp từ tài sản hiện tại, khách chưa nạp tiền là 0đ nên nằm ở '<50tr'
+       (chính vì vậy đoạn '<50tr' chiếm gần hết thanh). */
     expect(rowSegTitles(0)).toEqual([
-      "200tr-1tỷ: 3",
+      "<50tr: 48",
       "50-200tr: 6",
-      "<50tr: 6",
+      "200tr-1tỷ: 3",
       "1-5tỷ: 3",
       ">5tỷ: 2",
-      "Không xác định: 42",
     ]);
 
     fireEvent.click(chip("Độ tuổi"));
@@ -102,7 +103,7 @@ describe("QuantifyWidget — toggle chiều chia màu: lựa chọn tới đư�
 
   it("q19: bấm 'Không chia' → hết đoạn màu, thanh về một khối liền", () => {
     render(<QuantifyWidget item={findItem("q19")} data={demoData} dims={dims} />);
-    expect(rowSegTitles(0)).toHaveLength(6);
+    expect(rowSegTitles(0)).toHaveLength(5);
     fireEvent.click(chip("Không chia"));
     expect(chip("Không chia")).toHaveAttribute("aria-pressed", "true");
     expect(rowSegTitles(0)).toHaveLength(0);

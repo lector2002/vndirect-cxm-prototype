@@ -391,11 +391,21 @@ describe("validateFixture", () => {
     expect(r.some((e) => e.includes('seg "Khách 50+"') && e.includes("khác 50+"))).toBe(true);
   });
 
-  it("19: tier high-value nhưng nav là sentinel (survivorship bias)", () => {
+  /* Thay test "high-value ⟹ nav không sentinel" (bất biến C1 cũ) bằng luật MẠNH HƠN kể từ 04/08: nav
+     không nhận sentinel cho BẤT KỲ khách nào, vì NAV lấy trực tiếp từ tài sản hiện tại. Ép vào một
+     khách thường (không phải high-value) để chứng minh rule không chỉ áp cho nhóm high-value. */
+  it("19: nav là sentinel ở khách THƯỜNG cũng đỏ (NAV luôn tính được từ tài sản hiện tại)", () => {
     const d = structuredClone(seed) as CxmData;
-    const hv = d.cust.find((c) => c.tier === "high-value")!;
-    d.cust = d.cust.map((c) => (c.key === hv.key ? { ...c, nav: "chưa-biết" as typeof c.nav } : c));
+    const normal = d.cust.find((c) => c.tier !== "high-value")!;
+    d.cust = d.cust.map((c) => (c.key === normal.key ? { ...c, nav: "chưa-biết" as typeof c.nav } : c));
     const r = validateFixture(d, dims, seedNav, seedTour);
-    expect(r.some((e) => e.includes("high-value") && e.includes("sentinel"))).toBe(true);
+    expect(r.some((e) => e.includes("nav") && e.includes("sentinel"))).toBe(true);
+  });
+
+  it("19: nav 'thiếu' (bug pipeline) cũng đỏ — trục này không có chỗ cho ổ thiếu nữa", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.cust = d.cust.map((c, i) => (i === 0 ? { ...c, nav: "thiếu" as typeof c.nav } : c));
+    const r = validateFixture(d, dims, seedNav, seedTour);
+    expect(r.some((e) => e.includes("nav") && e.includes("sentinel"))).toBe(true);
   });
 });
