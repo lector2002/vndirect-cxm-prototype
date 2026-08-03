@@ -20,32 +20,16 @@ describe("ThemeStackBlock", () => {
     expect(screen.queryByText("Đề nghị mở kênh hỗ trợ tại quầy")).not.toBeInTheDocument(); // x-th-branch, hạng 9 bị cắt
   });
 
-  it("mặc định axis='subtheme' — thanh x-th-device chia đúng 2 đoạn màu theo n thật subtheme (Σ=412, không đoạn 'Chưa gán')", () => {
-    const { container } = render(<ThemeStackBlock data={seed} cfg={cfgDefault} />);
-    expect(screen.getByRole("button", { name: "Sub-theme" })).toHaveAttribute("aria-pressed", "true");
-    const deviceRow = screen.getByText("Thiết bị / môi trường không tương thích").closest("[title]")!;
-    const fill = deviceRow.querySelector(".flex.rounded-\\[4px\\]") as HTMLElement;
-    expect(fill.children).toHaveLength(2);
-    expect(fill.children[0]).toHaveAttribute("title", "Android tầm trung, ánh sáng yếu: 238");
-    expect(fill.children[1]).toHaveAttribute("title", "Giấy tờ bị chói hoặc mờ: 174");
-    expect(container.textContent).toContain("theo sub-theme");
-  });
-
-  it("axis='subtheme' — theme KHÔNG có subtheme (x-th-fee, hạng 7) → 1 đoạn duy nhất 'Chưa gán sub-theme: 118'", () => {
+  /* MẶC ĐỊNH là 'group' (owner chốt 03/08), KHÔNG phải trục thật — vì chỉ 3/14 theme có sub-theme
+     nên trục thật để mặc định sẽ ra 5/8 thanh top xám đặc. Đổi lại, mặc định là số DEMO, nên hai
+     thứ chặn đọc nhầm (nhãn "demo" + denomStrip "tỷ trọng minh hoạ") được test khoá ở đây. */
+  it("mặc định axis='group' — nhãn 'demo' hiện sẵn, axisLabel nói rõ demo, Σ đoạn vẫn = n theme", () => {
     render(<ThemeStackBlock data={seed} cfg={cfgDefault} />);
-    const feeRow = screen.getByText("Phí và thuế trừ không như kỳ vọng").closest("[title]")!;
-    const fill = feeRow.querySelector(".flex.rounded-\\[4px\\]") as HTMLElement;
-    expect(fill.children).toHaveLength(1);
-    expect(fill.children[0]).toHaveAttribute("title", "Chưa gán sub-theme: 118");
-  });
-
-  it("bấm toggle 'Nhóm khách' → aria-pressed đổi, nhãn 'demo' xuất hiện, axisLabel đổi, mọi đoạn segments demo=true (Σ vẫn = n theme)", () => {
-    render(<ThemeStackBlock data={seed} cfg={cfgDefault} />);
-    fireEvent.click(screen.getByRole("button", { name: "Nhóm khách" }));
     expect(screen.getByRole("button", { name: "Nhóm khách" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: "Sub-theme" })).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("demo")).toBeInTheDocument();
     expect(screen.getByText(/theo nhóm khách \(demo\)/)).toBeInTheDocument();
+    expect(screen.getByText(/tỷ trọng minh hoạ/)).toBeInTheDocument();
 
     const deviceRow = screen.getByText("Thiết bị / môi trường không tương thích").closest("[title]")!;
     const fill = deviceRow.querySelector(".flex.rounded-\\[4px\\]") as HTMLElement;
@@ -54,6 +38,28 @@ describe("ThemeStackBlock", () => {
     const titles = Array.from(fill.children).map((c) => c.getAttribute("title"));
     const totalN = titles.reduce((a, t) => a + Number(t!.split(": ")[1]), 0);
     expect(totalN).toBe(412);
+  });
+
+  it("bấm 'Sub-theme' → trục THẬT: x-th-device chia đúng 2 đoạn theo n thật subtheme (Σ=412, không đoạn 'Chưa gán')", () => {
+    const { container } = render(<ThemeStackBlock data={seed} cfg={cfgDefault} />);
+    fireEvent.click(screen.getByRole("button", { name: "Sub-theme" }));
+    expect(screen.getByRole("button", { name: "Sub-theme" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByText("demo")).not.toBeInTheDocument();
+    const deviceRow = screen.getByText("Thiết bị / môi trường không tương thích").closest("[title]")!;
+    const fill = deviceRow.querySelector(".flex.rounded-\\[4px\\]") as HTMLElement;
+    expect(fill.children).toHaveLength(2);
+    expect(fill.children[0]).toHaveAttribute("title", "Android tầm trung, ánh sáng yếu: 238");
+    expect(fill.children[1]).toHaveAttribute("title", "Giấy tờ bị chói hoặc mờ: 174");
+    expect(container.textContent).toContain("theo sub-theme");
+  });
+
+  it("bấm 'Sub-theme' — theme KHÔNG có subtheme (x-th-fee, hạng 7) → 1 đoạn duy nhất 'Chưa gán sub-theme: 118'", () => {
+    render(<ThemeStackBlock data={seed} cfg={cfgDefault} />);
+    fireEvent.click(screen.getByRole("button", { name: "Sub-theme" }));
+    const feeRow = screen.getByText("Phí và thuế trừ không như kỳ vọng").closest("[title]")!;
+    const fill = feeRow.querySelector(".flex.rounded-\\[4px\\]") as HTMLElement;
+    expect(fill.children).toHaveLength(1);
+    expect(fill.children[0]).toHaveAttribute("title", "Chưa gán sub-theme: 118");
   });
 
   it("bấm một thanh gọi onGo('topic/<id>')", () => {

@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { MockRepository, UNASSIGNED, deriveVerdict } from "./mock-repository.ts";
+import { demoData } from "./fixtures/demo.ts";
+import { seed } from "./fixtures/seed.ts";
 import { metricDirection } from "./metric-direction.ts";
 import type { CreateIssueFields } from "./repository.ts";
 
@@ -12,6 +14,35 @@ describe("MockRepository", () => {
 
   it("validate() trên state gốc trả rỗng", () => {
     expect(repo.validate()).toEqual([]);
+  });
+
+  /* Seam đổi fixture (owner chốt 03/08) — trước đó constructor ghi cứng `seed`, nên `demoData`
+     là dead code không màn nào hiện được. Hai điều phải giữ cùng lúc: mặc định KHÔNG đổi (hàng
+     chục test dựa vào `seed` nhỏ, tất định), và fixture truyền vào phải thật sự được dùng. */
+  describe("fixture tiêm được qua constructor", () => {
+    it("mặc định (không tham số) vẫn là seed — 7 khách, validate() rỗng", () => {
+      expect(new MockRepository().getSnapshot().cust).toHaveLength(7);
+      expect(new MockRepository().validate()).toEqual([]);
+    });
+
+    it("truyền demoData → 300 khách và validate() vẫn rỗng", () => {
+      const demoRepo = new MockRepository(demoData);
+      expect(demoRepo.getSnapshot().cust).toHaveLength(300);
+      expect(demoRepo.validate()).toEqual([]);
+    });
+
+    it("demoData BAO trọn seed — 7 khoá thật còn nguyên (iss.cust trỏ đích danh chúng)", () => {
+      const keys = new Set(new MockRepository(demoData).getSnapshot().cust.map((c) => c.key));
+      for (const c of seed.cust) expect(keys.has(c.key)).toBe(true);
+    });
+
+    it("clone chứ không giữ tham chiếu — mutate snapshot KHÔNG đụng vào hằng demoData", () => {
+      const before = demoData.cust.length;
+      const demoRepo = new MockRepository(demoData);
+      demoRepo.getSnapshot().cust.pop();
+      expect(demoData.cust).toHaveLength(before);
+      expect(demoRepo.getSnapshot().cust).toHaveLength(before);
+    });
   });
 
   describe("Quantify", () => {

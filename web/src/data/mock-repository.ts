@@ -81,8 +81,12 @@ export class MockRepository implements CxmRepository {
       Port từ ST.boards (lazy: chỉ có mặt khi set đó đã bị sửa). */
   private boards: Record<string, string[][]>;
 
-  constructor() {
-    this.data = structuredClone(seed);
+  /* Fixture tiêm được (owner chốt 03/08). Mặc định `seed` để mọi `new MockRepository()` sẵn có —
+     hàng chục test — giữ nguyên hành vi; app thật truyền `demoData` ở singleton trong store.ts.
+     `cfg`/`dims`/`nav`/`tour` KHÔNG đi theo fixture: chúng là cấu hình chứ không phải dữ liệu, và
+     `demoData` chỉ khác `seed` ở mảng `cust`. */
+  constructor(fixture: CxmData = seed) {
+    this.data = structuredClone(fixture);
     this.cfg = structuredClone(cfgDefault);
     this.dims = structuredClone(dims);
     this.nav = structuredClone(seedNav);

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Action, Cfg, CxmData, DashSet, Dim, Issue, QuantifyItem, QuantifyShow } from "../data/schema/index.ts";
 import type { ConfirmFields, CreateIssueFields, CxmRepository } from "../data/repository.ts";
 import { MockRepository } from "../data/mock-repository.ts";
+import { demoData } from "../data/fixtures/demo.ts";
 import { EMPTY_DATA } from "../data/emptyData.ts";
 
 /* Store — cầu nối reactive giữa CxmRepository và React. Giữ SNAPSHOT (data/cfg/dims/boards)
@@ -147,5 +148,14 @@ export function createCxmStore(repo: CxmRepository = new MockRepository()) {
   });
 }
 
-/** Singleton dùng cho toàn app (React components gọi useCxmStore(selector)). */
-export const useCxmStore = createCxmStore();
+/* Singleton dùng cho toàn app (React components gọi useCxmStore(selector)).
+
+   Fixture của app là `demoData` (300 khách), KHÔNG phải `seed` (7 khách) — owner chốt 03/08.
+   Lý do: Demo Mode BẬT nghĩa là "trình diễn ĐỦ tính năng", mà `seed` quá thưa để các dải phủ
+   phân khúc có hình. `demoData` = 7 khách thật + 293 sinh tất định (mulberry32, hạt cố định),
+   nên nó BAO trọn seed chứ không thay — `iss.cust` vẫn trỏ đúng 7 khoá thật.
+   Trước 03/08 singleton dùng mặc định `seed`, và `demoData` là dead code không màn nào hiện.
+
+   `createCxmStore` vẫn mặc định `new MockRepository()` (= seed) để test giữ fixture nhỏ, tất định.
+   Demo Mode TẮT không đổi fixture — nó trả `EMPTY_DATA` (xem `refresh`/`setDemoMode` ở trên). */
+export const useCxmStore = createCxmStore(new MockRepository(demoData));

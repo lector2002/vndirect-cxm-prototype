@@ -79,22 +79,38 @@ tất định, Σ = `theme.n`, mọi đoạn `demo:true`, 12/14 hình phân bi�
 (`guide`, `info`, `praise`) ở trục Nhóm khách chỉ ra **1 đoạn** nên không stack được gì.
 **Chưa hỏi owner** có chấp nhận hình này không.
 
-### C5 mới làm được một nửa — và seam đổi fixture VẪN CHƯA CÓ
+### Seam fixture — ĐÃ DỰNG (owner chốt 03/08). C5 vẫn còn một nửa.
 
-`features/settings/SettingsPage.tsx` hiện chỉ có **một** switch Demo Mode. Còn thiếu theo hợp đồng
-C5: nút đưa về dữ liệu gốc · khối thông tin nguồn dữ liệu (fixture đang dùng, số bản ghi, kết quả
-`validateFixture()` gần nhất).
+**Owner chốt: Demo Mode BẬT phục vụ `demoData` (300 khách), không phải `seed` (7).** Đã làm:
 
-**Quan trọng hơn — Demo Mode được dựng theo hướng KHÁC hẳn seam mà tài liệu này đề xuất:**
-`store.ts:80` BẬT → `repo.getSnapshot()` (tức **`seed`, 7 khách**), TẮT → `EMPTY_DATA`.
-Không có `swapFixture()`, không có `MockRepository(fixture)`.
+- `MockRepository(fixture: CxmData = seed)` — fixture tiêm được. **Mặc định giữ nguyên `seed`**, nên
+  hàng chục `new MockRepository()` trong test không đổi hành vi.
+- `store.ts` singleton: `createCxmStore(new MockRepository(demoData))`. `createCxmStore` vẫn mặc
+  định `seed` để test giữ fixture nhỏ, tất định.
+- Demo Mode TẮT **không** đổi fixture — vẫn trả `EMPTY_DATA`. Không cần `swapFixture()`: chỉ có
+  đúng hai trạng thái (demoData / rỗng), không có trạng thái thứ ba phục vụ `seed`.
+- Test khoá: `store.demoMode.test.ts` assert singleton có 300 `cust` còn `createCxmStore()` mặc
+  định có 7. **Đây là test DUY NHẤT chặn `demoData` rơi lại thành dead code** — mọi test khác đều
+  tiêm repo riêng nên sẽ vẫn xanh nếu ai đó đổi singleton về mặc định.
 
-⇒ **`demoData` (300 khách, sản phẩm của C4) VẪN LÀ DEAD CODE** — `grep` xác nhận chỉ
-`demo.test.ts` dùng. Không màn nào hiện nó.
+**`demoData` không còn là dead code.** Nó BAO trọn seed (7 khách thật + 293 sinh tất định), nên
+`iss.cust` vẫn trỏ đúng 7 khoá thật; `validateFixture(demoData)` rỗng.
 
-⇒ **Đây là điều kiện chặn của C3.** Trạng thái `refuse` (coverage 0%) và các dải phủ rộng **chỉ
-tồn tại trong `demoData`**; seed thật thấp nhất là `nav` 14%. Làm C3 trước khi chốt seam thì tầng
-vẽ mới sẽ không có dữ liệu nào kích hoạt được nhánh của nó.
+⚠️ **Điều này KHÔNG làm hiện được trạng thái `refuse`.** Theo số oracle 02/08, `demoData` có
+known > 0 trên cả 4 trục (age 226 · acq 283 · tenure 80 · nav 64) nên coverage không bao giờ chạm
+0%. Cái `demoData` thật sự mở ra là **sentinel `thiếu`**: seed có **0**, demo có **12** (`acq` 9 ·
+`nav` 3) — lần đầu tiên phân biệt `chưa-biết` với `thiếu` có dữ liệu để hiện trên UI. Nhánh
+`refuse` vẫn cần bộ lọc theo bước hành trình, mà `Customer` chưa có khoá nối tới `Step`.
+
+**C5 còn thiếu:** nút đưa về dữ liệu gốc · khối thông tin nguồn dữ liệu (fixture đang dùng, số bản
+ghi, kết quả `validateFixture()` gần nhất). `SettingsPage.tsx` hiện chỉ có switch Demo Mode.
+
+### Mặc định @themestack là trục Nhóm khách (DEMO) — owner chốt 03/08
+
+Đảo mặc định từ `subtheme` sang `group`. Lý do: chỉ 3/14 theme có sub-theme nên trục thật để mặc
+định cho ra 5/8 thanh top xám đặc 100%, nhìn như chart hỏng.
+**Đánh đổi đã nhận:** mặc định giờ là **số bịa**. Hai thứ chặn đọc nhầm — nhãn `demo` cạnh toggle và
+`denomStrip` "tỷ trọng minh hoạ" — **không được bỏ**, và đã có test khoá cả hai.
 
 ### Module A đã đổi gì (đọc charter để biết đủ)
 
@@ -143,9 +159,7 @@ khoá thật.
 
 ## Việc còn lại
 
-0. **CHỐT SEAM FIXTURE — chặn C3, cần owner quyết.** Demo Mode BẬT phục vụ `seed` (7 khách) hay
-   `demoData` (300 khách)? Xem mục *C5 mới làm được một nửa* ở trên. Không chốt thì C3 làm xong
-   vẫn không có dữ liệu kích hoạt nhánh `refuse`/dải phủ rộng.
+0. ~~Chốt seam fixture~~ — **xong 03/08**, xem mục *Seam fixture* ở trên. C3 hết bị chặn.
 1. **C3** — tầng vẽ: dải `unk`, in tỉ lệ phủ, trạng thái từ chối vẽ, và hiển thị
    `QuantifyCrossResult.unsupported` thay vì vẽ matrix rỗng. `qRunSegment` và `unsupported` đã có
    sẵn ở `domain/quantify.ts`, **chưa nơi nào trong `features/` gọi tới**.

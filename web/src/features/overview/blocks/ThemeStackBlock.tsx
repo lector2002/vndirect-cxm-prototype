@@ -29,7 +29,11 @@ function axisLabelOf(axis: ThemeAxis): string {
 }
 
 export function ThemeStackBlock({ data, onGo }: ThemeStackBlockProps) {
-  const [axis, setAxis] = useState<ThemeAxis>("subtheme");
+  /* Mặc định 'group', KHÔNG phải trục thật 'subtheme' — owner chốt 03/08. Lý do: chỉ 3/14 theme có
+     sub-theme, nên để trục thật làm mặc định thì 5/8 thanh top là xám đặc 100% và biểu đồ trông
+     như hỏng. Đánh đổi: mặc định là số DEMO, nên nhãn "demo" cạnh toggle + denomStrip nói rõ tỷ
+     trọng là minh hoạ KHÔNG được bỏ — chúng là thứ duy nhất chặn người xem đọc nhầm thành số thật. */
+  const [axis, setAxis] = useState<ThemeAxis>("group");
 
   const themes = data.tax
     .filter((t) => t.lv === "theme")
