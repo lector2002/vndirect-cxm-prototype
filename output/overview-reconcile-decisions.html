@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Overview — đối chiếu bản đã code vs quyết định đã khóa</title>
+<style>
+:root{
+  --primary:#D9531E; --primary-line:#F0C4AE; --primary-soft:#FDF3EE;
+  --bg:#F6F4F1; --surface:#FFFFFF; --surface2:#FAF8F5;
+  --ink:#231F1C; --ink2:#514B45; --ink3:#8A827A;
+  --line:#E6E1DB; --line2:#D9D3CB;
+  --keep:#16A34A; --cut:#DC2626; --move:#2563EB; --ask:#CA8A04;
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#17140F;--surface:#211D18;--surface2:#1B1813;--ink:#F1ECE6;--ink2:#C7BFB6;--ink3:#8F877D;
+  --line:#332E28;--line2:#403A32;--primary-soft:#2A1C14;--shadow:0 1px 2px rgba(0,0,0,.4);}
+}
+:root[data-theme="dark"]{--bg:#17140F;--surface:#211D18;--surface2:#1B1813;--ink:#F1ECE6;--ink2:#C7BFB6;--ink3:#8F877D;
+  --line:#332E28;--line2:#403A32;--primary-soft:#2A1C14;--shadow:0 1px 2px rgba(0,0,0,.4);}
+:root[data-theme="light"]{--bg:#F6F4F1;--surface:#FFFFFF;--surface2:#FAF8F5;--ink:#231F1C;--ink2:#514B45;--ink3:#8A827A;
+  --line:#E6E1DB;--line2:#D9D3CB;--primary-soft:#FDF3EE;--shadow:0 1px 2px rgba(0,0,0,.05),0 4px 14px rgba(0,0,0,.04);}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+  font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:0 22px}
+a{color:var(--primary)}
+code,.mono{font-family:Consolas,'SFMono-Regular',monospace;font-size:12.5px}
+.top{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--bg) 90%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:14px;height:54px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.2px}
+.brand i{width:11px;height:11px;border-radius:3px;background:var(--primary)}
+.top nav{display:flex;gap:2px;flex:1;overflow-x:auto}
+.top nav a{white-space:nowrap;padding:6px 10px;border-radius:7px;font-size:12.5px;color:var(--ink2);font-weight:600;text-decoration:none}
+.top nav a:hover{background:var(--surface)}
+.tgl{flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink2);border-radius:8px;
+  padding:6px 11px;font-size:12.5px;cursor:pointer;font-weight:600}
+header.hero{padding:36px 0 8px}
+header.hero h1{font-size:29px;line-height:1.15;letter-spacing:-.5px;margin:0 0 12px;max-width:30ch}
+.kick{color:var(--primary);font-weight:700;font-size:12.5px;letter-spacing:.4px;text-transform:uppercase;margin-bottom:9px}
+p.lead{color:var(--ink2);max-width:86ch;margin:0 0 10px}
+section{scroll-margin-top:66px;margin:26px 0}
+h2.sh{font-size:21px;letter-spacing:-.3px;margin:0 0 6px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);
+  margin-bottom:16px;overflow:hidden}
+.chead{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.chead b{font-size:15px}
+.cbody{padding:14px 18px}
+.note{border:1px solid var(--line);background:var(--surface2);border-radius:10px;padding:12px 15px;margin:12px 0;font-size:13.5px}
+.note.crit{border-color:#E88;background:color-mix(in srgb,#E88 12%,var(--surface))}
+.note.warn{border-color:#E4B34A;background:color-mix(in srgb,#E4B34A 11%,var(--surface))}
+.note.bd{border-color:var(--primary-line);background:var(--primary-soft)}
+.note b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--ink3);font-weight:700;background:var(--surface2)}
+tbody tr:hover{background:var(--surface2)}
+.cid{font-family:Consolas,monospace;font-size:11.5px;color:var(--primary);white-space:nowrap}
+.tag{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.2px;padding:2px 7px;
+  border-radius:6px;white-space:nowrap;display:inline-block}
+.t-keep{background:color-mix(in srgb,var(--keep) 15%,transparent);color:var(--keep)}
+.t-cut{background:color-mix(in srgb,var(--cut) 15%,transparent);color:var(--cut)}
+.t-move{background:color-mix(in srgb,var(--move) 15%,transparent);color:var(--move)}
+.t-ask{background:color-mix(in srgb,var(--ask) 18%,transparent);color:var(--ask)}
+.built{font-size:11.5px;font-weight:700;color:var(--keep)}
+.notbuilt{font-size:11.5px;font-weight:700;color:var(--ink3)}
+select.dec{border:1px solid var(--line2);background:var(--surface);color:var(--ink);border-radius:7px;
+  padding:5px 6px;font-size:12.5px;font-weight:600;width:100%;min-width:118px}
+select.dec[data-v="cut"]{border-color:var(--cut);color:var(--cut)}
+select.dec[data-v="keep"]{border-color:var(--keep);color:var(--keep)}
+select.dec[data-v="other"]{border-color:var(--ask);color:var(--ask)}
+textarea.n{width:100%;min-height:34px;border:1px solid var(--line);border-radius:7px;background:var(--surface2);
+  color:var(--ink);font-size:12.5px;padding:6px 8px;font-family:inherit;resize:vertical}
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+@media(max-width:820px){.ba{grid-template-columns:1fr}.top nav{display:none}}
+.ba .col{border:1px solid var(--line);border-radius:11px;padding:13px;background:var(--surface2)}
+.ba .col h4{margin:0 0 8px;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px}
+.ba .now h4{color:var(--ink3)} .ba .next h4{color:var(--move)}
+.ba ul{margin:0;padding-left:17px} .ba li{margin:5px 0;font-size:13px;color:var(--ink2)}
+.qbox{border:1px solid var(--primary-line);background:var(--primary-soft);border-radius:12px;padding:14px 16px;margin:14px 0}
+.qbox h4{margin:0 0 6px;font-size:14.5px}
+.qbox .opts{display:flex;flex-direction:column;gap:7px;margin-top:9px}
+.qbox label{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:9px 11px}
+.qbox label:hover{border-color:var(--primary-line)}
+.qbox input[type=radio]{margin-top:3px;flex:none;accent-color:var(--primary)}
+.qbox .rec{font-size:10.5px;font-weight:800;color:var(--primary);text-transform:uppercase;letter-spacing:.3px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink3);margin:10px 0}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.bar{position:fixed;right:18px;bottom:18px;z-index:50;display:flex;gap:8px}
+.bar button{border:1px solid var(--primary-line);background:var(--primary);color:#fff;border-radius:10px;
+  padding:11px 16px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--shadow)}
+.bar button.ghost{background:var(--surface);color:var(--ink2);border-color:var(--line)}
+dialog{border:1px solid var(--line);border-radius:14px;padding:0;max-width:760px;width:92vw;background:var(--surface);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog .dh{padding:14px 18px;border-bottom:1px solid var(--line);font-weight:800}
+dialog .db{padding:15px 18px}
+textarea.out{width:100%;height:320px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);
+  color:var(--ink);font-family:Consolas,monospace;font-size:12px;padding:11px}
+.small{font-size:12px;color:var(--ink3)}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <div class="brand"><i></i> Overview · Đối chiếu</div>
+  <nav>
+    <a href="#s-conflict">Xung đột</a>
+    <a href="#s-cxm">CXM</a>
+    <a href="#s-voc">VoC</a>
+    <a href="#s-sets">Mô hình set</a>
+    <a href="#s-ask">Câu cần chốt</a>
+    <a href="#s-next">Màn kế tiếp</a>
+  </nav>
+  <button class="tgl" id="tgl">◐ Theme</button>
+</div></div>
+
+<div class="wrap">
+<header class="hero">
+  <div class="kick">Cần bạn chốt trước khi tôi sửa code</div>
+  <h1>Bản đã code vs quyết định đã khóa của bạn</h1>
+  <p class="lead">Phase 2 (Tổng quan CXM + VoC) đã code xong và chạy được trên <code>web/</code> — nhưng tôi làm theo dòng
+  “9 @BLOCK” trong plan doc và <b>không mở</b> <code>docs/REDESIGN-PLAN-HANDOFF.md</code>, nơi ghi quyết định cắt/giữ
+  <b>từ export của chính bạn</b>. Bảng dưới đối chiếu từng component: cái gì đang có trong code, bạn đã quyết gì,
+  và áp quyết định đó thì hệ quả là gì.</p>
+  <div class="legend">
+    <span><span class="tag t-keep">giữ</span> bạn đã quyết giữ</span>
+    <span><span class="tag t-cut">cắt</span> bạn đã quyết cắt</span>
+    <span><span class="tag t-move">dời</span> chuyển sang màn khác</span>
+    <span><span class="tag t-ask">cần chốt</span> chưa có quyết định</span>
+  </div>
+</header>
+
+<section id="s-conflict">
+  <h2 class="sh">1 · Xung đột, nói thẳng</h2>
+  <div class="note crit">
+    <b>Nguồn quyết định của bạn:</b> <code>docs/REDESIGN-PLAN-HANDOFF.md</code> dòng 13, 27, 29, 41 — mục
+    “Quyết định cut/keep/redesign từng màn (<b>từ export của owner</b>)”.
+    <ul style="margin:8px 0 0;padding-left:19px">
+      <li><b>Overview = đúng 2 tab CỐ ĐỊNH</b>: <code>b-cxm-exec</code> + <code>b-voc-all</code>. Tab khác do bạn compose từ Quantify.</li>
+      <li><b>CXM cắt:</b> <code>hero</code>, <code>setbar.meta</code>, <code>block.lanes</code>, <code>block.outcomes</code>.</li>
+      <li><b>VoC cắt:</b> <code>hero</code>, <code>block.anomlanes</code>, <code>block.topictrend</code>.</li>
+    </ul>
+  </div>
+  <div class="note">
+    <b>Tôi đã code:</b> đủ 9 @BLOCK + hero + setbar.meta + 6 set chip. Tức là <b>4 block, hero và meta</b> đang có trong
+    code nhưng bạn đã quyết cắt khỏi overview.
+  </div>
+  <div class="note bd">
+    <b>Thiệt hại nhỏ hơn nghe.</b> Lý do bạn cắt 4 block đó là <b>trùng màn khác</b> — đúng như cột Quan sát trong file
+    review: <em>“Trùng board của work”</em>, <em>“Trùng outcomeSection của work”</em>, <em>“Trùng nội dung màn topics”</em>.
+    Chúng vẫn cần cho Phase 3 (Work) và Phase 5/6 (Topics, Cảnh báo) — nên là <b>làm sớm</b>, không phải làm bỏ.
+    Việc phải sửa chủ yếu là <b>định nghĩa set trong seed</b> + bỏ 2 component nhỏ, không phải viết lại block.
+  </div>
+  <div class="note warn">
+    <b>Một phân biệt quan trọng khi bạn đọc bảng:</b> trong tài liệu cũ có hai loại nội dung.
+    <code>REDESIGN-PLAN-HANDOFF.md</code> dòng 25–34 là <b>quyết định của bạn</b> (từ export). Còn các gợi ý kiểu
+    “đưa câu kết luận thành 3 KPI band” (trong <code>cxm-review-tracking-plan.html</code> dòng 195–198) là
+    <b>đề xuất của session trước</b>, bạn chưa chốt. Tôi tách rõ hai thứ, không trộn thành “bạn đã đồng ý”.
+  </div>
+</section>
+
+<section id="s-cxm">
+  <h2 class="sh">2 · Tổng quan CXM — từng component</h2>
+  <div class="card">
+    <div class="chead"><b>13 component</b><span class="small">Route <code>#/cxm</code> · set mặc định <code>b-cxm-exec</code></span></div>
+    <div class="cbody scroll">
+      <table>
+        <thead><tr>
+          <th style="width:130px">ID</th><th>Component</th><th style="width:74px">Trong code</th>
+          <th style="width:82px">Bạn quyết</th><th>Hệ quả nếu áp / đề xuất của tôi</th><th style="width:126px">Chốt</th><th style="width:146px">Ghi chú</th>
+        </tr></thead>
+        <tbody id="tb-cxm"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="s-voc">
+  <h2 class="sh">3 · Tổng quan VoC — từng component</h2>
+  <div class="card">
+    <div class="chead"><b>Component VoC</b><span class="small">Route <code>#/voc</code> · set mặc định <code>b-voc-all</code></span></div>
+    <div class="cbody scroll">
+      <table>
+        <thead><tr>
+          <th style="width:130px">ID</th><th>Component</th><th style="width:74px">Trong code</th>
+          <th style="width:82px">Bạn quyết</th><th>Hệ quả nếu áp / đề xuất của tôi</th><th style="width:126px">Chốt</th><th style="width:146px">Ghi chú</th>
+        </tr></thead>
+        <tbody id="tb-voc"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="s-sets">
+  <h2 class="sh">4 · Hệ quả cụ thể lên seed: 2 set cố định</h2>
+  <p class="lead">Đây là chỗ quyết định của bạn cắn vào dữ liệu. Nếu cắt <code>@lanes</code> + <code>@outcomes</code> khỏi
+  <code>b-cxm-exec</code> thì <b>2 trong 4 câu hỏi của set đó rỗng khối</b>. Và <code>@coverage</code> bạn quyết GIỮ
+  nhưng nó hiện chỉ nằm ở <code>b-cxm-pilot</code> — set không thuộc 2 tab cố định.</p>
+  <div class="ba">
+    <div class="col now"><h4>b-cxm-exec — đang có</h4><ul>
+      <li>q0 “Hành trình đang gãy ở đâu?” → <code>@journeystate</code></li>
+      <li>q1 “Điểm gãy nào đáng xử lý trước?” → <code>@toppri</code></li>
+      <li>q2 “Việc đang chạy tới đâu?” → <code>@lanes</code> <span class="tag t-cut">cắt</span></li>
+      <li>q3 “Thay đổi có tác dụng không?” → <code>@outcomes</code> <span class="tag t-cut">cắt</span></li>
+    </ul></div>
+    <div class="col next"><h4>b-cxm-exec — đề xuất sau khi áp cắt</h4><ul>
+      <li>q0 “Hành trình đang gãy ở đâu?” → <code>@journeystate</code></li>
+      <li>q1 “Điểm gãy nào đáng xử lý trước?” → <code>@toppri</code></li>
+      <li>q2 “Ta đo được bao nhiêu phần hành trình?” → <code>@coverage</code> <span class="tag t-move">dời từ pilot</span></li>
+      <li><span class="small">Bỏ 2 câu hỏi rỗng — không để câu hỏi treo không có khối nào.</span></li>
+    </ul></div>
+  </div>
+  <div class="ba">
+    <div class="col now"><h4>b-voc-all — đang có</h4><ul>
+      <li>q0 → <code>q14</code>, <code>@srcmatrix</code></li>
+      <li>q1 → <code>q2</code>, <code>q9</code>, <code>q10</code></li>
+      <li>q2 “Khách đang nói gì?” → <code>@intent</code></li>
+      <li>q3 “Cái gì đang bất thường?” → <code>q15</code>, <code>@anomlanes</code> <span class="tag t-cut">cắt</span></li>
+    </ul></div>
+    <div class="col next"><h4>b-voc-all — đề xuất sau khi áp cắt</h4><ul>
+      <li>q0 → <code>q14</code>, <code>@srcmatrix</code></li>
+      <li>q1 → <code>q2</code>, <code>q9</code>, <code>q10</code></li>
+      <li>q2 “Khách đang nói gì?” → <code>@intent</code></li>
+      <li>q3 → chỉ còn <code>q15</code> <span class="small">(chart bất thường vẫn còn, chỉ bỏ khối trùng màn Cảnh báo)</span></li>
+    </ul></div>
+  </div>
+  <div class="note warn">
+    <b>4 set còn lại</b> (<code>b-cxm-pilot</code>, <code>b-cxm-out</code>, <code>b-voc-data</code>, <code>b-voc-topic</code>)
+    không thuộc “2 tab cố định”. Xóa khỏi seed, hay giữ làm ví dụ “set do người dùng compose”? → câu Q2 bên dưới.
+  </div>
+</section>
+
+<section id="s-ask">
+  <h2 class="sh">5 · Bốn câu tôi cần bạn chốt</h2>
+  <div id="asks"></div>
+</section>
+
+<section id="s-next">
+  <h2 class="sh">6 · Quy trình từ đây + màn kế tiếp (Work)</h2>
+  <div class="note bd">
+    Từ giờ mỗi màn tôi sẽ đưa bạn <b>một bản như thế này</b> — kiểm kê section đang có trong prototype, đề xuất
+    sửa/thêm/xóa, và ô để bạn chốt — <b>trước khi</b> viết code. Không code trước rồi mới hỏi.
+  </div>
+  <div class="card">
+    <div class="chead"><b>Bảng xử lý (Work) — <code>#/work</code></b><span class="tag t-move">Phase 3, kế tiếp</span></div>
+    <div class="cbody">
+      <p class="small" style="margin-top:0">Quyết định đã khóa của bạn (<code>REDESIGN-PLAN-HANDOFF.md:20,32</code>):
+      <b>REDESIGN thành thanh ngang, mỗi vấn đề 1 thanh có status, full lifecycle flow.</b>
+      Prototype hiện là 2 chế độ (theo làn / xếp ưu tiên) — nên đây <b>không phải port</b> mà là thiết kế lại.</p>
+      <div class="ba">
+        <div class="col now"><h4>Prototype đang có</h4><ul>
+          <li>2 chế độ tách tab: theo làn (4 làn) / xếp ưu tiên</li>
+          <li>Thẻ có CTA advance chạy đúng state machine</li>
+          <li>Tạo điểm gãy + gán người bằng form inline</li>
+          <li>Outcome &amp; close-the-loop đóng sẵn ở cuối màn</li>
+          <li>Hồ sơ điểm gãy <code>#/issue/:id</code> 5 tab riêng</li>
+        </ul></div>
+        <div class="col next"><h4>Hướng bạn đã chốt + việc phải quyết</h4><ul>
+          <li>Thanh ngang: 1 vấn đề = 1 thanh, có status</li>
+          <li><b>Giữ nguyên state machine</b> — phần giá trị nhất</li>
+          <li>Gộp 2 chế độ thành 1 board + nút sort?</li>
+          <li>Approval gate tách thành component riêng?</li>
+          <li>Hồ sơ điểm gãy: giữ 5 tab, hay gộp?</li>
+        </ul></div>
+      </div>
+      <div class="note">
+        <b>Nợ kỹ thuật phải chốt ở Work:</b> prototype lọc điểm gãy đang mở bằng <code>action.lc !== 'closed'</code>,
+        nhưng schema <code>ActionLc</code> chỉ có giá trị <code>'blocked'</code> → so sánh đó là lỗi kiểu, TypeScript bắt.
+        Hiện tôi định nghĩa “đang mở” = “có action tương ứng”. Trên seed hôm nay <b>kết quả giống hệt</b>
+        (cả 6 action đều <code>'blocked'</code>), nhưng khi có dữ liệu đã khép vòng thì <code>@toppri</code> sẽ hiện cả
+        điểm gãy đã đóng. Ở Work phải chốt: mở rộng union <code>ActionLc</code>, hay định nghĩa “đang mở” qua bảng
+        <code>Loop</code>?
+      </div>
+    </div>
+  </div>
+</section>
+
+<div style="height:80px"></div>
+</div>
+
+<div class="bar">
+  <button class="ghost" id="btn-reset">Xóa lựa chọn</button>
+  <button id="btn-export">Xuất quyết định</button>
+</div>
+
+<dialog id="dlg">
+  <div class="dh">Quyết định của bạn — copy rồi dán lại cho tôi</div>
+  <div class="db">
+    <textarea class="out" id="outtxt" readonly></textarea>
+    <div style="display:flex;gap:8px;margin-top:11px">
+      <button class="tgl" id="btn-copy">Copy</button>
+      <button class="tgl" id="btn-close">Đóng</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const tglBtn = document.getElementById('tgl');
+tglBtn.onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const dark = cur ? cur === 'dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+  document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
+};
+
+/* mỗi hàng: [id, tên, đã-code, quyết-định-owner, hệ-quả/đề-xuất] */
+const CXM = [
+  ['cxm.hero','Câu kết luận điều hành (hero: kick + 1 câu động + intro)',true,'cut',
+   'Đang hiện “6 điểm gãy chưa khép vòng, 3 hành động đang chờ duyệt.” Cắt hẳn thì màn mở ra là chip set + câu hỏi luôn. <b>Đề xuất:</b> cắt câu văn + intro, giữ dòng kick nhỏ (phần · kỳ) — xem Q1.'],
+  ['cxm.setbar.chips','Chip chọn set',true,'keep',
+   'Giữ. Số set đổi theo mô hình 2-tab-cố-định (Q2).'],
+  ['cxm.setbar.customize','Nút ✎ Tùy chỉnh set',false,'cut',
+   '<b>Đã đúng rồi.</b> Overview không có sửa khối inline; compose đã dời hẳn về Quantify (P1.3). Không phải làm gì.'],
+  ['cxm.setbar.meta','Dòng meta set (owner / cập nhật / share / role / bản tin)',true,'cut',
+   'Đang hiện “Thu Hà · Head of CX · cập nhật … · đã share · dành cho …”. <b>Đề xuất:</b> cắt. Với 2 tab cố định thì “ai sở hữu set” hết ý nghĩa; thông tin này thuộc màn Quản lý set trong Quantify.'],
+  ['cxm.block.journeystate','Block Trạng thái hành trình',true,'keep',
+   'Giữ. Đang chạy đúng: 1 crit / 2 watch / 3 ok / 31 flow chưa đo.'],
+  ['cxm.block.toppri','Block Top ưu tiên (4 cách xếp)',true,'keep',
+   'Giữ. Lưới 2×2 đúng commit <code>faeb871</code>. Nợ <code>ActionLc</code> chốt ở Work.'],
+  ['cxm.block.coverage','Block Độ phủ đo lường',true,'keep',
+   'Giữ — nhưng hiện chỉ nằm ở <code>b-cxm-pilot</code>. <b>Đề xuất:</b> dời vào <code>b-cxm-exec</code> thay chỗ 2 câu bị cắt. Đã sửa lỗi prototype paint 85% thành “476”.'],
+  ['cxm.block.lanes','Block 4 làn công việc',true,'cut',
+   'Cắt khỏi overview vì trùng board của Work. <b>Code KHÔNG bỏ</b> — Phase 3 dùng lại, và vẫn compose được từ Quantify nếu bạn muốn (Q3).'],
+  ['cxm.block.outcomes','Block Kết quả đo được',true,'cut',
+   'Cắt khỏi overview vì trùng outcomeSection của Work. Giữ code cho Phase 3. Ghi chú: trên seed hiện tại nó in “0 thay đổi… chưa có kết quả đo” — đúng dữ liệu nhưng đọc lạ.'],
+  ['cxm.block.savedq','Widget saved Quantify nhúng',true,'keep',
+   'Giữ. Dispatcher render đúng cả @block lẫn widget Quantify trong cùng một câu hỏi.'],
+  ['cxm.edit.addblock','Dropdown thêm block (edit mode)',false,'cut','Đã đúng — nằm ở Quản lý set trong Quantify.'],
+  ['cxm.edit.delblock','Nút × bỏ block (edit mode)',false,'cut','Đã đúng — nằm ở Quản lý set trong Quantify.'],
+  ['cxm.footer.quantifylink','Note dẫn sang Quantify',true,'keep','Giữ.'],
+];
+const VOC = [
+  ['voc.hero','Câu kết luận VoC (hero)',true,'cut',
+   'Đang hiện “317.699 bản ghi phản hồi từ 7 nguồn, 2 nguồn đang có vấn đề.” Xử lý cùng cách với CXM hero (Q1). <b>Lưu ý:</b> câu này chứa mẫu số <code>VOC_SCOPE</code> — cắt đi thì mất chỗ duy nhất nói rõ đang đếm 56.732 (all) hay 2.732 (voice). Xem Q4.'],
+  ['voc.setbar.chips','Chip chọn set',true,'keep','Giữ; số set theo Q2.'],
+  ['voc.setbar.meta','Dòng meta set',true,'ask',
+   'Bạn chỉ nêu cắt meta cho CXM, không nêu cho VoC. <b>Đề xuất:</b> áp cùng cách để hai màn nhất quán.'],
+  ['voc.block.srcmatrix','Block Độ toàn vẹn nguồn',true,'keep',
+   'Giữ. Đang chạy đúng: Zalo OA hiện 4 dấu “–” kèm “✕ Ngừng gửi” — đúng lý do cột Trạng thái phải tồn tại.'],
+  ['voc.block.intent','Block Bốn khối theo intent',true,'keep',
+   'Giữ (không nằm trong danh sách cắt). Cần <code>TaxNode.cat</code> + <code>cats</code> — đã backfill xong.'],
+  ['voc.block.anomlanes','Block Ba làn bất thường',true,'cut',
+   'Cắt khỏi overview vì trùng màn Cảnh báo &amp; giám sát. Giữ code cho Phase 6. Test đã chặn đúng bug phân làn bằng regex.'],
+  ['voc.block.topictrend','Block Topic &amp; xu hướng 6 kỳ',true,'cut',
+   'Cắt khỏi overview vì <b>trùng toàn bộ màn Topics</b>. Giữ code cho Phase 5 — màn Topics dùng lại chính component này.'],
+  ['voc.block.savedq','Widget saved Quantify nhúng',true,'keep','Giữ.'],
+];
+
+const DEC = JSON.parse(localStorage.getItem('ov_dec') || '{}');
+const OWNER_LABEL = { keep:['giữ','t-keep'], cut:['cắt','t-cut'], ask:['cần chốt','t-ask'] };
+
+function rowHtml(r) {
+  const [id, name, built, owner, impact] = r;
+  const [lbl, cls] = OWNER_LABEL[owner];
+  const saved = DEC[id] || {};
+  const v = saved.v || '';
+  return '<tr>'
+    + '<td><span class="cid">' + id + '</span></td>'
+    + '<td>' + name + '</td>'
+    + '<td>' + (built ? '<span class="built">đã code</span>' : '<span class="notbuilt">chưa/không</span>') + '</td>'
+    + '<td><span class="tag ' + cls + '">' + lbl + '</span></td>'
+    + '<td>' + impact + '</td>'
+    + '<td><select class="dec" data-id="' + id + '" data-v="' + v + '">'
+      + '<option value=""' + (v === '' ? ' selected' : '') + '>— chọn —</option>'
+      + '<option value="cut"' + (v === 'cut' ? ' selected' : '') + '>Áp: cắt</option>'
+      + '<option value="keep"' + (v === 'keep' ? ' selected' : '') + '>Áp: giữ</option>'
+      + '<option value="other"' + (v === 'other' ? ' selected' : '') + '>Khác (ghi chú)</option>'
+    + '</select></td>'
+    + '<td><textarea class="n" data-id="' + id + '" placeholder="ghi chú…">' + (saved.n || '') + '</textarea></td>'
+    + '</tr>';
+}
+document.getElementById('tb-cxm').innerHTML = CXM.map(rowHtml).join('');
+document.getElementById('tb-voc').innerHTML = VOC.map(rowHtml).join('');
+
+const ASKS = [
+  { id:'Q1', q:'Cắt hero thế nào?',
+    why:'Bạn quyết CẮT hero ở cả 2 màn. Nhưng hero đang gánh 3 thứ: nhãn phần + kỳ (kick), câu kết luận động, và đoạn giới thiệu phân định VoC-tạo-insight / CXM-quản-lý.',
+    opts:[
+      ['a','Cắt câu kết luận + đoạn intro, GIỮ dòng kick (phần · kỳ)','Màn gọn ngay, nhưng vẫn biết đang ở phần nào và kỳ nào — kỳ là thông tin bắt buộc theo quy ước “luôn hiện ngày tuyệt đối”.',true],
+      ['b','Cắt sạch cả hero','Gọn nhất. Đổi lại: mất luôn nhãn kỳ 28/01–27/07, người đọc không biết số thuộc khoảng thời gian nào.',false],
+      ['c','Cắt câu văn, thay bằng 3 KPI band đọc ngưỡng từ Rules','Đây là đề xuất của session TRƯỚC, bạn chưa chốt. Là việc MỚI chứ không phải cắt — và cần Rules xong trước (Phase 4).',false],
+    ]},
+  { id:'Q2', q:'4 set không phải tab cố định thì làm gì?',
+    why:'Bạn quyết Overview = đúng 2 tab cố định (b-cxm-exec + b-voc-all), tab khác compose từ Quantify. Seed hiện có 6 set.',
+    opts:[
+      ['a','Giữ 4 set kia trong seed như ví dụ “set do người dùng compose”','Không mất gì, và có sẵn dữ liệu để demo compose + share-by-URL. 2 tab cố định thì không xóa được, 4 set kia thì xóa được.',true],
+      ['b','Xóa 4 set khỏi seed, chỉ còn 2','Trung thành tuyệt đối với “2 tab cố định”. Đổi lại: mất data demo cho compose/share-by-URL, và @coverage mất chỗ ở duy nhất (phải dời vào exec).',false],
+      ['c','Giữ 2 set cố định + gộp 4 set kia còn 1–2 set mẫu','Trung dung. Cần bạn nói giữ set nào.',false],
+    ]},
+  { id:'Q3', q:'4 block bị cắt có còn compose được từ Quantify không?',
+    why:'Cắt khỏi set mặc định là một chuyện; có cho phép người dùng tự thêm lại vào set của họ là chuyện khác. Registry @block ở data/blocks.ts hiện liệt kê cả 9.',
+    opts:[
+      ['a','Giữ trong registry — cắt khỏi set mặc định, ai muốn vẫn thêm được','Tôn trọng lý do cắt (chống trùng ở màn mặc định) mà không chặn người dùng. Code đã có, đã test.',true],
+      ['b','Bỏ hẳn khỏi registry — không ai thêm lại được','Cưỡng chế chống trùng tuyệt đối. Đổi lại: 4 block đã code + test không dùng được cho tới Phase 3/5/6.',false],
+    ]},
+  { id:'Q4', q:'Mẫu số VOC_SCOPE nói ở đâu?',
+    why:'File review ghi đây là “quyết định treo”: all = 56.732 bản ghi vs voice = 2.732 (chỉ nguồn có lời khách). Hiện chỉ hero VoC nói con số này — mà hero thì bạn quyết cắt.',
+    opts:[
+      ['a','Chốt VOC_SCOPE = all, ghi mẫu số ở nhãn trục từng chart','Mỗi chart tự nói mẫu số của nó, không phụ thuộc hero. Đúng nguyên tắc “mọi số phải nói được nó đếm cái gì”.',true],
+      ['b','Chốt = voice (chỉ nguồn có lời khách)','Trung thực hơn về “tiếng nói thật”, nhưng mọi chart volume đổi số.',false],
+      ['c','Để treo, quyết ở Phase 5 (Sources/Topics)','Không chặn Overview. Nhưng nếu cắt hero mà chưa quyết thì tạm thời không chỗ nào nói mẫu số.',false],
+    ]},
+];
+document.getElementById('asks').innerHTML = ASKS.map(function (a) {
+  return '<div class="qbox"><h4>' + a.id + ' · ' + a.q + '</h4>'
+    + '<div class="small">' + a.why + '</div><div class="opts">'
+    + a.opts.map(function (o) {
+        const sel = (DEC[a.id] && DEC[a.id].v) === o[0];
+        return '<label><input type="radio" name="' + a.id + '" value="' + o[0] + '" data-ask="' + a.id + '"'
+          + (sel ? ' checked' : '') + '><span><b>' + o[1] + '</b>'
+          + (o[3] ? ' <span class="rec">đề xuất</span>' : '') + '<br><span class="small">' + o[2] + '</span></span></label>';
+      }).join('')
+    + '</div><textarea class="n" data-id="' + a.id + '" style="margin-top:9px" placeholder="ghi chú thêm cho '
+    + a.id + '…">' + ((DEC[a.id] && DEC[a.id].n) || '') + '</textarea></div>';
+}).join('');
+
+function save(id, patch) {
+  DEC[id] = Object.assign({}, DEC[id], patch);
+  localStorage.setItem('ov_dec', JSON.stringify(DEC));
+}
+document.addEventListener('change', function (e) {
+  const t = e.target;
+  if (t.matches('select.dec')) { t.setAttribute('data-v', t.value); save(t.dataset.id, { v: t.value }); }
+  if (t.matches('input[type=radio]')) save(t.dataset.ask, { v: t.value });
+});
+document.addEventListener('input', function (e) {
+  if (e.target.matches('textarea.n')) save(e.target.dataset.id, { n: e.target.value });
+});
+
+const ALL = CXM.concat(VOC);
+document.getElementById('btn-export').onclick = function () {
+  const L = ['# Quyết định Overview — dán lại cho Claude', ''];
+  function block(title, rows) {
+    L.push('## ' + title);
+    rows.forEach(function (r) {
+      const d = DEC[r[0]] || {};
+      if (!d.v && !d.n) return;
+      L.push('- ' + r[0] + ' (' + r[1].replace(/<[^>]*>/g, '') + ') → ' + (d.v || '(chưa chọn)')
+        + (d.n ? ' · ghi chú: ' + d.n : ''));
+    });
+    L.push('');
+  }
+  block('Tổng quan CXM', CXM);
+  block('Tổng quan VoC', VOC);
+  L.push('## Bốn câu chốt');
+  ASKS.forEach(function (a) {
+    const d = DEC[a.id] || {};
+    const opt = a.opts.find(function (o) { return o[0] === d.v; });
+    L.push('- ' + a.id + ' ' + a.q + ' → ' + (opt ? opt[0] + ') ' + opt[1] : '(chưa chọn)')
+      + (d.n ? ' · ghi chú: ' + d.n : ''));
+  });
+  const chua = ALL.filter(function (r) { return !(DEC[r[0]] || {}).v; }).length
+    + ASKS.filter(function (a) { return !(DEC[a.id] || {}).v; }).length;
+  if (chua) L.push('', '_(còn ' + chua + ' mục chưa chọn — mục không chọn = giữ nguyên quyết định đã khóa)_');
+  document.getElementById('outtxt').value = L.join('\n');
+  document.getElementById('dlg').showModal();
+};
+document.getElementById('btn-copy').onclick = async function () {
+  const ta = document.getElementById('outtxt');
+  ta.select();
+  try { await navigator.clipboard.writeText(ta.value); this.textContent = 'Đã copy'; }
+  catch (e) { document.execCommand('copy'); }
+};
+document.getElementById('btn-close').onclick = function () { document.getElementById('dlg').close(); };
+document.getElementById('btn-reset').onclick = function () {
+  if (!confirm('Xóa toàn bộ lựa chọn đã lưu?')) return;
+  localStorage.removeItem('ov_dec');
+  location.reload();
+};
+</script>
+</body>
+</html>

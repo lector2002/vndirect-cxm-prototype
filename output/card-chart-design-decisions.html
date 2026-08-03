@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chốt design card &amp; chart — CXM (chuẩn Enterpret)</title>
+<style>
+:root{
+  --primary:#d9531e; --primary-soft:#fdf3ee; --primary-line:#f3d5c4;
+  --bg:#faf9f7; --surface:#fff; --surface2:#f4f2ef; --line:#e5e1db;
+  --ink:#1c1917; --ink2:#57534e; --ink3:#8c8681;
+  --watch:#a16207; --crit:#b3261e; --good:#3f6212;
+  --cat-1:#3b5ea8; --cat-2:#6f4a9c; --cat-3:#a3436b; --cat-4:#2f7d6a; --cat-5:#5a6570; --cat-other:#b8b2ac;
+  --info:#2c5f8a; --info-bg:#f2f7fb; --info-line:#cfe0ee;
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.55 -apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 90px}
+h1{font-size:26px;letter-spacing:-.02em;margin:0 0 6px}
+.lede{color:var(--ink2);margin:0 0 4px}
+.src{color:var(--ink3);font-size:12.5px;margin:0 0 26px}
+h2{font-size:19px;margin:34px 0 4px;letter-spacing:-.01em}
+h2 .n{color:var(--ink3);font-weight:400;font-size:14px}
+.sub{color:var(--ink2);font-size:13px;margin:0 0 16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin:0 0 16px;overflow:hidden}
+.chead{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:flex-start}
+.chead b{font-size:14px;display:block}
+.chead .q{color:var(--ink3);font-size:12.5px;margin-top:3px;display:block}
+.pill{margin-left:auto;flex:none;font:700 10.5px/1 ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.08em;padding:5px 8px;border-radius:20px;border:1px solid var(--line);color:var(--ink3);background:var(--surface2);white-space:nowrap}
+.pill.def{color:#fff;background:var(--crit);border-color:var(--crit)}
+.cbody{padding:16px}
+.opts{display:grid;gap:10px}
+.opt{border:1px solid var(--line);border-radius:8px;padding:12px 14px;cursor:pointer;display:block;transition:.12s}
+.opt:hover{background:var(--surface2)}
+.opt.on{border-color:var(--primary);background:var(--primary-soft);box-shadow:inset 0 0 0 1px var(--primary-line)}
+.opt input{margin-right:8px}
+.opt .lbl{font-weight:600}
+.opt .rec{color:var(--primary);font-size:11px;font-weight:700;margin-left:6px;text-transform:uppercase;letter-spacing:.06em}
+.opt .why{color:var(--ink2);font-size:13px;margin-top:5px;padding-left:22px}
+.note{background:var(--info-bg);border:1px solid var(--info-line);color:var(--ink2);border-radius:8px;padding:11px 13px;font-size:13px;margin:12px 0 0}
+.note.bad{background:#fdf1f0;border-color:#f3c9c4}
+.note b{color:var(--ink)}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-top:10px}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:var(--surface2);font-size:12px;color:var(--ink2)}
+code{font:12.5px ui-monospace,Menlo,monospace;background:var(--surface2);padding:1px 5px;border-radius:4px}
+.bar-demo{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;font-size:13px;overflow:hidden}
+.bar-demo .strip{margin:-14px -14px 12px;padding:7px 14px;background:var(--surface2);border-bottom:1px solid var(--line);font-size:11.5px;color:var(--ink3)}
+.frame{display:flex;gap:9px}
+.vax{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;color:var(--ink3);white-space:nowrap;flex:none;text-align:center}
+.plot{flex:1;min-width:0}
+.xax{text-align:center;font-size:11px;color:var(--ink3);margin-top:9px}
+.r-thin{display:grid;grid-template-columns:1fr 40% 52px;gap:9px;align-items:center;margin-bottom:9px}
+.r-thin .l{display:flex;gap:6px;align-items:center;min-width:0;font-size:12.5px}
+.r-thin .l i{width:8px;height:8px;border-radius:50%;flex:none}
+.r-thin .l span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-thin .track{height:10px;background:var(--surface2);border-radius:5px;overflow:hidden}
+.r-thin .track i{display:block;height:100%;border-radius:5px}
+.r-thin .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:12.5px}
+.r-thick{display:grid;grid-template-columns:132px 1fr 52px;gap:10px;align-items:center;margin-bottom:6px}
+.r-thick .l{text-align:right;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+.r-thick .b{height:26px;border-radius:3px}
+.r-thick .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-size:12.5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:920px){.two{grid-template-columns:1fr}}
+.cap{font-size:11px;color:var(--ink3);margin:0 0 7px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:11px 22px;display:flex;gap:12px;align-items:center;box-shadow:0 -2px 12px rgba(0,0,0,.05)}
+.bar .st{color:var(--ink2);font-size:13px;margin-right:auto}
+button{font:inherit;padding:8px 14px;border-radius:7px;border:1px solid var(--line);background:var(--surface);cursor:pointer}
+button.p{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:600}
+dialog{border:1px solid var(--line);border-radius:10px;padding:0;max-width:760px;width:92vw}
+dialog .dh{padding:13px 16px;border-bottom:1px solid var(--line);font-weight:600}
+dialog textarea{width:100%;height:52vh;border:0;padding:14px 16px;font:12.5px/1.6 ui-monospace,Menlo,monospace;resize:none;outline:0}
+dialog .df{padding:11px 16px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Chốt design card &amp; chart</h1>
+<p class="lede">Áp cho <b>cả app</b> — Overview, Quantify, và mọi màn sau. Mockup dưới đây render bằng <b>số thật từ seed</b> (<code>q1 Volume theo Theme</code>, 14 theme), không phải số minh hoạ.</p>
+<p class="src">Chuẩn tham chiếu: <code>docs/ENTERPRET-DESIGN-NOTES.md</code> · Spec đang thực thi: <code>docs/superpowers/specs/2026-08-01-card-enterpret-spec.md</code> · Quyết định đã khóa: <code>docs/REDESIGN-PLAN-HANDOFF.md</code></p>
+
+<h2>Phần 0 · Defect phải quyết trước khi bàn thẩm mỹ</h2>
+<p class="sub">Đây không phải lựa chọn design. Đây là con số đang sai.</p>
+
+<div class="card">
+  <div class="chead"><div><b>D0 · <code>fx()</code> đang nhân lên cả những tập ĐẾM ĐƯỢC</b><span class="q">Ảnh hưởng: mọi chart <code>base='ev'</code> (Category·intent, User Sentiment, Nền tảng) và <code>base='cust'</code> (Segment, Value tier)</span></div><span class="pill def">Defect</span></div>
+  <div class="cbody">
+    <div class="note bad">
+      <b>Sự việc:</b> <code>seed.ev.length = 17</code>. Chart <code>q3 Volume theo Category</code> có 4 hàng tổng đúng 17 (Khiếu nại 9 · Cần hỗ trợ 3 · Đề xuất cải thiện 3 · Khen ngợi 2).
+      Nhưng <code>Bars</code> in <code>nfK(fx(v))</code> cho mọi hàng → "Khiếu nại" hiện <b>50</b>.
+      <br><br>
+      <b>Vì sao nghiêm trọng hơn defect <code>@coverage</code>:</b> <code>@coverage</code> là lỗi đơn vị (85% vẽ thành 476) — nhìn là biết sai. Cái này <b>trông hoàn toàn hợp lý</b> nhưng khẳng định một con số mà người dùng bấm vào sẽ đếm được là 9. <code>fx()</code> hợp lệ cho <b>volume tổng hợp</b> (snapshot × 5,6 = ước lượng 6 tháng). Nó không hợp lệ cho một tập bằng chứng <b>liệt kê được</b>, cũng không cho số khách trong cohort.
+    </div>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="D0" value="a"><span class="lbl">a · Chỉ áp <code>fx()</code> khi <code>base='agg'</code></span><span class="rec">đề xuất</span><div class="why"><code>ev</code> và <code>cust</code> in số thô. Dải denom nói rõ "17 bằng chứng mẫu". Khớp đúng nghĩa <code>fx()</code>, và khớp cách Enterpret ghi "165,672 Feedback Records" — số thật, không ngoại suy.</div></label>
+      <label class="opt"><input type="radio" name="D0" value="b"><span class="lbl">b · Giữ nguyên, chỉ thêm chú thích "đã ước lượng theo kỳ"</span><div class="why">Rẻ hơn nhưng vẫn in 50 ở chỗ có 9. Chú thích không sửa được việc con số bịa.</div></label>
+      <label class="opt"><input type="radio" name="D0" value="c"><span class="lbl">c · Mở rộng seed <code>ev</code> lên ~95 bản ghi để số thô tự đủ lớn</span><div class="why">Gốc nhất nhưng tốn nhất, và <b>vẫn phải làm (a)</b> — nếu không thì 95 lại bị nhân thành 532.</div></label>
+    </div>
+  </div>
+</div>
+
+<h2>Phần 1 · Card &amp; bar chart <span class="n">— áp cả app</span></h2>
+
+<div class="card">
+  <div class="chead"><div><b>D1 · Nhãn trục mang cái gì</b><span class="q">S2.6a vừa làm sai chỗ này: đặt đơn vị đo lên trục dọc của bar ngang</span></div><span class="pill">Sửa lệch</span></div>
+  <div class="cbody">
+    <table>
+      <tr><th>Loại chart</th><th>Trục dọc (quay dọc, lề trái)</th><th>Đáy, căn giữa</th></tr>
+      <tr><td>Bar ngang</td><td><b>tên CHIỀU</b> — <code>Theme · vì sao</code></td><td><b>ĐƠN VỊ ĐO</b> — <code>Số tín hiệu khách hàng</code></td></tr>
+      <tr><td>Line / anomaly</td><td><b>ĐƠN VỊ ĐO</b> — <code>Số tín hiệu khách hàng</code></td><td>(trục X là thời gian, tự hiển nhiên)</td></tr>
+    </table>
+    <div class="note">Quy tắc duy nhất: <b>nhãn theo đúng thứ mà trục đó mã hoá</b>. Bar ngang có trục dọc = danh mục và trục ngang = số đo, nên số đo phải nằm dưới. Enterpret làm đúng vậy: trục dọc ghi <code>Level 2 Keywords</code>, đáy ghi <code>Count of Feedback Records</code>.</div>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="D1" value="a"><span class="lbl">a · Sửa theo bảng trên</span><span class="rec">đề xuất</span><div class="why">Đúng quy ước chart phổ thông; hết tình trạng bar ngang ghi đơn vị đo ở trục danh mục.</div></label>
+      <label class="opt"><input type="radio" name="D1" value="b"><span class="lbl">b · Giữ như S2.6a (trục dọc = đơn vị đo cho mọi loại chart)</span><div class="why">Nhất quán nội bộ nhưng sai quy ước; người đọc sẽ tưởng trục dọc đo bằng "tín hiệu".</div></label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="chead"><div><b>D2 + D3 + D4 · Hình dạng thanh, vị trí số, chấm màu</b><span class="q">Ba thứ này quyết cùng nhau vì cùng nằm trong một hàng</span></div><span class="pill">Design</span></div>
+  <div class="cbody">
+    <div class="two">
+      <div>
+        <p class="cap">Hiện tại — thanh 10px · chấm màu · xám hết</p>
+        <div class="bar-demo">
+          <div class="strip">Đang hiện Top 8 trên 14 theme · trên tổng 317.699 tín hiệu từ 7 nguồn</div>
+          <div class="frame">
+            <div class="vax">Số tín hiệu khách hàng</div>
+            <div class="plot" id="thin"></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="cap">Đề xuất — thanh 26px · không chấm · màu phân loại</p>
+        <div class="bar-demo">
+          <div class="strip">Đang hiện Top 8 trên 14 theme · trên tổng 317.699 tín hiệu từ 7 nguồn</div>
+          <div class="frame">
+            <div class="vax">Theme · vì sao</div>
+            <div class="plot" id="thick"></div>
+          </div>
+          <div class="xax">Số tín hiệu khách hàng</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opts" style="margin-top:18px">
+      <label class="opt"><input type="radio" name="D2" value="a"><span class="lbl">D2a · Thanh dày tự điều chỉnh: 42px khi ≤3 hàng, 26px khi &gt;3 hàng</span><span class="rec">đề xuất</span><div class="why">Đúng cách Enterpret làm (ảnh B: card 3 hàng thanh rất dày, card 6 hàng thanh mỏng hơn). Card luôn kín, không bị khoảng trắng thừa khi ít hàng.</div></label>
+      <label class="opt"><input type="radio" name="D2" value="b"><span class="lbl">D2b · Cố định 26px mọi trường hợp</span><div class="why">Đơn giản hơn, nhưng card 3 hàng sẽ trông rỗng.</div></label>
+      <label class="opt"><input type="radio" name="D2" value="c"><span class="lbl">D2c · Giữ 10px như hiện tại</span><div class="why">Chart trông như progress bar, khó so sánh độ dài giữa các hàng.</div></label>
+    </div>
+
+    <div class="opts" style="margin-top:12px">
+      <label class="opt"><input type="radio" name="D3" value="a"><span class="lbl">D3a · Số ở CỘT CỐ ĐỊNH, căn phải</span><span class="rec">đề xuất</span><div class="why"><b>Đây là chỗ tôi cố ý KHÔNG theo Enterpret.</b> Họ để số bám đầu thanh nên mỗi hàng số nằm một vị trí khác nhau — đẹp, dễ ghép cặp, nhưng <b>không quét dọc được</b>. Người dùng của ta cần đọc "hàng nào bao nhiêu" theo cột, và ta đã có <code>tabular-nums</code>.</div></label>
+      <label class="opt"><input type="radio" name="D3" value="b"><span class="lbl">D3b · Số bám ngay sau đầu thanh (giống Enterpret)</span><div class="why">Ghép cặp thanh↔số tốt hơn; đánh đổi là mất khả năng so sánh số theo cột.</div></label>
+    </div>
+
+    <div class="opts" style="margin-top:12px">
+      <label class="opt"><input type="radio" name="D4" value="a"><span class="lbl">D4a · Bỏ chấm màu dẫn đầu nhãn</span><span class="rec">đề xuất</span><div class="why">Khi thanh đã mang màu thì chấm là lần thứ hai nói cùng một thông tin. Bỏ đi được thêm chỗ cho nhãn (hiện đang bị <code>truncate</code>).</div></label>
+      <label class="opt"><input type="radio" name="D4" value="b"><span class="lbl">D4b · Giữ chấm màu</span><div class="why">Có ích khi chart chuyển sang dạng bảng — ở đó chấm vẫn còn nghĩa.</div></label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="chead"><div><b>D5 · Màu thanh</b><span class="q">Hiện 13/14 hàng của <code>q1</code> có <code>c: undefined</code> → xám hết. Hàng duy nhất có màu là "Trải nghiệm nhanh và mượt" (<code>var(--good)</code>) vì nó mang intent <i>praise</i>.</span></div><span class="pill">Design</span></div>
+  <div class="cbody">
+    <div class="note">Palette phân loại đã chốt 02/08: <code>--cat-1</code> indigo · <code>--cat-2</code> tím · <code>--cat-3</code> hồng đất · <code>--cat-4</code> lục lam · <code>--cat-5</code> xám lam · <code>--cat-other</code> cho nhóm "Khác". Hue tách hẳn khỏi cam/đỏ/hổ phách/ô-liu để không ai đọc lẫn thành báo động.</div>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="D5" value="a"><span class="lbl">a · Màu = TRẠNG THÁI khi hạng mục có trạng thái; còn lại dùng thang <code>cat</code></span><span class="rec">đề xuất</span><div class="why">Hạng mục vượt ngưỡng (nguồn chết, độ phủ dưới mức, issue critical) vẫn đỏ/hổ phách vì đó là <b>thông tin hành động</b>. Hạng mục chỉ là danh mục thì dùng <code>cat</code>. Không bao giờ để một danh mục thuần mang màu đỏ.</div></label>
+      <label class="opt"><input type="radio" name="D5" value="b"><span class="lbl">b · Luôn dùng thang <code>cat</code>; trạng thái thể hiện bằng icon/viền thay vì màu thanh</span><div class="why">Sạch nhất về ngữ nghĩa, nhưng mất tín hiệu đỏ vốn giúp nhận ra vấn đề trong một giây.</div></label>
+      <label class="opt"><input type="radio" name="D5" value="c"><span class="lbl">c · Một màu duy nhất cho mọi thanh, chỉ dùng màu khi có trạng thái</span><div class="why">Tiết chế nhất; đổi lại donut và cross-tab không phân biệt được lát.</div></label>
+    </div>
+    <div class="note" style="margin-top:14px"><b>Kèm theo:</b> <code>cats</code> (intent) hiện đi vay màu trạng thái — <code>Khiếu nại → var(--crit)</code>, <code>Khen ngợi → var(--good)</code>. Nếu chọn (a) hay (b) thì <code>cats</code> chuyển sang <code>cat-3 / cat-1 / cat-2 / cat-4</code>, giữ được gradient trực giác âm→dương mà không biến mọi chart intent thành báo động.</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="chead"><div><b>D6 · Donut nhiều lát</b><span class="q"><code>q1</code> có 14 theme; donut hiện vẽ hết 14 lát (quyết định cũ: donut không cắt Top 10)</span></div><span class="pill">Design</span></div>
+  <div class="cbody">
+    <div class="opts">
+      <label class="opt"><input type="radio" name="D6" value="a"><span class="lbl">a · Giữ 5 lát lớn nhất + gom đuôi thành "Khác (+9)" màu <code>--cat-other</code></span><span class="rec">đề xuất</span><div class="why">Với 5 màu phân loại thì 14 lát buộc phải lặp màu — hai lát cùng màu trong một donut là đọc sai. Ảnh A cho thấy Enterpret giới hạn 6 lát. Lát "Khác" bấm được để mở bảng đầy đủ.</div></label>
+      <label class="opt"><input type="radio" name="D6" value="b"><span class="lbl">b · Giữ 14 lát, chấp nhận lặp màu</span><div class="why">Không mất dữ liệu khỏi hình, nhưng lặp màu làm legend mất tin cậy.</div></label>
+      <label class="opt"><input type="radio" name="D6" value="c"><span class="lbl">c · Chiều có &gt;6 hạng mục thì tự đổi sang bar, không cho donut</span><div class="why">Trung thực nhất về mặt biểu đồ, nhưng ghi đè lựa chọn chart của user.</div></label>
+    </div>
+  </div>
+</div>
+
+<h2>Phần 2 · Trang &amp; section</h2>
+
+<div class="card">
+  <div class="chead"><div><b>D7 · Tiêu đề section (câu hỏi) cầm trịch tới đâu</b><span class="q">Enterpret để câu hỏi chữ lớn đậm NGOÀI card; các card bên dưới là cách trả lời</span></div><span class="pill">Design</span></div>
+  <div class="cbody">
+    <div class="opts">
+      <label class="opt"><input type="radio" name="D7" value="a"><span class="lbl">a · Câu hỏi 20-22px đậm ngoài card; tiêu đề card 13,5px</span><span class="rec">đề xuất</span><div class="why">Tạo đúng thứ bậc: đọc câu hỏi trước, rồi tới các cách trả lời. S2.6a đã hạ tiêu đề card xuống 13,5px — chỉ còn nâng câu hỏi.</div></label>
+      <label class="opt"><input type="radio" name="D7" value="b"><span class="lbl">b · Giữ cỡ hiện tại</span><div class="why">Câu hỏi và tiêu đề card gần bằng nhau nên cụm card không đọc ra là "cùng trả lời một câu".</div></label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="chead"><div><b>D8 · Dữ liệu thật vs không có dữ liệu</b><span class="q">Mốc <code>1 năm</code> hiện là no-op: mọi chuỗi trong seed đúng 6 điểm nên <code>slice(-12)</code> ≡ <code>slice(-6)</code></span></div><span class="pill">Trust</span></div>
+  <div class="cbody">
+    <div class="note">Enterpret vẽ <b>đoạn có dữ liệu bằng nét liền, đoạn ngoại suy bằng nét đứt</b> (ảnh B). Đây là chỗ họ nghiêm túc hơn ta: ta bấm <code>1 năm</code> mà chart không đổi gì, user sẽ tưởng bộ lọc hỏng.</div>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="D8" value="a"><span class="lbl">a · Mở rộng seed lên 12 điểm/chuỗi</span><span class="rec">đề xuất</span><div class="why">Sửa gốc, giữ được cả 3 mốc đã khóa ở <code>REDESIGN-PLAN-HANDOFF.md:26,31</code>. Đây là fixture nên thêm 6 tháng lịch sử là hợp lệ.</div></label>
+      <label class="opt"><input type="radio" name="D8" value="b"><span class="lbl">b · Bỏ mốc <code>1 năm</code></span><div class="why">Rẻ nhất, nhưng trái quyết định đã khóa về bộ 3m/6m/1y.</div></label>
+      <label class="opt"><input type="radio" name="D8" value="c"><span class="lbl">c · Giữ mốc, vẽ phần thiếu dữ liệu bằng nét đứt + ghi rõ "chỉ có 6 kỳ"</span><div class="why">Trung thực và học đúng Enterpret, nhưng chart <code>1 năm</code> sẽ nửa trống — có thể gây cảm giác sản phẩm chưa xong.</div></label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="chead"><div><b>D9 · Provenance của set</b><span class="q">Quyết định 01/08 đã CẮT <code>setbar.meta</code> → hiện set không có thông tin ai dựng / đổi lần cuối</span></div><span class="pill">Xem lại</span></div>
+  <div class="cbody">
+    <div class="note">Enterpret có <code>Dashboard · Kelly Schaefer-Flake · a month ago</code> ngay dưới tên. Cắt meta là để bỏ nhiễu, nhưng "set này ai dựng, sửa lần cuối khi nào" thuộc loại <b>thông tin tin cậy</b>, không phải nhiễu. Đây là chỗ tôi xin xem lại quyết định cũ.</div>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="D9" value="a"><span class="lbl">a · Trả lại MỘT dòng gọn: <code>Set cố định · cập nhật 27/07/2026</code></span><span class="rec">đề xuất</span><div class="why">Giữ provenance mà không quay lại khối meta rườm rà đã cắt. Fixture không có người thật nên <b>không</b> bịa tên người tạo.</div></label>
+      <label class="opt"><input type="radio" name="D9" value="b"><span class="lbl">b · Giữ nguyên quyết định cắt, không có meta</span><div class="why">Trung thành với quyết định 01/08; đổi lại user không biết set đang xem cũ hay mới.</div></label>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="chead"><div><b>D10 · Badge "đang lọc" trên thanh lọc</b><span class="q">Enterpret: <code>Show Filters (1)</code> — luôn cho biết dữ liệu đang bị lọc</span></div><span class="pill">Design</span></div>
+  <div class="cbody">
+    <div class="opts">
+      <label class="opt"><input type="radio" name="D10" value="a"><span class="lbl">a · Thêm badge số điều kiện đang bật cạnh bộ lọc kỳ</span><span class="rec">đề xuất</span><div class="why">Rẻ, và ngăn được lỗi tin cậy phổ biến nhất: đọc một con số đã bị lọc mà không biết.</div></label>
+      <label class="opt"><input type="radio" name="D10" value="b"><span class="lbl">b · Chưa cần, ta mới có 1 loại filter (kỳ)</span><div class="why">Đúng ở hiện tại; sẽ cần khi Quantify/Work thêm filter.</div></label>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="bar">
+  <span class="st" id="st">Chưa chọn gì</span>
+  <button id="reset">Xoá lựa chọn</button>
+  <button class="p" id="exp">Xuất quyết định</button>
+</div>
+
+<dialog id="dlg">
+  <div class="dh">Copy khối này gửi lại cho Claude</div>
+  <textarea id="out" readonly></textarea>
+  <div class="df"><button id="cp">Copy</button><button class="p" id="cl">Đóng</button></div>
+</dialog>
+
+<script>
+/* Số THẬT từ seed, trích bằng oracle jiti: qRun('q1') top 8.
+   cột fx = Math.round(fx(raw)) với BASE_FACTOR = 5.6 (vd raw 412 -> 2307). */
+var ROWS=[
+ {l:'Thiết bị / môi trường không tương thích',fx:2307},
+ {l:'Hướng dẫn không rõ hoặc thiếu',fx:2061},
+ {l:'Không rõ trạng thái giao dịch',fx:1652},
+ {l:'Chờ quá lâu không phản hồi',fx:1176},
+ {l:'Thiếu thông tin để ra quyết định',fx:1042},
+ {l:'Trải nghiệm nhanh và mượt',fx:918,good:true},
+ {l:'Phí và thuế trừ không như kỳ vọng',fx:661},
+ {l:'Tiền về chậm hơn thông báo',fx:538}
+];
+var CAT=['var(--cat-1)','var(--cat-2)','var(--cat-3)','var(--cat-4)','var(--cat-5)','var(--good)','var(--cat-1)','var(--cat-2)'];
+function nfK(n){ if(Math.abs(n)<1000) return n.toLocaleString('vi-VN'); return String(Math.round(n/100)/10).replace('.',',')+'K'; }
+var max=ROWS[0].fx;
+
+document.getElementById('thin').innerHTML=ROWS.map(function(r){
+  var w=Math.max(2,r.fx/max*100), c=r.good?'var(--good)':'var(--ink3)';
+  return '<div class="r-thin"><div class="l"><i style="background:'+c+'"></i><span>'+r.l+'</span></div>'
+    +'<div class="track"><i style="width:'+w+'%;background:'+c+'"></i></div>'
+    +'<div class="v">'+nfK(r.fx)+'</div></div>';
+}).join('');
+
+document.getElementById('thick').innerHTML=ROWS.map(function(r,i){
+  var w=Math.max(1.5,r.fx/max*100);
+  return '<div class="r-thick"><div class="l">'+r.l+'</div>'
+    +'<div><div class="b" style="width:'+w+'%;background:'+CAT[i]+'"></div></div>'
+    +'<div class="v">'+nfK(r.fx)+'</div></div>';
+}).join('');
+
+var KEY='cxm_card_dec', QS=['D0','D1','D2','D3','D4','D5','D6','D7','D8','D9','D10'], dec={};
+try{ dec=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){ dec={}; }
+
+function paint(){
+  QS.forEach(function(q){
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="'+q+'"]'),function(i){
+      i.checked = dec[q]===i.value;
+      i.closest('.opt').classList.toggle('on', i.checked);
+    });
+  });
+  var n=QS.filter(function(q){return dec[q];}).length;
+  document.getElementById('st').textContent = n? ('Đã chọn '+n+'/'+QS.length) : 'Chưa chọn gì';
+}
+document.addEventListener('change',function(e){
+  if(e.target.name && QS.indexOf(e.target.name)>-1){
+    dec[e.target.name]=e.target.value;
+    localStorage.setItem(KEY,JSON.stringify(dec));
+    paint();
+  }
+});
+document.getElementById('reset').onclick=function(){ dec={}; localStorage.removeItem(KEY); paint(); };
+document.getElementById('exp').onclick=function(){
+  var L=['# Quyết định design card & chart — '+new Date().toLocaleString('vi-VN'),''];
+  QS.forEach(function(q){ L.push('- '+q+': '+(dec[q]||'(chưa chọn)')); });
+  var miss=QS.filter(function(q){return !dec[q];});
+  if(miss.length){ L.push(''); L.push('Chưa chọn: '+miss.join(', ')); }
+  document.getElementById('out').value=L.join('\n');
+  document.getElementById('dlg').showModal();
+};
+document.getElementById('cl').onclick=function(){ document.getElementById('dlg').close(); };
+document.getElementById('cp').onclick=function(){
+  var t=document.getElementById('out');
+  navigator.clipboard.writeText(t.value).then(function(){
+    document.getElementById('cp').textContent='Đã copy';
+    setTimeout(function(){document.getElementById('cp').textContent='Copy';},1200);
+  });
+};
+paint();
+</script>
+</body>
+</html>

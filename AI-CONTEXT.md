@@ -1,8 +1,26 @@
 # AI Context
 
-> Updated: 2026-07-28
+> Updated: 2026-08-02
 > Level: Small
-> Status: active · đang chờ owner review bản bấm được
+> Status: active · đang dựng lại bằng React trong `web/`
+
+> 🔴 **CÔNG VIỆC HIỆN TẠI NẰM Ở `web/` — ĐỌC `web/docs/REBUILD-STATUS.md` TRƯỚC.**
+> Từ 31/07/2026, prototype một-file đang được **dựng lại thật bằng React** trong `web/`
+> (React 19 · Vite · TypeScript · Tailwind · Zustand · Vitest). Tính đến 02/08: tsc xanh,
+> 560 test / 58 file, build xanh. Xong Phase 0–3, Module A (chặng Xác nhận + đóng băng baseline),
+> Module C1/C2/C4 (trục phân khúc khách + tính khả dụng + fixture demo). Còn C3, C5, Module B.
+> **Mọi mục bên dưới mô tả GIAI ĐOẠN PROTOTYPE (tới 28/07) và vẫn đúng với
+> `output/cxm-platform-prototype.html` — file đó nay là ĐẶC TẢ GỐC chỉ đọc cho bản React.**
+> Cảnh báo "React app không nằm trên đường deploy" bên dưới nói về `legacy/` (bản cũ 8 route),
+> KHÔNG nói về `web/`.
+
+> 🧪 **GIAI ĐOẠN THIẾT KẾ · TOGGLE DEMO MODE (owner chốt 03/08/2026).** `web/` là bản THIẾT KẾ,
+> **chưa có data pipeline và database thật**. Cơ chế: **nút toggle "Demo Mode" global**.
+> • **BẬT** → dùng data giả/demo (seed fixture + số bịa cho tính năng chưa có data) để trình diễn
+> ĐỦ tính năng/thiết kế. • **TẮT** → chỉ dùng DB thật; DB chưa setup nên app về **trạng thái trống /
+> "chưa kết nối DB"** (empty state trung thực), kèm banner. Data giả CHỈ sống khi Demo Mode BẬT —
+> tắt đi phải phản ánh đúng "chưa có pipeline". Điều này NỚI quy tắc "không data giả" trước 03/08
+> theo đúng khung toggle này.
 
 > ⚠️ **ĐỌC TRƯỚC KHI SỬA — nguồn sự thật để DEPLOY**
 > Site live `https://lector2002.github.io/vndirect-cxm-prototype/` **CHỈ** build từ **`output/cxm-platform-prototype.html`** (workflow `.github/workflows/deploy-pages.yml` copy nó thành `index.html` mỗi khi push `main`).
@@ -172,5 +190,6 @@ Trọng số xếp ưu tiên điểm gãy để **chỉ đọc** (mục 6 của 
 ## Quyết định cố ý giữ, đừng "sửa" lại
 - **Không** dùng một ngưỡng chung cho mọi metric (xem mục *Trạng thái được SUY RA* ở trên).
 - ~~**Không** gộp funnel của `#/health` vào `#/atlas`~~ — **owner đã lật ngày 28/07/2026.** `#/health` bị bỏ hẳn: nửa funnel trùng hoàn toàn `journeySpine()` nên xóa, nửa friction queue chuyển sang `#/work` thành chế độ xem *xếp theo ưu tiên*. Lý do phản đối gốc (atlas là cấu trúc, health là hàng đợi pilot) được xử lý bằng cách đưa queue sang `#/work` chứ không nhét vào atlas. Xem spec 28/07 §A6.
-- **Không** dựng lại timeline từng khách. Fixture `DATA.cust` cố ý chỉ còn `key · seg · tier · pf · st` — vừa đủ để khép vòng, không thành hệ thống tra cứu thứ hai.
+- **Không** dựng lại timeline từng khách, **không màn tra cứu từng khách**. Fixture `DATA.cust` giữ nguyên tắc "không thành hệ thống tra cứu thứ hai".
+  - ✅ **02/08/2026 — OWNER ĐÃ PHÁN: sửa quyết định.** Ranh giới cũ *"cố ý chỉ 5 field"* được thay bằng **"cấm màn tra cứu từng khách"** — vì cái nguy hiểm là hệ thống tra cứu thứ hai (timeline từng người), không phải số lượng field. Module C được phép thêm 4 trục phân khúc (`age`/`nav`/`tenure`/`acq`) vào `Customer` trong `web/`, **với điều kiện**: chỉ dùng để **gộp nhóm cho biểu đồ tổng hợp** (`rank`/`donut` dẫn xuất từ `data.cust`), KHÔNG cohort series viết tay, KHÔNG timeline, KHÔNG màn tra cứu từng khách. C1/C2/C4 (đã chứng thực) được **giữ**, không cuốn ngược.
 - Cấu hình ngưỡng **không persist** (không có backend). Refresh là về mặc định — đây là chủ ý và có ghi rõ trên UI.
