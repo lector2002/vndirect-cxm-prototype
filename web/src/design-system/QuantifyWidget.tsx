@@ -17,6 +17,7 @@ import { DrillPanel, type DrillContent, type DrillRecordKind } from "./DrillPane
 import { nf, pv } from "./format.ts";
 import { LineChart } from "./LineChart.tsx";
 import { paintCategorical } from "./paintCategorical.ts";
+import { SplitToggle, type SplitOption } from "./SplitToggle.tsx";
 import { VAxisLabel } from "./VAxisLabel.tsx";
 
 export type QuantifyWidgetProps = {
@@ -267,6 +268,15 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
      đúng cái owner lo khi loại phương án (b) ("chart theme click được, chart khác không → mặt UI
      không nhất quán"). Hook phải gọi TRƯỚC mọi nhánh return bên dưới (series/cross-tab). */
   const [drillRow, setDrillRow] = useState<DimRow | null>(null);
+  /* Chiều chia màu do NGƯỜI XEM chọn tại chỗ (owner chốt 03/08, lát 1) — ghi đè `item.split` ghim cứng
+     trong fixture. Cũng KHÔNG thêm prop, cùng lý do như drillRow: mọi chỗ render widget có toggle mà
+     không phải nối gì. Hook phải gọi TRƯỚC mọi nhánh return bên dưới.
+
+     Lưu KÈM `base` = giá trị `item.split` lúc bấm, không chỉ lưu value: trong builder preview người
+     dùng đổi `split` bằng picker của builder, `item` đổi theo — lúc đó `base` lệch nên override tự
+     rụng và picker thắng. Không cần useEffect, và không có cảnh chip cũ âm thầm đè lên cú bấm vừa rồi
+     ở builder (kiểu "hoàn tác im lặng" mà QuantifyBuilder đã nêu là khó lần ra nhất). */
+  const [splitPick, setSplitPick] = useState<{ base: string | undefined; value: string | undefined } | null>(null);
 
   if (item.kind === "series") {
     /* S2.6a (R3): item series KHÔNG có denomStrip (không có rows để đếm; Card.subtitle đã mang kỳ)
@@ -335,9 +345,46 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
       );
     }
 
+    /* ---- Chiều chia màu HIỆU LỰC = lựa chọn của người xem, mặc định là `item.split` của fixture ----
+       `stack` chỉ có nghĩa khi CÓ chia màu (đúng luật builder: `if (!next.split) next.stack = undefined`)
+       nên tắt chia màu là phải bỏ luôn `stack`, không để field mồ côi làm `segBottomLabel` nói về một
+       cách xếp đoạn không còn tồn tại. Ngược lại, ĐỔI chiều mà vẫn chia thì GIỮ `stack`: cách xếp đoạn
+       là lựa chọn về CÁCH ĐỌC (tuyệt đối / tỷ trọng), không thuộc riêng chiều nào. */
+    const effSplit = splitPick && splitPick.base === item.split ? splitPick.value : item.split;
+    const effItem: QuantifyShow =
+      effSplit === item.split ? item : { ...item, split: effSplit, stack: effSplit ? item.stack : undefined };
+
+    /* Danh sách chiều chia màu: LỌC theo `base === 'cust'`, KHÔNG liệt kê tay id — cùng luật builder
+       dùng cho picker của nó (QuantifyBuilder splitOptions), và cùng lý do đã nêu ở qRunSegment.
+       Khác builder ĐÚNG MỘT ĐIỂM owner chốt: chiều ĐANG xếp hàng vẫn HIỆN, chỉ mờ đi. Builder ẩn nó vì
+       đó là picker để LƯU (giá trị không lưu được thì đừng cho chọn); đây là control để XEM, mà ẩn thì
+       strip đổi bề rộng theo từng chart và người dùng không biết vì sao một chip biến mất.
+
+       Lý do disable KHÔNG viết lại ở đây mà HỎI CHÍNH `qRunSplit` bằng một lượt thử: bản sao thứ hai
+       của luật đó chắc chắn sẽ lệch với engine (đúng loại trùng lặp đã đẻ ra bug `mdir`), và tooltip
+       nói một lý do mà engine không thực sự áp thì tệ hơn là không có tooltip. Giá: 6 lượt quét
+       `data.cust` (300 dòng) mỗi lần render — rẻ hơn nhiều so với nguy cơ đó. */
+    const splitOptions: SplitOption[] = Object.entries(dims)
+      .filter(([, d]) => d.base === "cust")
+      .map(([k, d]) => {
+        const probe = qRunSplit({ ...item, split: k }, data, dims);
+        return { key: k, label: d.label, ...(probe.kind === "refuse" ? { disabledReason: probe.reason } : {}) };
+      });
+
+    /* Bảng và donut KHÔNG có chỗ vẽ đoạn màu. Vẫn render strip nhưng khoá CẢ CỤM thay vì ẩn: ẩn đi thì
+       control biến mất khi đổi view mà không ai nói vì sao — đúng cái lỗi mà "disable chứ không ẩn"
+       ở trên đang tránh. Câu này nói về việc KHÔNG ĐỔI ĐƯỢC; `splitNote` bên dưới nói về việc chiều
+       đang chọn KHÔNG VẼ ĐƯỢC — hai điều khác nhau nên cả hai đều đứng lại. */
+    const splitLocked =
+      effectiveView === "table"
+        ? "View bảng không vẽ được đoạn màu — chuyển sang Chart để đổi chiều chia."
+        : item.chart === "donut"
+          ? "Donut không vẽ được đoạn màu — dùng chart thanh để đổi chiều chia."
+          : undefined;
+
     /* Breakdown (Module D section 1, owner chốt 03/08): chia mỗi thanh thành đoạn màu theo chiều
        khách THỨ HAI. Số do domain đếm THẬT trên cùng một dòng Customer — xem qRunSplit. */
-    const split = qRunSplit(item, data, dims);
+    const split = qRunSplit(effItem, data, dims);
 
     const knownShown = item.chart === "donut" ? seg.rows : seg.rows.slice(0, limit ?? TOP_N);
     const paintedKnown = paintCategorical(knownShown);
@@ -368,7 +415,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
     /* ---- Đấu nối breakdown vào tầng vẽ ----
        Chỉ chart dạng THANH vẽ được đoạn màu: donut và bảng không có chỗ cho nó. KHÔNG im lặng bỏ qua —
        im lặng thì người dùng tưởng đã chia màu mà không thấy màu nào; nói ra bằng `splitNote`. */
-    const isPctStack = item.stack === "pct";
+    const isPctStack = effItem.stack === "pct";
     const splitDrawn = split.kind === "draw" && effectiveView !== "table" && item.chart !== "donut";
     const splitSegments =
       split.kind === "draw" && splitDrawn ? (r: DimRow) => split.byRow[r.id] ?? [] : undefined;
@@ -384,7 +431,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
       split.kind === "refuse"
         ? split.reason
         : split.kind === "draw" && !splitDrawn
-          ? `Chia màu theo "${dims[item.split ?? ""]?.label ?? item.split}" chỉ hiện được ở dạng thanh — chuyển sang view Chart để xem.`
+          ? `Chia màu theo "${dims[effItem.split ?? ""]?.label ?? effItem.split}" chỉ hiện được ở dạng thanh — chuyển sang view Chart để xem.`
           : null;
 
     /* Trục khách: bản ghi dưới một hàng là KHÁCH, không phải verbatim — `Evidence` có khoá khách
@@ -405,6 +452,16 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
         actions={actions}
         onTitleClick={onTitleClick}
       >
+        {/* Strip đặt TRONG body card, TRÊN chart — không nhồi vào Card.actions như ThemeStackBlock:
+            block đó có 2 chip, ở đây có 7 (6 chiều khách + "Không chia") nên trong lưới Library nhiều
+            cột chúng sẽ tranh chỗ với tiêu đề. Trên chart là đúng thứ tự đọc: control chi phối hình
+            đứng trước hình. */}
+        <SplitToggle
+          options={splitOptions}
+          value={effSplit}
+          onChange={(next) => setSplitPick({ base: item.split, value: next })}
+          lockedReason={splitLocked}
+        />
         <VAxisLabel label={segVAxis} bottomLabel={segBottomLabel}>
           {effectiveView === "table" ? (
             <DataTable rows={chartRows} labelHeader={dim.label} scaled={false} />

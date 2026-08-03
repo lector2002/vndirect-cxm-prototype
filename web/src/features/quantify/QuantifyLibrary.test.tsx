@@ -94,6 +94,44 @@ describe("QuantifyLibrary — thẻ: click-anywhere mở chi tiết, menu ⋮ ch
     expect(onOpenDetail).toHaveBeenCalledTimes(0);
   });
 
+  /* Cùng họ lỗi với test ngay trên, phát hiện bằng đo live 04/08 khi dựng toggle chia màu: từ lúc
+     widget CÓ phần tử tương tác bên trong (thanh bấm được → drill panel, chip đổi chiều chia màu),
+     luật "bấm đâu cũng mở chi tiết" của thẻ ăn hết các cú bấm đó. Hậu quả đã đo trên lưới thật: một
+     cú bấm thanh làm lưới 3 card tụt còn 1 (nhảy sang màn chi tiết) và drill panel không bao giờ hiện.
+     Ba test dưới neo BA chỗ rò, mỗi chỗ một nguồn khác nhau — sửa một chỗ không che được hai chỗ kia. */
+  it("bấm một THANH (mở drill panel) → KHÔNG gọi onOpenDetail", () => {
+    const onOpenDetail = vi.fn();
+    render(<QuantifyLibrary {...baseProps([findItem("q1")], { onOpenDetail })} />);
+    const card = screen.getByTestId("qcard-q1");
+    fireEvent.click(within(card).getByTestId("bars").children[0]);
+    expect(screen.getByTestId("drill-denom")).toBeInTheDocument();
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
+  it("bấm BACKDROP để đóng drill panel → chỉ đóng, KHÔNG gọi onOpenDetail (portal vẫn nổi theo cây React)", () => {
+    const onOpenDetail = vi.fn();
+    render(<QuantifyLibrary {...baseProps([findItem("q1")], { onOpenDetail })} />);
+    fireEvent.click(within(screen.getByTestId("qcard-q1")).getByTestId("bars").children[0]);
+    const backdrop = screen.getByRole("dialog").parentElement;
+    if (!backdrop) throw new Error("Modal phải có lớp backdrop bọc ngoài hộp thoại");
+    fireEvent.click(backdrop);
+    expect(screen.queryByTestId("drill-denom")).not.toBeInTheDocument();
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
+  it("bấm chip đổi chiều chia màu → KHÔNG gọi onOpenDetail (kể cả chip đang bị khoá)", () => {
+    const onOpenDetail = vi.fn();
+    // q19 = trục khách (acq × nav) nên có strip chia màu; q1 (trục theme) không có.
+    render(<QuantifyLibrary {...baseProps([findItem("q19")], { onOpenDetail })} />);
+    const card = screen.getByTestId("qcard-q19");
+    fireEvent.click(within(card).getByRole("button", { name: "Độ tuổi" }));
+    expect(onOpenDetail).not.toHaveBeenCalled();
+    /* Chip bị khoá không có onClick riêng nên nó rò theo đường KHÁC — chặn ở gốc strip mới bắt được
+       cả hai. Bỏ dòng này là mất đúng nửa còn lại của lỗi. */
+    fireEvent.click(within(card).getByRole("button", { name: "Kênh mở TK" }));
+    expect(onOpenDetail).not.toHaveBeenCalled();
+  });
+
   it("bấm tiêu đề → gọi onOpenDetail(id)", () => {
     const onOpenDetail = vi.fn();
     const item = findItem("q1");

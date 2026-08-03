@@ -102,7 +102,20 @@ export function Bars({ rows, pctMode, total, onRowClick, kids, formatValue, scal
             className={`grid grid-cols-[1fr_44%_56px] gap-2.5 items-center${onRowClick ? " cursor-pointer" : ""}`}
             role={onRowClick ? "button" : undefined}
             tabIndex={onRowClick ? 0 : undefined}
-            onClick={onRowClick ? () => onRowClick(r) : undefined}
+            /* stopPropagation: một hàng bấm được đã TIÊU THỤ cú click đó. Thiếu dòng này, trong lưới
+               Quantify Library (QuantifyLibrary.tsx:99-106 bọc cả thẻ bằng "bấm đâu cũng mở chi tiết")
+               click vào thanh mở màn chi tiết thay vì mở drill panel — widget bị tháo khỏi cây trước
+               khi panel kịp hiện. Đo live 04/08: lưới 3 card tụt còn 1 sau một cú bấm.
+               KHÔNG ảnh hưởng caller nào khác: mọi nơi còn lại (ThemeStackBlock, ThemeDetailPage,
+               TopPriorityBlock) tự điều hướng BẰNG onRowClick, không nhờ bubble lên tổ tiên. */
+            onClick={
+              onRowClick
+                ? (e) => {
+                  e.stopPropagation();
+                  onRowClick(r);
+                }
+                : undefined
+            }
             onKeyDown={
               onRowClick
                 ? (e) => {

@@ -1369,3 +1369,81 @@ này là Modal, không dùng `<a>`. Đã kiểm bằng cách chạy suite, khôn
 **Còn nợ:** drill-down chỉ nối cho `Bars`; `Donut` và view bảng chưa bấm được (ngoài phạm vi câu owner
 hỏi — "bấm một thanh"). Nếu về sau nối thì `DataTable`/`Donut` phải dùng ĐÚNG `qRunDrill` này, đừng
 viết đường thứ hai.
+
+---
+
+## 04/08/2026 — Lát 1: toggle chiều chia màu trên chart trục khách, CÓ LIVE-CHECK
+
+**Owner chốt:** *"tôi đang muốn các data trừ phần segment khách hàng trên tổng sẽ cho user toggle
+chuyển đổi giữa các cách phân chia khách hàng theo tuổi/nav/thâm niên giao dịch/kênh mở… để khi thấy
+vấn đề có thể toggle để xem insight xem tập trung nào nhóm kh nào"*, kèm luật nêu thẳng: *"đương nhiên
+nếu chart là tỷ lệ khách theo nav sẵn thì ko thể toggle nav được, phân [đó] sẽ bị disable"*, và phạm
+vi: *"Lát 1 trước, xem rồi quyết lát 2"*.
+
+**Phạm vi lát 1 — đúng như đã hứa:** 0 sửa schema, 0 sửa `domain/`. `qRunSplit` đã làm hết việc đếm;
+`split` đang ghim cứng trong fixture nên chỉ cần state UI ghi đè nó.
+
+### Ba quyết định và căn cứ
+
+| Quyết định | Vì sao KHÔNG làm cách kia |
+|---|---|
+| Lý do disable **hỏi chính `qRunSplit`** bằng một lượt thử mỗi chiều, không viết lại câu lý do ở tầng hiển thị | bản sao thứ hai của luật chắc chắn lệch với engine (đúng loại trùng lặp đã đẻ ra bug `mdir`), và tooltip nói một lý do engine không thực sự áp thì tệ hơn không có tooltip. Giá: 6 lượt quét `data.cust` (300 dòng) mỗi render — rẻ hơn nguy cơ đó |
+| `aria-disabled` + vẫn focus được, **không** dùng attribute `disabled` | mục đích owner đặt ra khi chọn "disable chứ không ẩn" là để người dùng biết **được vì sao**. `disabled` thật thì nút rơi khỏi tab order và phần lớn screen reader bỏ qua ⇒ `title` mang lý do thành không tới được đúng với người không suy ra được bằng mắt |
+| Strip đặt **trong body card, trên chart**, không nhồi vào `Card.actions` | `ThemeStackBlock` đặt ở `actions` được vì có 2 chip; ở đây 7 chip (6 chiều khách + "Không chia") nên trong lưới Library nhiều cột chúng tranh chỗ với tiêu đề. Đo live: strip rộng 506px, group cao 65px (xuống 2 dòng) trong card cao 489px — chấp nhận được ở body, không chấp nhận được ở header |
+
+`stack` bị bỏ khi tắt chia màu (khớp luật builder `if (!next.split) next.stack = undefined`) nhưng
+**giữ** khi chỉ đổi chiều: cách xếp đoạn (tuyệt đối / tỷ trọng) là lựa chọn về CÁCH ĐỌC, không thuộc
+riêng chiều nào. State lưu KÈM `base` = `item.split` lúc bấm, nên trong builder preview khi owner đổi
+picker thì override tự rụng — không cần `useEffect`, không có "hoàn tác im lặng".
+
+### Defect phát hiện khi live-check — và nó là lỗi của DRILL-DOWN hôm qua, không phải của toggle
+
+Trong lưới Library, `QuantifyLibrary.tsx:99-106` bọc cả thẻ bằng "bấm đâu cũng mở chi tiết" và chỉ
+`stopPropagation` quanh `actions`. Luật đó viết khi widget **chưa có phần tử tương tác nào**. Từ lúc
+có, ba chỗ rò — hai trong đó phá chính drill-down đã ghi "đạt" ở mục 03/08 (tiếp 6):
+
+| Click | Trước | Sau |
+|---|---|---|
+| thanh trong `Bars` | mở màn chi tiết, drill panel **không bao giờ hiện** (đo được: lưới 3 card tụt còn 1) | mở panel, lưới vẫn 3 card ✔ |
+| chip `SplitToggle` | mở màn chi tiết | đổi chiều chia màu ✔ |
+| backdrop `Modal` | đóng panel **rồi** mở màn chi tiết | chỉ đóng ✔ |
+
+**Tự bác:** live-check hôm 03/08 ghi drill-down "đạt" nhưng chỉ bấm thanh **ở màn Detail**, không bấm
+trong lưới Library — đúng bề mặt owner quan tâm nhất khi chọn phương án (a) ("mọi chỗ render nó có
+drill-down"). Kết luận cũ không sai về màn Detail, nhưng đã nói quá phạm vi đã đo.
+
+Sửa ở **nguồn** cú click, không sửa luật click-anywhere của owner: `Bars` (hàng bấm được đã tiêu thụ
+click), `Modal` (đóng lớp tạm không phải bấm vào thứ nằm dưới — portal chỉ tách khỏi cây DOM, event
+React vẫn nổi theo cây component), `SplitToggle` (chặn ở **gốc** strip: chip bị khoá không có onClick
+riêng nên chặn ở từng chip sẽ để đúng nửa đó rò).
+
+### Live-check (dev server, lưới Library thật — không phải màn Detail)
+
+| Điểm kiểm | Kỳ vọng | Đo được |
+|---|---|---|
+| số strip trên lưới | 3 (đúng 3 chart trục khách q17/q18/q19) | 3 ✔ |
+| chip mờ q17 / q18 / q19 | `Kênh mở TK` / `Phân khúc NAV` / `Kênh mở TK` | đúng cả 3 ✔ |
+| tooltip chip mờ | nguyên văn `qRunSplit` | `Chia màu theo đúng chiều đang xếp hàng ("acq") thì mỗi thanh chỉ có một đoạn — không thêm thông tin nào.` ✔ |
+| chip mờ còn focus được | `tabIndex 0`, không có attr `disabled` | `tabIndex: 0`, `hasDisabledAttr: false`, `opacity: 0.4` ✔ |
+| bấm chip mờ | không đổi gì, không điều hướng | `pressed` giữ nguyên, `strips: 3` ✔ |
+| q19 `tự tìm` (62 khách), split `nav` | 6 đoạn, Σ = 62 | `3+6+6+3+2+42 = 62` ✔ |
+| → bấm `Độ tuổi` | **số** đoạn đổi, không chỉ nhãn | `19+6+14+9+14 = 62` ✔ |
+| legend sau khi đổi | hết bậc NAV | `25-34 / 50+ / 18-24 / 35-49 / Không xác định` ✔ |
+| bấm thanh trong lưới | mở drill panel, KHÔNG điều hướng | `aria-label "tự tìm"`, 50 dòng, `strips: 3`, `onDetail: false` ✔ |
+| backdrop | chỉ đóng panel | `dialogGone: true`, `onDetail: false`, 19 card ✔ |
+
+**Bẫy đo lặp lại lần 2:** đọc DOM **ngay trong cùng một `evaluate_script`** với `element.click()` cho
+kết quả CHƯA flush (backdrop báo `dialogGone: false`, đọc lại ở call sau mới `true`). Phải tách cú bấm
+và phép đọc thành hai lần gọi — nếu không sẽ ghi vào log một "lỗi" không tồn tại.
+
+**Test:** 11 test mới — 8 ở `QuantifyWidget.splitToggle.test.tsx` (ghim **số thật** đã đo, không tính
+lại bằng chính hàm đang test: một test chỉ xem "đoạn màu có xuất hiện" sẽ xanh cả khi lựa chọn tới
+được legend mà không tới `qRunSplit`), 3 ở `QuantifyLibrary.test.tsx` neo ba chỗ rò propagation.
+**0 test cũ phải sửa.**
+
+**Verify:** `npx tsc -b` exit 0 · **656 test / 70 file xanh** · `npx vite build` exit 0 (1,38s,
+`index-CTrYSsAV.js` 445,28 kB) · live-check bảng trên.
+
+**Đọc đúng phạm vi:** lát 1 chứng minh **tương tác + luật disable** chạy đúng trên 3 chart mà số đã
+thật sẵn. Động cơ owner nêu ("thấy vấn đề → toggle xem tập trung nhóm nào") mới được phục vụ ở **lát
+2** (toggle trên chart theme/keyword/nguồn) — lát này chưa phải cái đó, đừng đọc demo thành feature.

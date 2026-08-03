@@ -4,6 +4,8 @@ export { Modal } from "./Modal.tsx";
 export type { ModalProps } from "./Modal.tsx";
 export { DrillPanel } from "./DrillPanel.tsx";
 export type { DrillContent, DrillPanelProps, DrillRecordKind } from "./DrillPanel.tsx";
+export { SplitToggle } from "./SplitToggle.tsx";
+export type { SplitOption, SplitToggleProps } from "./SplitToggle.tsx";
 export { Bars } from "./Bars.tsx";
 export type { BarsProps } from "./Bars.tsx";
 export { Donut } from "./Donut.tsx";

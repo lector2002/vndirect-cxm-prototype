@@ -57,7 +57,15 @@ export function Modal({ open, title, children, onClose, footer, initialFocusRef,
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
+      /* stopPropagation trên BACKDROP: portal ra document.body chỉ tách khỏi cây DOM, event React vẫn
+         nổi theo cây COMPONENT — nên không có dòng này thì click-đóng của một Modal dựng bên trong
+         card sẽ nổi tiếp lên onClick của card. Đo live 04/08 trong lưới Quantify Library
+         (QuantifyLibrary.tsx:99-106, "bấm đâu cũng mở chi tiết"): đóng drill panel xong màn chi tiết
+         mở ra ngay. Đóng một lớp tạm không phải là bấm vào thứ nằm dưới nó. */
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
     >
       <div
         ref={boxRef}
