@@ -1091,3 +1091,64 @@ trục thật.
 | `/topic/khong-ton-tai` | "Không tìm thấy" — đúng nghĩa |
 | Demo Mode TẮT | switch `true`→`false`, `/voc` trống, có banner, **không NaN** |
 | Console | **0 error / 0 warning** qua toàn bộ điều hướng |
+
+---
+
+## 03/08/2026 (tiếp 2) — C3 đóng lại: 2 chart trục khách + guard `unsupported`, CÓ LIVE-CHECK
+
+**Phát hiện đầu tiên, và nó sửa một câu tôi đã tự ghi sai vào REBUILD-STATUS.** Tôi từng ghi
+`qRunSegment` "chưa nơi nào trong `features/` gọi tới" rồi kết luận **C3 chưa làm**. Câu grep đúng,
+kết luận sai: nó được gọi ở **`design-system/QuantifyWidget.tsx:278`**. Đọc lại `QuantifyWidget.tsx`
+dòng 273-335 thì C3 **đã làm gần hết từ trước** (comment ghi rõ `S2.C3b` và `D2b owner chốt 03/08`):
+dải `unk` ghim cuối màu `--unk` (dòng 303-306), `buildSegDescription()` in tỉ lệ phủ + tách *chưa
+biết* / *thiếu* (dòng 202-212), nhánh `refuse` (dòng 280-287). Bài học: tầng vẽ của dự án sống ở
+`design-system/`, nên kiểm tiến độ bằng **"có ai render không"**, không phải "có ai trong `features/`
+import không".
+
+**Hai lỗ thật còn lại, đã bù:**
+
+1. **Không item nào dùng `base:'cust'`** — `grep 'show: *"(seg|tier|age|nav|tenure|acq)"' seed.ts` trả
+   rỗng; `show` trong seed chỉ có `theme·l1·cat·src·l2·l3·sub·sen·pf`. Nghĩa là cả tầng phủ phân khúc
+   **chỉ hiện khi người dùng tự dựng chart trong builder** — cùng loại lỗi với `demoData` là dead code
+   hôm qua: code đúng, test xanh, người xem không gặp. Thêm `q17` (acq) + `q18` (nav).
+2. **`cx.unsupported` tính rồi mà không UI nào đọc** — `grep unsupported src/` chỉ ra `domain/` và
+   test, `CrossTable.tsx` không tham chiếu. Ghép chéo trục khách sẽ vẽ bảng rỗng + dòng "Đang hiện 0
+   trên 17 mẫu", đọc thành **kết quả thật bằng 0**. Thêm nhánh in lý do + 2 test.
+
+**Quyết định wiring, có căn cứ test:** gắn vào `b-cxm-pilot` **chứ không** `b-cxm-exec`, vì
+`OverviewPage.test.tsx:170` chốt `expect(allBlocks).toEqual(["@journeystate","@toppri","@coverage"])`
+— so khớp **toàn danh sách**, nên kể cả thêm block vào câu đang có cũng phá test khoá quyết định owner
+01/08. Kiểm `grep -rn b-cxm-pilot src/`: không test nào khoá số câu / danh sách khối của pilot. Và về
+nghĩa thì `dims.acq` nhãn *Kênh mở TK* khớp thẳng *pilot Mở tài khoản*.
+
+**Live-check (`vite --port 5174`, `#/cxm/b-cxm-pilot`) — 0 console error/warn:**
+
+| # | Kiểm | Kết quả |
+|---|---|---|
+| 1 | Set pilot có câu mới | ✅ 4 câu, có "Ta biết được bao nhiêu về khách trong cohort?" |
+| 2 | `q17` acq | Phủ **94,3%** (283/300) — 8 chưa biết + **9 thiếu (lỗi thu thập)** |
+| 3 | `q18` nav | Phủ **21,3%** (64/300) — 233 chưa biết + **3 thiếu** |
+| 4 | Cộng đúng cohort | 283+8+9 = **300** ✅ · 64+233+3 = **300** ✅ |
+| 5 | Dải "Không xác định" | 2 nhãn, một mỗi chart ✅ |
+| 6 | Số thanh | 6 mỗi chart = 5 nhóm + 1 unk ✅ |
+| 7 | Phân biệt sentinel hiện ra CHỮ | ✅ cả hai chart nói rõ "chưa biết" và "thiếu (lỗi thu thập)" riêng |
+
+**Oracle độc lập:** hai phép cộng ra đúng `data.cust.length = 300` là oracle số học của bất biến *mẫu
+số không lặng lẽ loại nhóm chưa biết*. Ngoài ra bảng oracle ở `REBUILD-STATUS.md` dòng 144-149 **đã
+ghi sẵn từ 02/08** `acq` known 283 / chưa-biết 8 / thiếu 9 và `nav` known 64 / chưa-biết 233 / thiếu 3
+— khớp **tuyệt đối** với số live hôm nay. Con số được xác nhận độc lập hai lần, hai thời điểm.
+
+**Về test:** lần này **KHÔNG sửa test cũ nào** — chỉ thêm 2 test mới (`CrossTable.test.tsx`). Khác hai
+lần trước trong ngày (BLOCKS 9→10, ThemeStackBlock default axis) mà tôi đã phải sửa test cũ.
+
+**Chuyện timeout cần ghi lại để lần sau không chẩn sai:** lần chạy full suite đầu tiên sau khi sửa cho
+**4 test đỏ / 3 file**, lần thứ hai **9 đỏ / 5 file** — danh sách đỏ **đổi giữa hai lần chạy**, và
+100% là `Test timed out in 5000ms`, **không một assertion nào sai**. Bằng chứng quyết định:
+`Card.test.tsx > actions render ở góc phải header` cũng timeout, mà test đó **không đọc seed** nên
+không thể bị `q17`/`q18` ảnh hưởng. Chạy riêng 6 file đó: **69/69 xanh trong 18s**. Chạy full với
+`--testTimeout=30000`: **605/605 xanh, 68 file**. Kết luận: máy đang tranh chấp nặng
+(`environment 862s` ở lần đỏ vs `345s` ở lần xanh), 5s mặc định là biên. **Không nới timeout trong
+config** — chỉ dùng cờ CLI để chẩn đoán, vì nới vĩnh viễn sẽ che một chart thật sự chậm về sau.
+
+**Verify cuối:** `npx tsc -b` exit 0 · **605 test / 68 file xanh** · `npx vite build` xanh (2,38s).
+Commit `76ef3ef`.

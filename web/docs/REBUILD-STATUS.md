@@ -62,7 +62,7 @@ Live-check trình duyệt: đã chạy tới 02/08; **phần 03/08 chưa live-ch
 | **Module C1** | 4 trục phân khúc vào schema + sentinel + validate + seed thật | **xong, đã chứng thực** |
 | **Module C2** | `domain/quantify.ts`: coverage, `refuse`/`draw`, chặn ghép chéo | **xong, đã chứng thực** |
 | **Module C4** | fixture demo 300 khách, sinh tất định | **xong, đã chứng thực** — nhưng xem cảnh báo dead code ở mục C5 |
-| Module C3 | chart: dải `unk`, in tỉ lệ phủ, trạng thái từ chối vẽ | **CHƯA LÀM** |
+| **Module C3** | chart: dải `unk`, in tỉ lệ phủ, trạng thái từ chối vẽ | **xong 03/08, CÓ live-check** |
 | Module C5 | tab Cấu hình hệ thống + công tắc demo | **MỚI MỘT NỬA** — xem dưới |
 | Toolbar + Search | global filter toolbar, ô tìm kiếm (`domain/search.ts`) | xong 03/08, chưa ghi log chứng thực |
 | VoC stacked | `@themestack` + `domain/themeSegments.ts` + `/topic/:id` | xong 03/08, **chứng thực tĩnh** (chưa live-check) |
@@ -157,12 +157,54 @@ Fixture demo sinh **tất định** (mulberry32, hạt giống cố định) —
 trình riêng. Nó **ghép** 7 khách thật + 293 sinh mới, KHÔNG thay hẳn, vì `iss.cust` trỏ đích danh 7
 khoá thật.
 
+## C3 đóng lại (03/08, commit `76ef3ef`)
+
+**Hoá ra C3 đã làm gần hết từ trước** — `QuantifyWidget.tsx:273-335` gọi `qRunSegment`, dựng dải
+`unk` ghim cuối màu `--unk`, in dòng `buildSegDescription()` tách rõ *chưa biết* / *thiếu*, và xử lý
+nhánh `refuse`. Chỉ còn hai lỗ, đã bù nốt:
+
+| Việc | Làm gì |
+|---|---|
+| Không item nào dùng `base:'cust'` | Thêm `q17` (Kênh mở TK) + `q18` (Phân khúc NAV) vào seed, wire vào **`b-cxm-pilot`** |
+| `cx.unsupported` tính rồi mà không UI nào đọc | `CrossTable` in lý do thay vì vẽ ma trận rỗng + 2 test |
+
+**Vì sao `b-cxm-pilot` chứ không `b-cxm-exec`:** `OverviewPage.test.tsx:170` chốt cứng
+`expect(allBlocks).toEqual(["@journeystate","@toppri","@coverage"])` — đó là quyết định owner 01/08,
+nên **mọi** thứ thêm vào exec đều phá test khoá đó (kể cả gắn thêm block vào câu đang có, vì đây là
+so khớp toàn danh sách). Pilot không bị test nào khoá số câu, và `dims.acq` nhãn *Kênh mở TK* khớp
+thẳng *pilot Mở tài khoản*.
+
+**Live-check (0 console error/warn)** — và khớp tuyệt đối bảng oracle ở mục trên:
+
+| Chart | Phủ | Không xác định | Cộng |
+|---|---|---|---|
+| `q17` acq | 94,3% (283/300) | 8 chưa biết + **9 thiếu** | 283+8+9 = **300** ✅ |
+| `q18` nav | 21,3% (64/300) | 233 chưa biết + **3 thiếu** | 64+233+3 = **300** ✅ |
+
+Hai phép cộng ra đúng cohort là oracle số học của bất biến *mẫu số không lặng lẽ loại nhóm chưa biết*.
+
+> **BÀI HỌC — grep hẹp dẫn tới kết luận sai về tiến độ.** Tôi từng ghi vào chính file này rằng
+> `qRunSegment` "**chưa nơi nào trong `features/` gọi tới**" và từ đó kết luận C3 chưa làm. Câu grep
+> đúng, kết luận sai: nó được gọi ở **`design-system/`**, không phải `features/`. Rút ra: tầng vẽ của
+> dự án này sống ở `design-system/QuantifyWidget.tsx`, nên **hỏi "màn nào hiện thứ này" phải quét cả
+> `design-system/`, không chỉ `features/`**. Kiểm tiến độ bằng "có ai render không", không phải "có ai
+> trong `features/` import không".
+
+### `unsupported` — trạng thái CHƯA tới được qua UI
+
+Nhánh vừa thêm là **lưới an toàn**, không phải đường chạy thật. Ba chốt đang cùng chặn nó phát sinh:
+`QuantifyBuilder.tsx:141` (lọc `byOptions` theo `evAttr`) · `QuantifyBuilder.tsx:132` (ép `by=null`
+khi trục hàng không `evAttr`) · `validate.ts:396-397` (rule 16 đòi **cả hai** trục có `evAttr`). Ai
+nới một trong ba thì nhánh này bắt đầu chạy thật — đừng xoá nó khi thấy coverage test không chạm tới.
+
 ## Việc còn lại
 
 0. ~~Chốt seam fixture~~ — **xong 03/08**, xem mục *Seam fixture* ở trên. C3 hết bị chặn.
-1. **C3** — tầng vẽ: dải `unk`, in tỉ lệ phủ, trạng thái từ chối vẽ, và hiển thị
-   `QuantifyCrossResult.unsupported` thay vì vẽ matrix rỗng. `qRunSegment` và `unsupported` đã có
-   sẵn ở `domain/quantify.ts`, **chưa nơi nào trong `features/` gọi tới**.
+1. ~~**C3** — tầng vẽ~~ — **xong 03/08** (commit `76ef3ef`), xem mục *C3 đóng lại* ở dưới.
+
+   **➡️ TIẾP THEO — Module D: ô breakdown (chia màu theo nhóm khách) + stacking + "Other".**
+   Owner chốt 03/08 sau khi tra 4 nền tảng (Looker Studio · Metabase · Amplitude · Mixpanel). Chi
+   tiết đặt ở mục *Module D* cuối file — **đọc mục đó trước khi giao worker**.
 2. **C5** — tab Cấu hình hệ thống (mới hoàn toàn, **KHÔNG phải** màn "Chỉ số & ngưỡng"): công tắc
    demo (chỉ trong phiên, không `localStorage`) · nút đưa về dữ liệu gốc · thông tin nguồn dữ liệu
    (fixture đang dùng, số bản ghi, kết quả `validateFixture()` gần nhất). **Không** đưa hệ số `fx`
@@ -234,7 +276,8 @@ số đếm cứng, phải cập nhật cùng lúc — đây là ngoại lệ h�
 
 ```bash
 cd web
-npx tsc --noEmit && npx vitest run && npx vite build   # cả ba phải xanh
+npx tsc -b && npx vitest run && npx vite build         # cả ba phải xanh
+# KHÔNG dùng `tsc --noEmit`: root tsconfig có `files: []` nên nó là NO-OP (xem mục bài học).
 npm run dev                                            # http://localhost:5173
 ```
 
@@ -243,3 +286,76 @@ Kiểm phạm vi một worker vừa chạy:
 date '+%Y-%m-%d %H:%M:%S'        # lấy mốc TRƯỚC khi dispatch
 find src -newermt "<mốc đó>" -type f | sort
 ```
+
+---
+
+## Module D — ô breakdown + stacking + "Other" (owner chốt 03/08)
+
+Owner yêu cầu builder chia theo tiêu chí rõ ràng: **(1)** nội dung/nguồn data đang dựng · **(2)** trong
+nguồn đó chia theo nhóm khách nào (nav/tuổi/…) · **(3)** định dạng chart (line/donut/bar/bảng) · **(4)**
+lồng nhiều data trong một chart, chọn cách biểu diễn từng data. Đã tra Looker Studio · Metabase ·
+Amplitude · Mixpanel để bám mô hình chuẩn ngành.
+
+### Bốn ô của mọi nền tảng, và ta đang thiếu ô nào
+
+| Ô | Looker Studio | Metabase | Amplitude/Mixpanel | Ta có |
+|---|---|---|---|---|
+| tập dữ liệu | Data source | Data | Events | `Dim.base` (`agg`·`ev`·`cust`) — **có nhưng ẩn** |
+| chỉ số | Metric | Summarize by | Measure | `item.metric` ✅ |
+| trục chính | Dimension | 1st breakout | X-axis | `item.show` ✅ |
+| **màu trong thanh** | **Breakdown dimension** | **2nd breakout** | **Group by** | ❌ **thiếu field** |
+| kiểu vẽ | Chart type | Display | Chart type | `item.chart` — **thiếu line** |
+| xếp lớp | Stacked / 100% | Stacking | — | ❌ không có |
+| chặn quá nhiều màu | Top-N | — | top 13 + **"Other"** | `TOP_N=10` **cắt âm thầm** |
+
+### Ba điều rút từ nền tảng ngoài
+
+1. **Luật loại trừ (Looker Studio):** *một chỉ số + breakdown* **HOẶC** *nhiều chỉ số, không
+   breakdown* — **không cả hai**. Không phải giới hạn kỹ thuật mà là ngữ nghĩa: thanh stacked đã dùng
+   **màu** để mã hoá nhóm khách, thêm nhiều chỉ số nữa thì màu mang hai nghĩa. ⇒ **tiêu chí (2) và (4)
+   của owner là hai CHẾ ĐỘ THAY NHAU, không cộng vào nhau.** Builder phải ép luật này.
+2. **"Chọn cách biểu diễn từng data" là *visualization setting*, không phải cấu trúc data** (Metabase):
+   series tồn tại trước, rồi mới gán từng series là line/bar/area. ⇒ #4 = thêm map `{series → kiểu vẽ}`.
+   **Trục dọc thứ hai thì đến Metabase cũng chưa có — đừng hứa ở đợt đầu.**
+3. **Ô "Other" là chuẩn ngành ta đang thiếu:** Amplitude top 13 + "Other"; Mixpanel ≤10 nhóm +
+   "Rest of the World". Ta cắt `TOP_N=10` và **đuôi biến mất** khỏi chart. Tiền lệ để sửa đã có trong
+   nhà: `subthemeSegments` dùng dải xám `"Chưa gán sub-theme"` cho phần dư.
+
+### Điểm chặn thật: vách `show` / `series`
+
+`QuantifyItem = QuantifyShow | QuantifySeries` là hai kind **rời nhau**. `show` là ảnh chụp một chiều,
+**không có trục thời gian**; `series` có `t[]` nhiều chuỗi nhưng **không dựng được ở builder**
+(`CHART_OPTIONS` chỉ có `rank`/`donut`) và mọi chuỗi vẽ **cùng một kiểu**. Vách này khoá **cả #3 (line)
+lẫn #4 (nhiều lớp)** — không phải chuyện join khách↔bằng chứng như tưởng ban đầu.
+
+⇒ **Phạm vi đợt này (owner chốt): CHỈ #1 + #2 + stacking + "Other". KHÔNG chạm vách show/series.**
+
+### Độ trung thực — hai nửa khác nhau
+
+- Nội dung `base:'cust'` chia màu theo thuộc tính khách khác ⇒ **số THẬT, đếm được, không đổi schema**:
+  hai field nằm trên **cùng một dòng** `Customer`. `q17`/`q18` vừa thêm ở C3 là ví dụ thật để thử.
+- Nội dung `base:'agg'`/`'ev'` (theme, keyword, category) chia màu theo nhóm khách ⇒ **không có đường
+  tính thật**: `Evidence` (`schema/voc.ts:86`) **không có khoá khách**.
+
+**Owner chốt: dùng tỷ lệ minh hoạ + nhãn demo — NHƯNG kèm ràng buộc bổ sung "thuật toán phải dùng
+được thật, chỉ mượn data demo".** Hai câu đó va nhau nếu làm y như `groupSegments`, vì hàm đó nhét tỷ
+lệ bịa vào **chính thuật toán** (`demoRatios` từ hạt char-code tên theme) — cắm data thật vào thì nó
+vẫn bịa. Cách hoà giải **đã chốt**:
+
+| Tầng | Quy tắc |
+|---|---|
+| `domain/` | group-by/join **thật**, đếm từ dòng. **KHÔNG hằng số bịa nào.** Data thật vào ⇒ số thật, **không sửa code** |
+| `data/fixtures/demo.ts` | chỗ bịa dồn hết về đây: sinh khoá khách trên `Evidence` một cách **tất định** |
+| UI | nhãn "demo" do **cờ trên dữ liệu** điều khiển ⇒ **tự tắt** khi nguồn thật vào, không hardcode trong component |
+
+### Cạm bẫy phải tránh khi giao worker
+
+- **KHÔNG mượn field `by`.** `by` mang nghĩa "ghép chéo trên evidence", nghĩa đó đã ăn vào `qRunCross`,
+  `CrossTable`, validate rule 16 và hai guard builder. Mượn nó là phá đúng ba chốt đang giữ
+  `unsupported` không tới được. Breakdown cần **field MỚI** (`split`).
+- **`pf` có ở CẢ `Evidence` LẪN `Customer`** — đưa vào picker "nhóm khách" là nhập nhằng. Loại nó ra,
+  hoặc nói rõ đang lấy `pf` của bên nào.
+- **Danh sách chạm của một field mới trên `QuantifyShow` là SÁU file, không phải bốn:**
+  `schema/quantify.ts` · `validate.ts` (rule mới) · `domain/quantify.ts` (hàm run mới) ·
+  `QuantifyBuilder.tsx` (picker + normalize trong `setField`) · `QuantifyWidget.tsx` (nhánh render) ·
+  `seed.ts` nếu có fixture dùng. So sánh: bài học `@block` là bốn file.
