@@ -556,7 +556,8 @@ export const seed: CxmData = {
 
     /* Hai chart trục phân khúc khách (owner chốt 03/08) — TRƯỚC ĐÂY không item nào dùng base:'cust',
        nên cả tầng phủ phân khúc (dải "Không xác định" + dòng "Phủ X%" ở QuantifyWidget) chỉ hiện khi
-       người dùng tự dựng chart trong builder. Hai item này là chỗ DUY NHẤT phơi nó ra sẵn.
+       người dùng tự dựng chart trong builder. Hai item này phơi nó ra sẵn — nhưng sau 04/08 (NAV lấy
+       trực tiếp từ tài sản hiện tại) chỉ còn q17 có dải "Không xác định"; q18 chỉ còn dòng "Phủ 100%".
        KHÔNG được set `by`: dims.acq/dims.nav là base:'cust' không có evAttr, validate rule 16 chặn. */
     { id:'q17',kind:'show', show:'acq', metric:'count', chart:'rank', name:'Khách theo kênh mở TK',
       note:'Dải xám "Không xác định" gộp hai loại NGƯỢC NHAU: khách chưa tới chỗ biết được, và khách đáng lẽ phải có giá trị mà thiếu (lỗi thu thập). Dòng dưới chart tách rõ từng loại — chữa hai loại đó là hai việc khác nhau.' },

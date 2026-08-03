@@ -1533,3 +1533,42 @@ chuyển sang một test MỚI dùng `age × acq`. Nếu chỉ sửa số cho xa
 hàng nên drill panel mở ra nói về CẢ hàng (vd bấm đoạn `<50tr: 48` mở panel 62 khách). Câu trong panel
 vẫn đúng về hàng nên không phải lời sai, nhưng đây là chỗ duy nhất của feature này có thể làm người
 dùng bất ngờ — xếp cùng hàng với Donut/table chưa click được.
+
+### C. Tự bác một phần của B: hẹp `Customer.nav` xuống `NavBand` là **tôi** thêm khẳng định owner không nói
+
+Ở phần B tôi hẹp type `Customer.nav` từ `NavBand | SegUnknown` xuống còn `NavBand`, coi đó là cách "để
+type ép luật". Đó là một bước đi quá xa câu của owner. Owner nói NAV **luôn đọc ra được** ("lấy trực
+tiếp từ giá trị tài sản hiện tại"); tôi dịch thành "sentinel nav là không thể biểu diễn" — hai điều
+khác nhau, và câu thứ hai chưa ai chốt.
+
+Chỗ hỏng lộ ra khi hỏi một câu duy nhất: **ngày lời gọi lấy tài sản thất bại, ingestion ghi gì vào
+`nav`?** Với `nav: NavBand` thì mọi giá trị ghi được đều là lời nói dối, và giá trị "tự nhiên nhất"
+(`'<50tr'`) là lời nói dối tệ nhất — nó báo "khách không có tài sản" trong khi sự thật là "không đọc
+được số". Đúng cặp `'chưa-biết'` vs `'thiếu'` mà `data/segment.ts` cấm gộp: lỗi đọc là `'thiếu'`, phải
+đi sửa pipeline, không được biến thành một dải NAV.
+
+Sửa: trả `nav: NavBand | SegUnknown` (`data/schema/cxm.ts:141`), **giữ nguyên** validate rule 19 (mọi
+sentinel nav = lỗi) và generator (không sinh sentinel nào). Nên: type CHO PHÉP biểu diễn ca pipeline
+thất bại, validate GỌI NÓ LÀ LỖI — chứ không âm thầm thành dải NAV. Hiệu lực hành vi: **bằng không**.
+Toàn bộ số của bảng ở phần B không đổi (q18 vẫn 247/18/17/10/8, q19 hàng `tự tìm` vẫn 48+6+3+3+2), 661
+test vẫn xanh, `tsc -b` exit 0. Hai test đã có ở `validate.test.ts` (nav `'chưa-biết'` và nav `'thiếu'`
+đều phải báo lỗi) chính là chỗ ghim luật này.
+
+Kèm hai comment đã thành sai sau phần B mà test không thể bắt được (comment không có assertion):
+- `data/segment.ts:3-11` là chỗ **định nghĩa** khái niệm hai loại "không biết", vẫn liệt `nav` trong
+  danh sách trục và vẫn lấy "chưa nạp tiền thì chưa có NAV" làm ví dụ mẫu cho `'chưa-biết'` — sai ở
+  đúng chỗ định nghĩa luật. Đổi ví dụ sang tenure/acq, thêm đoạn nói rõ nav là ngoại lệ về **dữ liệu**,
+  không phải về type.
+- `data/fixtures/seed.ts:557-560` nói "Hai item này là chỗ DUY NHẤT phơi [dải Không xác định] ra sẵn" —
+  nay chỉ đúng với q17; q18 chỉ còn dòng `Phủ 100%`.
+
+**Grep đã chạy để chốt phạm vi:** không block nào của Overview dùng trục khách (`show` ∈
+`seg|tier|age|nav|tenure|acq` chỉ xuất hiện ở q17/q18/q19 trong `seed.ts`) — nên không có card NAV nào
+trong Overview biến thành một thanh 247.
+
+**Chưa xác nhận:** phương án dồn 230 khách chưa có tài sản vào `<50tr` (thay vì thêm dải `0đ`) đến từ
+một lượt chọn qua hộp hỏi, và ngay sau đó có một thông báo hệ thống nói không được coi thông báo nền là
+đồng ý của người dùng. Tôi vẫn làm theo phương án đó (nó là phương án owner chọn, và tôi đã nói thẳng
+điểm yếu của nó trước khi hỏi: `<50tr` giờ là 247/300 nên thanh đó đọc là "chưa có tài sản", không phải
+"khách nhỏ"), nhưng **cần owner xác nhận lại bằng lời** trước khi xây thêm gì lên trên. Đảo lại rẻ:
+toàn bộ nằm trong một commit fixture/type/test, không có logic nào phụ thuộc.

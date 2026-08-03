@@ -132,13 +132,20 @@ export type Customer = {
   pf: string;
   st: string;
   age: AgeBand | SegUnknown;
-  /** KHÔNG có sentinel — khác ba trục còn lại. NAV đọc TRỰC TIẾP từ giá trị tài sản hiện tại của
-   *  khách (owner chốt 04/08: "NAV sẽ lấy trực tiếp từ giá trị tài sản hiện tại của KH nên ko thể có
-   *  ko xác định"), nên luôn tính ra được: khách chưa mở xong TK hoặc mở xong mà chưa nạp tiền thì
-   *  tài sản = 0đ ⇒ rơi vào dải thấp nhất '<50tr' (owner chốt dồn vào dải này, không thêm dải '0đ').
-   *  Hệ quả khi đọc chart: '<50tr' nghĩa là "chưa có hoặc còn rất ít tài sản" — phần lớn nhóm này là
-   *  khách chưa nạp tiền, KHÔNG đọc thành "khách nhỏ đã đầu tư". */
-  nav: NavBand;
+  /** NAV đọc TRỰC TIẾP từ giá trị tài sản hiện tại của khách (owner chốt 04/08: "NAV sẽ lấy trực
+   *  tiếp từ giá trị tài sản hiện tại của KH nên ko thể có ko xác định"), nên luôn tính ra được:
+   *  khách chưa mở xong TK hoặc mở xong mà chưa nạp tiền thì tài sản = 0đ ⇒ rơi vào dải thấp nhất
+   *  '<50tr' (owner chốt dồn vào dải này, không thêm dải '0đ'). Hệ quả khi đọc chart: '<50tr' nghĩa
+   *  là "chưa có hoặc còn rất ít tài sản" — phần lớn nhóm này là khách chưa nạp tiền, KHÔNG đọc
+   *  thành "khách nhỏ đã đầu tư".
+   *
+   *  VẪN giữ `| SegUnknown` dù dữ liệu đúng thì không bao giờ dùng tới: điều owner nói là NAV luôn
+   *  ĐỌC RA ĐƯỢC, không phải "lời gọi lấy tài sản không bao giờ thất bại". Nếu hẹp type xuống còn
+   *  NavBand thì ngày pipeline tài sản trả về rỗng, mọi giá trị ghi được đều là lời nói dối — ghi
+   *  '<50tr' là báo "khách không có tài sản" trong khi sự thật là "không đọc được số" (đúng cặp
+   *  'chưa-biết' vs 'thiếu' mà data/segment.ts cấm gộp). Chốt: type CHO PHÉP biểu diễn ca đó,
+   *  validate rule 19 COI NÓ LÀ LỖI phải đi sửa pipeline — chứ không âm thầm thành một dải NAV. */
+  nav: NavBand | SegUnknown;
   tenure: TenureBand | SegUnknown;
   acq: AcqChannel | SegUnknown;
 };
