@@ -340,13 +340,36 @@ lẫn #4 (nhiều lớp)** — không phải chuyện join khách↔bằng chứ
 **Owner chốt: dùng tỷ lệ minh hoạ + nhãn demo — NHƯNG kèm ràng buộc bổ sung "thuật toán phải dùng
 được thật, chỉ mượn data demo".** Hai câu đó va nhau nếu làm y như `groupSegments`, vì hàm đó nhét tỷ
 lệ bịa vào **chính thuật toán** (`demoRatios` từ hạt char-code tên theme) — cắm data thật vào thì nó
-vẫn bịa. Cách hoà giải **đã chốt**:
+vẫn bịa. Cách hoà giải dưới đây là **CÁCH ĐỌC CỦA CLAUDE, CHƯA ĐƯỢC OWNER DUYỆT** — nói rõ vì khi
+được hỏi trực tiếp, owner đã chọn *"tỷ lệ minh hoạ"* và **loại** nhánh *"thêm khoá khách vào
+Evidence"*; chỉ thị bổ sung đến sau mới làm nhánh bị loại thành nhánh duy nhất khả thi. Ai đọc file
+này về sau: **đây là suy luận cần xác nhận, không phải quyết định đã chốt.**
 
 | Tầng | Quy tắc |
 |---|---|
 | `domain/` | group-by/join **thật**, đếm từ dòng. **KHÔNG hằng số bịa nào.** Data thật vào ⇒ số thật, **không sửa code** |
 | `data/fixtures/demo.ts` | chỗ bịa dồn hết về đây: sinh khoá khách trên `Evidence` một cách **tất định** |
 | UI | nhãn "demo" do **cờ trên dữ liệu** điều khiển ⇒ **tự tắt** khi nguồn thật vào, không hardcode trong component |
+
+**Hai hệ quả của nhánh join `ev→cust` mà bảng trên KHÔNG tự lo — phải chốt TRƯỚC khi giao worker,
+vì worker đụng phải giữa section sẽ hoặc tự nới, hoặc tắc:**
+
+1. **validate rule 16 (`validate.ts:396-397`) sẽ mâu thuẫn với thực tế.** Join thật làm trục khách
+   ghép chéo **được**, trong khi rule 16 vẫn cấm. Mà rule 16 đúng là **một trong ba chốt** vừa ghi ở
+   `### unsupported — trạng thái CHƯA tới được qua UI`. Nếu Module D nới rule 16 thì guard vừa ship
+   **bắt đầu chạy thật**, và comment trong `CrossTable.test.tsx:35` ("KHÔNG ĐƯỢC có") thành **sai**.
+   ⇒ Quyết định rõ: **Module D có chạm rule 16 hay không.** Mặc định đề xuất: **KHÔNG chạm** (breakdown
+   dùng field `split` riêng, không đi qua đường `by`/cross).
+2. **`seed.ts` chỉ có 17 bản ghi `ev`.** Join thật ⇒ ô breakdown trên trục `agg`/`ev` ra **1-3 mẫu**.
+   Mọi test render breakdown sẽ assert trên data gần rỗng, trừ khi nới `ev` — mà đó là sửa **fixture
+   thật**, không phải fixture demo. Đây là lý do thứ tự section bên dưới quan trọng.
+
+### Thứ tự section — tracer bullet KHÔNG cần join
+
+| # | Nội dung | Vì sao trước/sau |
+|---|---|---|
+| **1** | `split` + stacking + "Other" **chỉ trên trục `base:'cust'`** (`q17`/`q18`) | Hai field trên **cùng dòng `Customer`** ⇒ group-by hai chiều thật: **0 đổi schema, 0 chạm `Evidence`, 0 câu hỏi rule 16, số THẬT**. Chạy hết sáu-file-chạm end-to-end và live-check được ngay trên `#/cxm/b-cxm-pilot` |
+| **2** | Trục `agg`/`ev` chia theo nhóm khách (join demo + cờ demo + nhãn) | Chỉ scope sau khi section 1 chốt được **hình dạng field**. Nếu owner đổi ý về nhánh join, **section 1 vẫn ship được** |
 
 ### Cạm bẫy phải tránh khi giao worker
 
