@@ -1072,6 +1072,8 @@ const DATA = {
       note:'Tính trên tập evidence mẫu. Nền tảng nào thiếu nguồn thì xem màn Nguồn & độ toàn vẹn.' },
     { id:'q14',kind:'show', show:'src', metric:'pct', chart:'donut', name:'Tỷ trọng nguồn phản hồi',
       note:'Hiện đếm CẢ tín hiệu hành vi lẫn tiếng nói, theo cách Enterpret đếm mọi source. Xem VOC_SCOPE.' },
+    { id:'q16',kind:'show', show:'theme', by:'pf', metric:'count', view:'table', chart:'rank', name:'Theme × Nền tảng (ghép chéo)',
+      note:'Ghép chéo trên MẪU bằng chứng: theme nào dội lên ở nền tảng nào. Chỉ tính từ DATA.ev — ô nhỏ, một phản hồi có thể mang nhiều theme nên tổng cột có thể lớn hơn số mẫu.' },
 
     { id:'q5', kind:'series', chart:'trend', name:'Trend theme "Thiết bị không tương thích"', dim:'Theme · 6 kỳ', unit:'kỳ', shown:6, total:6,
       t:[{l:'Positive share (%)',p:[42,40,36,31,26,19]}],
@@ -1243,7 +1245,7 @@ const DATA = {
          tour KHÔNG vỡ. `grp` là nhãn nhóm màn hiện trên popover. --- */
   tour: [
     { r:'cxm', grp:'Tổng quan CXM', sel:'[data-tour="setchips"]',
-      t:'Bộ chọn set câu hỏi', d:'Mỗi chip là một bộ câu hỏi điều hành viết sẵn cho một vai trò. Đổi chip là đổi cả loạt câu hỏi và widget bên dưới. Bật ✎ Tùy chỉnh để thêm/bớt khối vào set.' },
+      t:'Bộ chọn set câu hỏi', d:'Mỗi chip là một bộ câu hỏi điều hành viết sẵn cho một vai trò. Đổi chip là đổi cả loạt câu hỏi và widget bên dưới. Tạo/sửa/ghép khối vào set ở <b>Quản lý set</b> trong Quantify.' },
     { r:'cxm', grp:'Tổng quan CXM', sel:'[data-tour="blk-@toppri"]',
       t:'Điểm gãy nào xử lý trước', d:'Bảng xếp hạng điểm gãy. Có bốn cách xếp khác nhau — thứ tự đổi theo cách xếp, và chính sự đổi đó là thông tin. Cột rủi ro tuân thủ là phần thêm của VNDIRECT, không có trong mô hình gốc.' },
     { r:'cxm', grp:'Tổng quan CXM', sel:'[data-tour="blk-@outcomes"]',
@@ -1412,31 +1414,36 @@ const SEN_BUCKET = (v) => (v > 0.2 ? 'pos' : v < -0.2 ? 'neg' : 'neu');
 const SEN_LABEL  = { pos:'Tích cực', neu:'Trung tính', neg:'Tiêu cực' };
 const SEN_COLOR  = { pos:'var(--good)', neu:'var(--ink3)', neg:'var(--crit)' };
 
+/* Các node taxonomy mà MỘT bản ghi ev mang (qua e.tax[]). Đây là thứ cho phép
+   ghép chéo taxonomy × ev-attr THẬT trên DATA.ev — một ev có thể mang nhiều node
+   cùng tầng, nên trả về MẢNG id (tổng cột theo taxonomy có thể > số mẫu). */
+const evTaxLv = (e, lv) => e.tax.map(tax).filter((t) => t && t.lv === lv).map((t) => t.id);
+
 /* Mỗi chiều trả về [{ id, l, v, c }] đã xếp giảm dần.
    `agg` = tính từ số tổng hợp (tax.n, sources.vol) · `ev` = đếm trên tập evidence mẫu.
    Phân biệt này quan trọng: hai loại đứng trên hai mẫu số khác nhau và UI phải nói rõ. */
 const DIMS = {
-  l1:    { label:'L1 Keyword · phase', unit:'keyword', base:'agg',
+  l1:    { label:'L1 Keyword · phase', unit:'keyword', base:'agg', evAttr:(e) => evTaxLv(e, 'L1'),
            rows:() => taxLv('L1').map((t) => ({ id:t.id, l:t.name, v:t.n })) },
-  l2:    { label:'L2 Keyword · tính năng', unit:'keyword', base:'agg',
+  l2:    { label:'L2 Keyword · tính năng', unit:'keyword', base:'agg', evAttr:(e) => evTaxLv(e, 'L2'),
            rows:() => taxLv('L2').map((t) => ({ id:t.id, l:t.name, v:t.n })) },
-  l3:    { label:'L3 Keyword · chi tiết', unit:'keyword', base:'agg',
+  l3:    { label:'L3 Keyword · chi tiết', unit:'keyword', base:'agg', evAttr:(e) => evTaxLv(e, 'L3'),
            rows:() => taxLv('L3').map((t) => ({ id:t.id, l:t.name, v:t.n })) },
-  theme: { label:'Theme · vì sao', unit:'theme', base:'agg',
+  theme: { label:'Theme · vì sao', unit:'theme', base:'agg', evAttr:(e) => evTaxLv(e, 'theme'),
            rows:() => taxLv('theme').map((t) => ({ id:t.id, l:t.name, v:t.n,
              c:t.id==='x-th-praise'?'var(--good)':undefined })) },
-  sub:   { label:'Sub-theme', unit:'sub-theme', base:'agg',
+  sub:   { label:'Sub-theme', unit:'sub-theme', base:'agg', evAttr:(e) => evTaxLv(e, 'subtheme'),
            rows:() => taxLv('subtheme').map((t) => ({ id:t.id, l:t.name, v:t.n })) },
   src:   { label:'Nguồn', unit:'nguồn', base:'agg',
            rows:() => scopeSources().map((s) => ({ id:s.id, l:s.name, v:s.vol,
              c:sourceHealth(s)==='down'?'var(--crit)':sourceHealth(s)==='stale'?'var(--watch)':undefined })) },
-  cat:   { label:'Category · intent', unit:'category', base:'ev',
+  cat:   { label:'Category · intent', unit:'category', base:'ev', evAttr:(e) => e.cat,
            rows:() => Object.entries(DATA.cats).map(([k, v]) => ({ id:k, l:v.label, c:v.color,
              v:DATA.ev.filter((e) => e.cat === k).length })) },
-  sen:   { label:'User Sentiment', unit:'sentiment', base:'ev',
+  sen:   { label:'User Sentiment', unit:'sentiment', base:'ev', evAttr:(e) => SEN_BUCKET(e.sen),
            rows:() => ['pos','neu','neg'].map((k) => ({ id:k, l:SEN_LABEL[k], c:SEN_COLOR[k],
              v:DATA.ev.filter((e) => SEN_BUCKET(e.sen) === k).length })) },
-  pf:    { label:'Nền tảng', unit:'nền tảng', base:'ev',
+  pf:    { label:'Nền tảng', unit:'nền tảng', base:'ev', evAttr:(e) => e.pf,
            rows:() => Object.keys(PF_LABEL).map((k) => ({ id:k, l:PF_LABEL[k],
              v:DATA.ev.filter((e) => e.pf === k).length })) },
   seg:   { label:'Segment khách', unit:'segment', base:'cust',
@@ -1447,11 +1454,23 @@ const DIMS = {
              v:DATA.cust.filter((c) => c.tier === t).length })) },
 };
 const BASE_AXIS = { agg:'Số bản ghi phản hồi', ev:'Số bằng chứng mẫu', cust:'Số khách trong cohort' };
+/* Nhóm chiều trong builder + chip lọc thư viện — SUY từ base (nguồn dữ liệu),
+   một nguồn khai báo một chỗ. Lớp nguồn hệ giao dịch thật CHƯA CHỐT (spec §7):
+   khi có nguồn thật chỉ sửa DIMS + map này, không redesign. */
+const BASE_GROUP = { agg:'Taxonomy & nguồn', ev:'Bằng chứng (mẫu)', cust:'Cohort khách' };
 const METRICS = {
   count: { label:'Count', fmt:(v) => nf(fx(v)) },
   pct:   { label:'Percentage', fmt:(v, tot) => pv(v, tot) + '%' },
 };
 const CHARTS = { rank:'Bar', anomaly:'Bar + Trend + Anomaly', trend:'Line', donut:'Donut', cohort:'Cohort' };
+
+/* Chuẩn hóa item Quantify seed về shape redesign 31/07 (spec §2.1): mọi item có
+   `view` mặc định 'chart'; item `show` có `by` (chiều cột cross-tab) mặc định null.
+   Mutate in-memory một lần lúc load — cùng mô hình store non-persist của qSave/qDelete. */
+DATA.qt.forEach((q) => {
+  if (q.view === undefined) q.view = 'chart';
+  if (q.kind === 'show' && q.by === undefined) q.by = null;
+});
 
 /* Chạy một saved query dạng `show`. Trả về đủ thứ một widget cần để tự mô tả:
    rows đã xếp, tổng, số đang hiện trên tổng số, nhãn trục. */
@@ -1795,6 +1814,16 @@ function validateFixture() {
     if (q.kind === 'show' && !METRICS[q.metric]) e.push(`Quantify ${q.id}: chỉ số "${q.metric}" không tồn tại`);
     if (!CHARTS[q.chart]) e.push(`Quantify ${q.id}: kiểu chart "${q.chart}" không tồn tại`);
     if (q.kind === 'series' && q.shown > q.total) e.push(`Quantify ${q.id}: shown ${q.shown} > total ${q.total}`);
+    /* Redesign 31/07 (spec §6): view + cross-tab.
+       Cross-tab CHỈ tính thật khi cả hai chiều có evAttr (đọc được từ 1 bản ghi ev).
+       Thiếu evAttr mà vẫn có `by` = item sẽ bịa số → đúng loại lỗi cần chặn. */
+    if (q.view && q.view !== 'chart' && q.view !== 'table') e.push(`Quantify ${q.id}: view "${q.view}" phải là 'chart' hoặc 'table'`);
+    if (q.kind === 'series' && q.view === 'table') e.push(`Quantify ${q.id}: series chưa hỗ trợ view bảng`);
+    if (q.kind === 'series' && q.by) e.push(`Quantify ${q.id}: series không được ghép chéo (by)`);
+    if (q.by) {
+      if (!DIMS[q.show] || !DIMS[q.show].evAttr) e.push(`Quantify ${q.id}: chiều hàng "${q.show}" không ghép chéo được (thiếu evAttr)`);
+      if (!DIMS[q.by] || !DIMS[q.by].evAttr) e.push(`Quantify ${q.id}: chiều cột "${q.by}" không ghép chéo được (thiếu evAttr)`);
+    }
   });
 
   /* 18 · Guided tour phải trỏ route CÓ THẬT và khai đủ selector + nhãn nhóm.
@@ -1872,6 +1901,97 @@ function donut(rows, total, centerBig, centerSmall) {
   </div>`;
 }
 
+/* Bảng số liệu — VIEW THỨ HAI của một query `show`. Cùng qRun() với chart nên
+   không thể lệch. Luôn hiện CẢ Count LẪN % (nhiều cột chỉ số, spec §3), bất kể
+   metric mặc định của item. `rows` y hệt rankBars/donut: [{id,l,v,c}]. */
+function qTable(r) {
+  const tot = r.total || r.rows.reduce((a, x) => a + x.v, 0);
+  const th = 'padding:7px 9px;border-bottom:2px solid var(--line);font-weight:600;color:var(--ink2);font-size:12px';
+  const td = 'padding:6px 9px;border-bottom:1px solid var(--line)';
+  return `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr>
+      <th style="${th};text-align:left">${esc(r.dim || 'Chiều')}</th>
+      <th style="${th};text-align:right">Count</th>
+      <th style="${th};text-align:right">%</th>
+    </tr></thead>
+    <tbody>${r.rows.map((x) => `<tr>
+      <td style="${td}"><span style="display:inline-flex;align-items:center;gap:7px">
+        <i style="width:9px;height:9px;border-radius:2px;background:${x.c || 'var(--ink3)'};flex:none"></i>${esc(x.l)}</span></td>
+      <td style="${td};text-align:right" class="mono">${nf(fx(x.v))}</td>
+      <td style="${td};text-align:right" class="mono">${pv(x.v, tot)}%</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+/* ---------- CROSS-TAB: ghép 2 chiều, CHỈ tính thật trên mẫu DATA.ev ----------
+   Mỗi bản ghi ev mang sẵn nhiều thuộc tính (cat/sen/pf single-valued + theme/sub/
+   l1..l3 đa trị qua tax[]). Cell = số ev có CẢ thuộc tính hàng LẪN cột. Chiều đa
+   trị → một ev đếm vào nhiều hàng nên tổng có thể > số mẫu (ghi rõ trên UI). Chiều
+   không có evAttr (src/seg/tier) bị builder chặn — không bao giờ tới đây. */
+function qRunCross(q) {
+  const rd = DIMS[q.show], cd = DIMS[q.by];
+  const norm = (x) => x == null ? [] : Array.isArray(x) ? x : [x];
+  const rowMeta = {}, colMeta = {};
+  rd.rows().forEach((r) => { rowMeta[r.id] = { id:r.id, l:r.l, c:r.c, tot:0 }; });
+  cd.rows().forEach((c) => { colMeta[c.id] = { id:c.id, l:c.l, c:c.c, tot:0 }; });
+  const cell = {}; let matched = 0, multi = false, grand = 0;
+  DATA.ev.forEach((e) => {
+    const rs = norm(rd.evAttr(e)), cs = norm(cd.evAttr(e));
+    if (rs.length > 1 || cs.length > 1) multi = true;
+    if (!rs.length || !cs.length) return;
+    let hit = false;
+    rs.forEach((ri) => { if (!rowMeta[ri]) return; cs.forEach((ci) => { if (!colMeta[ci]) return;
+      hit = true; (cell[ri] = cell[ri] || {}); cell[ri][ci] = (cell[ri][ci] || 0) + 1;
+      rowMeta[ri].tot++; colMeta[ci].tot++; grand++; }); });
+    if (hit) matched++;
+  });
+  const rows = Object.values(rowMeta).filter((r) => r.tot > 0).sort((a, b) => b.tot - a.tot);
+  const cols = Object.values(colMeta).filter((c) => c.tot > 0).sort((a, b) => b.tot - a.tot);
+  return { rd, cd, rows, cols, cell, matched, sampleN:DATA.ev.length, multi, grand };
+}
+const CROSS_PAL = ['var(--primary)', '#7A8B99', '#A8B4BD', '#C6CDD2', '#DDE1E4', '#EBEDEF'];
+const crossCell = (cx, ri, ci) => (cx.cell[ri] && cx.cell[ri][ci]) || 0;
+
+/* Bảng ma trận — view mặc định của cross-tab. Có dòng/cột Tổng. */
+function qCrossTable(cx) {
+  const th = 'padding:7px 9px;border-bottom:2px solid var(--line);font-weight:600;color:var(--ink2);font-size:12px';
+  const td = 'padding:6px 9px;border-bottom:1px solid var(--line);text-align:right';
+  return `<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:13px;min-width:${190 + cx.cols.length * 62}px">
+    <thead><tr>
+      <th style="${th};text-align:left">${esc(cx.rd.label)} ↓ / ${esc(cx.cd.label)} →</th>
+      ${cx.cols.map((c) => `<th style="${th}">${esc(c.l)}</th>`).join('')}
+      <th style="${th}">Tổng</th>
+    </tr></thead>
+    <tbody>
+      ${cx.rows.map((r) => `<tr>
+        <td style="${td};text-align:left"><span style="display:inline-flex;align-items:center;gap:7px"><i style="width:9px;height:9px;border-radius:2px;background:${r.c || 'var(--ink3)'};flex:none"></i>${esc(r.l)}</span></td>
+        ${cx.cols.map((c) => { const v = crossCell(cx, r.id, c.id); return `<td style="${td}" class="mono">${v ? nf(v) : '·'}</td>`; }).join('')}
+        <td style="${td}" class="mono"><b>${nf(r.tot)}</b></td>
+      </tr>`).join('')}
+      <tr><td style="${td};text-align:left;border-top:2px solid var(--line)"><b>Tổng</b></td>
+        ${cx.cols.map((c) => `<td style="${td};border-top:2px solid var(--line)" class="mono"><b>${nf(c.tot)}</b></td>`).join('')}
+        <td style="${td};border-top:2px solid var(--line)" class="mono"><b>${nf(cx.grand)}</b></td></tr>
+    </tbody>
+  </table></div>`;
+}
+
+/* Stacked bar — view chart của cross-tab. Mỗi hàng một thanh dài theo tổng hàng,
+   chia đoạn màu theo cột. Track tự chứa style, không phụ thuộc grid .bar. */
+function qCrossBars(cx) {
+  const max = Math.max(...cx.rows.map((r) => r.tot), 1);
+  const cc = (c, i) => c.c || CROSS_PAL[i % CROSS_PAL.length];
+  return `<div class="lgd" style="margin-bottom:11px">${cx.cols.map((c, i) => `<span><i style="background:${cc(c, i)}"></i>${esc(c.l)}</span>`).join('')}</div>
+    <div style="display:flex;flex-direction:column;gap:9px">${cx.rows.map((r) => `<div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">
+        <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:2px;background:${r.c || 'var(--ink3)'}"></i>${esc(r.l)}</span>
+        <b class="mono">${nf(r.tot)}</b>
+      </div>
+      <div style="height:11px;border-radius:6px;overflow:hidden;display:flex;width:${Math.max(3, (r.tot / max) * 100)}%;background:var(--line)">
+        ${cx.cols.map((c, i) => { const v = crossCell(cx, r.id, c.id); return v ? `<i style="display:block;height:100%;width:${(v / r.tot) * 100}%;background:${cc(c, i)}" title="${esc(c.l)}: ${nf(v)}"></i>` : ''; }).join('')}
+      </div>
+    </div>`).join('')}</div>`;
+}
+
 /* Bar + Trend + Anomaly. Điểm vượt ngưỡng Z-score được khoanh và ghi rõ Z bao nhiêu —
    hover thấy chính xác con số, đúng cách Enterpret làm. */
 function anomalyChart(seriesList) {
@@ -1910,10 +2030,25 @@ function qWidget(q, o) {
       </div>
     </div>`;
   }
+  if (q.by) {   /* cross-tab: ghép 2 chiều trên mẫu ev — engine + gate riêng */
+    const cx = qRunCross(q);
+    const cview = o.view || q.view || 'table';
+    return `<div class="card flat">
+      ${wHead(o.title || q.name, cx.rows.length, cx.rd.rows().length, cx.rd.unit)}
+      <div class="cbody">
+        ${cview === 'chart' ? qCrossBars(cx) : qCrossTable(cx)}
+        ${axisLbl(`Đang hiện ${cx.matched}/${cx.sampleN} mẫu bằng chứng — tập mẫu, không phải toàn bộ bản ghi${cx.multi ? ` · một phản hồi có thể mang nhiều ${esc(cx.rd.unit)}/${esc(cx.cd.unit)} nên tổng có thể lớn hơn số mẫu` : ''}`)}
+        ${q.note ? `<div class="note" style="margin-top:11px">${esc(q.note)}</div>` : ''}
+      </div>
+    </div>`;
+  }
   const r = qRun(q, o.limit);
-  const body = q.chart === 'donut'
-    ? donut(r.rows, r.total, nf(fx(r.total)), 'bản ghi phản hồi')
-    : rankBars(r.rows, { total:r.total, pctMode:q.metric === 'pct', click:o.click, kids:o.kids });
+  const view = o.view || q.view || 'chart';
+  const body = view === 'table'
+    ? qTable(r)
+    : q.chart === 'donut'
+      ? donut(r.rows, r.total, nf(fx(r.total)), 'bản ghi phản hồi')
+      : rankBars(r.rows, { total:r.total, pctMode:q.metric === 'pct', click:o.click, kids:o.kids });
   return `<div class="card flat">
     ${wHead(o.title || q.name, r.shown, r.all, r.unit)}
     <div class="cbody">
@@ -1921,6 +2056,19 @@ function qWidget(q, o) {
       ${axisLbl(r.axis + (r.base === 'ev' ? ' — tập mẫu, không phải toàn bộ bản ghi' : ''))}
       ${q.note ? `<div class="note" style="margin-top:11px">${esc(q.note)}</div>` : ''}
     </div>
+  </div>`;
+}
+
+/* View hiệu lực của một item = override tạm (toggle ở thư viện/chi tiết) HOẶC view
+   mặc định đã lưu. Override sống ở ST.sel.qViewOverride (lazy, non-persist) — refresh
+   về view mặc định. Chỉ item `show` mới có 2 view; series luôn chart. */
+const qViewOf = (q) => (q.kind === 'show' ? ((ST.sel.qViewOverride || {})[q.id] || q.view || 'chart') : 'chart');
+function qViewToggle(q) {
+  if (q.kind !== 'show') return '';
+  const v = qViewOf(q);
+  return `<div class="fchips" title="Đổi cách xem — cùng một truy vấn">
+    <button class="${v === 'chart' ? 'on' : ''}" onclick="qSetView('${q.id}','chart')">▮ Chart</button>
+    <button class="${v === 'table' ? 'on' : ''}" onclick="qSetView('${q.id}','table')">▤ Bảng</button>
   </div>`;
 }
 
@@ -2152,8 +2300,7 @@ function renderSet(secKey) {
   const S = SEC[secKey];
   const sets = DATA.dash.filter((x) => x.sec === secKey);
   const cur = byId(sets, ST.sel.set[secKey]) || sets.find((x) => x.def) || sets[0];
-  const edit = !!ST.sub['edit-' + secKey];
-  const sub = CFG.sub[cur.id];
+  const sub = CFG.sub[cur.id] || { f:'off', ch:'' };
   const custom = !!ST.boards[cur.id];
 
   return `<div class="wrap">
@@ -2166,17 +2313,15 @@ function renderSet(secKey) {
     <div class="fchips" data-tour="setchips" style="margin-bottom:7px">
       ${sets.map((x) => `<button class="${x.id === cur.id ? 'on' : ''}" onclick="setBoard('${secKey}','${x.id}')">
         ${esc(x.name)}${ST.boards[x.id] ? ' <b class="mono" title="đã tùy chỉnh">•</b>' : ''}</button>`).join('')}
-      <button onclick="setSub('edit-${secKey}',${edit ? 'false' : 'true'})">${edit ? '✓ Xong' : '✎ Tùy chỉnh'}</button>
+      <button onclick="qGoSets()" title="Tạo, sửa và ghép chart vào set — trong Quantify">✎ Quản lý set</button>
     </div>
     <div class="t-meta" style="margin-bottom:4px">${esc(cur.owner)} · cập nhật ${esc(cur.up)} · ${cur.shared ? 'đã share' : 'riêng tư'} · dành cho ${esc(cur.role)}${SUB_LABEL[sub.f] ? ` · bản tin ${SUB_LABEL[sub.f]} qua ${esc(sub.ch)}` : ''}</div>
     <p class="t-body" style="max-width:92ch;margin:0 0 6px;color:var(--ink2)">${esc(cur.desc)}</p>
-    ${custom ? `<div class="note warn" style="margin:10px 0 16px">Set này đang có thay đổi. Cấu hình <b>không persist</b> — refresh browser là về mặc định, vì prototype không có backend.
+    ${custom ? `<div class="note warn" style="margin:10px 0 16px">Set này đang có thay đổi (sửa ở <b>Quản lý set</b> trong Quantify). Không persist — refresh browser là về mặc định.
       <button class="disc" style="margin-left:8px" onclick="boardReset('${cur.id}')">Trả set về mặc định</button></div>` : '<div style="height:14px"></div>'}
 
     ${cur.qs.map((qq, qi) => {
       const bs = curB(cur, qi);
-      const avail = Object.keys(BLOCKS).filter((b) => BLOCKS[b].sec === secKey && bs.indexOf(b) === -1)
-        .concat(DATA.qt.map((q) => q.id).filter((id) => bs.indexOf(id) === -1));
       return `<section style="margin-bottom:26px">
         <h2 class="qh">${esc(qq.q)}</h2>
         ${/* `sub` là HTML do người viết fixture soạn, KHÔNG phải input người dùng —
@@ -2186,22 +2331,12 @@ function renderSet(secKey) {
         ${bs.length ? `<div class="blks">${bs.map((b) => {
           const wide = b[0] === '@' ? BLOCKS[b].wide : false;
           const body = b[0] === '@' ? blockBody(b) : qWidget(qt(b), { click:blkClick(b) });
-          return `<div class="blk ${wide ? 'wide' : ''}" data-tour="blk-${b}">
-            ${edit ? `<button class="blkx" title="Bỏ khối này khỏi set" onclick="blkDel('${cur.id}',${qi},'${b}')">×</button>` : ''}
-            ${body}</div>`;
-        }).join('')}</div>` : `<div class="empty">Câu hỏi này chưa có khối nào.${edit ? '' : ' Bấm <b>Tùy chỉnh</b> ở trên để thêm.'}</div>`}
-        ${edit ? `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="t-lbl">Thêm khối</span>
-          <select onchange="if(this.value)blkAdd('${cur.id}',${qi},this.value)"
-                  style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:6px 9px;font-size:12.5px;max-width:360px">
-            <option value="">— chọn khối để thêm —</option>
-            ${avail.map((b) => `<option value="${b}">${esc(blkName(b))}</option>`).join('')}
-          </select>
-        </div>` : ''}
+          return `<div class="blk ${wide ? 'wide' : ''}" data-tour="blk-${b}">${body}</div>`;
+        }).join('')}</div>` : `<div class="empty">Câu hỏi này chưa có khối nào. Thêm ở <b>Quản lý set</b> (Quantify).</div>`}
       </section>`;
     }).join('')}
 
-    <div class="note">Không thấy câu hỏi mình cần? Dựng chart mới ở <a href="#/quantify">Quantify</a> rồi bật <b>Tùy chỉnh</b> để thả nó vào bất kỳ set nào của phần này.</div>
+    <div class="note">Không thấy câu hỏi mình cần? Dựng chart mới ở <a href="#/quantify">Quantify</a>, rồi vào <b>Quản lý set</b> để ghép nó vào bất kỳ set nào của phần này.</div>
   </div>`;
 }
 
@@ -2260,67 +2395,271 @@ function anomalyLanes() {
    Ở đây có builder thật, nhưng MỌI Ô LÀ DROPDOWN trên tập giá trị liệt kê sẵn.
    Không nhập tự do, không join tùy ý, không tính toán phái sinh. Người dùng nhìn
    thấy ngay đâu là giới hạn thay vì gặp ô trống rồi tưởng gõ gì cũng chạy. */
-const QB_DEF = { show:'theme', metric:'count', chart:'rank' };
-V.quantify = () => {
+const QB_DEF = { show:'theme', metric:'count', chart:'rank', by:null, view:'chart' };
+/* ---------- Quantify = THƯ VIỆN QUẢN LÝ CHART ----------
+   Ba màn trong cùng một tab, chuyển bằng ST.sel.qview / ST.sel.qDetail:
+     lib     — lưới chart (2/dòng) + thanh search/filter + nút Tạo chart   (mặc định)
+     create  — công cụ tạo chart: chọn chiều/chỉ số/kiểu rồi lưu
+     detail  — xem một chart cỡ lớn + metadata + đổi tên/xóa
+   qType/qDim dùng chung cho cả ba. */
+const qType = (q) => q.chart === 'rank' ? 'BAR' : q.chart === 'donut' ? 'DONUT'
+  : q.chart === 'anomaly' ? 'ANOMALY' : q.chart === 'trend' ? 'LINE' : 'COHORT';
+const qDim = (q) => q.kind === 'show' ? (DIMS[q.show].label + (q.by ? ` × ${DIMS[q.by].label}` : '')) : (q.dim || '');
+const qTypeBadge = (q) => `<span class="mono" style="font-size:11px;color:var(--ink3);border:1px solid var(--line);border-radius:4px;padding:1px 6px">${qType(q)}</span>`;
+/* Nhóm "nền dữ liệu" của một item để lọc thư viện — khóa theo base (một nguồn khai
+   một chỗ, spec §7); series là chuỗi thời gian curated, không thuộc base nào. */
+const qBaseKey = (q) => q.kind === 'series' ? 'series' : DIMS[q.show].base;
+const GROUP_LABEL = { all:'Mọi nền', agg:BASE_GROUP.agg, ev:BASE_GROUP.ev, cust:BASE_GROUP.cust, series:'Chuỗi thời gian' };
+
+V.quantify = () => ST.sel.qview === 'create' ? quantifyCreate()
+  : ST.sel.qview === 'sets' ? quantifySets()
+  : (ST.sel.qDetail && qt(ST.sel.qDetail)) ? quantifyDetail(ST.sel.qDetail)
+  : quantifyLib();
+
+/* Hàng nút của một chart (dùng cho cả thẻ lưới lẫn màn chi tiết). Đổi tên và xóa
+   dùng trạng thái ST.sel.qRen / ST.sel.qDel; xóa bị CHẶN nếu chart đang được set
+   dùng — qUsedBy() xét cả DATA.dash lẫn ST.boards. `extra` chèn nút đứng trước. */
+function qActions(id, extra) {
+  const used = qUsedBy(id);
+  const q = qt(id);
+  const isShow = q && q.kind === 'show';
+  if (ST.sel.qRen === id)
+    return `<button class="btn pri sm" onclick="qRenSave('${id}')">Lưu tên</button><button class="btn sm" onclick="qRenCancel()">Hủy</button>`;
+  if (ST.sel.qDel === id)
+    return `<span class="t-meta" style="font-size:12px;color:var(--crit);align-self:center">Xóa chart này?</span>
+      <button class="btn sm" style="border-color:var(--crit);color:var(--crit)" onclick="qDelete('${id}')">Xác nhận xóa</button>
+      <button class="btn sm" onclick="qDelCancel()">Hủy</button>`;
+  return `${extra || ''}${isShow ? `<button class="btn sm" onclick="qGoEdit('${id}')">Sửa</button>` : ''}<button class="btn sm" onclick="qDuplicate('${id}')">Nhân bản</button><button class="btn sm" onclick="qRenAsk('${id}')">Đổi tên</button>
+    ${used.length
+      ? `<button class="btn sm" disabled title="Đang dùng ở ${used.length} set — gỡ khỏi set trước khi xóa" style="opacity:.4;cursor:not-allowed">Xóa</button>`
+      : `<button class="btn sm" onclick="qDelAsk('${id}')">Xóa</button>`}`;
+}
+
+function quantifyLib() {
+  const s = (ST.sel.qSearch || '').trim().toLowerCase();
+  const f = ST.sel.qFilter || 'all';       // theo kiểu chart
+  const fg = ST.sel.qFilterG || 'all';     // theo nền dữ liệu
+  const fv = ST.sel.qFilterV || 'all';     // theo view mặc định
+  const TYPES = [['all', 'Tất cả'], ['rank', 'Bar'], ['donut', 'Donut'], ['trend', 'Line'], ['cohort', 'Cohort'], ['anomaly', 'Anomaly']];
+  const GKEYS = ['all'].concat([...new Set(DATA.qt.map(qBaseKey))]);
+  const VIEWS = [['all', 'Mọi view'], ['chart', '▮ Chart'], ['table', '▤ Bảng']];
+  const list = DATA.qt.filter((q) =>
+    (f === 'all' || q.chart === f) &&
+    (fg === 'all' || qBaseKey(q) === fg) &&
+    (fv === 'all' || (q.view || 'chart') === fv) &&
+    (!s || q.name.toLowerCase().indexOf(s) > -1 || qDim(q).toLowerCase().indexOf(s) > -1));
+  const filtered = s || f !== 'all' || fg !== 'all' || fv !== 'all';
+
+  /* Một thẻ = chart thật (qWidget) + hàng nút bên dưới. Bấm bar KHÔNG drill sang tab
+     khác (Quantify là xưởng tạo thuần, spec Q7) — chỉ xem/chọn tại chỗ. */
+  const cell = (q) => `<div style="display:flex;flex-direction:column;gap:8px">
+    ${qWidget(q, { view:qViewOf(q) })}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      ${qTypeBadge(q)}
+      ${qViewToggle(q)}
+      ${ST.sel.qRen === q.id
+        ? `<input id="q-ren" value="${esc(q.name)}" style="flex:1;min-width:130px;border:1px solid var(--primary);border-radius:6px;padding:5px 8px;font-size:13px">${qActions(q.id)}`
+        : qActions(q.id, `<button class="btn sm" onclick="qOpen('${q.id}')">Xem chi tiết</button>`)}
+    </div>
+  </div>`;
+
+  return `<div class="wrap">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:4px">
+      <div>
+        <h1 class="t-hero" style="margin-bottom:4px">Thư viện chart</h1>
+        <p class="t-meta" style="max-width:72ch;margin:0">Mọi chart dựng từ nguồn dữ liệu có sẵn, tính lại từ fixture mỗi lần render. Ghép vào set để hiện trên Tổng quan qua <b>Quản lý set</b>.</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" onclick="qGoSets()">Quản lý set</button>
+        <button class="btn pri" onclick="qGoCreate()">＋ Tạo chart</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0 8px">
+      <input id="q-search" value="${esc(ST.sel.qSearch || '')}" oninput="qSearch(this.value)" placeholder="Tìm theo tên hoặc chiều dữ liệu…"
+        style="flex:1;min-width:220px;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px">
+      <div class="fchips">${TYPES.map(([v, l]) => {
+        const n = v === 'all' ? DATA.qt.length : DATA.qt.filter((q) => q.chart === v).length;
+        return `<button class="${f === v ? 'on' : ''}" onclick="qFilter('${v}')">${l} <span class="mono" style="opacity:.55">${n}</span></button>`;
+      }).join('')}</div>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:0 0 14px">
+      <div class="fchips" title="Lọc theo nền dữ liệu">${GKEYS.map((g) => {
+        const n = g === 'all' ? DATA.qt.length : DATA.qt.filter((q) => qBaseKey(q) === g).length;
+        return `<button class="${fg === g ? 'on' : ''}" onclick="qFilterG('${g}')">${esc(GROUP_LABEL[g] || g)} <span class="mono" style="opacity:.55">${n}</span></button>`;
+      }).join('')}</div>
+      <div class="fchips" title="Lọc theo cách xem mặc định">${VIEWS.map(([v, l]) => {
+        const n = v === 'all' ? DATA.qt.length : DATA.qt.filter((q) => (q.view || 'chart') === v).length;
+        return `<button class="${fv === v ? 'on' : ''}" onclick="qFilterV('${v}')">${l} <span class="mono" style="opacity:.55">${n}</span></button>`;
+      }).join('')}</div>
+    </div>
+
+    <div class="t-meta" style="margin-bottom:14px">Hiển thị <b>${list.length}</b> / ${DATA.qt.length} chart${filtered ? ' · đã lọc' : ''}</div>
+
+    ${list.length
+      ? `<div class="grid g2" style="align-items:start">${list.map(cell).join('')}</div>`
+      : `<div class="empty">Không có chart nào khớp bộ lọc. <button class="disc" onclick="qClearFilter()">Xóa bộ lọc</button></div>`}
+  </div>`;
+}
+
+function quantifyCreate() {
   const b = Object.assign({}, QB_DEF, ST.sel.qb || {});
-  const live = { id:'qb-live', kind:'show', show:b.show, metric:b.metric, chart:b.chart,
-                 name:`${DIMS[b.show].label} · ${METRICS[b.metric].label}`, note:'' };
-  const r = qRun(live);
+  const editId = ST.sel.qEdit && qt(ST.sel.qEdit) ? ST.sel.qEdit : null;
+  const editItem = editId ? qt(editId) : null;
+  const isCross = !!b.by;
+  const showEv = !!(DIMS[b.show] && DIMS[b.show].evAttr);
+  const autoName = `${DIMS[b.show].label}${b.by ? ` × ${DIMS[b.by].label}` : ''} · ${METRICS[b.metric].label}`;
+  const live = { id:'qb-live', kind:'show', show:b.show, by:b.by || null, metric:b.metric,
+                 chart:b.chart, view:b.view, name:(editItem ? editItem.name : autoName),
+                 note:(editItem ? editItem.note : '') };
+  const used = editId ? qUsedBy(editId) : [];
   const pick = (k, opts, cur) => `<div style="margin-bottom:12px">
     <div class="t-lbl" style="margin-bottom:5px">${k[1]}</div>
     <div class="fchips">${opts.map(([v, l]) =>
       `<button class="${cur === v ? 'on' : ''}" onclick="setQ('${k[0]}','${v}')">${esc(l)}</button>`).join('')}</div>
   </div>`;
+  /* Chiều cột chỉ nhận chiều ĐỌC ĐƯỢC TỪ MẪU EV (có evAttr) và khác chiều hàng —
+     đây là chỗ "khóa" ghép chéo bịa số ngay tại builder, trước cả validateFixture. */
+  const byOpts = [['', '— không ghép —']].concat(
+    Object.entries(DIMS).filter(([k, d]) => d.evAttr && k !== b.show).map(([k, d]) => [k, d.label]));
 
   return `<div class="wrap">
-    <h1 class="t-hero" style="max-width:36ch;margin-bottom:8px">Chọn chiều, chỉ số và kiểu chart — kết quả tính lại từ dữ liệu ngay.</h1>
-    <p class="t-meta" style="max-width:88ch;margin:0 0 18px">Mọi ô là danh sách đóng, không có ô nhập tự do. Đây là chủ ý: người dùng thấy được toàn bộ giới hạn của công cụ ngay từ đầu. Chart dựng ra <b>tính từ fixture mỗi lần render</b>, nên không thể lệch khỏi dữ liệu như bản hardcode trước đây.</p>
+    <button class="btn sm" onclick="qGoLib()" style="margin-bottom:14px">← Thư viện chart</button>
+    <h1 class="t-hero" style="max-width:40ch;margin-bottom:8px">${editItem ? 'Sửa chart' : 'Tạo chart mới'}</h1>
+    <p class="t-meta" style="max-width:92ch;margin:0 0 16px">Mọi ô là danh sách đóng, không có ô nhập tự do — người dùng thấy được toàn bộ giới hạn của công cụ. Xem dạng <b>Bar/Donut</b> hoặc <b>Bảng</b>. Ghép chéo 2 chiều <b>chỉ tính từ mẫu bằng chứng</b> (Intent/Sentiment/Nền tảng/Theme…); chiều tổng hợp (Nguồn/Segment/Tier) không có phân phối chung nên bị khóa, tránh bịa số. Chart chuỗi thời gian là curated, builder không dựng.</p>
+    ${used.length ? `<div style="border-left:3px solid var(--watch);padding:9px 12px;margin:0 0 16px;background:rgba(180,120,0,.07);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--ink2)">⚠ Chart này đang dùng ở <b>${used.length} set</b>: ${used.map((u) => esc(u.name)).join(' · ')}. <b>Lưu đè</b> sẽ đổi mọi set đó — nếu chỉ muốn một biến thể, hãy <b>Lưu thành bản mới</b>.</div>` : ''}
 
     <div class="split" style="grid-template-columns:320px minmax(0,1fr)">
       <div>
         <div class="card" style="align-self:start;margin-bottom:14px">
-          ${chead('Dựng chart', 'Ba lựa chọn, không có ô nhập tự do')}
+          ${chead('Chọn dữ liệu', 'Danh sách đóng')}
           <div class="cbody">
-            ${pick(['show','Show me · chiều phân tích'], Object.entries(DIMS).map(([k, d]) => [k, d.label]), b.show)}
-            ${pick(['metric','Chỉ số'], Object.entries(METRICS).map(([k, m]) => [k, m.label]), b.metric)}
-            ${pick(['chart','Kiểu chart'], [['rank', CHARTS.rank], ['donut', CHARTS.donut]], b.chart)}
+            ${pick(['show', 'Chiều hàng'], Object.entries(DIMS).map(([k, d]) => [k, d.label]), b.show)}
+            ${showEv
+              ? pick(['by', 'Chiều cột · ghép chéo (mẫu bằng chứng)'], byOpts, b.by || '')
+              : `<div style="margin-bottom:12px"><div class="t-lbl" style="margin-bottom:5px">Chiều cột · ghép chéo</div>
+                 <div class="t-meta" style="font-size:12px">Chiều hàng này <b>không ghép chéo được</b> — chỉ chiều đọc từ mẫu bằng chứng (Intent/Sentiment/Nền tảng/Theme…) mới ghép, vì fixture tổng hợp không có phân phối chung.</div></div>`}
+            ${pick(['metric', 'Chỉ số'], Object.entries(METRICS).map(([k, m]) => [k, m.label]), b.metric)}
+            ${pick(['view', 'Cách xem'], [['chart', '▮ Chart'], ['table', '▤ Bảng']], b.view)}
+            ${(!isCross && b.view === 'chart')
+              ? pick(['chart', 'Kiểu chart'], [['rank', CHARTS.rank], ['donut', CHARTS.donut]], b.chart)
+              : isCross ? `<div class="t-meta" style="font-size:12px;margin-bottom:12px">Ghép chéo hiển thị dạng <b>bảng ma trận</b> (View Bảng) hoặc <b>stacked bar</b> (View Chart).</div>` : ''}
             <div class="hr"></div>
             <div class="t-lbl" style="margin-bottom:5px">Khoảng thời gian</div>
-            <div class="t-meta" style="font-size:12px">Đang dùng bộ lọc kỳ ở thanh trên: <b>${esc(BASE_LABEL)}</b> (${esc(BASE_RANGE)}). Enterpret có thêm Since và Between — ở đây rút gọn còn ba kỳ có sẵn trong fixture.</div>
-            <div class="hr"></div>
-            <div class="t-lbl" style="margin-bottom:5px">So sánh</div>
-            <div class="t-meta" style="font-size:12px">So sánh theo thời gian và theo filter khác nằm trong bốn tổ hợp chuỗi đã lưu ở cột phải — chuỗi thời gian không suy ra được từ số tổng hợp nên không dựng động được.</div>
+            <div class="t-meta" style="font-size:12px">Theo bộ lọc kỳ ở thanh trên: <b>${esc(BASE_LABEL)}</b> (${esc(BASE_RANGE)}).</div>
           </div>
         </div>
         <div class="card" style="align-self:start">
-          ${chead('Đã lưu', 'Bấm để mở', DATA.qt.length, DATA.qt.length, 'Quantify')}
-          <div class="lst">${DATA.qt.map((q) => `
-            <button class="itm ${ST.sel.quantify===q.id?'on':''}" onclick="setSel('quantify','${q.id}')">
-              <div style="display:flex;align-items:center;gap:8px">
-                <span class="mono" style="font-size:11.5px;color:var(--ink3)">${q.chart==='rank'?'BAR':q.chart==='donut'?'DONUT':q.chart==='anomaly'?'ANOMALY':q.chart==='trend'?'LINE':'COHORT'}</span>
-                <span class="t-meta" style="color:var(--ink)">${esc(q.name)}</span>
-              </div>
-              <div class="t-meta" style="font-size:12px;margin-top:3px">${esc(q.kind === 'show' ? DIMS[q.show].label : q.dim)}</div>
-            </button>`).join('')}</div>
+          ${chead(editItem ? 'Lưu thay đổi' : 'Lưu chart', editItem ? 'Đè bản cũ hoặc tạo bản mới' : 'Đặt tên rồi thêm vào thư viện')}
+          <div class="cbody">
+            <div class="t-lbl" style="margin-bottom:5px">Tên chart</div>
+            <input id="q-name" value="${esc(live.name)}" style="width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:7px;padding:7px 9px;font-size:13px;margin-bottom:9px">
+            ${editId
+              ? `<div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn pri sm" onclick="qSave(false)">Lưu đè</button><button class="btn sm" onclick="qSave(true)">Lưu thành bản mới</button></div>`
+              : `<button class="btn pri sm" onclick="qSave(true)">＋ Lưu vào thư viện</button>`}
+            <div class="t-meta" style="font-size:11.5px;margin-top:8px">Lưu in-memory — refresh browser là về thư viện gốc, vì prototype không có backend.</div>
+          </div>
         </div>
       </div>
 
       <div>
-        ${qWidget(live, { click:(row) => DIMS[b.show].base === 'agg' && tax(row.id) ? `drillVoc('${row.id}')` : null })}
-        <div class="card" style="margin-top:14px">
-          ${chead('Lưu và chia sẻ', 'Quantify lưu lại thành Saved Item, thêm được vào bảng theo vai')}
-          <div class="cbody" style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn pri sm">Lưu thành Saved Item</button>
-            <button class="btn sm">Thêm vào bảng</button>
-            <button class="btn sm">Share</button>
-            <button class="btn sm" onclick="go('feed')">Mở Feed của tổ hợp này</button>
-          </div>
-        </div>
-        ${ST.sel.quantify ? `<div style="margin-top:14px">${qWidget(qt(ST.sel.quantify))}</div>` : ''}
+        ${qWidget(live, { title:'Xem trước — ' + live.name })}
       </div>
     </div>
   </div>`;
-};
+}
+
+function quantifyDetail(id) {
+  const q = qt(id), used = qUsedBy(id);
+  return `<div class="wrap">
+    <button class="btn sm" onclick="qGoLib()" style="margin-bottom:14px">← Thư viện chart</button>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
+      ${qTypeBadge(q)}
+      ${ST.sel.qRen === id
+        ? `<input id="q-ren" value="${esc(q.name)}" style="flex:1;min-width:220px;border:1px solid var(--primary);border-radius:7px;padding:6px 10px;font-size:17px;font-weight:600">`
+        : `<h1 class="t-hero" style="margin:0">${esc(q.name)}</h1>`}
+    </div>
+    <div class="t-meta" style="margin-bottom:16px">Chiều dữ liệu: <b>${esc(qDim(q))}</b>${q.kind === 'series' ? ' · chuỗi thời gian (curated)' : ''} · Chỉ số: <b>${q.metric === 'pct' ? 'Percentage' : 'Count'}</b> · ${used.length ? `đang dùng ở ${used.length} set: ${used.map((u) => esc(u.name)).join(' · ')}` : 'chưa dùng ở set nào'}</div>
+
+    ${q.kind === 'show' ? `<div style="margin-bottom:10px">${qViewToggle(q)}</div>` : ''}
+    <div style="max-width:720px">${qWidget(q, { view:qViewOf(q) })}</div>
+    ${q.note ? `<div class="note" style="max-width:720px;margin-top:12px">${esc(q.note)}</div>` : ''}
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;align-items:center">${qActions(id)}</div>
+  </div>`;
+}
+
+/* ---------- QUẢN LÝ SET (composer) ----------
+   Nơi ghép chart từ thư viện vào set cho Tổng quan — chức năng "✎ Tùy chỉnh" cũ
+   dời hẳn về đây. Sửa block chạy qua ST.boards y như trước (curB/boardEdit), nên
+   qUsedBy (union 2 đường) + §12b vẫn giữ nguyên. Hai set CỐ ĐỊNH khóa cấu trúc,
+   cũng là hai set `def` của mỗi phần — khóa xóa chúng giữ luôn bất biến "đúng 1
+   set mặc định mỗi phần". Set người dùng tạo sống TRONG DATA.dash (không store
+   song song) để qUsedBy/§12b tự phủ. Cấu trúc câu hỏi cố định lúc tạo; chỉ sửa
+   thành viên block (ST.boards định vị theo index câu hỏi). */
+const SET_LOCKED = (id) => id === 'b-cxm-exec' || id === 'b-voc-all';
+
+function quantifySets() {
+  const setCard = (d) => {
+    const locked = SET_LOCKED(d.id);
+    const ren = ST.sel.setRen === d.id, del = ST.sel.setDel === d.id;
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="chead">
+        <div class="ct" style="flex:1;min-width:180px">
+          ${ren
+            ? `<input id="set-ren" value="${esc(d.name)}" style="width:100%;box-sizing:border-box;border:1px solid var(--primary);border-radius:6px;padding:5px 8px;font-size:14px;font-weight:600">`
+            : `<b>${esc(d.name)}</b>`}
+          <span>${esc(d.role)} · ${locked ? 'cố định' : 'tùy biến'}${ST.boards[d.id] ? ' · đã sửa' : ''}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          ${ren
+            ? `<button class="btn pri sm" onclick="setRenSave('${d.id}')">Lưu tên</button><button class="btn sm" onclick="setRenCancel()">Hủy</button>`
+            : locked
+              ? `<span class="mono" style="font-size:11px;color:var(--ink3);border:1px solid var(--line);border-radius:4px;padding:1px 6px">🔒 cố định</span><button class="btn sm" onclick="setDup('${d.id}')">Nhân bản để sửa</button>`
+              : del
+                ? `<span class="t-meta" style="font-size:12px;color:var(--crit);align-self:center">Xóa set này?</span><button class="btn sm" style="border-color:var(--crit);color:var(--crit)" onclick="setDelete('${d.id}')">Xác nhận</button><button class="btn sm" onclick="setDelCancel()">Hủy</button>`
+                : `<button class="btn sm" onclick="setRenAsk('${d.id}')">Đổi tên</button><button class="btn sm" onclick="setDup('${d.id}')">Nhân bản</button>${ST.boards[d.id] ? `<button class="btn sm" onclick="boardReset('${d.id}')">Về mặc định</button>` : ''}<button class="btn sm" onclick="setDelAsk('${d.id}')">Xóa</button>`}
+        </div>
+      </div>
+      <div class="cbody">
+        ${d.qs.map((qq, qi) => {
+          const bs = curB(d, qi);
+          const avail = Object.keys(BLOCKS).filter((b) => BLOCKS[b].sec === d.sec && bs.indexOf(b) === -1)
+            .concat(DATA.qt.map((q) => q.id).filter((id) => bs.indexOf(id) === -1));
+          return `<div style="margin-bottom:${qi < d.qs.length - 1 ? '16px' : '2px'}">
+            <div class="t-lbl" style="margin-bottom:6px">${esc(qq.q)}</div>
+            ${bs.length ? `<div style="display:flex;flex-direction:column;gap:5px">${bs.map((b, bi) => `
+              <div style="display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:13px">
+                <span style="flex:1">${esc(blkName(b))}${b[0] === '@' ? ' <span class="mono" style="font-size:10.5px;color:var(--ink3)">khối tổng hợp</span>' : ''}</span>
+                ${locked ? '' : `<button class="btn sm" ${bi === 0 ? 'disabled style="opacity:.3;cursor:default"' : ''} onclick="blkMove('${d.id}',${qi},'${b}',-1)" title="Lên">↑</button><button class="btn sm" ${bi === bs.length - 1 ? 'disabled style="opacity:.3;cursor:default"' : ''} onclick="blkMove('${d.id}',${qi},'${b}',1)" title="Xuống">↓</button><button class="btn sm" onclick="blkDel('${d.id}',${qi},'${b}')" title="Bỏ khỏi set">×</button>`}
+              </div>`).join('')}</div>`
+              : `<div class="empty" style="padding:10px">Chưa có khối nào.${locked ? '' : ' Thêm bên dưới.'}</div>`}
+            ${locked ? '' : `<div style="margin-top:8px">
+              <select onchange="if(this.value)blkAdd('${d.id}',${qi},this.value)" style="border:1px solid var(--line);background:#fff;border-radius:7px;padding:6px 9px;font-size:12.5px;max-width:340px">
+                <option value="">＋ Thêm khối…</option>
+                ${avail.map((b) => `<option value="${b}">${esc(blkName(b))}</option>`).join('')}
+              </select></div>`}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  };
+  const renderSecGroup = (sec) => `<section style="margin-bottom:22px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
+      <h2 class="qh" style="margin:0">${esc(SEC[sec].label)}</h2>
+      <button class="btn sm" onclick="setNew('${sec}')">＋ Set mới</button>
+    </div>
+    ${DATA.dash.filter((d) => d.sec === sec).map(setCard).join('')}
+  </section>`;
+
+  return `<div class="wrap">
+    <button class="btn sm" onclick="qGoLib()" style="margin-bottom:14px">← Thư viện chart</button>
+    <h1 class="t-hero" style="margin-bottom:8px">Quản lý set</h1>
+    <p class="t-meta" style="max-width:92ch;margin:0 0 18px">Ghép chart từ thư viện vào set để hiện trên Tổng quan. Thêm/bớt/đổi thứ tự khối, tạo hoặc xóa set. Hai set <b>cố định</b> (Điều hành CX · Toàn cảnh tiếng nói) khóa cấu trúc — nhân bản để tạo biến thể sửa được. Không persist: refresh về mặc định.</p>
+    ${renderSecGroup('voc')}
+    ${renderSecGroup('cxm')}
+  </div>`;
+}
 
 /* ---------- VoC theo hành trình ----------
    Cùng điều hướng ba nhịp với #/atlas, nhưng đo thứ khác:
@@ -4133,6 +4472,46 @@ function boardEdit(setId) {  /* lazy copy: chỉ sao chép khi thật sự sửa
 function blkDel(setId, qi, b) { const s = boardEdit(setId); s[qi] = s[qi].filter((x) => x !== b); render(); }
 function blkAdd(setId, qi, b) { const s = boardEdit(setId); if (s[qi].indexOf(b) === -1) s[qi].push(b); render(); }
 function boardReset(setId)    { delete ST.boards[setId]; render(); }
+/* Đổi thứ tự block trong một câu hỏi (dir = -1 lên / +1 xuống). */
+function blkMove(setId, qi, b, dir) {
+  const s = boardEdit(setId); const arr = s[qi]; const i = arr.indexOf(b), j = i + dir;
+  if (i < 0 || j < 0 || j >= arr.length) return;
+  arr[i] = arr[j]; arr[j] = b; render();
+}
+
+/* ---------- Quản lý set trong Quantify: tạo / đổi tên / nhân bản / xóa ----------
+   Set người dùng tạo sống TRONG DATA.dash (qUsedBy + §12b tự phủ). Mọi set phải
+   có CFG.sub[id] (§12b bắt buộc). def:false để giữ đúng 1 set mặc định mỗi phần.
+   Không xóa/không đổi cấu trúc 2 set cố định. */
+function qGoSets()          { ST.sel.qview = 'sets'; ST.sel.qEdit = null; ST.sel.qDetail = null; ST.sel.qRen = null; ST.sel.qDel = null; go('quantify'); }
+const newSetId = () => { let id; do { id = 'set' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); } while (byId(DATA.dash, id)); return id; };
+function setNew(sec) {
+  const id = newSetId();
+  DATA.dash.push({ id, sec, def:false, name:'Set mới', owner:'Bạn', up:'hôm nay', shared:false,
+    role:'tùy chỉnh', desc:'Set tự tạo — ghép chart từ Quantify.', qs:[{ q:'Các chart đã chọn', sub:'', b:[] }] });
+  CFG.sub[id] = { f:'off', ch:'Email' };
+  ST.sel.setRen = id; ST.focus = 'set-ren'; render();
+}
+function setDup(id) {
+  const d = byId(DATA.dash, id); if (!d) return;
+  const copy = JSON.parse(JSON.stringify(d));
+  copy.id = newSetId(); copy.def = false; copy.name = d.name + ' (bản sao)'; copy.owner = 'Bạn'; copy.shared = false;
+  DATA.dash.push(copy); CFG.sub[copy.id] = { f:'off', ch:'Email' };
+  ST.sel.setRen = copy.id; ST.focus = 'set-ren'; render();
+}
+function setDelAsk(id)      { if (!SET_LOCKED(id)) ST.sel.setDel = id; render(); }
+function setDelCancel()     { ST.sel.setDel = null; render(); }
+function setDelete(id) {
+  if (SET_LOCKED(id)) return;                        /* không bao giờ xóa set cố định / def */
+  const d = byId(DATA.dash, id); if (!d) return;
+  DATA.dash.splice(DATA.dash.indexOf(d), 1);
+  delete ST.boards[id]; delete CFG.sub[id];
+  if (ST.sel.set && ST.sel.set[d.sec] === id) ST.sel.set[d.sec] = null;   /* Overview về set mặc định */
+  ST.sel.setDel = null; render();
+}
+function setRenAsk(id)      { ST.sel.setRen = id; ST.focus = 'set-ren'; render(); }
+function setRenCancel()     { ST.sel.setRen = null; render(); }
+function setRenSave(id)     { const v = ($v('set-ren') || '').trim(); const d = byId(DATA.dash, id); if (v && d) d.name = v; ST.sel.setRen = null; render(); }
 
 /* Từ một node taxonomy sang VoC theo hành trình. Node nào có `maps` thì mở đúng
    điểm chạm đó; node không maps thì mở màn ở trạng thái mặc định và nói rõ vì sao. */
@@ -4151,7 +4530,15 @@ function drillVoc(taxId) {
   go('vocjourney');
 }
 function setVoc(k, v) { ST.sel['voc' + k] = v; if (k === 'Phase') { ST.sel.vocFlow = null; ST.sel.vocStep = null; } render(); }
-function setQ(k, v)   { const q = Object.assign({}, QB_DEF, ST.sel.qb || {}); q[k] = v; ST.sel.qb = q; render(); }
+function setQ(k, v)   {
+  const q = Object.assign({}, QB_DEF, ST.sel.qb || {});
+  q[k] = (k === 'by') ? (v || null) : v;
+  /* Chuẩn hóa gate cross-tab: chiều hàng không đọc được từ mẫu ev thì không ghép
+     chéo được; không ghép chéo với chính nó. Chặn state builder bịa số ngay đây. */
+  if (!DIMS[q.show] || !DIMS[q.show].evAttr) q.by = null;
+  if (q.by === q.show) q.by = null;
+  ST.sel.qb = q; render();
+}
 function ack(id)      { SEEN[id] = true; render(); }
 
 /* ===== Tạo điểm gãy và gán người xử lý =====
@@ -4160,6 +4547,84 @@ function ack(id)      { SEEN[id] = true; render(); }
    Bản ghi mới PHẢI thỏa mọi bất biến của validateFixture(): id duy nhất,
    iss.act ↔ act.iss trỏ đúng hai chiều, và pri.total = tổng 6 thành phần. */
 const $v = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+
+/* ===== Quantify · quản lý chart trong thư viện (DATA.qt) =====
+   Store IN-MEMORY: push/splice thẳng vào DATA.qt, refresh là về thư viện gốc —
+   đúng pattern non-persist của prototype, không có backend. Xóa chart đang được
+   một set dashboard dùng bị CHẶN. Phải xét CẢ hai nguồn: set mặc định trong
+   DATA.dash (nếu đứt → validateFixture() báo banner đỏ mọi màn) VÀ set đã bị
+   tùy chỉnh trong ST.boards (nếu đứt → renderSet gọi qWidget(undefined) và THROW
+   giữa render, chết view — còn tệ hơn banner). curB() cũng đọc ST.boards nếu có. */
+const qUsedBy = (id) => DATA.dash.filter((d) =>
+  (d.qs || []).map((q) => q.b).concat(ST.boards[d.id] || []).some((bs) => bs.indexOf(id) > -1))
+  .map((d) => ({ id:d.id, name:d.name }));
+/* Lưu từ builder. asNew=false + đang sửa → LƯU ĐÈ item cũ (giữ id + note, mọi set
+   dùng nó đổi theo). asNew=true → tạo item mới (id mới). Cross-tab luôn chart 'rank'
+   (stacked bar); view do người dùng chọn. */
+function qSave(asNew) {
+  const b = Object.assign({}, QB_DEF, ST.sel.qb || {});
+  const by = b.by || null;
+  const editId = (!asNew && ST.sel.qEdit && qt(ST.sel.qEdit)) ? ST.sel.qEdit : null;
+  const fields = { show:b.show, by, metric:b.metric, view:b.view, chart: by ? 'rank' : b.chart };
+  const defName = `${DIMS[b.show].label}${by ? ` × ${DIMS[by].label}` : ''} · ${METRICS[b.metric].label}`;
+  const name = ($v('q-name') || '').trim() || defName;
+  if (editId) {
+    Object.assign(qt(editId), fields, { name });          /* giữ id + note; set dùng nó cập nhật theo */
+    ST.sel.quantify = editId;
+  } else {
+    let id; do { id = 'qu' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); } while (qt(id));
+    DATA.qt.push(Object.assign({ id, kind:'show', note:'' }, fields, { name }));
+    ST.sel.quantify = id;
+  }
+  ST.sel.qEdit = null; ST.sel.qb = null; ST.sel.qview = 'lib'; ST.sel.qDetail = null;
+  render();
+}
+/* Nhân bản một item → id mới, tên "… (bản sao)". Giữ nguyên show/by/view/kiểu. */
+function qDuplicate(id) {
+  const q = qt(id); if (!q) return;
+  let nid; do { nid = 'qu' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); } while (qt(nid));
+  DATA.qt.push(Object.assign({}, q, { id:nid, name:q.name + ' (bản sao)' }));
+  ST.sel.quantify = nid; ST.sel.qDetail = null; ST.sel.qview = 'lib'; render();
+}
+/* Nạp một item `show` về builder để sửa (Lưu đè cùng id). Series không sửa ở builder. */
+function qGoEdit(id) {
+  const q = qt(id); if (!q || q.kind !== 'show') return;
+  ST.sel.qb = { show:q.show, metric:q.metric, chart:q.chart || 'rank', by:q.by || null, view:q.view || 'chart' };
+  ST.sel.qEdit = id; ST.sel.qview = 'create'; ST.sel.qDetail = null; ST.sel.qRen = null; ST.sel.qDel = null; render();
+}
+function qDelAsk(id)  { ST.sel.qDel = id; render(); }
+function qDelCancel() { ST.sel.qDel = null; render(); }
+function qDelete(id) {
+  if (qUsedBy(id).length) return;                    /* double-guard: chart đang được set dùng */
+  const i = DATA.qt.findIndex((q) => q.id === id);
+  if (i > -1) DATA.qt.splice(i, 1);
+  if (ST.sel.quantify === id) ST.sel.quantify = null;
+  if (ST.sel.qDetail === id) ST.sel.qDetail = null;  /* đang ở màn chi tiết chart vừa xóa → về thư viện */
+  ST.sel.qDel = null;
+  render();
+}
+function qRenAsk(id)  { ST.sel.qRen = id; ST.focus = 'q-ren'; render(); }
+function qRenCancel() { ST.sel.qRen = null; render(); }
+function qRenSave(id) {
+  const v = $v('q-ren').trim();
+  const q = qt(id);
+  if (v && q) q.name = v;
+  ST.sel.qRen = null;
+  render();
+}
+/* Điều hướng trong tab Quantify: thư viện ↔ màn tạo chart ↔ chi tiết chart. */
+function qGoCreate()    { ST.sel.qview = 'create'; ST.sel.qEdit = null; ST.sel.qb = null; ST.sel.qDetail = null; ST.sel.qRen = null; ST.sel.qDel = null; render(); }
+function qGoLib()       { ST.sel.qview = 'lib'; ST.sel.qEdit = null; ST.sel.qDetail = null; ST.sel.qRen = null; ST.sel.qDel = null; render(); }
+function qOpen(id)      { ST.sel.qDetail = id; ST.sel.qview = 'lib'; ST.sel.qRen = null; ST.sel.qDel = null; render(); }
+function qSearch(v)     { ST.sel.qSearch = v; ST.focus = 'q-search'; render(); }
+function qFilter(v)     { ST.sel.qFilter = v; render(); }
+function qFilterG(v)    { ST.sel.qFilterG = v; render(); }
+function qFilterV(v)    { ST.sel.qFilterV = v; render(); }
+function qClearFilter() { ST.sel.qSearch = ''; ST.sel.qFilter = 'all'; ST.sel.qFilterG = 'all'; ST.sel.qFilterV = 'all'; ST.focus = 'q-search'; render(); }
+/* Toggle view tạm của một item (chart↔bảng) — chỉ đổi CÁCH XEM, KHÔNG ghi vào
+   item đã lưu; sống ở ST.sel.qViewOverride (lazy), refresh về view mặc định. */
+function qSetView(id, v) { (ST.sel.qViewOverride || (ST.sel.qViewOverride = {}))[id] = v; render(); }
+
 const vnDate = (v) => { const p = String(v).split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : ''; };
 const plusDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toLocaleDateString('vi-VN'); };
 function nextNum() {
