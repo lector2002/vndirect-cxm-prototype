@@ -1,7 +1,7 @@
 # `web/` — Trạng thái bản dựng lại bằng React
 
-> Cập nhật 02/08/2026. **Đọc file này trước khi sửa bất cứ thứ gì trong `web/`.**
-> Tài liệu kèm: [module-a-charter.md](./module-a-charter.md) · [module-c-charter.md](./module-c-charter.md) · [certification-log.md](./certification-log.md)
+> Cập nhật 03/08/2026. **Đọc file này trước khi sửa bất cứ thứ gì trong `web/`.**
+> Tài liệu kèm: [module-a-charter.md](./module-a-charter.md) · [module-c-charter.md](./module-c-charter.md) · [certification-log.md](./certification-log.md) · [VOC-STACKED-SPEC.md](./VOC-STACKED-SPEC.md)
 
 ## Đây là gì, và không phải là gì
 
@@ -47,9 +47,12 @@ data → store → domain → design-system → features
 - Design token VND: cam `#d9531e` **chỉ** cho tương tác/định danh, nền xám ấm. **KHÔNG thêm palette** —
   mọi class màu phải đã tồn tại thật trong `tailwind.config.js`.
 
-## Trạng thái hiện tại — 02/08/2026
+## Trạng thái hiện tại — 03/08/2026
 
-**Xanh:** `tsc` 0 lỗi · **560 test / 58 file** · `vite build` xanh · live-check trình duyệt đã chạy.
+**Xanh:** `tsc -b` 0 lỗi · **598 test / 68 file** · `vite build` xanh.
+Live-check trình duyệt: đã chạy tới 02/08; **phần 03/08 chưa live-check.**
+
+**Toàn bộ `web/` đã được commit** ngày 03/08 (`6434ade`) — trước đó là untracked.
 
 | Giai đoạn | Nội dung | Tình trạng |
 |---|---|---|
@@ -58,9 +61,40 @@ data → store → domain → design-system → features
 | **Module A** | Chặng Xác nhận + đóng băng baseline | **xong, đã chứng thực (A1–A5)** |
 | **Module C1** | 4 trục phân khúc vào schema + sentinel + validate + seed thật | **xong, đã chứng thực** |
 | **Module C2** | `domain/quantify.ts`: coverage, `refuse`/`draw`, chặn ghép chéo | **xong, đã chứng thực** |
-| **Module C4** | fixture demo 300 khách, sinh tất định | **xong, đã chứng thực** |
+| **Module C4** | fixture demo 300 khách, sinh tất định | **xong, đã chứng thực** — nhưng xem cảnh báo dead code ở mục C5 |
 | Module C3 | chart: dải `unk`, in tỉ lệ phủ, trạng thái từ chối vẽ | **CHƯA LÀM** |
-| Module C5 | tab Cấu hình hệ thống + công tắc demo | **CHƯA LÀM** |
+| Module C5 | tab Cấu hình hệ thống + công tắc demo | **MỚI MỘT NỬA** — xem dưới |
+| Toolbar + Search | global filter toolbar, ô tìm kiếm (`domain/search.ts`) | xong 03/08, chưa ghi log chứng thực |
+| VoC stacked | `@themestack` + `domain/themeSegments.ts` + `/topic/:id` | xong 03/08, **chứng thực tĩnh** (chưa live-check) |
+
+### 03/08 — VoC stacked-bar + màn chi tiết theme
+
+Đặc tả: `VOC-STACKED-SPEC.md`. Đã chứng thực bằng đọc file + oracle đếm độc lập:
+14 theme · 4 subtheme · **3 theme có subtheme, 11 không**. Trục sub-theme **không normalize**
+(mỗi đoạn màu = `n` thật, đoạn xám = `theme.n − Σsub`, Σ = `theme.n` cả 14/14); trục nhóm khách
+tất định, Σ = `theme.n`, mọi đoạn `demo:true`, 12/14 hình phân biệt.
+
+⚠️ **Hệ quả UX của trục trung thực:** trong top 8 theme chỉ 3 có màu — 5 thanh còn lại xám đặc
+100% "Chưa gán sub-theme". Đúng dữ liệu, nhưng mặc định biểu đồ trông gần như trống. Ba theme
+(`guide`, `info`, `praise`) ở trục Nhóm khách chỉ ra **1 đoạn** nên không stack được gì.
+**Chưa hỏi owner** có chấp nhận hình này không.
+
+### C5 mới làm được một nửa — và seam đổi fixture VẪN CHƯA CÓ
+
+`features/settings/SettingsPage.tsx` hiện chỉ có **một** switch Demo Mode. Còn thiếu theo hợp đồng
+C5: nút đưa về dữ liệu gốc · khối thông tin nguồn dữ liệu (fixture đang dùng, số bản ghi, kết quả
+`validateFixture()` gần nhất).
+
+**Quan trọng hơn — Demo Mode được dựng theo hướng KHÁC hẳn seam mà tài liệu này đề xuất:**
+`store.ts:80` BẬT → `repo.getSnapshot()` (tức **`seed`, 7 khách**), TẮT → `EMPTY_DATA`.
+Không có `swapFixture()`, không có `MockRepository(fixture)`.
+
+⇒ **`demoData` (300 khách, sản phẩm của C4) VẪN LÀ DEAD CODE** — `grep` xác nhận chỉ
+`demo.test.ts` dùng. Không màn nào hiện nó.
+
+⇒ **Đây là điều kiện chặn của C3.** Trạng thái `refuse` (coverage 0%) và các dải phủ rộng **chỉ
+tồn tại trong `demoData`**; seed thật thấp nhất là `nav` 14%. Làm C3 trước khi chốt seam thì tầng
+vẽ mới sẽ không có dữ liệu nào kích hoạt được nhánh của nó.
 
 ### Module A đã đổi gì (đọc charter để biết đủ)
 
@@ -109,6 +143,9 @@ khoá thật.
 
 ## Việc còn lại
 
+0. **CHỐT SEAM FIXTURE — chặn C3, cần owner quyết.** Demo Mode BẬT phục vụ `seed` (7 khách) hay
+   `demoData` (300 khách)? Xem mục *C5 mới làm được một nửa* ở trên. Không chốt thì C3 làm xong
+   vẫn không có dữ liệu kích hoạt nhánh `refuse`/dải phủ rộng.
 1. **C3** — tầng vẽ: dải `unk`, in tỉ lệ phủ, trạng thái từ chối vẽ, và hiển thị
    `QuantifyCrossResult.unsupported` thay vì vẽ matrix rỗng. `qRunSegment` và `unsupported` đã có
    sẵn ở `domain/quantify.ts`, **chưa nơi nào trong `features/` gọi tới**.
@@ -157,8 +194,19 @@ Chỉ **review độc lập** bắt được. Rút ra ba điều:
 3. Cẩn thận cách diễn đạt tiêu chí nghiệm thu — một câu lệch nhẹ sẽ được worker khoá lại bằng test,
    và từ đó cái sai trở thành "hành vi mong muốn".
 
+**Đặc tả thiếu một file wire ⇒ 42 test đỏ (03/08).** `VOC-STACKED-SPEC` §4 (WIRE) liệt kê
+`OverviewPage.tsx` · `blocks/index.ts` · `seed.ts` — và **bỏ sót `data/blocks.ts`**. Khối
+`@themestack` vào set `b-voc-all` nhưng không có def trong registry ⇒ `validateFixture()` trả lỗi
+⇒ mọi test assert `validate() === []` đỏ (42 test / 6 file), lan sang cả `mock-repository`,
+`store`, `WorkPage` — những chỗ chẳng liên quan gì tới VoC.
+Rút ra: **thêm/bớt một `@block` luôn chạm ĐỦ BỐN file** — `data/blocks.ts` (registry, nguồn sự
+thật duy nhất) · `seed.ts` (wire vào set) · `OverviewPage.tsx` (`BlockBody` + `WIDE_BLOCKS`) ·
+`blocks/index.ts` (export). Kèm theo: assert inventory `BLOCKS` trong `OverviewPage.test.tsx` là
+số đếm cứng, phải cập nhật cùng lúc — đây là ngoại lệ hợp lệ của luật *chỉ thêm, không sửa test cũ*.
+
 **Các bẫy khác đã đo được:**
 - `tsc --noEmit` **không** bắt hết lỗi parse — chỉ oxc/vite bắt. **Luôn chạy `vite build`.**
+  Và ở repo này `--noEmit` là **no-op** (root tsconfig `files:[]`) — dùng **`npx tsc -b`**.
 - Class Tailwind không tồn tại **biên dịch im lặng** và test vẫn xanh. Đối chiếu `tailwind.config.js`.
 - `qRun` (`domain/quantify.ts`) `return []` nếu thiếu entry `dims` ⇒ **biểu đồ rỗng im lặng**.
   `dims` nằm ở `data/fixtures/seed.ts`, KHÔNG ở `domain/`. Thêm trục phải thêm **cả hai bên** —

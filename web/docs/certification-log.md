@@ -985,3 +985,61 @@ Khớp report worker VÀ khớp dự đoán charter viết TRƯỚC khi dispatch
 **VẤN ĐỀ MỞ CHỜ OWNER:** `AI-CONTEXT.md` dòng ~175 ghi quyết định cố ý "`DATA.cust` chỉ còn key/seg/tier/pf/st, không thành hệ thống tra cứu thứ hai". Module C thêm 4 field → vượt chữ, nhưng giữ tinh thần (chỉ dùng gộp nhóm tổng hợp, không có màn tra cứu từng khách). Opus đề xuất sửa quyết định thành "cấm màn tra cứu từng khách" thay vì "cấm thêm field". ĐÃ GHI CHÚ VÀO `AI-CONTEXT.md` LÀ CHỜ PHÁN, chưa tự sửa.
 
 **CÒN LẠI:** C3 (tầng vẽ) · C5 (tab Cấu hình hệ thống) · Module B (5 tab `V.issue`) · màn 6 nhóm ngưỡng.
+
+## 03/08/2026 — VoC stacked-bar + `/topic/:id`: SỬA REGRESSION CHẶN, chứng thực tĩnh
+
+**Vào phiên thấy suite ĐỎ.** `npx vitest run` → **42 test đỏ / 6 file**
+(`mock-repository` 24 · `store` 12 · `validate` 2 · `WorkPage` 2 · `demo` 1 · `OverviewPage` 1).
+Một nguyên nhân duy nhất cho cả 42: `@themestack` được gắn vào `b-voc-all` trong `seed.ts` nhưng
+**không có def trong `data/blocks.ts`** → `validateFixture()` trả
+`b-voc-all câu 3: khối "@themestack" không tồn tại` → mọi assert `validate() === []` gãy.
+
+`VOC-STACKED-SPEC` §4 (WIRE) liệt kê 3 file và bỏ sót `blocks.ts` — **lại là lỗi đặc tả của Opus**,
+đúng khuôn "Bài học đắt nhất" của Module A. Khác lần trước ở chỗ lần này test KHÔNG khoá cái sai
+lại, mà đỏ ầm lên, nên bắt được ngay.
+
+**Sửa:** thêm `"@themestack": { n: "Theme theo thành phần", sec: "voc", go: "topics" }` vào registry.
+`go:"topics"` được kiểm thực nghiệm chứ không suy đoán — `validate.ts:244` khẳng định
+`ROUTES.has(blk.go)`, và `validate()` giờ trả rỗng.
+
+⚠️ **Có sửa một test cũ, lệch ràng buộc spec** (*CHỈ THÊM test, KHÔNG sửa test cũ*):
+`OverviewPage.test.tsx` assert `BLOCKS` có đúng 9 entry → đổi thành 10, kèm một assert mới cho def
+của `@themestack`. Lựa chọn còn lại là gỡ feature khỏi seed. **Đã báo owner, chờ xác nhận.**
+
+**Sau khi sửa:** `tsc -b` exit 0 · **598 test / 68 file xanh** · `vite build` xanh.
+
+**ORACLE ĐỘC LẬP** (script tạm, tự đếm từ `seed`, KHÔNG gọi test của worker — đã xoá sau khi chạy):
+
+```
+theme=14 · subtheme=4 · theme CÓ subtheme=3 · KHÔNG có=11
+x-th-device n=412 subs=2 Σsub=412 rem=0   xám=0     | group 2 đoạn Σ=412
+x-th-guide  n=368 subs=1 Σsub=196 rem=172 xám=172   | group 1 đoạn Σ=368
+x-th-status n=295 subs=1 Σsub=142 rem=153 xám=153   | group 2 đoạn Σ=295
+(11 theme còn lại: subs=0, xám = trọn theme.n)
+Hình group phân biệt = 12/14 theme  ==> KHỚP TOÀN BỘ
+```
+
+Khớp đúng oracle mà spec viết TRƯỚC khi code. Ba điều đã kiểm chéo:
+- Trục sub-theme **không normalize** — mỗi đoạn không-xám bằng ĐÚNG `n` của subtheme cùng tên;
+  đoạn xám = `theme.n − Σsub`; Σ đoạn = `theme.n` cả 14/14.
+- Trục group tất định (gọi 2 lần bằng nhau), Σ = `theme.n`, mọi đoạn `demo:true`.
+- `ThemeDetailPage` resolve **theo id trước rồi branch `lv`** → hit "feature" (L2) của Search
+  không chết ngõ cụt, subtheme hiện theme cha. Không regress search.
+
+**CHƯA LÀM: live-check trình duyệt.** Phần tĩnh đã chứng thực, phần chạy thật thì chưa.
+
+**PHÁT HIỆN NGOÀI PHẠM VI — `demoData` VẪN LÀ DEAD CODE.** Demo Mode (làm 03/08, không có spec
+doc, không có mục log) dựng theo hướng khác hẳn seam mà `REBUILD-STATUS` đề xuất: `store.ts:80`
+BẬT → `repo.getSnapshot()` (= `seed`, 7 khách), TẮT → `EMPTY_DATA`. Không `swapFixture()`.
+`grep` xác nhận chỉ `demo.test.ts` dùng `demoData`. **Đây là điều kiện chặn của C3** — nhánh
+`refuse` (coverage 0%) chỉ tồn tại trong `demoData`. Đã đưa lên owner quyết trước khi làm C3.
+
+**HỆ QUẢ UX cần owner xem:** top 8 theme chỉ 3 có màu, 5 thanh xám đặc 100%. Trung thực nhưng
+biểu đồ mặc định trông gần như trống. `guide`/`info`/`praise` ở trục Nhóm khách chỉ 1 đoạn.
+
+**GIT:** toàn bộ `web/` (184 file) trước đó **untracked** — nay đã commit `6434ade`.
+Kèm `fc1e223` (redesign Quantify trong prototype HTML) và `241db8d` (docs + AI-CONTEXT).
+**Chưa push** — push sẽ deploy `output/cxm-platform-prototype.html` lên site live.
+Đã khôi phục `output/enterpret-cxm-benchmark.html` bị xoá trong working tree (3 file đang
+tham chiếu tới nó: `AI-CONTEXT.md:172`, spec 27/07, `output/README.md:37`).
+`output/__data_extract.txt` (110KB scrap dump `const DATA`) **cố ý không commit** — file tạm.

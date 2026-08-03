@@ -6,9 +6,11 @@
 
 > 🔴 **CÔNG VIỆC HIỆN TẠI NẰM Ở `web/` — ĐỌC `web/docs/REBUILD-STATUS.md` TRƯỚC.**
 > Từ 31/07/2026, prototype một-file đang được **dựng lại thật bằng React** trong `web/`
-> (React 19 · Vite · TypeScript · Tailwind · Zustand · Vitest). Tính đến 02/08: tsc xanh,
-> 560 test / 58 file, build xanh. Xong Phase 0–3, Module A (chặng Xác nhận + đóng băng baseline),
-> Module C1/C2/C4 (trục phân khúc khách + tính khả dụng + fixture demo). Còn C3, C5, Module B.
+> (React 19 · Vite · TypeScript · Tailwind · Zustand · Vitest). Tính đến 03/08: `tsc -b` xanh,
+> **598 test / 68 file**, build xanh. Xong Phase 0–3, Module A (chặng Xác nhận + đóng băng baseline),
+> Module C1/C2/C4 (trục phân khúc khách + tính khả dụng + fixture demo), toolbar + search,
+> Demo Mode, VoC stacked-bar `@themestack` + màn `/topic/:id`.
+> Còn: **chốt seam fixture (chặn C3)** · C3 · nửa sau C5 · Module B · màn 6 nhóm ngưỡng.
 > **Mọi mục bên dưới mô tả GIAI ĐOẠN PROTOTYPE (tới 28/07) và vẫn đúng với
 > `output/cxm-platform-prototype.html` — file đó nay là ĐẶC TẢ GỐC chỉ đọc cho bản React.**
 > Cảnh báo "React app không nằm trên đường deploy" bên dưới nói về `legacy/` (bản cũ 8 route),
