@@ -15,6 +15,21 @@ function cellValue(cx: QuantifyCrossResult, rowId: string, colId: string): numbe
    DataTable vốn tính trên rows agg/cust. Nhãn "mẫu" luôn hiện (không chỉ khi multi) — quy tắc
    denom bắt buộc mọi chart phải nói rõ mẫu số. */
 export function CrossTable({ cx }: CrossTableProps) {
+  /* `cx.unsupported` khác null ⇒ cặp trục này KHÔNG ghép chéo được (một bên là thuộc tính khách,
+     không nối được với evidence). Phải in LÝ DO thay vì vẽ ma trận rỗng: rows/cols rỗng cũng đúng là
+     hình dạng của "ghép hợp lệ nhưng không match bản ghi nào", nên bảng trắng kèm dòng "Đang hiện 0
+     trên N mẫu" sẽ đọc thành kết quả thật bằng 0 — hai chuyện khác nhau hẳn.
+     Hôm nay trạng thái này CHƯA tới được: `QuantifyBuilder` lọc `byOptions` theo evAttr (dòng 141) +
+     ép by=null khi trục hàng không evAttr (dòng 132), và validate rule 16 (validate.ts:396-397) đòi
+     cả hai trục có evAttr. Nhánh này là lưới an toàn nếu một trong ba chốt đó bị nới. */
+  if (cx.unsupported) {
+    return (
+      <div data-testid="cross-unsupported" className="text-[13px] text-ink-3">
+        {cx.unsupported}
+      </div>
+    );
+  }
+
   const multiNote = cx.multi
     ? ` · một phản hồi có thể mang nhiều ${cx.rd?.unit ?? ""}/${cx.cd?.unit ?? ""} nên tổng có thể lớn hơn số mẫu`
     : "";

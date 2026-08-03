@@ -554,6 +554,15 @@ export const seed: CxmData = {
     { id:'q16',kind:'show', show:'theme', by:'pf', metric:'count', view:'table', chart:'rank', name:'Theme × Nền tảng (ghép chéo)',
       note:'Ghép chéo trên MẪU bằng chứng: theme nào dội lên ở nền tảng nào. Chỉ tính từ DATA.ev — ô nhỏ, một phản hồi có thể mang nhiều theme nên tổng cột có thể lớn hơn số mẫu.' },
 
+    /* Hai chart trục phân khúc khách (owner chốt 03/08) — TRƯỚC ĐÂY không item nào dùng base:'cust',
+       nên cả tầng phủ phân khúc (dải "Không xác định" + dòng "Phủ X%" ở QuantifyWidget) chỉ hiện khi
+       người dùng tự dựng chart trong builder. Hai item này là chỗ DUY NHẤT phơi nó ra sẵn.
+       KHÔNG được set `by`: dims.acq/dims.nav là base:'cust' không có evAttr, validate rule 16 chặn. */
+    { id:'q17',kind:'show', show:'acq', metric:'count', chart:'rank', name:'Khách theo kênh mở TK',
+      note:'Dải xám "Không xác định" gộp hai loại NGƯỢC NHAU: khách chưa tới chỗ biết được, và khách đáng lẽ phải có giá trị mà thiếu (lỗi thu thập). Dòng dưới chart tách rõ từng loại — chữa hai loại đó là hai việc khác nhau.' },
+    { id:'q18',kind:'show', show:'nav', metric:'count', chart:'rank', name:'Khách theo phân khúc NAV',
+      note:'NAV chỉ biết được sau khi khách nạp tiền lần đầu, nên phần "chưa biết" ở đây là QUY LUẬT hành trình, không phải lỗi dữ liệu — không có gì để sửa.' },
+
     { id:'q5', kind:'series', chart:'trend', name:'Trend theme "Thiết bị không tương thích"', dim:'Theme · xu hướng', unit:'kỳ', shown:6, total:6,
       t:[{l:'Positive share (%)',p:[54,52,50,48,46,44,42,40,36,31,26,19]}],
       note:'Xu hướng giảm liên tục, mất 23 điểm trong 6 kỳ gần nhất. Đây là tín hiệu chính tạo CXI-021.' },
@@ -621,11 +630,17 @@ export const seed: CxmData = {
       ] },
     { id:'b-cxm-pilot', sec:'cxm', name:'Sức khỏe pilot Mở tài khoản', role:'Onboarding Squad', shared:true,
       owner:'Minh Quân · Onboarding', up:'27/07/2026',
-      desc:'Chỉ nhìn pilot: sáu bước đang thế nào, đo được tới đâu, và hai chỉ số quan trọng nhất của nó.',
+      desc:'Chỉ nhìn pilot: sáu bước đang thế nào, đo được tới đâu, ta biết gì về khách trong đó, và hai chỉ số quan trọng nhất của nó.',
       qs:[
         { q:'Sáu bước đang thế nào?', sub:'Nhãn trạng thái suy ra từ ngưỡng, không hardcode trong fixture.', b:['@journeystate'] },
         { q:'Ta đo được bao nhiêu phần hành trình?',
           sub:'Thấy thất bại mà không biết lý do cũng là một dạng mù.', b:['@coverage'] },
+        /* Gắn vào b-cxm-pilot, KHÔNG b-cxm-exec: OverviewPage.test.tsx:170 chốt cứng danh sách khối
+           của exec bằng toEqual([...]) — đó là quyết định owner 01/08, thêm vào đấy là phá test khoá.
+           Và đây là chỗ đúng về nghĩa: dims.acq nhãn "Kênh mở TK", khớp thẳng pilot Mở tài khoản. */
+        { q:'Ta biết được bao nhiêu về khách trong cohort?',
+          sub:'Tỉ lệ phủ là số ĐẾM ĐƯỢC, không phải số khai: mẫu số luôn là toàn bộ cohort nên nhóm chưa biết không bị lặng lẽ loại khỏi mẫu. Dải xám cuối mỗi thanh là phần không đếm được.',
+          b:['q17','q18'] },
         { q:'Chỉ số của pilot ra sao?', sub:'Liveness dưới mục tiêu 6 kỳ liên tiếp, và khoảng cách Android–iOS đang giãn.', b:['q6','q7'] },
       ] },
     { id:'b-cxm-out', sec:'cxm', name:'Hiệu quả sau thay đổi', role:'Head of CX / PO', shared:false,
