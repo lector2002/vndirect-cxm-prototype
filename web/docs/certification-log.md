@@ -1043,3 +1043,51 @@ Kèm `fc1e223` (redesign Quantify trong prototype HTML) và `241db8d` (docs + AI
 Đã khôi phục `output/enterpret-cxm-benchmark.html` bị xoá trong working tree (3 file đang
 tham chiếu tới nó: `AI-CONTEXT.md:172`, spec 27/07, `output/README.md:37`).
 `output/__data_extract.txt` (110KB scrap dump `const DATA`) **cố ý không commit** — file tạm.
+
+## 03/08/2026 (tiếp) — seam fixture + đảo mặc định @themestack, CÓ LIVE-CHECK
+
+Owner chốt ba việc: (1) Demo Mode BẬT phục vụ `demoData` 300 khách · (2) `@themestack` mặc định
+sang trục Nhóm khách · (3) push tất cả. Đã push `faeb871..1140523` (site live đổi theo commit
+`fc1e223` sửa prototype HTML).
+
+**Seam fixture.** `MockRepository(fixture: CxmData = seed)` + singleton
+`createCxmStore(new MockRepository(demoData))`. Mặc định constructor GIỮ `seed` nên hàng chục
+`new MockRepository()` trong test không đổi hành vi — đó là lý do chọn cách này thay vì đổi mặc
+định của chính constructor. Không cần `swapFixture()`: chỉ có hai trạng thái (demoData / rỗng),
+không có trạng thái thứ ba phục vụ `seed`.
+
+⚠️ **Tự bác một kỳ vọng của chính Opus:** mục trước viết "seam là điều kiện chặn C3 vì nhánh
+`refuse` chỉ tồn tại trong `demoData`" — **SAI**. Theo số oracle 02/08, `demoData` có known > 0
+trên cả 4 trục (age 226 · acq 283 · tenure 80 · nav 64) nên coverage không bao giờ chạm 0%, tức
+`refuse` vẫn KHÔNG hiện. Cái `demoData` thật sự mở ra là sentinel `thiếu`: seed **0**, demo **12**
+(`acq` 9 · `nav` 3) — lần đầu phân biệt được `chưa-biết` với `thiếu` trên UI. Nhánh `refuse` cần
+bộ lọc theo bước hành trình, mà `Customer` chưa có khoá nối `Step`. Đã sửa lại trong REBUILD-STATUS.
+
+⚠️ **Seam CHƯA đổi gì nhìn thấy được.** Không màn nào trong `features/` đọc `data.cust` (C3 chưa
+làm), nên app trông y hệt. Bằng chứng seam hoạt động nằm ở test, không ở màn hình.
+
+**Test khoá thêm (5 test, 598 → 603):** singleton có 300 `cust` còn `createCxmStore()` mặc định có
+7 — **test DUY NHẤT chặn `demoData` rơi lại thành dead code**, vì mọi test khác đều tiêm repo riêng
+nên vẫn xanh nếu ai đó đổi singleton về mặc định. Kèm: `validate(demoData)` rỗng · `demoData` bao
+trọn 7 khoá thật · constructor clone chứ không giữ tham chiếu.
+
+**Sửa test cũ lần hai (ThemeStackBlock).** Đảo mặc định `subtheme` → `group` làm 2 test cũ sai
+chiều. Viết lại: một test assert mặc định group + khoá nhãn `demo` và denomStrip "tỷ trọng minh
+hoạ" (hai thứ duy nhất chặn đọc nhầm số bịa), hai test kia thêm click `Sub-theme` trước khi assert
+trục thật.
+
+**Chứng thực:** `tsc -b` 0 · **603 test / 68 file xanh** · `vite build` xanh.
+
+**LIVE-CHECK (Chrome DevTools, `vite` dev :5173) — khoảng trống của mục trước, nay đã đóng:**
+
+| Kiểm | Kết quả |
+|---|---|
+| `/voc` mặc định | `@themestack` render, `Nhóm khách` aria-pressed=true, nhãn `demo` + denomStrip có mặt |
+| Thanh đầu (trục group) | 2 đoạn `288 + 124 = 412` = đúng `x-th-device.n` |
+| Bấm `Sub-theme` | 8 thanh: 3 có màu thật (412 · 368 · 295), **5 thanh xám đặc** — đúng oracle, và đúng hiện tượng khiến owner đảo mặc định |
+| Bấm thanh | → `#/topic/x-th-device`, đủ 4 section |
+| `/topic/x-sub-android` (subtheme) | hiện theme cha + chú thích, KHÔNG "không tìm thấy" |
+| `/topic/x-l2-ekyc` (hit *feature* của Search) | Note "node taxonomy tầng L2" + link `#/atlas` — **search không chết ngõ cụt** |
+| `/topic/khong-ton-tai` | "Không tìm thấy" — đúng nghĩa |
+| Demo Mode TẮT | switch `true`→`false`, `/voc` trống, có banner, **không NaN** |
+| Console | **0 error / 0 warning** qua toàn bộ điều hướng |
