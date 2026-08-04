@@ -148,9 +148,8 @@ describe("demoData.ev — bằng chứng demo sinh thêm cho theme (Module F, se
 
   it("sinh TẤT ĐỊNH — gọi generateEvidence hai lần với cùng input ra cùng kết quả", () => {
     const themes = seed.tax.filter((t): t is TaxNode => t.lv === "theme");
-    const custKeys = demoData.cust.map((c) => c.key);
-    const a = generateEvidence(themes, custKeys);
-    const b = generateEvidence(themes, custKeys);
+    const a = generateEvidence(themes, demoData.cust);
+    const b = generateEvidence(themes, demoData.cust);
     expect(a).toEqual(b);
   });
 
@@ -181,5 +180,86 @@ describe("demoData.ev — bằng chứng demo sinh thêm cho theme (Module F, se
   it("validateFixture(demoData, dims, nav, tour, cfg) vẫn RỖNG sau khi thêm bằng chứng demo", () => {
     const errors = validateFixture(demoData, dims, seedNav, seedTour, cfgDefault);
     expect(errors).toEqual([]);
+  });
+
+  /* Khung bước của bản đồ hành trình là khung THẬT và sẽ dài ra (owner chốt 04/08: "khung của bản đồ
+     hành trình là chính xác cho cả bản real... các touchpoint cũng chưa đầy đủ"). Test này chặn đúng
+     cái sai âm thầm khi thêm bước: nếu danh sách bước sinh bằng chứng bị ghi cứng lại thành s1..s6
+     thì bước thứ 7 sẽ không có bằng chứng nào mà mọi test khác vẫn xanh. */
+  it("MỌI bước trong seed.steps đều có bằng chứng sinh — thêm bước vào flow không bị bỏ rơi", () => {
+    const covered = new Set(generatedEv.map((e) => e.step));
+    const missing = seed.steps.filter((s) => !covered.has(s.id)).map((s) => `${s.id} (${s.code})`);
+    expect(missing).toEqual([]);
+  });
+
+  /* ---------- F2b: lệch theo theme ----------
+     Bản F2 đầu rút `ck` đều từ 300 khách bất kể theme, nên chia theme theo bất kỳ chiều khách nào
+     cũng ra ĐÚNG phân bố dân số — mọi theme một hình, và ở theme nhỏ khác biệt duy nhất giữa các
+     cột là nhiễu rút thăm. Nhóm test này ghim điều NGƯỢC LẠI phải đúng.
+     Cách so: KHÔNG ghim con số tuyệt đối (số đó phụ thuộc p, ANON_RATE và phân bố khách — đổi một
+     cái là phải sửa test mà không phát hiện được gì). So tỷ trọng nhóm khớp TRONG theme với tỷ
+     trọng nhóm đó TRONG TOÀN DÂN SỐ, tính ngay từ demoData.cust. Đó mới đúng phát biểu cần giữ:
+     "theme này tập trung vào nhóm này CAO HƠN mức tự nhiên". */
+  const byKey = new Map(demoData.cust.map((c) => [c.key, c]));
+  type BiasField = "seg" | "nav" | "acq" | "tenure";
+
+  /* Mẫu số là dòng ĐỐI CHIẾU ĐƯỢC, không phải mọi dòng của theme. Đây KHÔNG phải chỗ vi phạm defect
+     D0 (không được lặng lẽ bỏ nhóm không biết ra khỏi mẫu số): D0 ràng buộc con số CHART cho người
+     đọc. Chỗ này đang so một phân bố CÓ ĐIỀU KIỆN ("trong số khách tra ra được, bao nhiêu % thuộc
+     nhóm X") với chính nó ở mức dân số — mà dân số thì không có dòng ẩn danh nào. Nếu chia cho mọi
+     dòng thì 8% ẩn danh trừ đều vào mọi theme và phép so lệch hệ thống ~8-11 điểm: đúng cái đã làm
+     test "x-th-status không lệch" đỏ oan ở lần chạy đầu. */
+  function shareInTheme(themeId: string, field: BiasField, values: readonly string[]): number {
+    const resolved = generatedEv
+      .filter((e) => e.tax.includes(themeId))
+      .map((e) => byKey.get(e.ck))
+      .filter((c): c is Customer => c !== undefined);
+    return resolved.filter((c) => values.includes(c[field])).length / resolved.length;
+  }
+
+  function shareInPopulation(field: BiasField, values: readonly string[]): number {
+    return demoData.cust.filter((c) => values.includes(c[field])).length / demoData.cust.length;
+  }
+
+  /* 4 dòng này là bảng THEME_SKEW của demo.ts phát biểu lại độc lập, không import — nếu ai xoá một
+     bias hoặc sai chính tả giá trị enum thì nhóm khớp tụt về mức dân số và test này đỏ. */
+  const SKEW_CASES: ReadonlyArray<readonly [string, BiasField, readonly string[]]> = [
+    ["x-th-branch", "seg", ["Khách 50+"]],
+    ["x-th-start", "tenure", ["<6 tháng"]],
+    ["x-th-fee", "nav", ["1-5tỷ", ">5tỷ"]],
+    ["x-th-guide", "acq", ["tự tìm", "banner"]],
+  ];
+
+  it.each(SKEW_CASES)(
+    "theme %s tập trung vào nhóm %s CAO HƠN mức dân số ít nhất 12 điểm phần trăm",
+    (themeId, field, values) => {
+      const inTheme = shareInTheme(themeId, field, values);
+      const inPop = shareInPopulation(field, values);
+      expect(
+        inTheme - inPop,
+        `${themeId}: trong theme ${(100 * inTheme).toFixed(1)}% vs dân số ${(100 * inPop).toFixed(1)}%`,
+      ).toBeGreaterThan(0.12);
+    },
+  );
+
+  /* Mặt còn lại, quan trọng ngang: KHÔNG được lệch ở theme không khai lệch. Nếu mọi theme đều lệch
+     thì nút toggle vô nghĩa theo chiều ngược lại — "thanh phẳng" phải còn là một câu trả lời có
+     thật. Lấy x-th-status (n=295 ⇒ 207 dòng, đủ lớn để nhiễu nhỏ) và ngưỡng rộng 8 điểm. */
+  it("theme KHÔNG khai lệch (x-th-status) giữ đúng phân bố dân số — sai lệch dưới 8 điểm phần trăm", () => {
+    for (const [, field, values] of SKEW_CASES) {
+      const d = Math.abs(shareInTheme("x-th-status", field, values) - shareInPopulation(field, values));
+      expect(d, `x-th-status theo ${field}=${values.join("|")}`).toBeLessThan(0.08);
+    }
+  });
+
+  /* pf là chiều của BẰNG CHỨNG, không phải của khách (xem comment EV_PF trong demo.ts) nên lệch pf
+     đo trực tiếp trên ev, không qua join. x-th-device khai android 0.58 (từ subtheme x-sub-android
+     n=238/412), các theme khác dùng EV_PF android 0.40. */
+  it("x-th-device có tỷ trọng android cao hơn theme không khai lệch pf", () => {
+    const androidShare = (themeId: string): number => {
+      const rows = generatedEv.filter((e) => e.tax.includes(themeId));
+      return rows.filter((e) => e.pf === "android").length / rows.length;
+    };
+    expect(androidShare("x-th-device")).toBeGreaterThan(androidShare("x-th-status") + 0.1);
   });
 });

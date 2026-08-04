@@ -196,3 +196,66 @@ Luật đúng: `ck` không rỗng, và nếu không phải `'Ẩn danh'` thì ph
 **Ràng buộc "không sửa `seed.ts`" HẾT hiệu lực** — nó chỉ có để tránh đụng section E đang chạy, mà
 section đó đã xong và đã commit. Vẫn không phình `data.cust` của seed: 7 khách mẫu là con số nhiều test
 đang ghim.
+
+---
+
+## Section F2b (04/08) — lệch theo theme, và một lời chốt của owner về khung hành trình
+
+### Lỗi tự tìm ra sau khi F2 xanh
+
+Bản F2 đầu rút `ck` **đều** từ 300 khách bất kể bằng chứng thuộc theme nào. Hệ quả: chia theme theo
+bất kỳ chiều khách nào cũng ra đúng phân bố dân số ⇒ **mọi theme một hình**, và ở theme nhỏ (41 dòng,
+4 dải) khác biệt duy nhất giữa các cột là nhiễu rút thăm — người đọc lại hiểu nhiễu là phát hiện.
+Nó phản lại đúng mục đích owner đặt cho nút toggle, ghi nguyên văn ở `SplitToggle.tsx:1`:
+"khi thấy vấn đề có thể toggle để xem insight xem tập trung vào nhóm kh nào". Câu trả lời sẽ luôn là
+"không tập trung ở đâu cả".
+
+Bằng chứng đo được, `x-th-branch` theo `age`, TRƯỚC khi sửa:
+`18-24:24% · 25-34:30% · 35-49:13% · 50+:13% · chưa-biết:15% · ẩn danh:4%`
+— trong khi `why` của **chính theme đó** (`seed.ts:281`) viết *"Chủ yếu từ segment 50+ gặp khó ở bước
+quay mặt"*. Dữ liệu demo mâu thuẫn với chú giải của chính nó.
+
+Sửa: bảng `THEME_SKEW` trong `fixtures/demo.ts`, lệch **chỉ ở theme mà seed NÓI có tập trung**.
+10/14 theme rút đều — có chủ đích: "thanh phẳng" là một câu trả lời thật, và nếu mọi theme đều lệch
+thì nút toggle vô nghĩa theo chiều ngược lại. Đây là `data/fixtures/`, cùng loại với
+`NAV_BANDS_TRANSFER` đã có; bất biến "không bịa tỉ lệ" ràng buộc `domain/`, nơi chỉ ĐẾM.
+
+Đo lại SAU khi sửa (đếm tay từ `demoData.ev`, không lấy từ test):
+
+| theme | lệch | trong theme | trong dân số |
+|---|---|---|---|
+| `x-th-branch` | `seg = Khách 50+` | **61%** | 11% |
+| `x-th-start` | `tenure = <6 tháng` | **61%** | 15% |
+| `x-th-fee` | `nav` thuộc {1-5tỷ, >5tỷ} | **44%** | 6% |
+| `x-th-guide` | `acq` thuộc {tự tìm, banner} | **62%** | 41% |
+| `x-th-device` | `pf = android` (0.58 từ subtheme `x-sub-android` n=238/412) | **58%** | EV_PF 40% |
+| `x-th-status` | *không lệch* | theo dân số, lệch dưới 8 điểm | — |
+
+### Hai chỗ dữ liệu gần suy biến — cần owner biết trước khi đọc chart
+
+- `seg`: **84% khách demo là "Mới mở TK"**. Không phải bug: `pickSeg` gán nó cho gần như mọi khách
+  chưa qua bước 02, mà phần lớn khách demo dừng giữa hành trình. Hệ quả cho chart: chip `seg` sẽ là
+  một cột gần như duy nhất ở **mọi** theme trừ `x-th-branch`. Vì thế `x-th-start` lệch theo `tenure`
+  chứ không theo `seg` — trần của "lệch về nhóm chiếm 84%" chỉ còn 16 điểm.
+- `nav`: **82% khách ở `<50tr`**, không có nhóm `chưa-biết` nào. Đúng theo lời chốt của owner
+  (`demo.ts:169`, 04/08): NAV đọc thẳng từ tài sản hiện có nên khách chưa nạp tiền vẫn tính được,
+  bằng 0, dồn vào dải thấp nhất. Không sửa.
+
+### Lời chốt của owner 04/08 — khung bản đồ hành trình là khung THẬT
+
+> "khung cuar bản đồ hành trình là chính xác cho cả bản real ko chỉ demo, chỉ có các data và set là
+> chưa chốt, các touchpoint cũng chưa đầy đủ"
+
+Hệ quả cho code, đã áp ngay trong F2b: `EV_STEPS` trước đây ghi cứng `s1..s6` kèm 6 trọng số tôi tự
+đặt. Khung bước là thật và **sẽ dài ra**, nên bảng ghi cứng đó là một sai âm thầm — thêm bước thứ 7
+vào flow thì bước mới không bao giờ có bằng chứng mà toàn bộ test vẫn xanh. Đã đổi thành phái sinh từ
+`seed.steps`, trọng số = `obs.entered` (lưu lượng thật đi qua bước đó) thay cho số bịa, bước chưa có
+`obs` vẫn vào danh sách với trọng số 1. Kèm test "MỌI bước trong seed.steps đều có bằng chứng sinh".
+
+Hệ quả rộng hơn, **áp cho mọi section sau**: không chỗ nào được coi danh sách bước / touchpoint /
+signal là đã đủ. Không `switch` liệt kê hết nhánh, không hằng số đếm số bước, không mảng nhãn song
+song với danh sách bước. Cùng lý do đã bỏ `AXIS_OPTIONS` ghi cứng ở section F3.
+
+**CÒN NỢ, owner chưa chốt:** theme nào thuộc bước nào là quan hệ **ngữ nghĩa**, không suy ra được từ
+dữ liệu đang có. Hiện mọi theme rút bước theo cùng một phân bố lưu lượng. Khi có bản đồ theme→step
+thật thì `EV_STEPS` phải nhận thêm theme, và chart "phản hồi theo bước" mới đọc được.

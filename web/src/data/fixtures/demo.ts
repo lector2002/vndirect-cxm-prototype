@@ -260,7 +260,7 @@ export function generateCustomers(n: number): Customer[] {
 }
 
 /* ---------- Bằng chứng demo cho từng theme (Module F, section F2) ----------
-   seed chỉ có 20 evidence rải cho 14 theme (`data.tax` với lv:'theme') — chia theo bất kỳ chiều
+   seed chỉ có 17 evidence rải cho 14 theme (`data.tax` với lv:'theme') — chia theo bất kỳ chiều
    nào cũng ra n≈1, đúng nhưng vô dụng (module-f-charter.md, mục "Chỗ dataset thật sự thiếu").
    Sinh THÊM bằng chứng, KHÔNG đụng seed.ev, bằng một RNG THỨ HAI seed riêng (DEMO_EV_SEED khác
    DEMO_SEED) — nếu chèn draw mới vào CÙNG một chuỗi rng với generateCustomers thì mọi số khách
@@ -306,7 +306,13 @@ const THEME_TAX: Record<string, readonly [string, string]> = {
 };
 
 /* pf lấy từ giá trị nền tảng THẬT đang dùng trên Evidence trong seed (EV-101..EV-601 dùng đúng
-   'android'/'ios'/'web' — xem seed.ts, khối `ev`), không bịa tên nền tảng mới. */
+   'android'/'ios'/'web' — xem seed.ts, khối `ev`), không bịa tên nền tảng mới.
+
+   `Evidence.pf` nghĩa là NỀN TẢNG CỦA LẦN TƯƠNG TÁC ĐÓ, không phải nền tảng của khách. Không phải
+   lựa chọn tuỳ ý — dữ liệu bắt buộc thế: `PF_CHOICES` phía trên chỉ sinh 'android'|'ios' cho
+   `Customer.pf`, KHÔNG có 'web'. Nếu suy pf của bằng chứng từ khách thì đoạn 'web' biến mất khỏi
+   mọi bằng chứng đối chiếu được, trong khi seed.ev có bằng chứng 'web' thật. Hệ quả cho chart:
+   chip pf đọc là "kênh phát sinh phản hồi", một khách android vẫn gửi được phản hồi từ web. */
 const EV_PF: ReadonlyArray<readonly [string, number]> = [
   ["android", 0.4],
   ["ios", 0.35],
@@ -333,22 +339,128 @@ const EV_KIND_BY_SOURCE: Record<string, EvidenceKind> = {
   "src-ga": "event",
 };
 
-const EV_STEPS: ReadonlyArray<readonly [string, number]> = [
-  ["s1", 0.1], ["s2", 0.2], ["s3", 0.25], ["s4", 0.15], ["s5", 0.2], ["s6", 0.1],
-];
+/* Bước gắn bằng chứng — PHÁI SINH từ chính `seed.steps`, KHÔNG hardcode danh sách bước.
+   Lý do (owner chốt 04/08): "khung của bản đồ hành trình là chính xác cho cả bản real, không chỉ
+   demo; chỉ có các data và set là chưa chốt, các touchpoint cũng chưa đầy đủ". Khung bước là thật và
+   sẽ DÀI RA. Bảng cũ ghi cứng s1..s6 kèm trọng số tôi tự đặt: thêm bước thứ 7 vào flow thì bảng đó
+   vẫn chạy xanh mà không bao giờ sinh bằng chứng cho bước mới — sai âm thầm, đúng loại lỗi lời chốt
+   trên cảnh báo.
+   Trọng số = `obs.entered` của bước đó, tức số khách THỰC SỰ tới bước đó trong seed, thay vì 6 con số
+   tôi bịa: phản hồi nhiều hay ít ở một bước trước hết tỷ lệ với lưu lượng đi qua bước đó. Bước không
+   có `obs` (mới thêm, chưa đo) vẫn được vào danh sách với trọng số 1 để không bị bỏ rơi khỏi demo.
+   CÒN NỢ: theme nào thuộc bước nào là quan hệ NGỮ NGHĨA và owner chưa chốt (mục "theme→step" trong
+   phần hoãn) — hiện mọi theme rút bước theo cùng phân bố lưu lượng này. */
+const EV_STEPS: ReadonlyArray<readonly [string, number]> = seed.steps.map((s) => {
+  const entered = seed.obs.find((o) => o.stepId === s.id)?.entered ?? 1;
+  return [s.id, entered] as const;
+});
 
 /* Tỷ lệ ẨN DANH: 8% — đủ nhỏ để không chiếm mất khối lượng "đối chiếu được" (mục đích chính của
-   F2), nhưng đủ để đoạn "Ẩn danh" của chart có gì để vẽ ở MỌI theme (40 × 8% = 3.2 kỳ vọng/theme,
-   không phải 0). Không có nguồn đo thật cho tỷ lệ này (đây LÀ số demo, không phải phép đo) — chọn
-   dựa trên tỷ lệ Ẩn danh quan sát được trong seed (2/20 = 10%, xem seed.ts EV-103/EV-304), lấy
-   tròn xuống 8% để phần lớn evidence vẫn đối chiếu được khách thật. */
+   F2), nhưng đủ để đoạn "Ẩn danh" của chart có gì để vẽ ở MỌI theme (theme nhỏ nhất x-th-nfc sinh
+   41 dòng × 8% = 3.3 kỳ vọng, không phải 0). Không có nguồn đo thật cho tỷ lệ này (đây LÀ số demo,
+   không phải phép đo) — chọn dựa trên tỷ lệ Ẩn danh quan sát được trong seed (2/17 ≈ 12%, xem
+   seed.ts EV-103/EV-304), lấy tròn xuống 8% để phần lớn evidence vẫn đối chiếu được khách thật. */
 const ANON_RATE = 0.08;
+
+/* ---------- Lệch theo theme (Module F, section F2b) ----------
+   Bản F2 đầu rút `ck` ĐỀU từ 300 khách bất kể bằng chứng thuộc theme nào. Hệ quả: chia theme theo
+   BẤT KỲ chiều khách nào cũng ra đúng phân bố dân số ⇒ mọi theme cho cùng một hình, và ở theme nhỏ
+   (41 dòng, 4 dải) thì khác biệt duy nhất giữa các cột là nhiễu rút thăm — người đọc lại hiểu nhiễu
+   là phát hiện. Nó phản lại đúng mục đích owner đặt cho nút toggle, ghi nguyên văn ở
+   SplitToggle.tsx:1 ("khi thấy vấn đề có thể toggle để xem insight xem tập trung vào nhóm kh nào"):
+   câu trả lời sẽ luôn là "không tập trung ở đâu cả".
+
+   ĐO ĐƯỢC trước khi sửa — age của bằng chứng theme `x-th-branch`:
+   18-24:24% · 25-34:30% · 35-49:13% · 50+:13% · chưa-biết:15% · ẩn danh:4%
+   trong khi `why` của CHÍNH theme đó (seed.ts:281) viết "Chủ yếu từ segment 50+ gặp khó ở bước quay
+   mặt". Dữ liệu demo mâu thuẫn với chú giải của chính nó.
+
+   Vì sao được lệch: đây là `data/fixtures/` — cùng loại với NAV_BANDS_TRANSFER phía trên (đã mã hoá
+   "khách chuyển CTCK có NAV cao hơn"). Bất biến "không bịa tỉ lệ" ràng buộc `domain/`: domain chỉ
+   ĐẾM dữ liệu có sẵn, không bao giờ suy ra tỉ lệ. Chỗ này đang sinh dữ liệu, không đang đo.
+
+   Chỉ lệch ở theme mà seed NÓI có tập trung. 10/14 theme rút đều — CÓ CHỦ ĐÍCH: "thanh phẳng" là
+   một câu trả lời thật, và nếu MỌI theme đều lệch thì nút toggle vô nghĩa theo chiều ngược lại. */
+type CustBias = {
+  readonly field: "seg" | "nav" | "acq" | "tenure";
+  readonly values: readonly string[];
+  /* p = tỷ trọng bằng chứng của theme này rút từ nhóm KHỚP. Phần còn lại (1-p) rút đều toàn bộ 300
+     khách — KỂ CẢ nhóm khớp và kể cả khách 'chưa-biết'/'thiếu'. Không lọc nhóm không biết ra khỏi
+     tập rút: làm thế thì demoData sẽ không bao giờ sinh ra được cảnh "một phần khối lượng không
+     quy được về nhóm nào", tức chart mất luôn thứ nó tồn tại để nói (defect D0). */
+  readonly p: number;
+};
+
+type ThemeSkew = {
+  /* ghi đè EV_PF cho riêng theme này */
+  readonly pf?: ReadonlyArray<readonly [string, number]>;
+  readonly cust?: CustBias;
+};
+
+const THEME_SKEW: Record<string, ThemeSkew> = {
+  /* seed.ts:281 `why`: "Chủ yếu từ segment 50+ gặp khó ở bước quay mặt" — lệch theo `seg` chứ không
+     theo `age` để một phát biểu duy nhất kéo theo cả ba chiều một cách nhất quán: seg 'Khách 50+'
+     buộc age='50+' (bất biến C1, xem genOne) và dùng TENURE_ESTABLISHED. Lệch theo age trực tiếp sẽ
+     ra khách "50+ mới mở TK 1 tháng" chiếm phần lớn theme quầy — vô lý khi soi bằng chip khác. */
+  "x-th-branch": { cust: { field: "seg", values: [SEG_50], p: 0.55 } },
+
+  /* seed.ts:279 `why`: "Khách đã có tài khoản nhưng chưa biết bước tiếp theo" — theme này ĐỊNH NGHĨA
+     là về khách vừa mở xong. Lệch theo `tenure` chứ KHÔNG theo seg='Mới mở TK': đo được, seg đó đã
+     chiếm 84.3% trong 300 khách demo (pickSeg gán nó cho gần như mọi khách chưa qua bước 02), nên
+     "lệch" về nó không tạo được tập trung nào — trần chỉ còn 15.7%. Xem thêm ghi chú về seg gần suy
+     biến trong module-f-charter.md. */
+  "x-th-start": { cust: { field: "tenure", values: ["<6 tháng"], p: 0.6 } },
+
+  /* seed.ts:277 `why`: "tập trung ở bán CK và trả lại trái phiếu sớm". Đây là SUY DIỄN, không phải
+     phát biểu về nhóm khách: khách có trái phiếu để trả lại sớm thì có tài sản, nên lệch NAV cao.
+     Cùng loại suy diễn với NAV_BANDS_TRANSFER đã có trong file. p thấp hơn hai theme trên vì căn cứ
+     yếu hơn. Đây là chiều duy nhất làm cột NAV/tier có gì để đọc. */
+  "x-th-fee": { cust: { field: "nav", values: ["1-5tỷ", ">5tỷ"], p: 0.45 } },
+
+  /* seed.ts:273 `why`: "Khách không biết phải làm gì tiếp, hoặc thông báo lỗi chung chung" — SUY
+     DIỄN: khách tự tìm đến / vào từ banner không có ai cầm tay, nên vướng hướng dẫn nhiều hơn khách
+     vào qua giới thiệu hoặc chi nhánh. Chiều duy nhất làm cột acq có gì để đọc. */
+  "x-th-guide": { cust: { field: "acq", values: ["tự tìm", "banner"], p: 0.45 } },
+
+  /* KHÔNG lệch theo khách — lệch theo NỀN TẢNG, vì seed nói về thiết bị chứ không về nhóm khách:
+     subtheme `x-sub-android` (seed.ts:287) có n=238 trên theme.n=412 = 58%. Lấy đúng 0.58 cho
+     android thay vì bịa số. 174 còn lại là subtheme "giấy tờ chói/mờ", không đặc thù nền tảng; chia
+     ios 0.27 / web 0.15 — web thấp vì luồng eKYC chụp giấy tờ chủ yếu trên mobile. */
+  "x-th-device": {
+    pf: [
+      ["android", 0.58],
+      ["ios", 0.27],
+      ["web", 0.15],
+    ],
+  },
+};
+
+/* Tập khoá để rút `ck` cho MỘT theme: `all` là toàn bộ khách, `match` là nhóm khớp bias (rỗng nếu
+   theme không lệch, khi đó p=0 nên nhánh match không bao giờ chạy). */
+type CkPool = { readonly all: readonly string[]; readonly match: readonly string[]; readonly p: number };
+
+function ckPoolFor(theme: TaxNode, cust: readonly Customer[]): CkPool {
+  const all = cust.map((c) => c.key);
+  const bias = THEME_SKEW[theme.id]?.cust;
+  if (!bias) return { all, match: [], p: 0 };
+  const match = cust.filter((c) => bias.values.includes(c[bias.field])).map((c) => c.key);
+  /* match rỗng = giá trị trong bảng không còn tồn tại trong tập khách (đổi enum, sai chính tả).
+     Hạ p về 0 để không index vào mảng rỗng ra `undefined`. Không im lặng: test
+     "theme có bias thì nhóm khớp phải chiếm ≥40%" trong demo.test.ts đỏ ngay khi bias mất tác dụng. */
+  return { all, match, p: match.length > 0 ? bias.p : 0 };
+}
+
+function pickCk(rng: () => number, pool: CkPool): string {
+  if (rng() < ANON_RATE) return ANON_CK;
+  const from = rng() < pool.p ? pool.match : pool.all;
+  return from[Math.floor(rng() * from.length)];
+}
 
 function genEvidenceForTheme(
   rng: () => number,
   theme: TaxNode,
   startIdx: number,
-  custKeys: readonly string[],
+  pool: CkPool,
 ): Evidence[] {
   const [l1, l2] = THEME_TAX[theme.id];
   /* theme.cat luôn có giá trị cho lv:'theme' — validateFixture nhóm 8 đã bắt buộc điều này trên
@@ -359,10 +471,10 @@ function genEvidenceForTheme(
   const count = evCountForTheme(theme);
   const out: Evidence[] = [];
   for (let i = 0; i < count; i++) {
-    const pf = pickWeighted(rng, EV_PF);
+    const pf = pickWeighted(rng, THEME_SKEW[theme.id]?.pf ?? EV_PF);
     const src = pickWeighted(rng, EV_SOURCES);
     const step = pickWeighted(rng, EV_STEPS);
-    const ck = rng() < ANON_RATE ? ANON_CK : custKeys[Math.floor(rng() * custKeys.length)];
+    const ck = pickCk(rng, pool);
     const sen = Math.max(-1, Math.min(1, senBase + (rng() - 0.5) * 0.4));
 
     out.push({
@@ -386,16 +498,17 @@ function genEvidenceForTheme(
   return out;
 }
 
-/* generateEvidence — sinh bằng chứng demo TẤT ĐỊNH cho mọi theme, `custKeys` là khoá của TẬP
-   KHÁCH ĐÃ SINH XONG (seed.cust + generateCustomers) để `ck` luôn trỏ vào một khách CÓ THẬT
-   trong đúng bộ dữ liệu sẽ dùng nó — không tự bịa khoá mới như generateCustomers làm với
-   genUniqueKey (đó là khoá KHÁCH, đây là khoá NỐI tới khách đã tồn tại). */
-export function generateEvidence(themes: readonly TaxNode[], custKeys: readonly string[]): Evidence[] {
+/* generateEvidence — sinh bằng chứng demo TẤT ĐỊNH cho mọi theme. `cust` là TẬP KHÁCH ĐÃ SINH XONG
+   (seed.cust + generateCustomers) để `ck` luôn trỏ vào một khách CÓ THẬT trong đúng bộ dữ liệu sẽ
+   dùng nó — không tự bịa khoá mới như generateCustomers làm với genUniqueKey (đó là khoá KHÁCH, đây
+   là khoá NỐI tới khách đã tồn tại). Nhận cả Customer chứ không chỉ `key` vì THEME_SKEW lệch theo
+   TRƯỜNG của khách (seg/nav/acq), không đọc được từ mảng khoá. */
+export function generateEvidence(themes: readonly TaxNode[], cust: readonly Customer[]): Evidence[] {
   const rng = mulberry32(DEMO_EV_SEED);
   const out: Evidence[] = [];
   let idx = 0;
   for (const theme of themes) {
-    out.push(...genEvidenceForTheme(rng, theme, idx, custKeys));
+    out.push(...genEvidenceForTheme(rng, theme, idx, ckPoolFor(theme, cust)));
     idx += evCountForTheme(theme);
   }
   return out;
@@ -410,13 +523,13 @@ export function generateEvidence(themes: readonly TaxNode[], custKeys: readonly 
    300 khách VÀ validateFixture rỗng. */
 const demoCust: Customer[] = [...seed.cust, ...generateCustomers(293)];
 
-/* Bằng chứng demo cộng thêm vào 20 bằng chứng thật của seed (giữ nguyên, không sửa) — theo đúng
+/* Bằng chứng demo cộng thêm vào 17 bằng chứng thật của seed (giữ nguyên, không sửa) — theo đúng
    tập khách `demoCust` ở trên để `ck` luôn tra ra được (trừ sentinel Ẩn danh). */
 const demoEv: Evidence[] = [
   ...seed.ev,
   ...generateEvidence(
     seed.tax.filter((t): t is TaxNode => t.lv === "theme"),
-    demoCust.map((c) => c.key),
+    demoCust,
   ),
 ];
 
