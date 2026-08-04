@@ -87,8 +87,9 @@ describe("ThemeStackBlock", () => {
     render(<ThemeStackBlock data={seed} cfg={cfgDefault} dims={dims} />);
     const legend = screen.getByTestId("bars-seglegend-x-th-device");
     // 7 dòng ev pf='android', 1 dòng pf='ios' — xem oracle đầu file.
-    expect(legend).toHaveTextContent("android");
-    expect(legend).toHaveTextContent("ios");
+    // S2c (04/08): nhãn pf hiện tên đẹp (PF_LABEL) — 'android'→'Android', 'ios'→'iOS'.
+    expect(legend).toHaveTextContent("Android");
+    expect(legend).toHaveTextContent("iOS");
   });
 
   it("trục 'Sub-theme' → theme có subtheme thì có legend; theme không có subtheme (1 đoạn) thì không", () => {

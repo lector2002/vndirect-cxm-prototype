@@ -10,6 +10,14 @@ function findItem(id: string): QuantifyItem {
   return q;
 }
 
+/* q16 (Theme × Nền tảng) đã bỏ khỏi seed.qt (S4, owner chốt 04/08) — năng lực cross-tab GIỮ NGUYÊN,
+   chỉ không còn saved query nào trỏ vào. Tự dựng item tại đây (đúng hình dạng q16 cũ, có cả rowDim
+   lẫn colDim) thay vì đọc từ seed, giữ nguyên MỌI phép khẳng định. */
+const q16: QuantifyItem = {
+  id: "q16", kind: "show", show: "theme", by: "pf", metric: "count", view: "table", chart: "rank",
+  name: "Theme × Nền tảng (ghép chéo)",
+};
+
 function baseProps(item: QuantifyItem, overrides: Partial<QuantifyDetailProps> = {}): QuantifyDetailProps {
   return {
     item,
@@ -55,7 +63,7 @@ describe("QuantifyDetail — render", () => {
   });
 
   it("popover ⓘ chứa đủ 5 dòng metadata (chiều hàng/cột, chỉ số, view mặc định, set đang dùng)", () => {
-    const item = findItem("q16"); // q16 = cross-tab (theme × pf), có cả rowDim lẫn colDim
+    const item = q16; // q16 = cross-tab (theme × pf), có cả rowDim lẫn colDim
     render(<QuantifyDetail {...baseProps(item, { usedByIds: ["b-voc-all"] })} />);
     fireEvent.click(screen.getByTestId("qmeta"));
     const panel = screen.getByTestId("qmeta-panel");
@@ -126,7 +134,7 @@ describe("QuantifyDetail — CountFilter trong popover ▽ (dời từ thẻ lư
   });
 
   it("item cross-tab (q16, có item.by) → KHÔNG có popover ▽ (showCount=false)", () => {
-    render(<QuantifyDetail {...baseProps(findItem("q16"))} />);
+    render(<QuantifyDetail {...baseProps(q16)} />);
     expect(screen.queryByTestId("qcount")).not.toBeInTheDocument();
   });
 
@@ -193,7 +201,7 @@ describe("QuantifyDetail — menu ⋮ Chart/Bảng là menuitemradio (S2.6b)", (
   });
 
   it("q16 (cross-tab, có item.by) → menu KHÔNG có mục Chart/Bảng, vẫn giữ testid qtoggle cũ vắng mặt", () => {
-    render(<QuantifyDetail {...baseProps(findItem("q16"))} />);
+    render(<QuantifyDetail {...baseProps(q16)} />);
     fireEvent.click(screen.getByTestId("qmenu-q16"));
     expect(screen.queryByText(/Chart/)).not.toBeInTheDocument();
     expect(screen.queryByTestId("qtoggle-q16")).not.toBeInTheDocument();

@@ -4,7 +4,22 @@ import { demoData, generateCustomers } from "./fixtures/demo.ts";
 import { projectCustomer, projectCustomerBands } from "./projectBands.ts";
 import { MockRepository } from "./mock-repository.ts";
 import { themeSegments } from "../domain/themeSegments.ts";
-import type { Cfg } from "./schema/index.ts";
+import type { Cfg, Dim } from "./schema/index.ts";
+
+/* `tenure` đã rút khỏi `dims`/`cfgDefault.segment.band` (S2, 04/08: chiều không còn cắt chart) —
+   nhưng `rawInBand` trong data/fixtures/demo.ts vẫn rút số thô cho `tenureMonths` theo ĐÚNG ranh
+   giới cũ (hằng module-local `TENURE_BAND` ở đó). Muốn canh lỗi lệch biên `rawInBand` (mục đích
+   của nhóm test dưới) vẫn phải chiếu lại số thô qua một DIM TEST-LOCAL, không phục hồi
+   `dims.tenure` ở sản phẩm thật — cùng cách domain/quantify.test.ts đã dùng. */
+const TENURE_TEST_ID = "ttenure";
+const testDims: Record<string, Dim> = {
+  ...dims,
+  [TENURE_TEST_ID]: { label: "Thâm niên giao dịch (test)", unit: "nhóm thâm niên", base: "cust", cut: { kind: "band", source: "tenureMonths" } },
+};
+const testCfg: Cfg = {
+  ...cfgDefault,
+  segment: { ...cfgDefault.segment, band: { ...cfgDefault.segment.band, [TENURE_TEST_ID]: { min: null, cuts: [6, 24, 60], unit: "tháng" } } },
+};
 
 /* Bộ test này kiểm ĐÚNG MỘT điều mà cả suite 716 test trước đó không kiểm được: `cfg.segment.cuts`
    có thật sự điều khiển con số hiện trên chart hay không. Suite cũ xanh vì nó chưa bao giờ ĐỔI một
@@ -30,10 +45,10 @@ describe("projectCustomerBands", () => {
 
   it("sentinel của số thô đi qua nguyên vẹn, không bị dải nào hấp thụ", () => {
     const c = seed.cust.find((x) => x.tenureMonths === "chưa-biết")!;
-    expect(projectCustomer(c, cfgDefault, dims).bands.tenure).toBe("chưa-biết");
+    expect(projectCustomer(c, testCfg, testDims).bands[TENURE_TEST_ID]).toBe("chưa-biết");
     /* KHÔNG được thành "<6 tháng": xếp 'chưa-biết' vào dải thấp nhất là biến "chưa tới chỗ biết
        được" thành "quan hệ mới" — đúng lỗi mà data/segment.ts cấm. */
-    expect(projectCustomer(c, cfgDefault, dims).bands.tenure).not.toBe("<6 tháng");
+    expect(projectCustomer(c, testCfg, testDims).bands[TENURE_TEST_ID]).not.toBe("<6 tháng");
   });
 
   it("đổi cut ⇒ CÙNG số thô rơi sang dải khác", () => {
@@ -62,9 +77,22 @@ describe("fixture demo: số thô rút ra phải chiếu lại ĐÚNG nhãn đã
     expect(raw).toHaveLength(300);
 
     const lech = raw
-      .map((c) => ({ c, p: projectCustomer(c, cfgDefault, dims) }))
-      .filter(({ c, p }) => (["age", "nav", "tenure"] as const).some((k) => p.bands[k] !== c.bands[k]))
-      .map(({ c, p }) => `${c.key}: age ${c.bands.age}->${p.bands.age} · nav ${c.bands.nav}->${p.bands.nav} · tenure ${c.bands.tenure}->${p.bands.tenure}`);
+      .map((c) => ({
+        c,
+        p: projectCustomer(c, cfgDefault, dims),
+        // tenure test-local (S2) — xem TENURE_TEST_ID đầu file: dims/cfgDefault không còn chiều
+        // này, chiếu riêng để giữ độ phủ canh lỗi lệch biên rawInBand trên tenureMonths.
+        pTenure: projectCustomer(c, testCfg, testDims),
+      }))
+      .filter(
+        ({ c, p, pTenure }) =>
+          (["age", "nav"] as const).some((k) => p.bands[k] !== c.bands[k]) ||
+          pTenure.bands[TENURE_TEST_ID] !== c.bands.tenure,
+      )
+      .map(
+        ({ c, p, pTenure }) =>
+          `${c.key}: age ${c.bands.age}->${p.bands.age} · nav ${c.bands.nav}->${p.bands.nav} · tenure ${c.bands.tenure}->${pTenure.bands[TENURE_TEST_ID]}`,
+      );
 
     expect(lech).toEqual([]);
   });

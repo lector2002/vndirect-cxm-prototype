@@ -13,6 +13,13 @@ function findItem(id: string): QuantifyItem {
   return q;
 }
 
+/* q16 (Theme × Nền tảng) đã bỏ khỏi seed.qt (S4, owner chốt 04/08) — tự dựng item tại đây (đúng
+   hình dạng q16 cũ) thay vì đọc từ seed, giữ nguyên MỌI phép khẳng định hành vi. */
+const q16: QuantifyItem = {
+  id: "q16", kind: "show", show: "theme", by: "pf", metric: "count", view: "table", chart: "rank",
+  name: "Theme × Nền tảng (ghép chéo)",
+};
+
 describe("QuantifyWidget — show item (không by)", () => {
   it("view='chart' (mặc định, chart='rank') → render Bars", () => {
     render(<QuantifyWidget item={findItem("q1")} data={seed} dims={dims} />);
@@ -263,7 +270,7 @@ describe("QuantifyWidget — actions/onTitleClick forward xuống Card (S2.6b, t
     const onTitleClick = vi.fn();
     render(
       <QuantifyWidget
-        item={findItem("q16")}
+        item={q16}
         data={seed}
         dims={dims}
         actions={<button type="button">⋮</button>}
@@ -271,7 +278,7 @@ describe("QuantifyWidget — actions/onTitleClick forward xuống Card (S2.6b, t
       />,
     );
     expect(screen.getByRole("button", { name: "⋮" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: findItem("q16").name }));
+    fireEvent.click(screen.getByRole("button", { name: q16.name }));
     expect(onTitleClick).toHaveBeenCalled();
   });
 
@@ -284,7 +291,7 @@ describe("QuantifyWidget — actions/onTitleClick forward xuống Card (S2.6b, t
 
 describe("QuantifyWidget — cross-tab (item.by)", () => {
   it("q16 (theme × pf) → render CrossTable, không crash", () => {
-    render(<QuantifyWidget item={findItem("q16")} data={seed} dims={dims} />);
+    render(<QuantifyWidget item={q16} data={seed} dims={dims} />);
     expect(screen.getByTestId("cross-table")).toBeInTheDocument();
   });
 });

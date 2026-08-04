@@ -4,7 +4,16 @@ import { dims, seedNav, seedTour, cfgDefault, seed } from "./seed.ts";
 import { validateFixture, ANON_CK } from "../validate.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
 import { CUST_CAT } from "../rawFields.ts";
-import type { Customer, AgeBand, NavBand, TenureBand, AcqChannel, TaxNode } from "../schema/index.ts";
+import { bandOf } from "../bands.ts";
+import type { Customer, AgeBand, NavBand, TenureBand, AcqChannel, TaxNode, CfgBandAxis } from "../schema/index.ts";
+
+/* `tenure` đã rút khỏi `dims` (S2, 04/08): `projectCustomerBands` không còn tính `c.bands.tenure`
+   nữa (xem demo.ts:689 — demoData.cust chiếu lại qua `dims` thật trước khi export), nên đọc thẳng
+   dữ kiện thô `c.tenureMonths` và tự băng theo ranh giới, giống cách `matchesBias` trong demo.ts đã
+   đổi. File này ở tầng data/fixtures (sinh dữ liệu), không phải domain/ (tầng đo) nên đọc raw field
+   trực tiếp là được phép. `TENURE_BAND` không export từ demo.ts — lặp lại giá trị tại đây (test tự
+   dựng dữ liệu cục bộ), PHẢI khớp nguyên văn `TENURE_BAND` ở demo.ts:166. */
+const TENURE_BAND: CfgBandAxis = { min: null, cuts: [6, 24, 60], unit: "tháng" };
 
 /* Đếm known/chưa-biết/thiếu cho MỘT trục — dùng isSegUnknown/UNKNOWN_YET/MISSING của segment.ts,
    không tự so chuỗi sentinel. */
@@ -21,6 +30,7 @@ function counts(values: readonly string[]): { known: number; unknown: number; mi
 /* Đọc giá trị của một chiều khách theo id. Hai đường vì hai kiểu chia: `acq` là dữ kiện danh mục đọc
    thẳng, `age`/`nav`/`tenure` là NHÃN NHÓM nằm trong map đã chiếu (xem data/projectBands.ts). */
 function valueOf(c: Customer, dimId: string): string {
+  if (dimId === "tenure") return bandOf(c.tenureMonths, TENURE_BAND);
   return CUST_CAT[dimId] ? CUST_CAT[dimId](c) : (c.bands[dimId] as string);
 }
 
@@ -92,7 +102,8 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
 
   it("mọi TenureBand khai trong schema đều xuất hiện ít nhất một lần", () => {
     const bands: TenureBand[] = ["<6 tháng", "6-24 tháng", "2-5 năm", ">5 năm"];
-    const present = new Set(demoData.cust.map((c) => c.bands.tenure));
+    // tenure đã rút khỏi dims (S2) ⇒ c.bands.tenure không còn được tính — băng lại từ c.tenureMonths thô.
+    const present = new Set(demoData.cust.map((c) => valueOf(c, "tenure")));
     for (const b of bands) expect(present.has(b), `tenure band ${b}`).toBe(true);
   });
 

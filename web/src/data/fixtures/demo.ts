@@ -155,6 +155,16 @@ const NAV_TOP_MAX = 10e9;
 const AGE_TOP_MAX = 75;
 const TENURE_TOP_MAX = 180;
 
+/* Ranh giới thâm niên (S2, 04/08): `tenure` đã RÚT khỏi `cfgDefault.segment.band` (chiều không còn
+   cắt chart), nên `rawInBand` không còn đọc được `cfgDefault.segment.band.tenure`. Hằng MODULE-LOCAL
+   này giữ ĐÚNG số cũ (`{min:null, cuts:[6,24,60], unit:'tháng'}`) — cùng tiền lệ với NAV_BANDS_TRANSFER/
+   TENURE_ESTABLISHED trong file này (data/fixtures/ được phép mã hoá hằng riêng). Mục đích DUY NHẤT:
+   giữ nguyên xi số lần và thứ tự rút từ `rawRng` — đổi nguồn ranh giới nhưng KHÔNG đổi giá trị, nên
+   mọi khách sinh sau điểm này không dịch một bit (xem oracle đối chiếu `sigCountsDemo`/`custBandsDemo`
+   trong báo cáo đợt này). `Customer.tenureMonths` (dữ kiện thô) vẫn sinh ra như cũ — chỉ chiều CẮT
+   chart theo nó đã rút, không phải dữ kiện. */
+const TENURE_BAND: CfgBandAxis = { min: null, cuts: [6, 24, 60], unit: "tháng" };
+
 const SEG_MOI = "Mới mở TK";
 const SEG_TRANSFER = "Khách chuyển từ CTCK khác";
 const SEG_50 = "Khách 50+";
@@ -250,7 +260,7 @@ function genOne(rng: () => number, rawRng: () => number, usedKeys: Set<string>):
   const ageYears = age === UNKNOWN_YET ? UNKNOWN_YET : rawInBand(rawRng, cfgDefault.segment.band.age, age, AGE_TOP_MAX);
   const navVnd = hasAssets ? rawInBand(rawRng, cfgDefault.segment.band.nav, nav, NAV_TOP_MAX) : 0;
   const tenureMonths =
-    tenure === UNKNOWN_YET ? UNKNOWN_YET : rawInBand(rawRng, cfgDefault.segment.band.tenure, tenure, TENURE_TOP_MAX);
+    tenure === UNKNOWN_YET ? UNKNOWN_YET : rawInBand(rawRng, TENURE_BAND, tenure, TENURE_TOP_MAX);
 
   return {
     key,
@@ -494,20 +504,27 @@ const THEME_SKEW: Record<string, ThemeSkew> = {
    theme không lệch, khi đó p=0 nên nhánh match không bao giờ chạy). */
 type CkPool = { readonly all: readonly string[]; readonly match: readonly string[]; readonly p: number };
 
-/* Đọc giá trị của một chiều để so với bảng lệch. Hai đường vì hai kiểu chia: `seg`/`acq` là dữ kiện
-   danh mục đọc thẳng, `nav`/`tenure` là NHÃN NHÓM nằm trong map đã chiếu. Dùng lại danh mục dữ kiện
-   thay vì `c[field]` như bản trước — sau đợt 2a `c.nav` không còn tồn tại, và một phép truy cập
-   động vào Customer sẽ phải ép kiểu, tức là một `field` sai lọt qua compiler rồi lặng lẽ trả
-   undefined (bias mất tác dụng, phân bố demo phẳng đi mà không ai biết). */
-function biasValue(c: Customer, field: string): string {
-  return CUST_CAT[field]?.(c) ?? (c.bands[field] as string);
+/* Khớp MỘT khách với bảng lệch. Ba đường vì `tenure` không còn đi qua đường của `nav`:
+   - `seg`/`acq`: dữ kiện danh mục đọc thẳng qua CUST_CAT (không phụ thuộc `dims`).
+   - `nav`: NHÃN NHÓM nằm trong map đã chiếu (`c.bands.nav`) — trục còn tồn tại trong `dims`.
+   - `tenure` (S2, 04/08): chiều đã RÚT khỏi `dims` nên `c.bands.tenure` không còn được tính, đọc
+     THẲNG dữ kiện thô `c.tenureMonths` và so SỐ — đúng hướng dẫn "data/fixtures/ sinh dữ liệu,
+     không phải tầng đo" (domain/ mới là nơi cấm hằng số bịa, không phải chỗ này). Ngưỡng "<6 tháng"
+     hạ thành điều kiện số thô tương ứng (`< 6`), giữ NGUYÊN Ý NGHĨA cũ (nhóm quan hệ mới), chỉ đổi
+     CHỖ SO vì không còn nhãn dải nào để so chuỗi. */
+function matchesBias(c: Customer, bias: CustBias): boolean {
+  if (bias.field === "tenure") {
+    return typeof c.tenureMonths === "number" && c.tenureMonths < 6;
+  }
+  const v = CUST_CAT[bias.field]?.(c) ?? (c.bands[bias.field] as string);
+  return bias.values.includes(v);
 }
 
 function ckPoolFor(theme: TaxNode, cust: readonly Customer[]): CkPool {
   const all = cust.map((c) => c.key);
   const bias = THEME_SKEW[theme.id]?.cust;
   if (!bias) return { all, match: [], p: 0 };
-  const match = cust.filter((c) => bias.values.includes(biasValue(c, bias.field))).map((c) => c.key);
+  const match = cust.filter((c) => matchesBias(c, bias)).map((c) => c.key);
   /* match rỗng = giá trị trong bảng không còn tồn tại trong tập khách (đổi enum, sai chính tả).
      Hạ p về 0 để không index vào mảng rỗng ra `undefined`. Không im lặng: test
      "theme có bias thì nhóm khớp phải chiếm ≥40%" trong demo.test.ts đỏ ngay khi bias mất tác dụng. */

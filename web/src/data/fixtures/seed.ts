@@ -581,8 +581,10 @@ const seedRaw: CxmData = {
       note:'Tính trên tập evidence mẫu. Nền tảng nào thiếu nguồn thì xem màn Nguồn & độ toàn vẹn.' },
     { id:'q14',kind:'show', show:'src', metric:'pct', chart:'donut', name:'Tỷ trọng nguồn phản hồi',
       note:'Hiện đếm CẢ tín hiệu hành vi lẫn tiếng nói, theo cách Enterpret đếm mọi source. Xem VOC_SCOPE.' },
-    { id:'q16',kind:'show', show:'theme', by:'pf', metric:'count', view:'table', chart:'rank', name:'Theme × Nền tảng (ghép chéo)',
-      note:'Ghép chéo trên MẪU bằng chứng: theme nào dội lên ở nền tảng nào. Chỉ tính từ DATA.ev — ô nhỏ, một phản hồi có thể mang nhiều theme nên tổng cột có thể lớn hơn số mẫu.' },
+
+    /* q16 (Theme × Nền tảng, ghép chéo) đã BỎ (S4, owner chốt 04/08, thiết kế §5) — năng lực
+       qRunCross/CrossTable GIỮ NGUYÊN, chỉ không còn saved query nào trỏ vào; xem
+       domain/quantify.test.ts và design-system/CrossTable.test.tsx (tự dựng item để giữ độ phủ). */
 
     /* Hai chart trục phân khúc khách (owner chốt 03/08) — TRƯỚC ĐÂY không item nào dùng base:'cust',
        nên cả tầng phủ phân khúc (dải "Không xác định" + dòng "Phủ X%" ở QuantifyWidget) chỉ hiện khi
@@ -594,15 +596,9 @@ const seedRaw: CxmData = {
     { id:'q18',kind:'show', show:'nav', metric:'count', chart:'rank', name:'Khách theo phân khúc NAV',
       note:'NAV lấy trực tiếp từ giá trị tài sản hiện tại nên MỌI khách đều có phân khúc — trục này không có nhóm "không xác định". Đọc kèm một điều: dải "<50tr" gồm cả khách chưa nạp tiền (tài sản 0đ), nên nó nói "chưa có/còn rất ít tài sản", không nói "khách nhỏ đã đầu tư".' },
 
-    /* Item ĐẦU TIÊN dùng `split` (breakdown — Module D section 1, owner chốt 03/08). Chọn acq × nav
-       vì CẢ HAI là base:'cust' nên hai giá trị nằm trên CÙNG một dòng Customer ⇒ mỗi đoạn màu là số
-       ĐẾM ĐƯỢC, không có hằng số tỷ lệ nào bị bịa (khác trục "Nhóm khách" của @themestack). Đó cũng
-       là điều kiện validate rule 16 đòi, và là lý do KHÔNG chọn `pf` làm trục chia màu: dims.pf là
-       base:'ev' (dòng 759), không nối được với khách.
-       KHÔNG set `stack`: vắng ⇒ 'abs', giữ bề rộng thanh ∝ số khách nên dòng "Phủ X%" dưới chart vẫn
-       đọc được; người dùng tự bật 'pct' trong builder khi muốn so hình dạng. */
-    { id:'q19',kind:'show', show:'acq', split:'nav', metric:'count', chart:'rank', name:'Kênh mở TK × Phân khúc NAV',
-      note:'Mỗi thanh là một kênh mở TK, các đoạn màu bên trong là phân khúc NAV của chính nhóm khách đó — đếm trực tiếp trên dòng khách, không suy ra từ tỷ lệ. NAV không có nhóm "không xác định" (lấy từ tài sản hiện tại), nên tổng các đoạn màu bằng đúng bề rộng thanh; riêng dải "<50tr" gồm cả khách chưa nạp tiền.' },
+    /* q19 (Kênh mở TK × Phân khúc NAV, split) đã BỎ (S4, owner chốt 04/08, thiết kế §5) — năng lực
+       `qRunSplit`/`SplitToggle` GIỮ NGUYÊN, chỉ không còn saved query nào ghim `split` sẵn; xem
+       domain/quantify.test.ts và design-system/QuantifyWidget.*.test.tsx (tự dựng item để giữ độ phủ). */
 
     { id:'q5', kind:'series', chart:'trend', name:'Trend theme "Thiết bị không tương thích"', dim:'Theme · xu hướng', unit:'kỳ', shown:6, total:6,
       t:[{l:'Positive share (%)',p:[54,52,50,48,46,44,42,40,36,31,26,19]}],
@@ -681,7 +677,7 @@ const seedRaw: CxmData = {
            Và đây là chỗ đúng về nghĩa: dims.acq nhãn "Kênh mở TK", khớp thẳng pilot Mở tài khoản. */
         { q:'Ta biết được bao nhiêu về khách trong cohort?',
           sub:'Tỉ lệ phủ là số ĐẾM ĐƯỢC, không phải số khai: mẫu số luôn là toàn bộ cohort nên nhóm chưa biết không bị lặng lẽ loại khỏi mẫu. Dải xám cuối mỗi thanh là phần không đếm được.',
-          b:['q17','q18','q19'] },
+          b:['q17','q18'] },
         { q:'Chỉ số của pilot ra sao?', sub:'Liveness dưới mục tiêu 6 kỳ liên tiếp, và khoảng cách Android–iOS đang giãn.', b:['q6','q7'] },
       ] },
     { id:'b-cxm-out', sec:'cxm', name:'Hiệu quả sau thay đổi', role:'Head of CX / PO', shared:false,
@@ -799,9 +795,13 @@ export const cfgDefault: Cfg = {
     band: {
       nav: { min: null, cuts: [50e6, 200e6, 1e9, 5e9], unit: 'đ' },
       age: { min: 18, cuts: [25, 35, 50], unit: 'năm' },
-      tenure: { min: null, cuts: [6, 24, 60], unit: 'tháng' },
     },
-    /* `seg`/`tier` CHƯA có entry — chưa chốt danh sách đóng cho hai chiều đó, và thiếu entry là hợp
+    /* `tenure` (S2, 04/08): chiều đã RÚT khỏi `dims` bên dưới nên ranh giới này không còn ai đọc —
+       xoá cùng lúc, theo đúng luật validate.ts:602 lặp trên `cfg.segment.band` (bỏ sót sẽ sinh lỗi
+       mồ côi ở nhóm 20, xem docs/DB-FIRST-HANDOFF.md mục "Việc còn lại của stream"). `Customer.
+       tenureMonths` (dữ kiện thô) và `CUST_NUM.tenureMonths` VẪN GIỮ — hệ thống vẫn biết thâm niên
+       từng khách, chỉ không còn cắt chart theo nó.
+       `seg`/`tier` CHƯA có entry — chưa chốt danh sách đóng cho hai chiều đó, và thiếu entry là hợp
        lệ (validate không kiểm giá trị lạ). Đừng thêm entry rỗng: `[]` nghĩa là "mọi giá trị đều lạ". */
     values: {
       acq: ['banner', 'giới thiệu', 'chi nhánh', 'tự tìm', 'đối tác'],
@@ -809,7 +809,8 @@ export const cfgDefault: Cfg = {
   },
 };
 
-/* Bảng khai chiều. Sáu chiều khách (`base:'cust'`) khai thêm `cut` — CÁCH CHIA — từ đợt 2a: trước đó
+/* Bảng khai chiều. Bốn chiều khách (`base:'cust'`, sau khi S2 rút `seg`/`tenure`) khai thêm `cut` —
+   CÁCH CHIA — từ đợt 2a: trước đó
    cách chia là một bảng viết tay riêng ở tầng tính toán, phải khớp tay với bảng này, và thiếu một bên
    thì chart trả rỗng không báo lỗi. Giờ khai một lần ở đây là đủ.
    Ô `rows` (luôn rỗng, chưa nơi nào đọc) đã bỏ — nhóm của một chiều được ĐẾM RA từ dữ liệu, không
@@ -825,11 +826,15 @@ export const dims: Record<string, Dim> = {
   cat: { label: "Category · intent", unit: "category", base: "ev", evAttr: true },
   sen: { label: "User Sentiment", unit: "sentiment", base: "ev", evAttr: true },
   pf: { label: "Nền tảng", unit: "nền tảng", base: "ev", evAttr: true },
-  seg: { label: "Segment khách", unit: "segment", base: "cust", cut: { kind: "values", source: "seg" } },
+  /* `seg` (Segment khách) và `tenure` (Thâm niên giao dịch) đã RÚT khỏi danh sách chiều (S2, owner
+     chốt 04/08, thiết kế output/thiet-ke-chart-signal.html §4: đúng 4 chiều khách + sigpf). Đo được
+     trước khi rút: không chart nào dùng hai chiều này để cắt. RÚT CHIỀU, KHÔNG đụng dữ kiện khách —
+     `Customer.seg`/`Customer.tenureMonths`, `CUST_CAT.seg`/`CUST_NUM.tenureMonths` và các entry
+     `RAW_LABEL` tương ứng (data/rawFields.ts) vẫn giữ nguyên; hệ thống vẫn biết segment/thâm niên
+     từng khách, chỉ không còn cắt chart theo chúng. */
   tier: { label: "Value tier", unit: "tier", base: "cust", cut: { kind: "values", source: "tier" } },
   age: { label: "Độ tuổi", unit: "nhóm tuổi", base: "cust", cut: { kind: "band", source: "ageYears" } },
   nav: { label: "Phân khúc NAV", unit: "phân khúc", base: "cust", cut: { kind: "band", source: "navVnd" } },
-  tenure: { label: "Thâm niên giao dịch", unit: "nhóm thâm niên", base: "cust", cut: { kind: "band", source: "tenureMonths" } },
   acq: { label: "Kênh mở TK", unit: "kênh", base: "cust", cut: { kind: "values", source: "acq" } },
   /* Chiều thứ năm của chart điểm đo (thiết kế §4) — thuộc tính CỦA CHÍNH LẦN BẮN (nền tảng nó xảy
      ra), không phải của khách: `base:'fire'`, KHÔNG dùng lại `base:'ev'` như `pf` ở trên. `source`

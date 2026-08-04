@@ -43,7 +43,10 @@ function senBucket(v: number): "pos" | "neu" | "neg" {
 }
 
 const PF_ORDER = ["ios", "android", "web", "server"] as const;
-const PF_LABEL: Record<string, string> = { ios: "iOS", android: "Android", web: "Web", server: "Server" };
+/* Export để domain/themeSegments.ts dùng CHUNG (S2c, 04/08) thay vì khai bản sao thứ ba của bảng
+   tên đẹp — hợp tầng vì themeSegments.ts đã import custField từ module này. Bản sao còn lại ở
+   design-system/SrcMatrix.tsx:16 NGOÀI PHẠM VI đợt này, chưa gộp. */
+export const PF_LABEL: Record<string, string> = { ios: "iOS", android: "Android", web: "Web", server: "Server" };
 
 /* ---------- rows() từng chiều — port 1-1 từ DIMS[*].rows() (~dòng 1426-1454) ----------
    `agg`: lọc data.tax theo lv (l1/l2/l3/theme/sub) hoặc đọc data.sources (src).
@@ -459,12 +462,12 @@ export type DrillResult =
 /* Trục có rows dựng từ số tổng hợp sẵn — xem chú thích khối ở trên. */
 const AGG_TAX_AXES = new Set(["theme", "l1", "l2", "l3", "sub"]);
 
-/* Thứ tự ưu tiên khi chọn thuộc tính in kèm mỗi dòng drill — GIỮ NGUYÊN từ bản trước (seg > tier >
-   nav > acq). Đây KHÔNG phải danh sách đóng: chiều nào không có trong đây vẫn được chọn, chỉ xếp sau.
-   Vì sao còn giữ: đổi thứ tự này là đổi CHỮ hiện trên mỗi dòng drill (drill theo `seg` thì bản trước
-   in "Value tier · Phân khúc NAV", bỏ ưu tiên đi sẽ thành "Value tier · Độ tuổi") — một thay đổi
-   hiển thị, không thuộc phạm vi đợt khai báo chiều. */
-const META_PRIORITY = ["seg", "tier", "nav", "acq"];
+/* Thứ tự ưu tiên khi chọn thuộc tính in kèm mỗi dòng drill — GIỮ NGUYÊN cơ chế từ bản trước, chỉ bỏ
+   `seg` (S2, 04/08: chiều đã rút khỏi `dims`, không còn ứng viên nào để xếp hạng). Đây KHÔNG phải
+   danh sách đóng: chiều nào không có trong đây vẫn được chọn, chỉ xếp sau.
+   Hệ quả CÓ CHỦ Ý của việc rút `seg`: drill theo `nav` trước đây in "Segment khách · Value tier",
+   sau đợt này in "Value tier · Kênh mở TK" (owner đã chấp nhận, xem docs/DB-FIRST-HANDOFF.md). */
+const META_PRIORITY = ["tier", "nav", "acq"];
 
 /* Hai chiều khách hiện kèm theo mỗi dòng drill làm ngữ cảnh ("khách này còn thuộc nhóm nào nữa").
    Tập ứng viên SUY từ khai báo thay vì hardcode như bản trước: danh sách hardcode sẽ trỏ vào một

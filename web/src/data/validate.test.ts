@@ -220,7 +220,13 @@ describe("validateFixture", () => {
      Trước luật này tổ hợp đó qua được cả validate lẫn builder. */
   it("16: metric 'pct' + stack 'pct' trên cùng item → chặn (hai mẫu số)", () => {
     const d = structuredClone(seed) as CxmData;
-    d.qt = d.qt.map((q) => (q.id === "q19" && q.kind === "show" ? { ...q, metric: "pct", stack: "pct" as const } : q));
+    /* q19 (item có `split`) đã bỏ khỏi seed.qt (S4) — không còn item nào dùng `split` để sửa tại
+       chỗ, tự dựng item tại đây, đúng lối test "16: kind 'show' mang mark của series" phía trên. */
+    const bad = {
+      id: "q-splitpct", kind: "show" as const, show: "acq", split: "nav",
+      metric: "pct" as const, stack: "pct" as const, chart: "rank" as const, name: "bad",
+    };
+    d.qt = [bad, ...d.qt];
     const r = validateFixture(d, dims, seedNav, seedTour);
     expect(r.some((e) => e.includes("hai mẫu số khác nhau"))).toBe(true);
   });
@@ -451,11 +457,13 @@ describe("validateFixture", () => {
     expect(r.some((e) => e.includes('cfg.segment.band["age"]') && e.includes("min") && e.includes(">="))).toBe(true);
   });
 
+  /* Đổi trục canh từ 'tenure' sang 'nav' (S2, 04/08): `tenure` đã rút khỏi `cfgDefault.segment.band`
+     nên không còn axis nào ở đó để sửa tại chỗ — cùng phép kiểm, chỉ đổi trục còn tồn tại. */
   it("20: unit không thuộc 3 giá trị cho phép", () => {
     const cfg = structuredClone(cfgDefault);
-    cfg.segment.band.tenure = { ...cfg.segment.band.tenure, unit: "usd" as typeof cfg.segment.band.tenure.unit };
+    cfg.segment.band.nav = { ...cfg.segment.band.nav, unit: "usd" as typeof cfg.segment.band.nav.unit };
     const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
-    expect(r.some((e) => e.includes('cfg.segment.band["tenure"]') && e.includes("unit") && e.includes("không hợp lệ"))).toBe(true);
+    expect(r.some((e) => e.includes('cfg.segment.band["nav"]') && e.includes("unit") && e.includes("không hợp lệ"))).toBe(true);
   });
 
   it("20: acq.values rỗng", () => {

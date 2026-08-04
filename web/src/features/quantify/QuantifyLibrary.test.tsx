@@ -10,6 +10,17 @@ function findItem(id: string): QuantifyItem {
   return q;
 }
 
+/* q16/q19 đã bỏ khỏi seed.qt (S4, owner chốt 04/08) — năng lực cross-tab/split GIỮ NGUYÊN, chỉ không
+   còn saved query nào trỏ vào. Tự dựng item tại đây (đúng hình dạng cũ) thay vì đọc từ seed. */
+const q16: QuantifyItem = {
+  id: "q16", kind: "show", show: "theme", by: "pf", metric: "count", view: "table", chart: "rank",
+  name: "Theme × Nền tảng (ghép chéo)",
+};
+const q19: QuantifyItem = {
+  id: "q19", kind: "show", show: "acq", split: "nav", metric: "count", chart: "rank",
+  name: "Kênh mở TK × Phân khúc NAV",
+};
+
 function baseProps(items: QuantifyItem[], overrides: Partial<QuantifyLibraryProps> = {}): QuantifyLibraryProps {
   return {
     items,
@@ -122,7 +133,7 @@ describe("QuantifyLibrary — thẻ: click-anywhere mở chi tiết, menu ⋮ ch
   it("bấm chip đổi chiều chia màu → KHÔNG gọi onOpenDetail (kể cả chip đang bị khoá)", () => {
     const onOpenDetail = vi.fn();
     // q19 = trục khách (acq × nav) nên có strip chia màu; q1 (trục theme) không có.
-    render(<QuantifyLibrary {...baseProps([findItem("q19")], { onOpenDetail })} />);
+    render(<QuantifyLibrary {...baseProps([q19], { onOpenDetail })} />);
     const card = screen.getByTestId("qcard-q19");
     fireEvent.click(within(card).getByRole("button", { name: "Độ tuổi" }));
     expect(onOpenDetail).not.toHaveBeenCalled();
@@ -176,7 +187,7 @@ describe("QuantifyLibrary — Xóa mở modal ở page (KHÔNG còn confirm inli
 
 describe("QuantifyLibrary — no-drill (port harness §11c 333-336)", () => {
   it("thư viện KHÔNG chứa link điều hướng sang tab khác (thuần authoring)", () => {
-    const items = [findItem("q1"), findItem("q5"), findItem("q14"), findItem("q16")];
+    const items = [findItem("q1"), findItem("q5"), findItem("q14"), q16];
     const { container } = render(<QuantifyLibrary {...baseProps(items)} />);
     expect(container.querySelectorAll("a").length).toBe(0);
   });

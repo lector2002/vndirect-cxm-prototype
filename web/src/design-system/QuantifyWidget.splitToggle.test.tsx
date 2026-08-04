@@ -23,6 +23,13 @@ function findItem(id: string): QuantifyItem {
   return q;
 }
 
+/* q19 (Kênh mở TK × Phân khúc NAV) đã bỏ khỏi seed.qt (S4, owner chốt 04/08) — tự dựng item tại
+   đây (đúng hình dạng q19 cũ) thay vì đọc từ seed, giữ nguyên MỌI phép khẳng định số liệu. */
+const q19: QuantifyItem = {
+  id: "q19", kind: "show", show: "acq", split: "nav", metric: "count", chart: "rank",
+  name: "Kênh mở TK × Phân khúc NAV",
+};
+
 /* Title của mỗi đoạn màu do Bars đặt: `${label}: ${nf(n)}` (Bars.tsx). Chính con số đó là thứ phải
    đổi khi người dùng đổi chiều — nhãn legend đổi mà số không đổi là bug này tồn tại. */
 function rowSegTitles(rowIndex: number): string[] {
@@ -44,9 +51,9 @@ describe("QuantifyWidget — toggle chiều chia màu: luật disable của owne
       "title",
       'Chia màu theo đúng chiều đang xếp hàng ("nav") thì mỗi thanh chỉ có một đoạn — không thêm thông tin nào.',
     );
-    /* Owner chốt DISABLE chứ không ẩn: ẩn thì strip đổi bề rộng theo từng chart. 6 chiều khách + chip
-       "Không chia" = 7 chip, kể cả chip bị khoá. */
-    expect(screen.getByRole("group", { name: "Chiều chia màu trong thanh" }).children).toHaveLength(7);
+    /* Owner chốt DISABLE chứ không ẩn: ẩn thì strip đổi bề rộng theo từng chart. Bốn chiều khách (sau
+       khi S2 rút seg/tenure khỏi dims) + chip "Không chia" = 5 chip, kể cả chip bị khoá. */
+    expect(screen.getByRole("group", { name: "Chiều chia màu trong thanh" }).children).toHaveLength(5);
     /* KHÔNG dùng attribute `disabled` thật: nút disabled rơi khỏi tab order và screen reader bỏ qua,
        nên tooltip mang lý do thành không tới được đúng với người cần nó nhất. */
     expect(navChip).not.toBeDisabled();
@@ -61,7 +68,7 @@ describe("QuantifyWidget — toggle chiều chia màu: luật disable của owne
   });
 
   it("q19 (acq × nav ghim trong fixture) → chip đang dùng là 'Phân khúc NAV', chip bị khoá là 'Kênh mở TK'", () => {
-    render(<QuantifyWidget item={findItem("q19")} data={demoData} dims={dims} />);
+    render(<QuantifyWidget item={q19} data={demoData} dims={dims} />);
     expect(chip("Phân khúc NAV")).toHaveAttribute("aria-pressed", "true");
     expect(chip("Kênh mở TK")).toHaveAttribute("aria-disabled", "true");
     expect(chip("Phân khúc NAV")).not.toHaveAttribute("aria-disabled");
@@ -70,7 +77,7 @@ describe("QuantifyWidget — toggle chiều chia màu: luật disable của owne
 
 describe("QuantifyWidget — toggle chiều chia màu: lựa chọn tới được ENGINE, không chỉ tới legend", () => {
   it("q19: đổi NAV → Độ tuổi thì CẢ nhãn legend LẪN số từng đoạn của hàng 'tự tìm' (62 khách) đổi theo", () => {
-    render(<QuantifyWidget item={findItem("q19")} data={demoData} dims={dims} />);
+    render(<QuantifyWidget item={q19} data={demoData} dims={dims} />);
     expect(screen.getByTestId("bars").children[0]).toHaveTextContent("tự tìm");
     /* Trạng thái đầu = split 'nav' của fixture: 48+6+3+3+2 = 62. KHÔNG có đoạn "Không xác định" — owner
        chốt 04/08 NAV lấy trực tiếp từ tài sản hiện tại, khách chưa nạp tiền là 0đ nên nằm ở '<50tr'
@@ -102,7 +109,7 @@ describe("QuantifyWidget — toggle chiều chia màu: lựa chọn tới đư�
   });
 
   it("q19: bấm 'Không chia' → hết đoạn màu, thanh về một khối liền", () => {
-    render(<QuantifyWidget item={findItem("q19")} data={demoData} dims={dims} />);
+    render(<QuantifyWidget item={q19} data={demoData} dims={dims} />);
     expect(rowSegTitles(0)).toHaveLength(5);
     fireEvent.click(chip("Không chia"));
     expect(chip("Không chia")).toHaveAttribute("aria-pressed", "true");
@@ -112,10 +119,11 @@ describe("QuantifyWidget — toggle chiều chia màu: lựa chọn tới đư�
   it("q17 (chưa có split trong fixture) → bật được chia màu tại chỗ, không cần sửa fixture", () => {
     render(<QuantifyWidget item={findItem("q17")} data={demoData} dims={dims} />);
     expect(rowSegTitles(0)).toHaveLength(0);
-    fireEvent.click(chip("Thâm niên giao dịch"));
+    // S2 (04/08): "Thâm niên giao dịch" đã rút khỏi dims — đổi sang "Value tier", vẫn là chiều khách còn lại.
+    fireEvent.click(chip("Value tier"));
     /* Hàng 0 vẫn là 'tự tìm' (62 khách). Ghim TỔNG chứ không ghim từng đoạn: điều phải đúng ở đây là
        các đoạn cộng lại đúng bằng số trên thanh — nếu lệch thì mẫu số đã âm thầm rơi mất một nhóm
-       (đúng lỗi D0), và đó là bất biến quan trọng hơn thứ tự các bậc thâm niên. */
+       (đúng lỗi D0), và đó là bất biến quan trọng hơn thứ tự các bậc tier. */
     const titles = rowSegTitles(0);
     expect(titles.length).toBeGreaterThan(1);
     expect(titles.reduce((a, t) => a + Number(t.split(": ")[1]), 0)).toBe(62);
@@ -124,7 +132,7 @@ describe("QuantifyWidget — toggle chiều chia màu: lựa chọn tới đư�
 
 describe("QuantifyWidget — toggle chiều chia màu: nơi không vẽ được đoạn màu", () => {
   it("view bảng → strip vẫn hiện nhưng khoá cả cụm, nói rõ vì sao (không âm thầm biến mất)", () => {
-    render(<QuantifyWidget item={findItem("q19")} data={demoData} dims={dims} view="table" />);
+    render(<QuantifyWidget item={q19} data={demoData} dims={dims} view="table" />);
     const group = screen.getByRole("group", { name: "Chiều chia màu trong thanh" });
     for (const b of [...group.children]) {
       expect(b).toHaveAttribute("aria-disabled", "true");

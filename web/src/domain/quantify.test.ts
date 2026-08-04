@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 /* demoData (300 khách sinh TẤT ĐỊNH) — cần cho qRunSplit vì seed.cust chỉ có 7 khách, không đủ để ô
    breakdown nào có số đáng đọc. seed vẫn dùng cho các ca biên (refuse/known=0). */
 import { demoData } from "../data/fixtures/demo.ts";
-import { dims, seed } from "../data/fixtures/seed.ts";
-import type { Customer, CxmData, QuantifyShow } from "../data/schema/index.ts";
+import { cfgDefault, dims, seed } from "../data/fixtures/seed.ts";
+import { projectCustomer } from "../data/projectBands.ts";
+import type { Cfg, Customer, CxmData, Dim, QuantifyShow } from "../data/schema/index.ts";
 import { qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, rowBuilder, UNKNOWN_ROW_ID } from "./quantify.ts";
 
 function findShow(id: string): QuantifyShow {
@@ -11,6 +12,24 @@ function findShow(id: string): QuantifyShow {
   if (!q || q.kind !== "show") throw new Error(`fixture ${id} phải là QuantifyShow`);
   return q;
 }
+
+/* S2 (04/08): `tenure` (Thâm niên giao dịch) đã RÚT khỏi `dims`/`cfgDefault.segment.band` — sản phẩm
+   không còn cắt chart theo chiều này. Nhưng `tenure` vẫn là trục DUY NHẤT dựng từ `seed` có sentinel
+   THẬT (4/7 khách 'chưa-biết' trên tenureMonths — seed chỉ còn `nav` với 1/7 known, không đủ để
+   dựng ca refuse/known=0), nên vài test dưới đây vẫn cần chạm nhánh sentinel/refuse qua đúng chiều
+   đó để không mất độ phủ. Dựng DIM + CFG TEST-LOCAL, chiếu qua đúng đường sản phẩm (`projectCustomer`,
+   cùng đường data/projectBands.test.ts:32 dùng) — KHÔNG phục hồi `dims.tenure` ở sản phẩm thật. */
+const TENURE_TEST_ID = "ttenure";
+const testDims: Record<string, Dim> = {
+  ...dims,
+  [TENURE_TEST_ID]: { label: "Thâm niên giao dịch (test)", unit: "nhóm thâm niên", base: "cust", cut: { kind: "band", source: "tenureMonths" } },
+};
+const testCfg: Cfg = {
+  ...cfgDefault,
+  segment: { ...cfgDefault.segment, band: { ...cfgDefault.segment.band, [TENURE_TEST_ID]: { min: null, cuts: [6, 24, 60], unit: "tháng" } } },
+};
+const seedWithTenure: CxmData = { ...seed, cust: seed.cust.map((c) => projectCustomer(c, testCfg, testDims)) };
+const demoDataWithTenure: CxmData = { ...demoData, cust: demoData.cust.map((c) => projectCustomer(c, testCfg, testDims)) };
 
 describe("qRun", () => {
   it("q1 (theme, base=agg) — rows khớp tax lv='theme', xếp giảm dần, pct cộng ~100%", () => {
@@ -49,15 +68,17 @@ describe("qRun", () => {
     expect(rows.reduce((a, r) => a + r.v, 0)).toBe(seed.ev.length);
   });
 
-  // Không có item nào trong seed.qt có show='seg' nên tự dựng item, đúng hướng dẫn khi seed thiếu.
-  it("seg (cust, base=cust) — đếm đúng số khách theo segment trong seed.cust (7 khách)", () => {
-    const item: QuantifyShow = { id: "test-seg", kind: "show", show: "seg", metric: "count", chart: "rank", name: "test" };
+  /* Không có item nào trong seed.qt có show='tier' nên tự dựng item, đúng hướng dẫn khi seed thiếu.
+     (Đổi từ 'seg' sang 'tier' — S2, 04/08: `seg` đã rút khỏi `dims`, không còn chiều để suy cách
+     đếm; `tier` vẫn là chiều `base:'cust'`/`values` thật, cùng phép kiểm nguyên bản.) */
+  it("tier (cust, base=cust) — đếm đúng số khách theo value tier trong seed.cust (7 khách)", () => {
+    const item: QuantifyShow = { id: "test-tier", kind: "show", show: "tier", metric: "count", chart: "rank", name: "test" };
     const rows = qRun(item, seed, dims);
-    // Đếm tay trên seed.cust (7 dòng): 'Mới mở TK' x5, 'Khách chuyển từ CTCK khác' x1, 'Khách 50+' x1
+    // Đếm tay trên seed.cust (7 dòng): 'new' x3, 'standard' x3, 'high-value' x1
     expect(rows).toEqual([
-      { id: "Mới mở TK", l: "Mới mở TK", v: 5 },
-      { id: "Khách chuyển từ CTCK khác", l: "Khách chuyển từ CTCK khác", v: 1 },
-      { id: "Khách 50+", l: "Khách 50+", v: 1 },
+      { id: "new", l: "new", v: 3 },
+      { id: "standard", l: "standard", v: 3 },
+      { id: "high-value", l: "high-value", v: 1 },
     ]);
     expect(rows.reduce((a, r) => a + r.v, 0)).toBe(seed.cust.length);
   });
@@ -90,9 +111,17 @@ describe("qRun", () => {
   });
 });
 
+/* q16 (Theme × Nền tảng) đã bỏ khỏi seed.qt (S4, owner chốt 04/08) — năng lực `qRunCross` GIỮ
+   NGUYÊN, chỉ không còn saved query nào trỏ vào. Tự dựng item tại đây (đúng hình dạng q16 cũ) thay
+   vì đọc từ seed, giữ nguyên MỌI phép khẳng định số liệu. */
+const q16Cross: QuantifyShow = {
+  id: "q16", kind: "show", show: "theme", by: "pf", metric: "count", view: "table", chart: "rank",
+  name: "Theme × Nền tảng (ghép chéo)",
+};
+
 describe("qRunCross", () => {
   it("q16 (theme × pf) — matrix khớp seed.ev thật", () => {
-    const cx = qRunCross(findShow("q16"), seed, dims);
+    const cx = qRunCross(q16Cross, seed, dims);
     expect(cx.sampleN).toBe(seed.ev.length); // 17
     expect(cx.matched).toBe(17); // mọi ev trong seed đều có cả theme lẫn pf hợp lệ
     expect(cx.grand).toBe(17);
@@ -134,8 +163,10 @@ describe("qRunCross", () => {
     expect(cx.matched).toBe(1);
   });
 
-  it("defensive: chiều thiếu evAttr (seg) → matrix rỗng, không throw", () => {
-    const item: QuantifyShow = { id: "test-defensive", kind: "show", show: "seg", by: "pf", metric: "count", chart: "rank", name: "test" };
+  /* Đổi từ 'seg' sang 'tier' (S2, 04/08): `seg` đã rút khỏi `dims`, không còn chiều `base:'cust'`
+     để canh nhánh "thiếu evAttr" — `tier` vẫn khai `base:'cust'` không evAttr, cùng phép kiểm. */
+  it("defensive: chiều thiếu evAttr (tier) → matrix rỗng, không throw", () => {
+    const item: QuantifyShow = { id: "test-defensive", kind: "show", show: "tier", by: "pf", metric: "count", chart: "rank", name: "test" };
     expect(() => qRunCross(item, seed, dims)).not.toThrow();
     const cx = qRunCross(item, seed, dims);
     expect(cx.rows).toEqual([]);
@@ -145,14 +176,16 @@ describe("qRunCross", () => {
     expect(cx.grand).toBe(0);
     expect(cx.multi).toBe(false);
     expect(cx.sampleN).toBe(seed.ev.length);
-    // seg là trục khách (base:'cust') — matrix rỗng ở trên là "không ghép được", KHÔNG PHẢI "ghép
+    // tier là trục khách (base:'cust') — matrix rỗng ở trên là "không ghép được", KHÔNG PHẢI "ghép
     // được nhưng không match" — hai trường hợp trước đây không phân biệt được (bẫy CROSS_EXTRACT).
     expect(cx.unsupported).not.toBeNull();
-    expect(cx.unsupported).toMatch(/seg/);
+    expect(cx.unsupported).toMatch(/tier/);
   });
 
-  it("trục khách MỚI (age/nav/tenure/acq) cũng bị chặn ghép chéo như seg/tier — không nhân bẫy cũ", () => {
-    for (const show of ["age", "nav", "tenure", "acq"] as const) {
+  /* Bỏ 'tenure' khỏi danh sách (S2): chiều đã rút khỏi `dims`, không còn là "trục khách bị chặn
+     ghép chéo" mà là "chiều không tồn tại" — một ca KHÁC, đã có test riêng ở nhóm `qRun` phía trên. */
+  it("trục khách MỚI (age/nav/acq) cũng bị chặn ghép chéo như tier — không nhân bẫy cũ", () => {
+    for (const show of ["age", "nav", "acq"] as const) {
       const item: QuantifyShow = { id: `test-cust-${show}`, kind: "show", show, by: "pf", metric: "count", chart: "rank", name: "test" };
       const cx = qRunCross(item, seed, dims);
       expect(cx.unsupported).not.toBeNull();
@@ -194,9 +227,11 @@ describe("qRunSegment", () => {
     ]);
   });
 
-  it("tenure — known=3 unknown=4", () => {
-    const item: QuantifyShow = { id: "test-seg-tenure", kind: "show", show: "tenure", metric: "count", chart: "rank", name: "test" };
-    const res = qRunSegment(item, seed, dims);
+  /* tenure đã rút khỏi `dims` (S2) — dùng dim test-local (xem đầu file) để vẫn chạm nhánh sentinel
+     thật của seed (4/7 khách 'chưa-biết' trên tenureMonths). */
+  it("tenure (test-local) — known=3 unknown=4", () => {
+    const item: QuantifyShow = { id: "test-seg-tenure", kind: "show", show: TENURE_TEST_ID, metric: "count", chart: "rank", name: "test" };
+    const res = qRunSegment(item, seedWithTenure, testDims);
     if (res.kind !== "draw") throw new Error("kỳ vọng draw");
     expect(res.known).toBe(3);
     expect(res.unknown).toBe(4);
@@ -212,12 +247,14 @@ describe("qRunSegment", () => {
     expect(res.missing).toBe(0);
   });
 
-  it("known+unknown+missing luôn bằng data.cust.length trên cả 6 trục khách — mẫu số không bao giờ mất khách", () => {
-    for (const show of ["seg", "tier", "age", "nav", "tenure", "acq"] as const) {
+  /* Bốn trục khách hiện có + `tenure` test-local (S2: 'seg' đã rút hẳn, không còn thay được bằng
+     dim nào tương đương — bất biến này vẫn cần giữ độ phủ trên chính chiều có sentinel thật). */
+  it("known+unknown+missing luôn bằng data.cust.length trên các trục khách hiện có — mẫu số không bao giờ mất khách", () => {
+    for (const show of ["tier", "age", "nav", "acq", TENURE_TEST_ID] as const) {
       const item: QuantifyShow = { id: `test-seg-total-${show}`, kind: "show", show, metric: "count", chart: "rank", name: "test" };
-      const res = qRunSegment(item, seed, dims);
+      const res = qRunSegment(item, seedWithTenure, testDims);
       if (res.kind !== "draw") throw new Error(`kỳ vọng draw cho ${show}`);
-      expect(res.known + res.unknown + res.missing).toBe(seed.cust.length);
+      expect(res.known + res.unknown + res.missing).toBe(seedWithTenure.cust.length);
       // rows chỉ chứa band có thật — sentinel không được lẫn vào
       expect(res.rows.some((r) => r.id === "chưa-biết" || r.id === "thiếu")).toBe(false);
     }
@@ -233,10 +270,11 @@ describe("qRunSegment", () => {
 
   it("known=0 (chưa khách nào biết) → refuse, KHÔNG vẽ matrix rỗng như thật", () => {
     /* Dựng fixture tối giản: giữ đúng 4 khách có tenure 'chưa-biết' → known=0. Trục dùng ở đây ĐỔI TỪ
-       nav SANG tenure (04/08): nav không còn sentinel nên known=0 không thể xảy ra trên nav nữa. */
-    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.bands.tenure === "chưa-biết") };
-    const item: QuantifyShow = { id: "test-seg-zero", kind: "show", show: "tenure", metric: "count", chart: "rank", name: "test" };
-    const res = qRunSegment(item, miniData, dims);
+       nav SANG tenure (04/08): nav không còn sentinel nên known=0 không thể xảy ra trên nav nữa.
+       tenure đã rút khỏi `dims` (S2) — dùng dim test-local (xem đầu file). */
+    const miniData: CxmData = { ...seedWithTenure, cust: seedWithTenure.cust.filter((c) => c.bands[TENURE_TEST_ID] === "chưa-biết") };
+    const item: QuantifyShow = { id: "test-seg-zero", kind: "show", show: TENURE_TEST_ID, metric: "count", chart: "rank", name: "test" };
+    const res = qRunSegment(item, miniData, testDims);
     expect(res.kind).toBe("refuse");
   });
 });
@@ -260,10 +298,13 @@ describe("qRunSplit", () => {
     /* Bất biến QUAN TRỌNG NHẤT của cả section: Bars chuẩn hoá bề rộng đoạn theo Σseg TRONG fill, nên
        Σđoạn ≠ v thì thanh vẫn đầy nhưng các tooltip cộng lại ra một tổng KHÁC con số in ở cột giá
        trị — chart nói hai điều khác nhau về cùng một hàng mà không ai thấy. */
-    for (const [show, split] of [["acq", "nav"], ["nav", "age"], ["age", "tier"], ["tenure", "seg"]] as const) {
+    /* Cặp thứ tư ĐỔI TỪ ["tenure","seg"] (S2: cả hai đã rút khỏi `dims`) sang [tenure test-local, "acq"]
+       — vẫn một tổ hợp trục KHÁC ba cặp trên, và `testDims`/`demoDataWithTenure` là superset an toàn
+       (mọi trục cũ tính ra y nguyên, xem đầu file) nên dùng chung cho cả bốn cặp không đổi kỳ vọng. */
+    for (const [show, split] of [["acq", "nav"], ["nav", "age"], ["age", "tier"], [TENURE_TEST_ID, "acq"]] as const) {
       const item: QuantifyShow = { id: `t-inv-${show}`, kind: "show", name: "t", show, split, metric: "count", chart: "rank" };
-      const seg = qRunSegment(item, demoData, dims);
-      const sp = qRunSplit(item, demoData, dims);
+      const seg = qRunSegment(item, demoDataWithTenure, testDims);
+      const sp = qRunSplit(item, demoDataWithTenure, testDims);
       if (seg.kind !== "draw") throw new Error(`kỳ vọng draw (segment) cho ${show}`);
       if (sp.kind !== "draw") throw new Error(`kỳ vọng draw (split) cho ${show}×${split}`);
       for (const r of seg.rows) {
@@ -385,17 +426,25 @@ describe("qRunSplit", () => {
   it("refuse: known=0 ở trục hàng → không có thanh nào để chia màu", () => {
     // Giữ 4 khách tenure 'chưa-biết' ⇒ known=0 (cùng ca đã dùng cho qRunSegment; đổi từ nav sang
     // tenure vì nav hết sentinel từ 04/08 nên không dựng được known=0 trên nó nữa).
-    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.bands.tenure === "chưa-biết") };
-    expect(qRunSplit({ ...acqByNav, show: "tenure", split: "acq" }, miniData, dims).kind).toBe("refuse");
+    // tenure đã rút khỏi `dims` (S2) — dùng dim test-local (xem đầu file).
+    const miniData: CxmData = { ...seedWithTenure, cust: seedWithTenure.cust.filter((c) => c.bands[TENURE_TEST_ID] === "chưa-biết") };
+    expect(qRunSplit({ ...acqByNav, show: TENURE_TEST_ID, split: "acq" }, miniData, testDims).kind).toBe("refuse");
   });
 });
 
 /* qRunDrill — bản ghi thật dưới một hàng. Bài kiểm CHÍNH ở đây không phải "có trả về dòng nào không"
    mà là `kind` có nói đúng QUAN HỆ với con số trên thanh hay không: 'sample' (số tổng hợp sẵn, lệch
    hàng chục lần) vs 'full' (số chính là số bản ghi). Lẫn hai cái là dựng một panel nói dối. */
+/* q19 (Kênh mở TK × Phân khúc NAV) đã bỏ khỏi seed.qt (S4, owner chốt 04/08) — tự dựng item tại
+   đây (đúng hình dạng q19 cũ) thay vì đọc từ seed, giữ nguyên MỌI phép khẳng định số liệu. */
+const q19Split: QuantifyShow = {
+  id: "q19", kind: "show", show: "acq", split: "nav", metric: "count", chart: "rank",
+  name: "Kênh mở TK × Phân khúc NAV",
+};
+
 describe("qRunDrill", () => {
   const q1 = findShow("q1");
-  const acq = findShow("q19");
+  const acq = q19Split;
 
   /* BA ca dưới đây chạy trên `seed`, KHÔNG phải `demoData` (đổi 04/08, Module F section 1). Cả ba số
      đã ghim (412/8/17, 210/0, 9) vốn LÀ sự thật của seed.ev — trước F2 thì `demoData.ev === seed.ev`
@@ -461,19 +510,18 @@ describe("qRunDrill", () => {
     expect(res.lines[0].meta).not.toContain("Kênh mở TK");
   });
 
-  /* Hai thuộc tính in kèm mỗi dòng phải TẤT ĐỊNH và không đổi theo thứ tự khai chiều. Ca này canh
-     đúng chỗ đợt 2a suýt làm đổi chữ trên màn hình: tập ứng viên giờ suy từ `dims`, nếu chỉ lấy 2
-     cái đầu theo thứ tự khai thì drill theo `seg` sẽ in "Độ tuổi" thay cho "Phân khúc NAV" — không
-     một test nào ghim, mà owner thì thấy chữ khác. `META_PRIORITY` giữ đúng thứ tự bản trước. */
-  it("meta của dòng drill giữ THỨ TỰ ƯU TIÊN (seg > tier > nav), không theo thứ tự khai chiều", () => {
-    const seg: QuantifyShow = { ...acq, show: "seg" };
-    const res = qRunDrill(seg, demoData, dims, demoData.cust[0].seg);
+  /* Hai thuộc tính in kèm mỗi dòng phải TẤT ĐỊNH và không đổi theo thứ tự khai chiều. `seg` đã rút
+     khỏi `dims` (S2) nên không còn drill được theo nó — đổi sang `nav` (trục vẫn tồn tại) để canh
+     ĐÚNG hệ quả owner đã chấp nhận: drill theo `nav` trước đây in "Segment khách · Value tier", sau
+     đợt này in "Value tier · Kênh mở TK" (META_PRIORITY bỏ `seg`, xem domain/quantify.ts). */
+  it("meta của dòng drill giữ THỨ TỰ ƯU TIÊN (tier > nav > acq), seg đã rút khỏi ưu tiên (S2)", () => {
+    const nav: QuantifyShow = { ...acq, show: "nav" };
+    const res = qRunDrill(nav, demoData, dims, demoData.cust[0].bands.nav as string);
     expect(res.kind).toBe("full");
     if (res.kind !== "full") throw new Error("unreachable");
     expect(res.lines[0].meta).toContain("Value tier");
-    expect(res.lines[0].meta).toContain("Phân khúc NAV");
+    expect(res.lines[0].meta).toContain("Kênh mở TK");
     expect(res.lines[0].meta).not.toContain("Độ tuổi");
-    expect(res.lines[0].meta).not.toContain("Segment khách");
   });
 
   it("hàng 'Không xác định': kind='unknown', TÁCH LẠI hai sentinel mà chart đã gộp (bài học D0)", () => {

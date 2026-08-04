@@ -4,7 +4,13 @@ import { UNKNOWN_YET, MISSING } from "./segment.ts";
 import { cfgDefault } from "./fixtures/seed.ts";
 import type { CfgBandAxis } from "./schema/index.ts";
 
-const { nav, age, tenure } = cfgDefault.segment.band;
+const { nav, age } = cfgDefault.segment.band;
+
+/* `tenure` đã rút khỏi `cfgDefault.segment.band` (S2, 04/08: chiều không còn cắt chart) — nhưng axis
+   này là chỗ DUY NHẤT phủ unit 'tháng' (mốc chuyển tầng tháng→năm ở 24 tháng, bandLabelsThang trong
+   bands.ts). Giữ một literal TEST-LOCAL với đúng số cũ để không mất độ phủ unit đó — bands.ts không
+   biết và không cần biết chiều nào đang dùng nó, chỉ nhận CfgBandAxis thuần. */
+const tenureAxis: CfgBandAxis = { min: null, cuts: [6, 24, 60], unit: "tháng" };
 
 describe("bandLabels", () => {
   it("nav mặc định: đúng 5 nhãn đang chạy hôm nay", () => {
@@ -16,7 +22,7 @@ describe("bandLabels", () => {
   });
 
   it("tenure mặc định: đúng 4 nhãn đang chạy hôm nay (formatter tháng→năm ở mốc 24 tháng)", () => {
-    expect(bandLabels(tenure)).toEqual(["<6 tháng", "6-24 tháng", "2-5 năm", ">5 năm"]);
+    expect(bandLabels(tenureAxis)).toEqual(["<6 tháng", "6-24 tháng", "2-5 năm", ">5 năm"]);
   });
 
   it("không mutate axis đầu vào", () => {
@@ -67,6 +73,6 @@ describe("bandOf", () => {
   });
 
   it("sentinel MISSING trả nguyên vẹn, không xếp vào dải nào", () => {
-    expect(bandOf(MISSING, tenure)).toBe(MISSING);
+    expect(bandOf(MISSING, tenureAxis)).toBe(MISSING);
   });
 });

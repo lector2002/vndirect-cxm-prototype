@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { dims, seed } from "../data/fixtures/seed.ts";
-import type { CxmData, QuantifyShow } from "../data/schema/index.ts";
+import { cfgDefault, dims, seed } from "../data/fixtures/seed.ts";
+import { projectCustomer } from "../data/projectBands.ts";
+import type { Cfg, CxmData, Dim, QuantifyShow } from "../data/schema/index.ts";
 import { MISSING } from "../data/segment.ts";
 import { QuantifyWidget } from "./QuantifyWidget.tsx";
 
@@ -11,19 +12,34 @@ import { QuantifyWidget } from "./QuantifyWidget.tsx";
 
    Ba test dưới ĐỔI TỪ nav SANG tenure (04/08): owner chốt NAV lấy trực tiếp từ giá trị tài sản hiện
    tại nên trục nav KHÔNG còn sentinel nào — dùng nó thì không chạm được nhánh "gộp Không xác định"
-   đang cần test. tenure vẫn là trục có 'chưa-biết' thật (chưa mở xong TK thì chưa có thâm niên). */
+   đang cần test. tenure vẫn là trục có 'chưa-biết' thật (chưa mở xong TK thì chưa có thâm niên).
+
+   `tenure` đã rút khỏi `dims` (S2, 04/08) — dựng DIM + CFG TEST-LOCAL, chiếu qua đúng đường sản phẩm
+   (`projectCustomer`, cùng đường domain/quantify.test.ts và data/projectBands.test.ts:32 dùng) —
+   KHÔNG phục hồi `dims.tenure` ở sản phẩm thật. */
+const TENURE_TEST_ID = "ttenure";
+const testDims: Record<string, Dim> = {
+  ...dims,
+  [TENURE_TEST_ID]: { label: "Thâm niên giao dịch (test)", unit: "nhóm thâm niên", base: "cust", cut: { kind: "band", source: "tenureMonths" } },
+};
+const testCfg: Cfg = {
+  ...cfgDefault,
+  segment: { ...cfgDefault.segment, band: { ...cfgDefault.segment.band, [TENURE_TEST_ID]: { min: null, cuts: [6, 24, 60], unit: "tháng" } } },
+};
+const seedWithTenure: CxmData = { ...seed, cust: seed.cust.map((c) => projectCustomer(c, testCfg, testDims)) };
+
 describe("QuantifyWidget — trục base:'cust' đi qua qRunSegment (S2.C3b)", () => {
   const tenureItem: QuantifyShow = {
     id: "test-seg-tenure",
     kind: "show",
-    show: "tenure",
+    show: TENURE_TEST_ID,
     metric: "count",
     chart: "rank",
     name: "test tenure",
   };
 
   it("seg.kind='draw' (tenure, known=3/7) → gộp 'chưa-biết'+'thiếu' thành MỘT bar 'Không xác định' NGAY TRONG chart", () => {
-    render(<QuantifyWidget item={tenureItem} data={seed} dims={dims} />);
+    render(<QuantifyWidget item={tenureItem} data={seedWithTenure} dims={testDims} />);
     const bars = screen.getByTestId("bars");
     // 3 hàng: 2 band đã biết ('<6 tháng' 2, '>5 năm' 1) + bar gộp "Không xác định" (unknown=4) ghim cuối.
     expect(bars.children).toHaveLength(3);
@@ -56,10 +72,10 @@ describe("QuantifyWidget — trục base:'cust' đi qua qRunSegment (S2.C3b)", (
     // Ép 2 khách 'chưa-biết' (index 0,1) thành MISSING ('thiếu') — known=3, unknown=2, missing=2,
     // total=7 (khác oracle gốc chỉ có unknown, chưa từng chạm nhánh 'thiếu' của buildSegDescription).
     const missData: CxmData = {
-      ...seed,
-      cust: seed.cust.map((c, i) => (i < 2 ? { ...c, bands: { ...c.bands, tenure: MISSING } } : c)),
+      ...seedWithTenure,
+      cust: seedWithTenure.cust.map((c, i) => (i < 2 ? { ...c, bands: { ...c.bands, [TENURE_TEST_ID]: MISSING } } : c)),
     };
-    render(<QuantifyWidget item={tenureItem} data={missData} dims={dims} />);
+    render(<QuantifyWidget item={tenureItem} data={missData} dims={testDims} />);
     const bars = screen.getByTestId("bars");
     // Bar gộp "Không xác định" = unknown+missing = 2+2 = 4, vẫn MỘT bar duy nhất.
     expect(bars.children).toHaveLength(3);
@@ -70,8 +86,8 @@ describe("QuantifyWidget — trục base:'cust' đi qua qRunSegment (S2.C3b)", (
 
   it("seg.kind='refuse' (known=0 sau khi loại bỏ khách có tenure thật) → render panel lý do, KHÔNG chart", () => {
     // Giữ đúng 4 khách 'chưa-biết' ⇒ known=0 (nhánh refuse của qRunSegment).
-    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.bands.tenure === "chưa-biết") };
-    render(<QuantifyWidget item={tenureItem} data={miniData} dims={dims} />);
+    const miniData: CxmData = { ...seedWithTenure, cust: seedWithTenure.cust.filter((c) => c.bands[TENURE_TEST_ID] === "chưa-biết") };
+    render(<QuantifyWidget item={tenureItem} data={miniData} dims={testDims} />);
     expect(screen.queryByTestId("bars")).not.toBeInTheDocument();
     expect(screen.queryByTestId("vaxis-label")).not.toBeInTheDocument();
     expect(screen.queryByTestId("seg-coverage")).not.toBeInTheDocument();
@@ -86,10 +102,14 @@ describe("QuantifyWidget — trục base:'cust' đi qua qRunSegment (S2.C3b)", (
    chia màu thì màu mã hoá NHÓM CHIA, không phải intent — chú giải cho một thang khác thang đang hiện
    là loại lỗi không test nào khác trong repo bắt được. */
 describe("QuantifyWidget — chia màu (split) dùng legend của thang màu ĐANG vẽ", () => {
-  const q19 = seed.qt.find((x) => x.id === "q19");
+  /* q19 (Kênh mở TK × Phân khúc NAV) đã bỏ khỏi seed.qt (S4, owner chốt 04/08) — tự dựng item tại
+     đây (đúng hình dạng q19 cũ) thay vì đọc từ seed, giữ nguyên MỌI phép khẳng định số liệu. */
+  const q19: QuantifyShow = {
+    id: "q19", kind: "show", show: "acq", split: "nav", metric: "count", chart: "rank",
+    name: "Kênh mở TK × Phân khúc NAV",
+  };
 
   it("q19 (acq × nav) → legend đúng 2 bậc của trục CHIA MÀU, không có split-note", () => {
-    if (!q19) throw new Error("fixture q19 (show='acq', split='nav') phải tồn tại trong seed");
     render(<QuantifyWidget item={q19} data={seed} dims={dims} />);
     const legend = screen.getByTestId("chart-legend");
     expect(legend).toHaveTextContent("1-5tỷ");

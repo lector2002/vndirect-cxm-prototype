@@ -9,6 +9,14 @@ function findItem(id: string): QuantifyItem {
   return q;
 }
 
+/* q16 (Theme × Nền tảng) đã bỏ khỏi seed.qt (S4, owner chốt 04/08) — năng lực view='table' GIỮ
+   NGUYÊN, chỉ không còn saved query nào trỏ vào. Tự dựng item tại đây (đúng hình dạng q16 cũ) và
+   nối thêm vào seed.qt khi gọi filterItems, vì filterItems lọc trên CẢ MẢNG chứ không phải một item. */
+const q16: QuantifyItem = {
+  id: "q16", kind: "show", show: "theme", by: "pf", metric: "count", view: "table", chart: "rank",
+  name: "Theme × Nền tảng (ghép chéo)",
+};
+
 describe("qBaseKey", () => {
   it("item series (q5) → 'series'", () => {
     expect(qBaseKey(findItem("q5"), dims)).toBe("series");
@@ -41,7 +49,7 @@ describe("filterItems — base (port harness §11c 328-331)", () => {
 
 describe("filterItems — view (port harness §11c 326-327)", () => {
   it("view='table' giữ q16 (Theme × Nền tảng), loại item view mặc định chart", () => {
-    const result = filterItems(seed.qt, dims, { kind: "all", base: "all", view: "table", search: "" });
+    const result = filterItems([...seed.qt, q16], dims, { kind: "all", base: "all", view: "table", search: "" });
     expect(result.some((q) => q.id === "q16")).toBe(true);
     expect(result.some((q) => q.id === "q1")).toBe(false);
   });

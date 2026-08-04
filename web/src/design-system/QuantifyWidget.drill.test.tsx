@@ -19,6 +19,13 @@ function findItem(id: string): QuantifyItem {
   return q;
 }
 
+/* q19 (Kênh mở TK × Phân khúc NAV) đã bỏ khỏi seed.qt (S4, owner chốt 04/08) — tự dựng item tại
+   đây (đúng hình dạng q19 cũ) thay vì đọc từ seed, giữ nguyên MỌI phép khẳng định số liệu. */
+const q19: QuantifyItem = {
+  id: "q19", kind: "show", show: "acq", split: "nav", metric: "count", chart: "rank",
+  name: "Kênh mở TK × Phân khúc NAV",
+};
+
 function clickRow(i: number) {
   const bars = screen.getByTestId("bars");
   fireEvent.click(bars.children[i]);
@@ -76,7 +83,7 @@ describe("QuantifyWidget — drill-down hàng gộp 'Khác (+N)'", () => {
 
 describe("QuantifyWidget — drill-down trục khách", () => {
   it("hàng 'Không xác định' TÁCH LẠI hai sentinel mà chart đã gộp (bài học D0 làm cho xem được)", () => {
-    render(<QuantifyWidget item={findItem("q19")} data={demoData} dims={dims} />);
+    render(<QuantifyWidget item={q19} data={demoData} dims={dims} />);
     const bars = screen.getByTestId("bars");
     // demoData/q19: 5 hàng có tên (đều dưới TOP_N nên không gộp đuôi) + 'Không xác định' ghim cuối.
     expect(bars.children).toHaveLength(6);
@@ -89,7 +96,7 @@ describe("QuantifyWidget — drill-down trục khách", () => {
   });
 
   it("hàng khách thường: liệt kê KHÁCH (khoá đã mask), total giữ số thật khi danh sách bị cắt", () => {
-    render(<QuantifyWidget item={findItem("q19")} data={demoData} dims={dims} />);
+    render(<QuantifyWidget item={q19} data={demoData} dims={dims} />);
     clickRow(0); // 'tự tìm' = 62 khách, cắt còn 50 dòng
     const denom = screen.getByTestId("drill-denom");
     expect(denom).toHaveTextContent("50 khách đầu trong 62");

@@ -4,7 +4,7 @@ import { demoData } from "../data/fixtures/demo.ts";
 import { dims } from "../data/fixtures/seed.ts";
 import type { Dim } from "../data/schema/index.ts";
 import { ANON_CK } from "../data/validate.ts";
-import { custField } from "./quantify.ts";
+import { custField, PF_LABEL } from "./quantify.ts";
 import { CAT_CYCLE, SUBTHEME_AXIS, themeAxisOptions, themeSegments } from "./themeSegments.ts";
 
 /* Oracle subtheme 03/08 (đọc trực tiếp seed.ts) — GIỮ NGUYÊN, trục subtheme không đổi ở F1:
@@ -105,8 +105,10 @@ describe("themeSegments — trục đếm được từ dims (demoData)", () => 
   it("MỖI trục: nhãn đoạn THƯỜNG chỉ thuộc tập giá trị của ĐÚNG trục đó, không lẫn trục khác", () => {
     const unknownLabels = new Set(["chưa-biết", "thiếu", "Ẩn danh", "Chưa đối chiếu được", "Chưa có bằng chứng gán"]);
     const domainOf = (axis: string): Set<string> =>
+      // S2c (04/08): nhãn pf hiện tên đẹp qua PF_LABEL (xem themeSegments.ts) — tập giá trị đúng
+      // phải là tập nhãn ĐÃ đổi tên, không phải giá trị thô 'android'/'ios'/'web' nữa.
       axis === "pf"
-        ? new Set(demoData.ev.map((e) => e.pf))
+        ? new Set(demoData.ev.map((e) => PF_LABEL[e.pf] ?? e.pf))
         : new Set(
             demoData.cust
               .map((c) => custField(dims, axis)!(c))
@@ -221,8 +223,9 @@ describe("themeSegments — trục đếm được từ dims (demoData)", () => 
 
   it("giá trị THƯỜNG sắp giảm dần theo n, màu CAT_CYCLE theo thứ hạng (trục 'pf' của x-th-device)", () => {
     const segs = themeSegments(demoData, "x-th-device", "pf", dims);
-    const normal = segs.filter((s) => s.label === "android" || s.label === "ios" || s.label === "web");
-    expect(normal.map((s) => s.label)).toEqual(["android", "ios", "web"]);
+    // S2c (04/08): nhãn pf là tên đẹp (PF_LABEL) — 'android'→'Android' v.v., số n và thứ tự không đổi.
+    const normal = segs.filter((s) => s.label === "Android" || s.label === "iOS" || s.label === "Web");
+    expect(normal.map((s) => s.label)).toEqual(["Android", "iOS", "Web"]);
     expect(normal.map((s) => s.n)).toEqual([175, 82, 39]);
     expect(normal.map((s) => s.c)).toEqual([CAT_CYCLE[0], CAT_CYCLE[1], CAT_CYCLE[2]]);
   });

@@ -1,7 +1,7 @@
 import type { CxmData, Customer, Dim, Evidence, TaxNode } from "../data/schema/index.ts";
 import { ANON_CK } from "../data/validate.ts";
 import { isSegUnknown, MISSING, UNKNOWN_YET } from "../data/segment.ts";
-import { custField } from "./quantify.ts";
+import { custField, PF_LABEL } from "./quantify.ts";
 
 /* VOC-STACKED-SPEC §2 — chia n của một theme thành các đoạn cho Bars.segments.
    `subtheme` = trục THẬT (n thật của subtheme con, GIỮ NGUYÊN từ bản trước).
@@ -37,6 +37,22 @@ export const CAT_CYCLE = ["var(--cat-1)", "var(--cat-2)", "var(--cat-3)", "var(-
 const EV_FIELD: Record<string, (e: Evidence) => string> = {
   pf: (e) => e.pf,
 };
+
+/** Tên đẹp cho các trục `base:'ev'` đếm trực tiếp trên Evidence — hôm nay chỉ `pf` cần đổi, vì
+    `EV_FIELD.pf` trả giá trị THÔ ('ios'/'android'/'web') để dùng làm KHOÁ đếm (`counts`), trong khi
+    bảng tên đẹp (`iOS`/`Android`/`Web`/`Server`) đã có sẵn ở `domain/quantify.ts` (PF_LABEL, dùng
+    chung cho `qRun`). Đây là bảng RIÊNG chỉ áp lúc DỰNG LABEL — `counts` vẫn khoá theo giá trị thô,
+    không đụng tới (S2c, 04/08). Còn một bản sao PF_LABEL nữa ở design-system/SrcMatrix.tsx:16,
+    NGOÀI PHẠM VI đợt này.
+
+    ĐỌC KỸ TRƯỚC KHI "ĐƠN GIẢN HOÁ": giá trị phải lấy bằng HÀM, không đọc thẳng `PF_LABEL` lúc khai.
+    `quantify.ts` import `CAT_CYCLE` từ file này (quantify.ts:15) và file này import `PF_LABEL` từ
+    `quantify.ts` (dòng 4) ⇒ VÒNG IMPORT. `const` không hoist, nên nếu `quantify.ts` được nạp trước
+    thì lúc dòng này chạy `PF_LABEL` còn chưa khởi tạo → bảng thành `undefined` → nhãn lặng lẽ rơi về
+    giá trị thô 'android'/'ios'. Đã đo: cùng data, cùng hàm, chỉ đổi thứ tự import mà nhãn khác nhau.
+    Bọc trong hàm để deref xảy ra lúc GỌI, khi cả hai module đã khởi tạo xong. Canh bởi test
+    "nhãn nền tảng không phụ thuộc thứ tự import" trong themeSegments.pfLabel.test.ts. */
+const EV_LABEL: Record<string, () => Record<string, string>> = { pf: () => PF_LABEL };
 
 /** Trục subtheme (THẬT): tách theme.n theo n thật của các subtheme con (data.tax, parentId===theme.id),
     sort n desc, màu CAT_CYCLE cố định theo index. Phần theme.n KHÔNG được subtheme nào phủ (rem =
@@ -151,7 +167,10 @@ function countedSegments(
 
   const segs: ThemeSegment[] = [...counts.entries()]
     .sort((a, b) => b[1] - a[1])
-    .map(([label, n], i) => ({ label, n, c: CAT_CYCLE[i % CAT_CYCLE.length] }));
+    /* `raw` là khoá đếm thật (giữ nguyên, không đổi) — `label` chỉ đổi tên đẹp lúc DỰNG segment,
+       qua EV_LABEL nếu trục có bảng đó (hôm nay chỉ `pf`); trục không có (mọi trục base:'cust') giữ
+       nguyên như cũ. */
+    .map(([raw, n], i) => ({ label: EV_LABEL[axis]?.()[raw] ?? raw, n, c: CAT_CYCLE[i % CAT_CYCLE.length] }));
 
   // Ghim cuối, KHÔNG tiêu slot CAT_CYCLE nào — bốn nghĩa "không biết", bốn đoạn, không gộp.
   if (unk > 0) segs.push({ label: "chưa-biết", n: unk, c: "var(--unk)" });
