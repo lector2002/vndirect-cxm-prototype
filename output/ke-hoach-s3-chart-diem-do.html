@@ -1,0 +1,231 @@
+<meta charset="utf-8">
+<title>S3 — Bản đồ hành trình + chart điểm đo · bản chia việc</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #16181d; --mut: #5c6270; --line: #e3e6ec; --soft: #f6f7f9;
+    --acc: #1f5fd0; --warn: #b45309; --bad: #b42318; --ok: #027a48;
+    --warnbg: rgba(180, 83, 9, .08); --badbg: rgba(180, 35, 24, .07); --okbg: rgba(2, 122, 72, .07);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --fg: #e8eaee; --mut: #9aa1ae; --line: #2a2e36; --soft: #1b1e24;
+      --acc: #79a8ff; --warn: #f0b357; --bad: #ff8b80; --ok: #5ed3a0;
+      --warnbg: rgba(240, 179, 87, .10); --badbg: rgba(255, 139, 128, .10); --okbg: rgba(94, 211, 160, .10);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.2rem 1.2rem 5rem; background: var(--bg); color: var(--fg);
+    font: 16px/1.65 ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 60rem; margin: 0 auto; }
+  h1 { font-size: 1.6rem; line-height: 1.3; margin: 0 0 .3rem; }
+  h2 { font-size: 1.18rem; margin: 2.6rem 0 .7rem; padding-top: 1.1rem; border-top: 1px solid var(--line); }
+  h3 { font-size: 1rem; margin: 1.6rem 0 .5rem; }
+  .sub { color: var(--mut); margin: 0 0 1.6rem; font-size: .95rem; }
+  p, li { margin: .55rem 0; }
+  ul, ol { padding-left: 1.3rem; }
+  code { font: .87em ui-monospace, SFMono-Regular, Consolas, monospace; background: var(--soft); padding: .1em .35em; border-radius: 3px; }
+  .scroll { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--line); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--soft); font-weight: 600; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .box { border: 1px solid var(--line); border-left-width: 3px; border-radius: 6px; padding: .85rem 1rem; margin: 1.1rem 0; }
+  .box p:first-child { margin-top: 0; } .box p:last-child { margin-bottom: 0; }
+  .bad { border-left-color: var(--bad); background: var(--badbg); }
+  .warn { border-left-color: var(--warn); background: var(--warnbg); }
+  .ok { border-left-color: var(--ok); background: var(--okbg); }
+  .lbl { font-size: .72rem; letter-spacing: .07em; text-transform: uppercase; font-weight: 700; color: var(--mut); display: block; margin-bottom: .3rem; }
+  .sec { border: 1px solid var(--line); border-radius: 8px; padding: 1.1rem 1.2rem; margin: 1.2rem 0; }
+  .sec > h3 { margin-top: 0; }
+  .tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: .12em .5em; border-radius: 999px; background: var(--soft); color: var(--mut); border: 1px solid var(--line); margin-left: .4rem; vertical-align: middle; }
+  blockquote { margin: .9rem 0; padding: .3rem 0 .3rem 1rem; border-left: 3px solid var(--line); color: var(--mut); font-style: italic; }
+  .fine { font-size: .87rem; color: var(--mut); }
+</style>
+
+<main>
+
+<h1>S3 — Bản đồ hành trình + chart điểm đo</h1>
+<p class="sub">Bản chia việc · 05/08/2026 · tiếp sau S1 (<code>ca3cfc0</code>, <code>3a43c2c</code>) và S2+S4 (<code>13199fd</code>, <code>27fd4f6</code>)</p>
+
+<p>S3 là phần còn lại của stream: dựng màn <em>Bản đồ hành trình</em> (hôm nay còn là màn trống) rồi đặt chart điểm đo vào tab <em>Touchpoint &amp; signal</em> của màn đó.</p>
+
+<p>Trước khi chia việc, em đã đo lại dữ liệu demo và soát đường đi của cấu hình. Có <strong>một chỗ bước 1 để hở</strong> phải đóng trong S3 (nếu không thì một tiêu chí nghiệm thu đã hứa sẽ âm thầm sai), <strong>ba hành vi</strong> sẽ có trong code và có test nhưng <em>không bấm ra xem được</em> trong bản demo, và <strong>hai câu</strong> em tự chốt vì dữ liệu đã trả lời sẵn. Nêu hết ở đây trước, để lúc anh review bản chạy thì không có gì bất ngờ.</p>
+
+<h2>1 · Chỗ bước 1 để hở: ranh giới nhóm không chảy tới chart điểm đo</h2>
+
+<p>Thiết kế có một tiêu chí nghiệm thu, và ghi rõ là tính chất <em>đã làm được ở bước 1, đợt này không được làm mất</em>:</p>
+
+<blockquote>Đổi ranh giới nhóm NAV trong cấu hình → lát trong cột chia lại ngay, không sửa dòng code nào.</blockquote>
+
+<p>Tính chất này <strong>đúng ở mức hàm</strong> nhưng <strong>sai ở mức ứng dụng đang chạy</strong>. Bốn dữ kiện dựng nên kết luận đó:</p>
+
+<div class="scroll"><table>
+<tr><th>Dữ kiện</th><th>Ở đâu</th><th>Nghĩa là gì</th></tr>
+<tr>
+  <td>Bảng đếm của chart điểm đo được cộng <strong>một lần lúc nạp file</strong>, theo cấu hình mặc định</td>
+  <td><code>data/fixtures/demo.ts:691</code></td>
+  <td>Cộng xong là đông cứng. Ranh giới nhóm lúc đó là ranh giới mặc định.</td>
+</tr>
+<tr>
+  <td>Khi giao diện xin dữ liệu, chỉ <strong>nhãn nhóm của khách</strong> được chiếu lại theo cấu hình hiện tại — bảng đếm thì trả nguyên</td>
+  <td><code>data/mock-repository.ts:102</code></td>
+  <td>Đổi ngưỡng ở màn cấu hình: các chart theo khách chia lại ngay, riêng chart điểm đo giữ ranh giới cũ.</td>
+</tr>
+<tr>
+  <td>Danh sách <em>từng lần bắn</em> chỉ sống trong file sinh demo, không có trong kiểu dữ liệu chung</td>
+  <td><code>demo.ts:619-622</code>, <code>schema/index.ts</code> (không có trường nào)</td>
+  <td>Muốn cộng lại thì phải có lại các lần bắn — mà chúng cố ý không đi ra ngoài.</td>
+</tr>
+<tr>
+  <td>Đã có test chứng minh <strong>hàm</strong> cộng lại đúng khi đổi ngưỡng</td>
+  <td><code>data/projectSignalCounts.test.ts:102</code></td>
+  <td>Phép tính không sai. Chỉ thiếu người gọi lại nó lúc chạy.</td>
+</tr>
+</table></div>
+
+<div class="box bad">
+  <span class="lbl">Vì sao đây là lỗi nặng chứ không phải chuyện nhỏ</span>
+  <p>Nó sai <strong>im lặng</strong>. Ba ràng buộc trung thực của bảng đếm vẫn đúng nguyên: tổng vẫn khớp con số công bố, năm bảng vẫn khớp nhau, số “chưa định danh” vẫn giống nhau — vì đổi tên nhãn nhóm không đổi con số. Nên bộ kiểm không kêu một tiếng.</p>
+  <p>Kết quả là hai chart cạnh nhau trên cùng màn hình hiểu chữ “&lt;50tr” theo hai ranh giới khác nhau, và không có dấu hiệu gì cho người xem biết. Đúng loại lỗi mà cả stream này dựng ràng buộc để tránh.</p>
+</div>
+
+<h3>Cách đóng — em chọn sẵn, không hỏi lại</h3>
+
+<p>Thiết kế đã tự trả lời câu này ở phần yêu cầu dữ liệu (§11, yêu cầu 2): <em>“xin số thô, không xin nhãn nhóm… ranh giới nhóm là thứ owner đặt và đổi được ngay trên hệ thống; nhận nhãn làm sẵn là khoá cứng lại đúng thứ đang mềm”</em>. Đã chốt như vậy thì chart điểm đo không được nhận nhãn nhóm đông cứng.</p>
+
+<p>Cách đóng giữ nguyên cả hai điều đang đúng:</p>
+
+<ul>
+  <li><strong>Không khoá vào một kiểu nhận dữ liệu.</strong> Anh chốt 05/08: cách nhận <em>có thể là raw</em>, không nhất thiết là bảng đã xử lý và query sẵn. Nên chỗ này không được viết như thể chỉ có một kiểu nhận — xem mục ngay dưới.</li>
+  <li><strong>Phép cộng và phép cắt nhóm đặt ở tầng của mình.</strong> Khi ranh giới nhóm đổi thì cộng lại, thay vì trả bảng cũ. Đặt ở tầng mình thì <em>cả hai kiểu nhận đều chạy</em>: nhận raw thì cộng thẳng từ raw; nhận bảng đã cộng sẵn thì hỏi lại bên dữ liệu với ranh giới mới làm tham số. Hình dạng như nhau, chỉ khác chỗ lấy số.</li>
+  <li>Bản dữ liệu tĩnh (7 khách) không có bảng đếm nên không có gì phải cộng lại — không ảnh hưởng.</li>
+</ul>
+
+<p class="fine">Chi phí: một mảnh việc nhỏ trong S3a, sửa ở tầng dữ liệu và nơi cấp dữ liệu. Nghiệm thu là chính tiêu chí đã hứa — đổi ngưỡng NAV ở màn cấu hình, lát trong cột chia lại, không sửa dòng code nào.</p>
+
+<h3>Anh chốt thêm 05/08 — nhận raw, và luật “cột có / cột không”</h3>
+
+<div class="box ok">
+  <span class="lbl">Nguyên văn</span>
+  <p>“cách nhận dữ liệu có thể là raw chứ ko nhận đã xử lý và query sẵn, ko cần quan tâm đến từng cột quá nhiều, nếu có thì hiển thị ra các thông báo cụ thể được gán vào giá trị của cột đó, nếu ko có thì bảo ko”</p>
+</div>
+
+<p>Ba điều rút ra, và cả ba đều làm S3 <em>dễ</em> hơn chứ không khó hơn:</p>
+
+<ol>
+  <li><strong>Bên dữ liệu giao raw, mình tự query.</strong> Đây là điểm ngược với cái đang ghi trong code hiện tại: chú thích ở <code>demo.ts:619-621</code> viết rằng hệ thống chạy thật “nhận thẳng năm bảng đếm đã cộng sẵn… không đưa từng lần bắn qua mạng”. Câu đó là <em>giả định của người làm bước 1</em>, không phải điều anh chốt — và nay đã bị bỏ. Phải sửa lại chú thích đó trong S3a, nếu không thì phiên sau lại đọc nó như luật.</li>
+  <li><strong>Không đi sâu vào từng cột trong bản yêu cầu dữ liệu.</strong> Xin đúng thứ cần lấy, không dựng hợp đồng cột chi li rồi khoá mình vào đó. Nhận raw thì việc chọn cột nào, cắt thế nào là việc của mình.</li>
+  <li><strong>Luật hiển thị theo cột có / không — áp cho mọi cột, không riêng năm chiều.</strong> Cột <em>có</em> trong dữ liệu: hiện ra các thông báo cụ thể gán vào giá trị của chính cột đó — bằng tiếng người, đúng nghĩa của từng giá trị. Cột <em>không có</em>: nói thẳng là không có. Không giấu nút đi, không “N/A”, không để trống cho người xem tự đoán.</li>
+</ol>
+
+<p>Điều 3 chính là ba trạng thái nút chiều ở §1 của thiết kế, nói rộng ra cho mọi cột — nên S3a không cần luật mới, chỉ cần tính trạng thái <em>từ dữ liệu</em> cho mọi cột chứ không chỉ cho năm chiều đã biết tên.</p>
+
+<div class="box warn">
+  <span class="lbl">Một chỗ nhận raw làm nặng thêm, cần biết trước</span>
+  <p>Nhận raw thì mình phải tự cắt nhóm, tự cộng, và tự giữ năm nghĩa của “không biết” <em>tách nhau trong lúc cộng</em>. Bốn nguyên tắc trung thực chuyển từ “kiểm bảng bên kia giao có đúng không” thành “phép cộng của mình phải đúng”. Bộ kiểm hiện có đã canh đúng chỗ đó rồi (ba ràng buộc ở <code>validate.ts</code> nhóm 22), nên không mất gì — chỉ là trách nhiệm dịch về phía mình, và test phải theo.</p>
+</div>
+
+<h2>2 · Ba hành vi có trong code nhưng không bấm ra xem được</h2>
+
+<p>Đây là giới hạn của <em>dữ liệu demo</em>, không phải việc còn dở. Nói trước để lúc review không bị đọc thành thiếu sót.</p>
+
+<div class="scroll"><table>
+<tr><th>Hành vi thiết kế yêu cầu</th><th>Trong demo</th><th>Vì sao</th></tr>
+<tr>
+  <td>Cột <strong>“giá trị chưa khai”</strong> — pipeline bắn ra giá trị không có trong danh mục thì phải hiện ra, không được lặng lẽ bỏ</td>
+  <td>Không có dữ liệu để hiện</td>
+  <td>Em đã đếm cả 588 dòng bảng đếm: <strong>không dòng nào</strong> mang giá trị lạ. Bộ sinh demo chỉ sinh giá trị đã khai.</td>
+</tr>
+<tr>
+  <td>Nút chiều trạng thái <strong>“ghi được một phần”</strong> kèm con số ngay trên nút</td>
+  <td>Không bấm tới được</td>
+  <td rowspan="2">Trong demo cả năm chiều đều được ghi đủ, nên mọi nút đứng ở trạng thái 1. Xem giải thích ngay dưới — em ghi sai chỗ này ở bản đầu và đã sửa.</td>
+</tr>
+<tr>
+  <td>Nút chiều trạng thái <strong>“khoá kèm lý do”</strong> (nguồn không ghi chiều đó)</td>
+  <td>Không bấm tới được</td>
+</tr>
+</table></div>
+
+<p>Cả ba vẫn được phủ bằng test với dữ liệu dựng riêng cho test. Nếu anh muốn <em>nhìn thấy</em> chúng trong bản chạy thì phải sửa bộ sinh demo — em không đề xuất, lý do ở mục 3.</p>
+
+<div class="box bad">
+  <span class="lbl">Em sửa lại một chỗ mình suy sai — quan trọng, vì nó suýt vào code</span>
+  <p>Bản đầu em viết: con số trên nút chiều đếm những khách <em>thiếu dữ kiện</em> (nhãn <code>thiếu</code>, <code>chưa-biết</code>). Sai, và sai đúng loại nguy hiểm nhất — làm thế là <strong>gộp hai trong năm nghĩa của “không biết” thành một con số</strong>, đúng phép gộp mà cả stream này dựng ràng buộc để cấm.</p>
+  <p>Thiết kế nói rõ nút chiều trả lời câu <em>“nguồn này có ghi chiều đó hay không”</em> — ví dụ trong thiết kế là “một chart gộp nhiều nguồn thì survey có nền tảng còn ghi chú broker thì không”. Đó là tính chất của <strong>nguồn</strong>. Còn một khách có tồn tại, nối được, nhưng ô dữ kiện của họ để trống thì là <strong>chất lượng dữ liệu của khách đó</strong> — hai chuyện khác nhau. <code>thiếu</code> và <code>chưa-biết</code> là <em>nhãn dải thật</em>, phải hiện thành lát riêng có tên riêng trong cột, không được cuộn vào một con số trên nút.</p>
+  <p>Còn “lần bắn không nối được khách nào” thì đã có đường riêng: nhãn <code>chưa định danh</code>, đi xuống <strong>dòng chân nhóm</strong>. Ba đường, ba nghĩa, không đường nào lấn đường nào.</p>
+</div>
+
+<h3>Luật tính ba trạng thái — tính từ độ phủ, không cần thêm sentinel nào</h3>
+
+<p>Em đã soát: hôm nay dữ liệu <strong>không có cách nào</strong> nói “nguồn không ghi chiều này”. Chiều nền tảng đọc thẳng từ chính lần bắn (<code>projectSignalCounts.ts:104-106</code>, chú thích ghi “LUÔN có band thật”), nên không có sentinel cho trường hợp lần bắn không ghi nền tảng. Bốn chiều khách thì vắng mặt khách đã là <code>chưa định danh</code>.</p>
+
+<p>Nên luật tính không dựa vào sentinel mới, mà dựa vào <strong>độ phủ</strong> — dùng chính ràng buộc 1 làm định nghĩa:</p>
+
+<ul>
+  <li>Tổng số đếm của một chiều <strong>bằng</strong> con số công bố ⇒ <em>ghi đủ</em>, nút bình thường.</li>
+  <li>Tổng <strong>bằng 0</strong> ⇒ <em>không ghi gì</em>, nút khoá kèm câu nói rõ.</li>
+  <li>Tổng <strong>nằm giữa</strong> ⇒ <em>ghi được một phần</em>, hiện tỷ lệ thiếu ngay trên nút.</li>
+</ul>
+
+<p>Cái hay là không ai phải khai gì: ngày bên dữ liệu bắt đầu ghi chiều đó, số đếm xuất hiện và nút tự sáng lên — đúng câu thiết kế yêu cầu, “nút tự sáng lên khi dữ liệu tốt lên, không ai phải sửa gì”.</p>
+
+<div class="box warn">
+  <span class="lbl">Một điều đi kèm, cần nói ra</span>
+  <p>Bộ kiểm hiện coi “tổng một chiều không khớp con số công bố” là <strong>lỗi pipeline</strong> (ràng buộc 1). Nên trong một bộ dữ liệu đã qua kiểm, trạng thái <em>ghi được một phần</em> không thể xảy ra — nó chỉ xuất hiện với dữ liệu thật chưa qua kiểm, mà đó đúng là lúc cần cảnh báo trên nút nhất. Em <strong>không</strong> nới ràng buộc 1 để trạng thái đó bấm được trong demo.</p>
+</div>
+
+<h2>3 · Hai câu em tự chốt vì dữ liệu đã trả lời</h2>
+
+<h3>“Giá trị chưa khai” — phủ bằng test, không nhét vào demo</h3>
+
+<p>Bộ kiểm hiện đã có luật: giá trị nào trong bảng đếm mà không có trong danh mục đã khai thì <em>báo lỗi</em> (<code>data/validate.ts:680</code>). Đúng như thiết kế muốn — “báo lên để người khai bổ sung”.</p>
+
+<p>Nên nếu nhét một giá trị lạ vào demo cho nó hiện ra, thì demo sẽ không qua được bộ kiểm, và cách duy nhất để nó qua là <em>nới luật kiểm cho vừa dữ liệu demo</em>. Đó đúng là cái bẫy stream này đã trả giá hai lần. Thêm nữa, sửa bộ sinh demo sẽ dịch mọi con số sinh sau nó — mất luôn bảng 588 dòng đang dùng làm mốc đối chiếu để chứng minh S2 không làm lệch gì.</p>
+
+<p>Tiêu chí nghiệm thu cũng viết dưới dạng giả định — <em>“cho pipeline bắn ra một giá trị…”</em> — chứ không đòi demo phải đang ở trạng thái đó. Phủ bằng test là đủ và đúng.</p>
+
+<h3>Điểm đo chưa instrument khi chọn nhiều — thành một dòng ghi chú, không thành nhóm cột</h3>
+
+<p>Anh chốt cho chọn nhiều điểm đo cùng lúc. Việc đó sinh ra một tình huống thiết kế cũ chưa có: chọn một điểm đo đang đo thật <em>cùng với</em> một điểm đo chưa gắn (<code>sg6</code> chưa instrument, <code>sg9</code> có spec chưa làm — cả hai chưa có số và chưa có danh mục giá trị).</p>
+
+<p>Xử lý: điểm đo chưa gắn <strong>không sinh nhóm cột nào</strong>, mà hiện thành một dòng ghi chú ngay trên chart, gọi tên nó và nói rõ chưa instrument. Không được biến mất im lặng (người chọn sẽ tưởng mình bấm trượt), cũng không được thành một nhóm cột rỗng (đọc thành “đo rồi, bằng 0”).</p>
+
+<h2>4 · Bản chia việc</h2>
+
+<p>Ba mảnh, mỗi mảnh vừa một lượt làm việc và tự kiểm được. Mảnh S3a giữ toàn bộ phần trung thực nên phải làm trước — sai hình dạng phép tính ở đây là phải tháo đi làm lại. S3b không đọc gì của chart điểm đo nên làm lúc nào cũng được.</p>
+
+<div class="sec">
+  <h3>S3a — Phép tính của chart điểm đo <span class="tag">làm trước</span></h3>
+  <p><strong>Gồm cả</strong> việc đóng chỗ hở ở mục 1 (đường cộng lại bảng đếm khi ranh giới nhóm đổi).</p>
+  <p><strong>Việc:</strong> từ bảng đếm sẵn có, dựng ra thứ mà chart cần vẽ — mỗi điểm đo được chọn là một nhóm, trong nhóm mỗi giá trị của <em>chính điểm đo đó</em> là một cột, mỗi cột chia lát theo chiều đang chọn. Kèm theo: tổng riêng từng nhóm, tỷ lệ “chưa gắn được khách” riêng từng nhóm, và trạng thái ba mức của từng nút chiều.</p>
+  <p><strong>Hai loại thiếu phải đi hai đường khác nhau</strong> — đây là chỗ dễ sai nhất: “lần bắn chưa gắn được khách” đi xuống <em>dòng chân nhóm</em>; “nguồn không ghi chiều này” đi lên <em>con số trên nút chiều</em>. Cùng một cách nói bằng tiếng người, hai nghĩa khác nhau, không được cộng lẫn.</p>
+  <p><strong>Nghiệm thu:</strong> tổng mọi nhóm khớp con số công bố của từng điểm đo · đổi ngưỡng NAV ở cấu hình thì lát chia lại · nhãn nhóm không có chữ nào gõ tay · điểm đo chưa gắn ra ghi chú không ra nhóm · giá trị lạ ra cột riêng (test dựng dữ liệu) · tầng tính toán không biết cấu hình tồn tại.</p>
+</div>
+
+<div class="sec">
+  <h3>S3b — Dải hành trình <span class="tag">độc lập</span></h3>
+  <p><strong>Việc:</strong> dựng dải nối giữa các bước — dày mỏng theo lượng khách đi qua, dấu đỏ chỗ rơi. Chỉ đọc số quan sát của bước, không dính gì tới bảng đếm, cấu hình hay chiều phân tích.</p>
+  <p><strong>Đã kiểm trước:</strong> số liệu dựng được thật — cả 6 bước đều thoả <em>đi qua = hoàn thành + rơi</em>, và <em>hoàn thành của bước này = đi vào của bước sau</em>. Dải sẽ không có chỗ nào phải bịa cho khớp.</p>
+</div>
+
+<div class="sec">
+  <h3>S3c — Màn Bản đồ hành trình <span class="tag">cần S3a + S3b</span></h3>
+  <p><strong>Việc:</strong> thay màn trống bằng: thanh giai đoạn → thẻ luồng → dải hành trình → khung xem chi tiết bước, trong đó <em>chỉ</em> tab <em>Touchpoint &amp; signal</em>. Hai tab còn lại để sau. Trong tab: bảng điểm đo bấm-chọn-nhiều, chart, nút chiều, và một khung nói rõ hiện <em>biết gì</em> về chỗ điểm đo được gắn.</p>
+  <p><strong>Khung “gắn ở đâu” phải nói thật:</strong> hệ thống hiện chỉ biết tên kỹ thuật của điểm đo, nền tảng, và mô tả bằng lời — <em>không</em> biết nó nằm ở màn nào, nút nào. Khung này ghi rõ đó là mô tả nghiệp vụ, không phải vị trí trong code, để không ai mang nó đi tìm code rồi không thấy. Phần thiếu đã thành Bảng D trong bản yêu cầu dữ liệu.</p>
+  <p><strong>Đã biết trước hai chỗ sẽ vướng:</strong> nhãn nền tảng trong bảng đếm là chữ thô chưa làm đẹp (<code>android</code>, <code>ios</code>…) — đúng loại lỗi vừa gây ra sự cố ở S2, phải làm đẹp ở tầng hiển thị và có test canh. Và chọn vài điểm đo cùng lúc là đủ vượt chiều ngang khung, nên chart phải cuộn <em>trong khung của nó</em>, không đẩy cả trang trượt ngang.</p>
+</div>
+
+<h2>5 · Cách làm việc trong S3</h2>
+
+<ul>
+  <li>Một người viết một lúc. S2 đã trả giá cho việc em sửa file trong khi một luồng khác còn đang sửa cùng file đó — mất mấy lượt chỉ để dựng lại xem cây code đang thật sự thế nào.</li>
+  <li>Kết quả từng mảnh em tự chạy lại và tự đối chiếu số, không tin con số báo về. Mốc hiện tại: dịch sạch, <strong>751/751 test xanh</strong> trên 74 file.</li>
+  <li>Đếm của chart điểm đo đi đường riêng qua bảng đếm, không mượn đường dựng dòng của các chart khác — thiết kế đã ghi rõ chỗ này.</li>
+</ul>
+
+<p class="fine">Việc tiếp theo: anh xem mục 1 (chỗ hở, em đã chọn cách đóng) và mục 3 (hai câu em tự chốt). Nếu không phản đối thì em bắt đầu S3a.</p>
+
+</main>

@@ -68,7 +68,35 @@ Nguyên văn: *"cột nhóm theo điểm đo, note lại phần gắn với elem
 4. **Panel "gắn ở đâu"** hiện đúng những gì đang có (điểm tiếp xúc + kênh + tên event + client/server + nền tảng + mã trạm) và **nói rõ đó là mô tả nghiệp vụ, chưa phải vị trí kỹ thuật**. Phần thật đi vào Bảng D.
 5. **Dải nối dày mỏng + vạch đỏ lấy trực tiếp từ dữ liệu, không cần luật quy đổi.** Đã đo trên cả 6 bước: `completed + failed = entered` khớp, và `completed[n] = entered[n+1]` khớp. Nếu dữ liệu thật sau này **không** khớp thì phải khai luật đối chiếu tường minh, không được lặng lẽ vẽ theo số nào tiện hơn.
 
-## S2 + S4 — ĐÃ XONG, đã tự kiểm (04/08, chưa commit)
+## Quyết định đợt 2b — owner chốt 05/08/2026
+
+Nguyên văn: *"note lại là cách nhận dữ liệu có thể là raw chứ ko nhận đã xử lý và query sẵn, ko cần quan tâm đến từng cột quá nhiều, nếu có thì hiển thị ra các thông báo cụ thể được gán vào giá trị của cột đó, nếu ko có thì bảo ko"*
+
+1. **Nhận raw là khả năng để mở — bên dữ liệu giao raw, mình tự query.** Chú thích `demo.ts:619-621` ("hệ thống chạy thật nhận thẳng NĂM BẢNG ĐẾM đã cộng sẵn… không đưa từng lần bắn qua mạng") là **giả định của người làm S1, KHÔNG phải điều owner chốt** — nay đã bỏ. **Phải sửa chú thích đó trong S3a**, không thì session sau đọc nó như luật rồi tự khoá lại.
+2. **Không dựng hợp đồng cột chi li trong bản yêu cầu dữ liệu.** Xin đúng thứ cần; nhận raw thì chọn cột nào / cắt thế nào là việc của mình. Không mở rộng Bảng A/B/C/D thành đặc tả từng cột.
+3. **Luật "cột có / cột không" — áp cho MỌI cột, không riêng năm chiều.** Cột *có*: hiện các thông báo cụ thể gán vào giá trị của chính cột đó, bằng tiếng người. Cột *không có*: **nói thẳng là không có** — không giấu, không "N/A", không để trống. Đây là ba trạng thái nút chiều (§1 thiết kế) nói rộng ra, nên trạng thái phải tính **từ dữ liệu** cho mọi cột, không hardcode theo tên chiều đã biết.
+
+**Hệ quả với tiêu chí nghiệm thu #7 (MỚI phát hiện 05/08).** "Đổi ranh giới NAV trong cấu hình → lát chia lại ngay" **đúng ở mức hàm, SAI ở mức app đang chạy**: `demo.ts:691` cộng `sigCounts` một lần lúc nạp module theo `cfgDefault`; `mock-repository.ts:102` `getSnapshot()` chỉ chạy lại `projectCustomerBands` rồi trả `sigCounts` nguyên. `demoFires` và type `Fire` là module-local, `CxmData` không có trường `fires`. Sai **im lặng**: ba ràng buộc nhóm 22 vẫn đúng (đổi nhãn dải không đổi con số) nên validate không kêu một tiếng → hai chart cạnh nhau hiểu "<50tr" theo hai ranh giới khác nhau. Phép tính thì đúng — có test tại `projectSignalCounts.test.ts:102`, chỉ thiếu người gọi lại lúc chạy. **Đóng trong S3a**: đặt phép cộng + phép cắt nhóm ở tầng của mình, cộng lại khi ranh giới đổi (nhận raw thì cộng thẳng từ raw; nhận bảng cộng sẵn thì hỏi lại bên dữ liệu với ranh giới làm tham số — cùng một hình dạng).
+
+**Đã tự chốt, dữ liệu trả lời sẵn nên không hỏi owner.** (a) Cột "giá trị chưa khai" phủ **bằng test**, không nhét giá trị lạ vào demo: `validate.ts:680` đã cấm giá trị ngoài `Signal.values`, nhét vào thì cách duy nhất để demo qua kiểm là **nới luật cho vừa dữ liệu** — đúng bẫy đã trả giá hai lần; thêm nữa sẽ dịch thứ tự rút `rawRng` và mất mốc đối chiếu 588 dòng. Tiêu chí #11 viết dạng giả định ("cho pipeline bắn ra…"), không đòi demo phải đang ở trạng thái đó. (b) Điểm đo `st:'gap'`/`designed` (`sg6`, `sg9` — `vol:0`, `values:[]`) khi **chọn nhiều**: ra **một dòng ghi chú** nêu tên + "chưa instrument"; **không** sinh nhóm cột rỗng (đọc thành "đo rồi, bằng 0") và **không** biến mất im lặng (người chọn tưởng bấm trượt).
+
+**Ba hành vi có code + test nhưng KHÔNG bấm ra xem được trong demo** — nói trước với owner, đừng để lúc review đọc thành việc còn dở: cột "giá trị chưa khai" (đã đếm cả 588 dòng, **không dòng nào** mang giá trị lạ); và **cả hai** trạng thái nút chiều "ghi được một phần" + "khoá kèm lý do" (trong demo cả năm chiều đều ghi đủ ⇒ mọi nút ở trạng thái 1).
+
+**LUẬT NÚT CHIỀU — đã sửa một suy luận sai, đừng lặp lại.** Bản đầu tôi định nghĩa con số trên nút = số khách thiếu dữ kiện (`thiếu`/`chưa-biết`). **SAI, và sai đúng loại nguy hiểm nhất**: làm thế là **gộp hai trong năm nghĩa của "không biết" thành một con số**. Nút chiều trả lời câu *"NGUỒN này có ghi chiều đó hay không"* (ví dụ trong thiết kế §1: "chart gộp nhiều nguồn thì survey có nền tảng còn ghi chú broker thì không") — tính chất của **nguồn**. Khách tồn tại + nối được + ô dữ kiện trống là **chất lượng dữ liệu của khách đó**: `thiếu`/`chưa-biết` là **nhãn dải THẬT**, phải hiện thành lát riêng có tên riêng, không được cuộn vào con số trên nút. Ba đường tách hẳn: `chưa định danh` → **dòng chân nhóm**; `thiếu`/`chưa-biết` → **lát bình thường trong cột**; "nguồn không ghi chiều" → **con số trên nút**.
+
+**Luật tính ba trạng thái = ĐỘ PHỦ, không cần sentinel mới.** Đã soát: hôm nay dữ liệu không có cách nào nói "nguồn không ghi chiều này" — `sigpf` đọc thẳng `fire.pf` (`projectSignalCounts.ts:104-106`, chú thích "LUÔN có band thật") nên không có sentinel; bốn chiều khách thì vắng khách đã là `chưa định danh`. Nên dùng chính ràng buộc 1 làm định nghĩa: Σ`n` của một chiều **=** `Signal.vol` ⇒ ghi đủ · **= 0** ⇒ không ghi gì, khoá · **nằm giữa** ⇒ ghi được một phần, hiện tỷ lệ trên nút. Nút tự sáng lên khi bên dữ liệu bắt đầu ghi, không ai phải sửa code. **Kèm theo:** validate coi Σ ≠ `vol` là lỗi pipeline (ràng buộc 1), nên trong fixture đã qua kiểm trạng thái "ghi được một phần" KHÔNG THỂ xảy ra — nó chỉ xuất hiện với dữ liệu thật chưa qua kiểm, đúng lúc cần cảnh báo nhất. **KHÔNG nới ràng buộc 1** để trạng thái đó bấm được trong demo.
+
+## S3a-1 — ĐÃ XONG, đã tự kiểm, commit `607b1fd`
+
+Đóng chỗ hở tiêu chí #7. `MockRepository` nhận thêm tham số optional `recount(cust, dims) => SigCount[]`, chạy ở đúng hai chỗ phép chiếu xảy ra (`getSnapshot`, `projectedValidationSnapshot`); `demo.ts` export `recountDemoSignals` đóng kín trên `demoFires` module-local; `store.ts` truyền nó vào singleton. `Fire`/`demoFires` vẫn không export, `CxmData` không thêm trường, `projectSignalCounts` không sửa, `domain/` không chạm. Optional + mặc định `undefined` nên hàng chục `new MockRepository()` trong test giữ nguyên hành vi.
+
+Tự kiểm **ngoài** test của worker (worker chỉ kiểm nav đổi + tổng khớp + seed rỗng): 588 dòng đúng mốc · validate sạch trước VÀ sau khi nhận cfg mới · `>5tỷ` mất, thêm đúng một dải · **bốn chiều còn lại y nguyên từng nhãn** · **số `chưa định danh` y nguyên từng ô** (ràng buộc 3) · Σ mỗi chiều = `Signal.vol` trên cả hai snapshot. tsc sạch, **754/754 test xanh / 74 file**.
+
+**Nhãn thô trong `sigCounts`:** band của `sigpf` là `android|ios|web|server` — chữ thô. Phải làm đẹp ở tầng hiển thị **và có test canh**, đúng loại lỗi đã gây sự cố S2.
+
+Bản chia việc S3 đầy đủ (S3a phép tính → S3b dải hành trình → S3c màn): `output/ke-hoach-s3-chart-diem-do.html`.
+
+## S2 + S4 — ĐÃ XONG, đã tự kiểm (04/08, đã commit `13199fd` + `27fd4f6`)
 
 `npx tsc -b` sạch. **751/751 test xanh (74 file)** = 749/73 cũ + 1 file / 2 test canh mới. 21 file sửa, **chưa commit**.
 
