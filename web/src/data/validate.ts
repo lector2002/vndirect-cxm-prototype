@@ -1,7 +1,9 @@
 import type { CxmData, Dim, NavItem, TourStop, Cfg } from "./schema/index.ts";
 import type { Step, Metric, Evidence, Issue, Action, Source, Survey, VoiceInsight, QuantifyItem, DashSet, Flow, Customer, Outcome, Snapshot, Group, Phase, Agent, TaxNode } from "./schema/index.ts";
+import type { CfgBandAxis } from "./schema/index.ts";
 import { BLOCKS } from "./blocks.ts";
 import { isSegUnknown } from "./segment.ts";
+import { bandLabels } from "./bands.ts";
 
 /* validateFixture — 19 nhóm bất biến (port từ prototype; nhóm 19 thêm 02/08 cho phân khúc khách) */
 
@@ -480,6 +482,69 @@ export function validateFixture(
 
       /* Rule "high-value ⟹ nav không sentinel" (bất biến C1 cũ) đã BỎ: rule nav ngay trên bắt sentinel
          cho MỌI khách nên nó chỉ là tập con — giữ lại là hai chỗ nói cùng một điều, rồi lệch nhau. */
+    }
+  }
+
+  /* 20. Cfg.segment (module E, E-a: đây là source of truth cho ranh giới dải) — kiểm CẤU HÌNH,
+     không phải dữ liệu khách. Chạy trước khi bất kỳ chart nào gọi bandLabels/bandOf, vì cuts sai
+     (rỗng, không tăng dần, min chồng cut đầu) làm bandLabels/bandOf tính sai lặng lẽ ở tầng dưới
+     mà không ai báo. */
+  if (cfg) {
+    /* Runtime, không phải chỉ tsc — đúng lý do nhóm 16 đã chặn kiểu này: cfg tương lai có thể tới
+       từ localStorage/JSON khi UI #/rules lưu (E6/E7), lúc đó tsc không canh được thiếu trục. */
+    const AXES = ["nav", "age", "tenure", "acq"] as const;
+    for (const ax of AXES) {
+      if (!cfg.segment?.[ax]) e.push(`cfg.segment: thiếu trục "${ax}"`);
+    }
+
+    const checkAxis = (name: string, axis: { min: number | null; cuts: number[]; unit: string }) => {
+      if (axis.cuts.length === 0) {
+        e.push(`cfg.segment.${name}: cuts rỗng — không có dải nào để xếp khách vào`);
+      } else {
+        for (let i = 1; i < axis.cuts.length; i++) {
+          if (axis.cuts[i] <= axis.cuts[i - 1]) {
+            e.push(`cfg.segment.${name}: cuts không tăng dần nghiêm ngặt (${axis.cuts[i - 1]} rồi ${axis.cuts[i]})`);
+          }
+        }
+        if (axis.min !== null && axis.min >= axis.cuts[0]) {
+          e.push(`cfg.segment.${name}: min (${axis.min}) >= cut đầu (${axis.cuts[0]}) — dải đầu rỗng`);
+        }
+      }
+      const unitOk = axis.unit === 'đ' || axis.unit === 'năm' || axis.unit === 'tháng';
+      if (!unitOk) {
+        e.push(`cfg.segment.${name}: unit "${axis.unit}" không hợp lệ (phải là 'đ', 'năm' hoặc 'tháng')`);
+      }
+      /* Hai dải KHÁC NHAU không được ra CÙNG một nhãn. Không phải chuyện thẩm mỹ: mọi chỗ đếm theo
+         trục này gom theo NHÃN (`bandOf` trả nhãn, không trả index), nên hai dải trùng nhãn bị cộng
+         dồn im lặng — đúng loại lỗi "một chiều phải là tập giá trị loại trừ nhau", và đúng lý do
+         luật acq ngay dưới cấm trùng tên kênh.
+         ĐO ĐƯỢC, không phải giả thiết: `{min:null, cuts:[1,2,50e6,200e6], unit:'đ'}` hợp lệ theo mọi
+         luật khác ở trên, lại đúng dạng cấu hình owner cần để tách nhóm CHƯA CÓ TÀI SẢN, mà cho ra
+         ["0đ","0đ","<50tr",...] — `bandOf(0)` và `bandOf(1)` không phân biệt được. */
+      if (unitOk && axis.cuts.length > 0) {
+        const seen = new Set<string>();
+        for (const label of bandLabels(axis as CfgBandAxis)) {
+          if (seen.has(label)) {
+            e.push(`cfg.segment.${name}: hai dải cùng ra nhãn "${label}" — cut quá sát nhau để tách được ở unit '${axis.unit}'`);
+          }
+          seen.add(label);
+        }
+      }
+    };
+    if (cfg.segment?.nav) checkAxis("nav", cfg.segment.nav);
+    if (cfg.segment?.age) checkAxis("age", cfg.segment.age);
+    if (cfg.segment?.tenure) checkAxis("tenure", cfg.segment.tenure);
+
+    if (cfg.segment?.acq) {
+      if (cfg.segment.acq.values.length === 0) {
+        e.push(`cfg.segment.acq: values rỗng — không có kênh nào để xếp khách vào`);
+      } else {
+        const seenAcq = new Set<string>();
+        for (const v of cfg.segment.acq.values) {
+          if (seenAcq.has(v)) e.push(`cfg.segment.acq: tên kênh "${v}" trùng`);
+          seenAcq.add(v);
+        }
+      }
     }
   }
 

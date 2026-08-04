@@ -2,7 +2,7 @@
 export type { Metric, SourceKind, Source, SurveyStatus, SurveyState, Survey, TaxLv, TaxNode, Category, EvidenceKind, Evidence, VoiceInsight } from './voc.ts';
 export type { IssueSt, IssueSev, IssuePri, IssueImp, Issue, ActionAp, ActionCf, ActionDl, ActionIv, ActionLc, Action, Verdict, OutcomeMeasure, Outcome, Snapshot, Loop, Customer, AgeBand, NavBand, TenureBand, AcqChannel, SegUnknown } from './cxm.ts';
 export type { ChartKind, ShowMark, SeriesMark, QuantifyView, StackMode, QuantifyShow, QuantifySeriesPoint, QuantifySeries, QuantifyItem, DashQuestion, DashSet, AgentKind, AgentFindingLane, AgentFinding, Agent } from './quantify.ts';
-export type { CfgStep, CfgMetricBand, CfgData, CfgAnomaly, CfgSub, Cfg, DimBase, DimRow, Dim, MetricKind } from './config.ts';
+export type { CfgStep, CfgMetricBand, CfgData, CfgAnomaly, CfgSub, CfgBandAxis, CfgSegment, Cfg, DimBase, DimRow, Dim, MetricKind } from './config.ts';
 export type { NavItem, Meta, TourStop, Chip } from './ui.ts';
 
 import type { Period, Scope, Phase, Group, Flow, Step, Obs, Touchpoint, Signal } from './journey.ts';

@@ -408,4 +408,83 @@ describe("validateFixture", () => {
     const r = validateFixture(d, dims, seedNav, seedTour);
     expect(r.some((e) => e.includes("nav") && e.includes("sentinel"))).toBe(true);
   });
+
+  /* Group 20: Cfg.segment (module E, E-a — cfg là source of truth cho ranh giới dải) */
+  it("20: cuts rỗng", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.segment.nav.cuts = [];
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
+    expect(r.some((e) => e.includes("cfg.segment.nav") && e.includes("cuts rỗng"))).toBe(true);
+  });
+
+  it("20: cuts không tăng dần nghiêm ngặt", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.segment.nav.cuts = [50e6, 40e6, 1e9, 5e9];
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
+    expect(r.some((e) => e.includes("cfg.segment.nav") && e.includes("không tăng dần"))).toBe(true);
+  });
+
+  it("20: cuts trùng nhau cũng bị chặn (không tăng dần NGHIÊM NGẶT)", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.segment.nav.cuts = [50e6, 50e6, 1e9, 5e9];
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
+    expect(r.some((e) => e.includes("cfg.segment.nav") && e.includes("không tăng dần"))).toBe(true);
+  });
+
+  it("20: min >= cut đầu", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.segment.age.min = 25;
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
+    expect(r.some((e) => e.includes("cfg.segment.age") && e.includes("min") && e.includes(">="))).toBe(true);
+  });
+
+  it("20: unit không thuộc 3 giá trị cho phép", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.segment.tenure = { ...cfg.segment.tenure, unit: "usd" as typeof cfg.segment.tenure.unit };
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
+    expect(r.some((e) => e.includes("cfg.segment.tenure") && e.includes("unit") && e.includes("không hợp lệ"))).toBe(true);
+  });
+
+  it("20: acq.values rỗng", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.segment.acq.values = [];
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
+    expect(r.some((e) => e.includes("cfg.segment.acq") && e.includes("values rỗng"))).toBe(true);
+  });
+
+  it("20: acq.values có tên trùng", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.segment.acq.values = ["banner", "banner", "chi nhánh"];
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
+    expect(r.some((e) => e.includes("cfg.segment.acq") && e.includes('"banner"') && e.includes("trùng"))).toBe(true);
+  });
+
+  it("20: thiếu trục nav trong cfg.segment (nguồn ngoài tsc, ví dụ JSON cũ)", () => {
+    const cfg = structuredClone(cfgDefault) as unknown as { segment: Record<string, unknown> };
+    delete cfg.segment.nav;
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfg as unknown as Parameters<typeof validateFixture>[4]);
+    expect(r.some((e) => e.includes('thiếu trục "nav"'))).toBe(true);
+  });
+
+  /* Cấu hình dưới đây hợp lệ theo MỌI luật khác của nhóm 20 (cuts tăng dần nghiêm ngặt, min null,
+     unit đúng) và là đúng dạng owner cần để tách nhóm CHƯA CÓ TÀI SẢN khỏi "<50tr" — nên nếu không
+     có luật nhãn-trùng, nó lọt qua validate rồi làm hai dải bị cộng dồn im lặng lúc đếm. */
+  it("20: hai cut quá sát 0 ⇒ hai dải nav cùng ra nhãn '0đ'", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.segment.nav = { min: null, cuts: [1, 2, 50e6, 200e6], unit: "đ" };
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
+    expect(r.some((e) => e.includes("cfg.segment.nav") && e.includes('"0đ"') && e.includes("hai dải"))).toBe(true);
+  });
+
+  it("20: nav + MỘT cut sát 0 vẫn hợp lệ — tách được '0đ' khỏi '<50tr'", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.segment.nav = { min: null, cuts: [1, 50e6, 200e6, 1e9, 5e9], unit: "đ" };
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
+    expect(r).toEqual([]);
+  });
+
+  it("20: cfgDefault hợp lệ — segment mới không vi phạm luật nào", () => {
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfgDefault);
+    expect(r).toEqual([]);
+  });
 });

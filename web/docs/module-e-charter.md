@@ -219,3 +219,42 @@ nó chỉ là vỏ cho E6.
 4. **Kiểm E5 bằng cách đổi cfg, không đổi data** — nếu phải sinh lại fixture mới thấy dải đổi thì quyết
    định E-b đã bị làm sai và cả module mất ý nghĩa.
 5. **Kiểm nhãn không đặt tay được** — tìm mọi đường trong cfg/UI cho phép ghi nhãn tay. Có = vi phạm E-c.
+
+## Opus review section 1 (04/08) — nhận, kèm 1 vá và 1 nợ ghi lại
+
+Đã kiểm độc lập, không lấy theo báo cáo worker: `npx tsc -b` exit 0; `npx vitest run` **683 test xanh
+(71 file)** = 661 cũ + 22 mới, không test cũ nào bị sửa. Bốn bộ nhãn mặc định khớp đúng nhãn đang chạy.
+
+**Vá tại chỗ (đã làm, đã đo):** luật nhóm 20 thiếu đúng một điều — **hai dải khác nhau không được ra
+cùng một nhãn**. Đo được: `{min:null, cuts:[1,2,50e6,200e6], unit:'đ'}` hợp lệ theo mọi luật khác,
+lại đúng dạng cấu hình owner cần để tách nhóm chưa có tài sản, mà `bandLabels` cho ra
+`["0đ","0đ","<50tr","50-200tr",">200tr"]` và `validateFixture` trả `[]`. Vì `bandOf` trả **nhãn** chứ
+không trả index, hai dải đó bị cộng dồn im lặng lúc đếm — đúng loại lỗi cả module này tồn tại để
+chặn, và đúng lý do luật `acq` đã cấm trùng tên kênh. Đã thêm luật + 2 test (một bắt lỗi, một xác nhận
+cấu hình `cuts:[1,50e6,…]` — MỘT cut sát 0 — vẫn hợp lệ, tức luật không chặn mất chính use-case E3).
+
+**Nợ ghi lại, KHÔNG tự sửa — cần owner chốt (đưa vào E3):** nhãn dải cuối hiện phụ thuộc `min`, và
+`>X` nói sai bao hàm.
+
+    nav min=null → ["<50tr","50-200tr","200tr-1tỷ","1-5tỷ",">5tỷ"]
+    nav min=0    → ["<50tr","50-200tr","200tr-1tỷ","1-5tỷ","5tỷ+"]   ← chỉ dải cuối đổi
+
+Hai vấn đề: (1) `min` là ngưỡng của dải ĐẦU, không nên đổi chữ của dải CUỐI — owner sửa một ô lại thấy
+một ô khác đổi theo, không giải thích được; (2) dải cuối bao hàm đúng `X` (biên dưới đóng), nên `>5tỷ`
+là **nói sai** — khách có đúng 5 tỷ nằm trong dải mà nhãn bảo là hơn 5 tỷ. Đúng phải là `5tỷ+` cho mọi
+unit. Không sửa ngay vì `'>5tỷ'` đang là literal trong union `NavBand` và trong dữ liệu seed, nên phải
+đổi cùng lúc với bước E3 bỏ nhãn khỏi `Customer` — sửa lẻ bây giờ là đổi nhãn owner đang thấy mà không
+hỏi. Nhận section 1 với nợ này gắn vào E3.
+
+**Hai điều nữa đã kiểm trong review section 1:**
+
+- `mock-repository.validate()` **trả mảng lỗi, KHÔNG throw** (`mock-repository.ts:122`) — nên luật mới
+  không biến một cấu hình owner gõ sai ở #/rules thành crash; E6/E7 có đường hiện lỗi mềm.
+- Nợ E3 thứ hai, cùng loại với `>5tỷ`: nhãn **nói sai khoảng** khi có cut sát 0. Đo được —
+  `{min:null, cuts:[1,50e6,200e6,1e9,5e9], unit:'đ'}` cho
+  `["0đ","<50tr","50-200tr","200tr-1tỷ","1-5tỷ",">5tỷ"]`: dải thứ hai thật ra là `1 ≤ v < 50tr` nhưng
+  nhãn `<50tr` đọc như bao cả 0, mà ngay dưới nó đã có dải `0đ`. Luật nhãn-trùng **không** bắt ca này
+  (hai nhãn khác nhau) và không nên bắt — đây là chuyện *chữ nói sai khoảng*, phải sửa cùng E3 lúc bỏ
+  nhãn khỏi `Customer`, không sửa lẻ bây giờ.
+- Không chặn, để dành E4: `bandOf` gọi `bandLabels` mỗi lần ⇒ dựng lại cả mảng nhãn cho từng khách.
+  Vô hại hôm nay; nóng khi `RowBuilder` của E4 gọi nó theo từng khách × từng chiều.

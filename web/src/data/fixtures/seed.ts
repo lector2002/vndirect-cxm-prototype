@@ -756,6 +756,15 @@ export const cfgDefault: Cfg = {
     "b-voc-data": { f: "daily", ch: "Slack" },
     "b-voc-topic": { f: "weekly", ch: "Email" },
   },
+  /* Mốc y hệt union NavBand/AgeBand/TenureBand cũ (data/schema/cxm.ts:120-122) — module E chuyển
+     ranh giới dải từ compile-time (union type) sang runtime (cfg.segment), nhãn phải sinh lại
+     ĐÚNG những gì đang chạy hôm nay qua data/bands.ts, không đổi nhãn nào. */
+  segment: {
+    nav: { min: null, cuts: [50e6, 200e6, 1e9, 5e9], unit: 'đ' },
+    age: { min: 18, cuts: [25, 35, 50], unit: 'năm' },
+    tenure: { min: null, cuts: [6, 24, 60], unit: 'tháng' },
+    acq: { values: ['banner', 'giới thiệu', 'chi nhánh', 'tự tìm', 'đối tác'] },
+  },
 };
 
 export const dims: Record<string, Dim> = {
