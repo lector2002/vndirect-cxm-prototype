@@ -1,0 +1,184 @@
+<meta charset="utf-8">
+<title>Chart điểm đo — bổ sung đợt 2</title>
+<style>
+:root{--bg:#fbfbfa;--fg:#1c1c1a;--mut:#6b6b66;--line:#e3e2de;--card:#fff;--ok:#0f7a52;--warn:#a35c00;--bad:#b3261e;--acc:#1a4f8a;--hl:#fff8e6}
+@media(prefers-color-scheme:dark){:root{--bg:#171716;--fg:#eceae5;--mut:#9d9c96;--line:#33322f;--card:#1f1f1d;--ok:#4ec38f;--warn:#e0a54a;--bad:#f2837b;--acc:#7fb0e8;--hl:#2b2618}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:920px;margin:0 auto;padding:0 24px 96px}
+header{padding:56px 0 28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+h1{font-size:30px;line-height:1.25;margin:0 0 10px;letter-spacing:-.02em}
+.sub{color:var(--mut);font-size:15px}
+nav{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:12px 0;margin-bottom:36px;z-index:9;font-size:13.5px}
+nav a{color:var(--mut);text-decoration:none;margin-right:18px;white-space:nowrap}
+nav a:hover{color:var(--acc)}
+.navscroll{overflow-x:auto}
+h2{font-size:21px;margin:52px 0 14px;letter-spacing:-.01em;scroll-margin-top:64px}
+h3{font-size:16px;margin:28px 0 8px}
+p{margin:12px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:18px 0}
+.pick{border-left:3px solid var(--ok)}
+.no{border-left:3px solid var(--bad)}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;padding:3px 8px;border-radius:5px;margin-bottom:8px}
+.tag.ok{background:rgba(15,122,82,.14);color:var(--ok)}
+.tag.bad{background:rgba(179,38,30,.14);color:var(--bad)}
+.tag.q{background:rgba(163,92,0,.16);color:var(--warn)}
+.scroll{overflow-x:auto;margin:16px 0}
+table{border-collapse:collapse;font-size:14px;min-width:100%}
+th,td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+th{font-weight:600;color:var(--mut);font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+code{font:13.5px ui-monospace,Consolas,monospace;background:rgba(128,128,120,.14);padding:1.5px 5px;border-radius:4px}
+pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;overflow-x:auto;font:13px/1.55 ui-monospace,Consolas,monospace}
+mark{background:var(--hl);color:inherit;padding:0 3px;border-radius:3px}
+.dup{color:var(--bad);font-weight:600}
+ul,ol{padding-left:22px}li{margin:6px 0}
+.foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);color:var(--mut);font-size:13.5px}
+</style>
+<div class="wrap">
+<header>
+<h1>Chart điểm đo — bổ sung đợt 2</h1>
+<div class="sub">Anh vừa thêm hai yêu cầu ngoài bản đã duyệt sáu vòng (<code>thiet-ke-chart-signal.html</code> §1 chốt “chọn <b>một</b> điểm đo”). Tài liệu này đo dữ liệu thật trước, rồi đề xuất hình cụ thể cho từng yêu cầu. Chưa code gì — cần anh chốt.</div>
+</header>
+
+<nav><div class="navscroll">
+<a href="#yc">Hai yêu cầu</a><a href="#d1">Đ1 · Nhiều điểm đo</a><a href="#d2">Đ2 · Dòng tổng</a><a href="#d3">Đ3 · Một giá trị</a><a href="#d4">Đ4 · Gắn ở đâu</a><a href="#d5">Đ5 · Dải nối</a><a href="#tra">Bảng tra</a><a href="#chot">Cần chốt</a>
+</div></nav>
+
+<h2 id="yc">Hai yêu cầu mới, nguyên văn</h2>
+<div class="card">“cho phép chọn nhiều điểm đo để tạo 1 data, ngoài ra còn phải show ra được điểm đo đó hiện đang được gắn với element nào trên hệ thống thật web/app/... để user biết”</div>
+<p>Yêu cầu thứ nhất là <b>đổi hình chart</b> — làm được, nhưng có một cách làm sai rất dễ rơi vào. Yêu cầu thứ hai <b>không phải việc code</b>: dữ liệu hiện tại không có thông tin đó, nên nó là một lỗ hổng dữ liệu thứ ba phải đưa vào bản yêu cầu gửi team data.</p>
+
+<h2 id="d1">Đ1 · Chọn nhiều điểm đo thì cột là gì</h2>
+<p>Bản đã duyệt: chọn một điểm đo → mỗi <b>giá trị</b> nó bắn ra thành một cột. Mở rộng lên nhiều điểm đo thì phải chọn: cột theo giá trị, hay cột theo điểm đo. Tôi đo trước khi đề xuất, vì các điểm đo <b>dùng chung tên giá trị</b>.</p>
+
+<h3>Bằng chứng: mười điểm đo, giá trị bị trùng tên</h3>
+<div class="scroll"><table>
+<tr><th>Điểm đo</th><th>Bước</th><th>Tên event</th><th>Trạng thái</th><th class="n">Lượt/ngày</th><th>Giá trị bắn ra</th></tr>
+<tr><td>sg1</td><td>s1</td><td><code>account_open_started</code></td><td>đang chạy</td><td class="n">614</td><td>tapped</td></tr>
+<tr><td>sg2</td><td>s1</td><td><code>account_open_step_viewed</code></td><td>đang chạy</td><td class="n">2 840</td><td>step_01 … step_06</td></tr>
+<tr><td>sg3</td><td>s2</td><td><code>ekyc_document_capture_result</code></td><td>đang chạy</td><td class="n">920</td><td><span class="dup">success · fail</span></td></tr>
+<tr><td>sg4</td><td>s2</td><td><code>ekyc_document_fail_reason</code></td><td>đang kiểm</td><td class="n">410</td><td>blur · glare · crop · expired</td></tr>
+<tr><td>sg5</td><td>s3</td><td><code>ekyc_face_liveness_result</code></td><td>đang chạy</td><td class="n">1 180</td><td><span class="dup">success · fail</span></td></tr>
+<tr><td>sg6</td><td>s3</td><td><code>ekyc_face_device_context</code></td><td>chưa instrument</td><td class="n">0</td><td>—</td></tr>
+<tr><td>sg7</td><td>s4</td><td><code>account_info_edited</code></td><td>đang chạy</td><td class="n">520</td><td>name · dob · id_number · address · bank</td></tr>
+<tr><td>sg8</td><td>s5</td><td><code>contract_sign_result</code></td><td>đang chạy</td><td class="n">430</td><td><span class="dup">success · fail</span></td></tr>
+<tr><td>sg9</td><td>s5</td><td><code>contract_session_abandoned</code></td><td>mới thiết kế</td><td class="n">0</td><td>—</td></tr>
+<tr><td>sg10</td><td>s6</td><td><code>account_activated</code></td><td>đang chạy</td><td class="n">395</td><td>activated</td></tr>
+</table></div>
+<p><mark><b>success</b> và <b>fail</b> đều xuất hiện ở ba điểm đo khác nhau</mark>: chụp giấy tờ (sg3), liveness (sg5), ký hợp đồng (sg8). Ba phép đo hoàn toàn khác nhau, tình cờ trùng tên giá trị.</p>
+
+<div class="card no">
+<span class="tag bad">Loại bỏ</span>
+<h3 style="margin-top:0">Cách A — cột theo giá trị, gộp mọi điểm đo lại</h3>
+<p>Chọn sg3 + sg5 + sg8 thì cột “fail” sẽ cao bằng <code>fail chụp giấy tờ + fail liveness + fail ký hợp đồng</code>. Người đọc thấy một cột “fail” và tin đó là một phép đo. Thực tế là ba thứ bị cộng lẫn — và không có cách nào tách lại từ hình.</p>
+<p>Đây đúng loại lỗi mà dự án đang chi phí để tránh: mình tách <b>năm</b> nghĩa khác nhau của “không biết” để không gộp nhầm, thì không thể quay lại gộp ba phép đo vào một cột. Bất biến số 2 trong handoff: <i>một chiều = một tập giá trị loại trừ nhau</i>.</p>
+</div>
+
+<div class="card pick">
+<span class="tag ok">Đề xuất</span>
+<h3 style="margin-top:0">Cách B — cột nhóm theo điểm đo</h3>
+<p>Mỗi điểm đo được chọn thành <b>một nhóm cột</b>, trong nhóm đó mỗi giá trị của chính nó là một cột. Lát cắt trong cột vẫn theo chiều anh chọn, y như bản đã duyệt. Chọn một điểm đo thì hình <b>giống hệt</b> bản duyệt — không có gì đổi.</p>
+<pre>chọn sg3 + sg4      chiều cắt: Phân khúc NAV
+
+  ┌─ Chụp & đọc CCCD ──┐   ┌─── Lý do chụp lỗi ─────────────┐
+  │  success    fail   │   │  blur   glare   crop   expired │
+  │   ▓▓▓       ▓▓▓    │   │  ▓▓▓     ▓▓▓     ▓▓▓    ▓▓▓    │
+  │   ░░░       ░░░    │   │  ░░░     ░░░     ░░░    ░░░    │
+  └────────────────────┘   └────────────────────────────────┘
+   tổng 920 lượt/ngày       tổng 410 lượt/ngày
+   34% chưa gắn được khách  31% chưa gắn được khách</pre>
+<p>Không cần đổi cấu trúc dữ liệu: bảng đếm hiện đã lưu theo <code>{điểm đo, chiều, giá trị, dải, số lượt}</code>, nên cặp <i>(điểm đo, giá trị)</i> vốn đã là khoá cột sẵn có.</p>
+<p><b>Giới hạn phải nói rõ:</b> chart <b>không</b> tự tính tỷ lệ bắc qua hai điểm đo. Nhìn hình trên rất dễ muốn đọc “410 trên 920 = 45% chụp lỗi”, nhưng con số đó chart không được in ra — nó là suy diễn của người đọc, và <code>domain/</code> có bất biến không bịa tỷ lệ. Hai nhóm cột đứng cạnh nhau để so, không để chia.</p>
+</div>
+
+<h3>Cách C — chỉ để anh so sánh, tôi không chọn</h3>
+<p>Mỗi điểm đo một cột duy nhất, cao bằng tổng lượt của nó, cắt lát theo chiều. Đọc nhanh hơn (3 cột thay vì 8) nhưng mất hẳn phần giá trị — mà giá trị chính là lý do chart này tồn tại. Chỉ nên có nếu anh muốn một chế độ xem “gọn”.</p>
+
+<h2 id="d2">Đ2 · Dòng tổng và dòng “chưa gắn được khách” tính theo từng điểm đo</h2>
+<p>Hai con số này trong bản duyệt là <b>một</b> dòng, vì chỉ có một điểm đo. Khi chọn nhiều, chúng phải tách ra theo từng điểm đo — không được trộn:</p>
+<ul>
+<li><b>Tổng</b> — tiêu chí nghiệm thu §9 nói “cộng chiều cao các cột phải bằng đúng con số tổng”. Con số tổng đó là của <b>một</b> điểm đo. Một tổng chung cho cả sg3 + sg4 (1 330) không mang nghĩa gì cả: nó cộng số lần chụp với số lần lỗi.</li>
+<li><b>Tỷ lệ chưa gắn được khách</b> — đo được, và lệch rất xa nhau giữa các điểm đo: sg4 là <b>125/410 = 30,5%</b>, còn sg1 là <b>565/614 = 92%</b> (vì sg1 bắn trước mọi bước định danh). Một tỷ lệ trộn của hai cái này là con số bịa, không mô tả cái gì thật.</li>
+</ul>
+<p>→ Đề xuất: mỗi nhóm cột mang <b>chân đế riêng</b> gồm tổng lượt và tỷ lệ chưa gắn được khách của chính nó, như hình ở Đ1. Không có dòng tổng chung.</p>
+<p>Ba trạng thái của nút chiều (§1) không đổi và không phụ thuộc số điểm đo được chọn — mọi chiều đều đếm được cho mọi điểm đo. Riêng phần chữ cảnh báo kèm theo là của từng điểm đo, nên hiển thị ở chân đế của nhóm, không ở nút.</p>
+
+<h2 id="d3">Đ3 · Điểm đo chỉ bắn một giá trị</h2>
+<p>Câu hỏi này trước đây tôi hỏi tách riêng; giờ nó tự gộp vào Đ1. sg1 (<code>tapped</code>) và sg10 (<code>activated</code>) mỗi cái chỉ có một giá trị, nên một mình chúng vẽ ra <b>một cột</b> — trông như cột đơn độc.</p>
+<p>Đề xuất: giữ đúng một cột, kèm câu giải thích <i>“Điểm đo này chỉ bắn một giá trị — cột chính là toàn bộ lượt bắn”</i>, và không tự động làm gì khác. Vì đã có chọn nhiều điểm đo, ai muốn nhìn nó có ngữ cảnh thì chọn thêm sg2 hoặc sg10 vào cùng chart — vấn đề tự giải quyết bằng thao tác của người dùng, không cần chart đoán ý.</p>
+
+<h2 id="d4">Đ4 · “Điểm đo đang gắn với element nào trên web/app”</h2>
+<p>Yêu cầu này đúng và rất cần cho người dùng thật — nhưng <b>dữ liệu hiện tại không có</b>. Tôi đọc hết các trường liên quan:</p>
+<div class="scroll"><table>
+<tr><th>Đang có gì</th><th>Nội dung thật trong dữ liệu</th><th>Có trả lời được “element nào” không</th></tr>
+<tr><td>Tên event của điểm đo</td><td><code>ekyc_document_capture_result</code></td><td>Không — tên nghiệp vụ, không phải vị trí trên app</td></tr>
+<tr><td>Client hay server</td><td>client / server</td><td>Chỉ biết phía nào, không biết chỗ nào</td></tr>
+<tr><td>Nền tảng</td><td>iOS · Android · Web · Server</td><td>Chỉ biết nền tảng</td></tr>
+<tr><td>Điểm tiếp xúc mà nó thuộc về</td><td>“Chụp &amp; đọc CCCD” · kênh <code>app</code> · mô tả “OCR giấy tờ, đối chiếu VNeID hoặc NFC”</td><td>Gần nhất — nhưng là <b>tên màn do người viết</b>, không phải định danh kỹ thuật</td></tr>
+<tr><td>Mã trạm của bước</td><td><code>JS-MTK-01</code> … <code>JS-MTK-06</code></td><td>Không — mã của tracking plan, không map ra UI</td></tr>
+</table></div>
+<p>Không có: tên screen kỹ thuật, route/deeplink, id hay selector của element, tên view controller / activity / component. <b>Không có field nào</b> trong <code>Signal</code> hay <code>Touchpoint</code> chứa được thông tin đó.</p>
+<div class="card">
+<span class="tag q">Đề xuất hai phần</span>
+<p><b>Phần làm được ngay:</b> khi anh chọn một điểm đo, panel hiện <b>đúng những gì đang có</b>, và gọi tên đúng bản chất của nó — “Điểm tiếp xúc: Chụp &amp; đọc CCCD (kênh app) · event <code>ekyc_document_capture_result</code> · phía client · iOS, Android · trạm JS-MTK-02”. Nói thẳng đây là mô tả nghiệp vụ, chưa phải vị trí kỹ thuật.</p>
+<p><b>Phần phải xin:</b> thêm <b>Bảng D</b> vào bản yêu cầu dữ liệu (§11) — mỗi điểm đo cần <i>tên screen kỹ thuật</i>, <i>route/deeplink</i>, <i>id hoặc selector của element phát sinh event</i>, và <i>áp dụng từ bản build nào</i>. Team data hoặc team mobile giữ thông tin này trong tracking plan; mình không suy ra được.</p>
+<p><b>Vì sao không bịa vào fixture:</b> đây đúng vết xe của lỗ hổng A. Ở S1, <code>Signal.values</code> bị suy từ tên và mô tả, và handoff phải ghi lại rằng “phần lớn cột của chart sẽ đổi khi có danh sách thật”. Bịa thêm một field element nữa là lặp lại y hệt, chỉ tệ hơn vì lần này người dùng sẽ tin nó để đi tìm code.</p>
+</div>
+
+<h2 id="d5">Đ5 · Dải nối dày mỏng — đã đo, vẽ thật được</h2>
+<p>Anh chọn dựng luôn dải nối dày mỏng kèm vạch đỏ. Trước khi hứa hình, tôi kiểm dữ liệu bước có nối liền nhau không — nếu số vào bước sau không khớp số hoàn tất bước trước thì độ dày dải là số bịa. Kết quả: <b>khớp tuyệt đối ở cả sáu bước</b>.</p>
+<div class="scroll"><table>
+<tr><th>Bước</th><th class="n">Vào bước</th><th class="n">Hoàn tất</th><th class="n">Thất bại</th><th>Hoàn tất + thất bại = vào bước</th><th>Hoàn tất bước trước = vào bước này</th></tr>
+<tr><td>s1 Khởi tạo hồ sơ</td><td class="n">18 420</td><td class="n">17 690</td><td class="n">730</td><td>khớp</td><td>—</td></tr>
+<tr><td>s2 Chụp &amp; đọc CCCD</td><td class="n">17 690</td><td class="n">15 840</td><td class="n">1 850</td><td>khớp</td><td>khớp</td></tr>
+<tr><td>s3 Liveness &amp; Face match</td><td class="n">15 840</td><td class="n">13 190</td><td class="n">2 650</td><td>khớp</td><td>khớp</td></tr>
+<tr><td>s4 Xác nhận thông tin</td><td class="n">13 190</td><td class="n">12 760</td><td class="n">430</td><td>khớp</td><td>khớp</td></tr>
+<tr><td>s5 Ký HĐ điện tử</td><td class="n">12 760</td><td class="n">11 990</td><td class="n">770</td><td>khớp</td><td>khớp</td></tr>
+<tr><td>s6 Kích hoạt tài khoản</td><td class="n">11 990</td><td class="n">11 840</td><td class="n">150</td><td>khớp</td><td>khớp</td></tr>
+</table></div>
+<p>Nên: độ dày dải nối = số hoàn tất của bước trước, vạch đỏ = số thất bại, cả hai lấy trực tiếp từ dữ liệu, không cần luật quy đổi nào. Nếu sau này dữ liệu thật <b>không</b> khớp như vậy, phải khai một luật đối chiếu tường minh chứ không được lặng lẽ vẽ theo số nào tiện hơn.</p>
+
+<h2 id="tra">Bảng tra nghiệp vụ ↔ tên trong code</h2>
+<div class="scroll"><table>
+<tr><th>Nói theo nghiệp vụ</th><th>Tên trong code</th></tr>
+<tr><td>Điểm đo</td><td><code>Signal</code> (<code>data/schema/journey.ts</code>)</td></tr>
+<tr><td>Danh sách giá trị một điểm đo bắn ra → các cột</td><td><code>Signal.values</code></td></tr>
+<tr><td>Tổng lượt bắn một ngày của một điểm đo</td><td><code>Signal.vol</code></td></tr>
+<tr><td>Bảng đếm đã cắt theo chiều</td><td><code>CxmData.sigCounts</code>, mỗi dòng <code>{sig, dim, val, band, n}</code></td></tr>
+<tr><td>Khoá của một cột khi chọn nhiều điểm đo</td><td>cặp <code>(sig, val)</code> — đã có sẵn, không cần thêm field</td></tr>
+<tr><td>Lượt bắn không nối được về khách</td><td>giá trị <code>chưa định danh</code></td></tr>
+<tr><td>Điểm tiếp xúc mà điểm đo thuộc về</td><td><code>Signal.tpId</code> → <code>Touchpoint</code></td></tr>
+<tr><td>Số vào bước / hoàn tất / thất bại</td><td><code>Obs.entered / completed / failed</code></td></tr>
+<tr><td>Chiều nền tảng của lượt bắn</td><td><code>dims.sigpf</code></td></tr>
+</table></div>
+
+<h2 id="chot">Đã chốt — 04/08/2026</h2>
+<div class="card pick">
+<span class="tag ok">Owner chốt</span>
+<p>“cột nhóm theo điểm đo, note lại phần gắn với element trên hệ thống web/app làm thành bảng D cũng được, 3 ok r”</p>
+</div>
+<ol>
+<li><b>Đ1 — cách B.</b> Cột nhóm theo điểm đo. Cách C (chế độ xem gọn) <b>không</b> làm.</li>
+<li><b>Đ2 — chốt.</b> Không có dòng tổng chung; mỗi nhóm cột một chân đế riêng gồm tổng lượt và tỷ lệ chưa gắn được khách của chính điểm đo đó.</li>
+<li><b>Đ3 — chốt.</b> Điểm đo một giá trị vẽ một cột, kèm câu giải thích.</li>
+<li><b>Đ4 — chốt.</b> Panel hiện đúng những gì đang có và nói rõ là mô tả nghiệp vụ; định danh element kỹ thuật thành <b>Bảng D</b> của bản yêu cầu dữ liệu.</li>
+<li><b>Đ5 — chốt.</b> Dải nối dày mỏng + vạch đỏ lấy trực tiếp từ số vào bước / hoàn tất / thất bại.</li>
+</ol>
+<p>Đủ điều kiện chia việc S3: dựng <code>#/atlas</code> tối thiểu + chart điểm đo.</p>
+
+<h3>Bảng D — thêm vào bản yêu cầu dữ liệu (§11)</h3>
+<p>Một dòng cho mỗi điểm đo. Đây là thứ <b>phải xin</b>, không suy ra được từ dữ liệu đang có.</p>
+<div class="scroll"><table>
+<tr><th>Cột</th><th>Nghĩa</th><th>Ví dụ mong đợi</th><th>Bắt buộc</th></tr>
+<tr><td>Tên event</td><td>Khoá nối về điểm đo đang có</td><td><code>ekyc_document_capture_result</code></td><td>Có</td></tr>
+<tr><td>Nền tảng</td><td>Cùng một event có thể gắn ở nhiều nền tảng tại các vị trí khác nhau</td><td>iOS</td><td>Có</td></tr>
+<tr><td>Tên screen kỹ thuật</td><td>Tên màn trong code, không phải tên nghiệp vụ</td><td><code>DocumentCaptureViewController</code></td><td>Có</td></tr>
+<tr><td>Route / deeplink</td><td>Đường tới màn đó</td><td><code>vndirect://onboarding/ekyc/document</code></td><td>Nên có</td></tr>
+<tr><td>Element phát sinh event</td><td>Id, test-id hoặc selector của nút / vùng bắn event</td><td><code>btn_capture_confirm</code></td><td>Có</td></tr>
+<tr><td>Áp dụng từ bản build</td><td>Vị trí gắn có thể đổi giữa các bản; cần biết dữ liệu đang mô tả bản nào</td><td>iOS 4.12.0 trở đi</td><td>Nên có</td></tr>
+</table></div>
+<p>Nguồn: tracking plan của team data hoặc team mobile. Nếu chỉ có được một phần, ưu tiên <i>tên screen kỹ thuật</i> và <i>element phát sinh event</i> — hai cột đó mới trả lời được câu hỏi của người dùng.</p>
+
+<div class="foot">Số liệu trong tài liệu này đo trực tiếp từ fixture ngày 04/08/2026, không phải ước lượng. Ba bảng số (giá trị điểm đo, trường dữ liệu điểm tiếp xúc, đối chiếu bước) lấy từ <code>web/src/data/fixtures/seed.ts</code> và <code>web/src/data/schema/journey.ts</code>. Tỷ lệ chưa gắn được khách lấy từ <code>sigCounts</code> của bộ demo.</div>
+</div>
