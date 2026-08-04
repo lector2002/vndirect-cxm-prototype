@@ -49,3 +49,5 @@ export { IssueBar } from "./IssueBar.tsx";
 export type { IssueBarProps } from "./IssueBar.tsx";
 export { SearchBox } from "./SearchBox.tsx";
 export type { SearchResult, SearchBoxProps } from "./SearchBox.tsx";
+export { JourneySpine } from "./JourneySpine.tsx";
+export type { SpineStep, JourneySpineProps } from "./JourneySpine.tsx";
