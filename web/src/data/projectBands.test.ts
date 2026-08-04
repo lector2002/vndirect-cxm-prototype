@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { cfgDefault, dims, seed } from "./fixtures/seed.ts";
-import { demoData } from "./fixtures/demo.ts";
+import { demoData, generateCustomers } from "./fixtures/demo.ts";
 import { projectCustomer, projectCustomerBands } from "./projectBands.ts";
 import { MockRepository } from "./mock-repository.ts";
 import { themeSegments } from "../domain/themeSegments.ts";
@@ -46,6 +46,27 @@ describe("projectCustomerBands", () => {
     const cfg = cfgWithZeroAssetCut();
     expect(projectCustomer(zero, cfg).nav).toBe("0đ");
     expect(projectCustomer(small, cfg).nav).toBe("<50tr");
+  });
+});
+
+describe("fixture demo: số thô rút ra phải chiếu lại ĐÚNG nhãn đã rút", () => {
+  it("cả 300 khách: bandOf(số thô) === nhãn mà bảng weight chọn", () => {
+    /* Ca này canh một lỗi mà validate rule 19 KHÔNG bắt được. Phân bố theo dải của demo do các bảng
+       weight quyết định (chủ ý owner); `rawInBand` chỉ hạ nhãn đó xuống một số trong dải. Nếu phép
+       rút lệch biên một đơn vị — rút ra đúng `upper` thay vì `upper - 1` — thì phép chiếu gán khách
+       đó sang DẢI TRÊN, và rule 19 vẫn xanh vì nó chỉ kiểm nhãn khớp số thô, tức là khớp với cái
+       nhãn ĐÃ BỊ dịch. Phân bố demo sẽ lệch âm thầm so với bảng weight.
+       `generateCustomers` trả bản CHƯA chiếu (còn giữ nhãn do pickWeighted chọn), nên so được hai
+       bên; `demoData` thì đã chiếu rồi, không dùng để kiểm việc này. */
+    const raw = generateCustomers(300);
+    expect(raw).toHaveLength(300);
+
+    const lech = raw
+      .map((c) => ({ c, p: projectCustomer(c, cfgDefault) }))
+      .filter(({ c, p }) => p.age !== c.age || p.nav !== c.nav || p.tenure !== c.tenure)
+      .map(({ c, p }) => `${c.key}: age ${c.age}->${p.age} · nav ${c.nav}->${p.nav} · tenure ${c.tenure}->${p.tenure}`);
+
+    expect(lech).toEqual([]);
   });
 });
 
