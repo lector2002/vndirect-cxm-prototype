@@ -136,6 +136,20 @@ Bảng màu chỉ có 5 màu (`--cat-1..5`). Hôm nay chưa chiều nào quá 5 
 
 **Một lỗi thật tôi đo ra được:** tắt Demo Mode ⇒ bảng đếm rỗng ⇒ **cả năm nút chiều cùng khoá**, nhưng màn hình lại khuyên *"chọn một chiều khác ở trên"* — lời khuyên **không làm được** (mọi nút disabled) và nói **sai nguyên nhân** (không phải "chiều này không ghi" mà là "chưa có bảng đếm cho điểm đo này"). Đã tách hai ca; ca "cả năm khoá" được test bằng `seed.sigCounts` thật, không fixture dựng tay.
 
+## Đã xem bằng mắt trên màn đã mount — 05/08, cuối phiên
+
+Chạy dev server, mở `#/atlas`, bấm bước 02, tick hai điểm đo, đổi chiều. **Không phải chỉ đọc test.** Bốn thứ chứng được bằng mắt:
+
+1. **Thang riêng từng nhóm là quyết định đúng.** Bốn cột của `ekyc_document_fail_reason` (95 · 120 · 112 · 83) đọc rõ khác nhau khi đứng cạnh nhóm 920 lượt. Dưới thang chung, cả bốn sẽ cao khoảng một phần tư và gần bằng nhau.
+2. **Tiêu chí §9-2 và §9-4 đúng ngay trên màn:** đổi chiều thì các cột giữ **đúng** con số cũ (438/482/95/120/112/83), chỉ lát bên trong đổi.
+3. **Đổi sang chiều Nền tảng thì dải "chưa định danh" biến mất hẳn** — đúng thiết kế và đúng bất biến 8 (lần bắn không biết khách vẫn biết nền tảng), không phải mất dữ liệu.
+4. **Nhãn nền tảng hiện `iOS`/`Android` thật trên màn**, không phải chữ thô — tức lần này không lặp lại bẫy "trông như đã sửa mà không chạy" của S2.
+
+Hai điều mắt thấy, chưa sửa, để owner quyết:
+
+- **Thứ tự dải trong cột và trong chú giải xếp theo số lượng giảm dần, không theo thứ tự tự nhiên của nhóm.** Với chiều NAV nó ra `<50tr · 200tr-1tỷ · 50-200tr · >5tỷ · 1-5tỷ` — nhảy bậc, trong khi sketch §1 của thiết kế vẽ tăng dần (`<50tr · 50–200tr · 200tr–1tỷ`). Đổi được, nhưng **không phải sửa một dòng**: tầng trình bày chỉ nhận nhãn chữ, muốn xếp theo bậc thì phải dẫn thứ tự bậc từ cấu hình xuống. Cái giá của việc đổi: mất tính chất "lát lớn nhất luôn ở trên", nên hai cột cạnh nhau sẽ khó so bằng mắt hơn. Chiều `tier`/`acq`/`sigpf` không có bậc tự nhiên nên chỉ NAV và Độ tuổi bị ảnh hưởng.
+- **Dải "chưa định danh" vẽ vân rất nhạt** (khe trắng trên xám), nên một cột mà phần lớn là "chưa gắn được khách" trông gần như **rỗng** — đúng ký hiệu `░` của thiết kế và vẫn phân biệt được với hai loại xám đặc, nhưng với `sg1` (92% chưa định danh) thì hiệu ứng "cột trống" khá mạnh. Cần mắt owner phán, không phải lỗi.
+
 ## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
 
 - **Trạng thái "ghi được một phần" của nút chiều không có đường kiểm bằng mắt trong demo — nhưng KHÔNG phải code chết.** Đã lần lại đủ đường: ràng buộc 1 (`data/validate.ts` ~683-694) buộc cả năm chiều cộng ra đúng `Signal.vol` (Map khởi tạo sẵn cả năm chiều bằng 0, nên một chiều vắng hẳn cũng bị bắt), nên **bộ dữ liệu đã qua kiểm không sinh nổi ca này** — đúng như bản kế hoạch S3 đã nói trước với owner (`output/ke-hoach-s3-chart-diem-do.html`, box "Một điều đi kèm, cần nói ra") và owner đã chốt **không nới ràng buộc 1** chỉ để bấm thử được trong demo. Điều bản kế hoạch chưa nói rõ, tôi kiểm bổ sung: `validate()` **không chặn render**, nó chỉ dựng banner đỏ toàn cục (`App.tsx:75`, `features/quantify/ValidateBanner.tsx`) — nên với **dữ liệu thật** thiếu dòng ở một chiều, app vẫn vẽ, nút chiều đó hiện `partial` kèm *"x% dữ liệu không gán được …"*, **cùng lúc** với banner đỏ nói bảng đếm lệch. Đó là hành vi đúng, không phải xung đột: banner nói với người vận hành pipeline, chữ trên nút nói với người đọc chart. **Đừng xoá nhánh `partial`, và đừng nới ràng buộc 1 để "test cho dễ".** Cái còn hở đúng là: nhánh này chưa từng được **mắt người** duyệt, chỉ được test chứng minh là **chạy đúng**.
