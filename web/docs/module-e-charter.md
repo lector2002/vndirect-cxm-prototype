@@ -1,6 +1,6 @@
 # Module E Charter — Phân khúc khách CẤU HÌNH ĐƯỢC + section đầu của màn "Chỉ số & ngưỡng"
 
-Status: **CHƯA được owner xác nhận** — sáu quyết định dưới đây đến từ lượt chọn trong hộp hỏi, KHÔNG phải owner viết trong chat. Không giao worker, không viết code cho tới khi owner xác nhận bằng lời.
+Status: **owner đã xác nhận trong chat 04/08** — xem mục "Xác nhận của owner" ngay dưới. Được giao worker.
 Date: 04/08/2026
 
 ## Vì sao có module này
@@ -12,7 +12,7 @@ Hôm nay ranh giới phân khúc **đóng cứng trong code**: union type NavBan
 (data/schema/cxm.ts:120-123) + trọng số generator (data/fixtures/demo.ts). Không ai ngoài người sửa
 code đổi được mốc 50tr, và không thêm được dải mới.
 
-## Sáu quyết định — chọn qua hộp hỏi 04/08, CHỜ owner xác nhận
+## Sáu quyết định (chọn qua hộp hỏi 04/08, owner xác nhận trong chat cùng ngày)
 
 | # | Quyết định | Hệ quả |
 |---|---|---|
@@ -20,7 +20,7 @@ code đổi được mốc 50tr, và không thêm được dải mới.
 | E-b | **Customer lưu GIÁ TRỊ THÔ**, dải là derived lúc đọc | Đổi cut ⇒ mọi chart xếp lại NGAY, không migration, không nhãn cũ mắc lại |
 | E-c | Nhãn dải **luôn sinh ra từ cut**, KHÔNG cho đặt tay | Nhãn không thể nói dối về cut — đây là lý do từ chối option "Cfg khai danh sách nhãn" |
 | E-d | acq là **categorical**, control riêng (danh sách tên kênh), không phải cut | Không nhét vào cùng widget với 3 trục số |
-| E-e | seg/tier **KHÔNG thuộc module này** | Rúle engine là module riêng, cần chốt thứ tự ưu tiên rúle + khách không khớp rúle nào trước khi làm |
+| E-e | seg/tier **KHÔNG thuộc module này** | owner 04/08: "tier cũng sẽ có 1 module để customize" — tức tier CÓ trong kế hoạch, nhưng là module riêng. Cần chốt thứ tự ưu tiên rúle + khách không khớp rúle nào trước khi làm |
 | E-f | Làm module này **TRƯỚC** theme→step + lát 2 | Lát 2 join trên thuộc tính khách nên phải đứng trên nền type đã ổn định |
 
 Hai quyết định cùng nguồn (hộp hỏi, chờ xác nhận) nhưng thuộc module SAU, ghi lại để không mất:
@@ -31,6 +31,28 @@ Hai quyết định cùng nguồn (hộp hỏi, chờ xác nhận) nhưng thuộ
   chỗ cần step id.
 - **Bằng chứng ẩn danh:** sentinel **thứ ba** trong data/segment.ts; chart **LUÔN vẽ**, nhóm ẩn danh
   là một đoạn hiện rõ trong mẫu số, dòng dưới chart tách rõ ba loại. Refuse chỉ khi known=0.
+
+## Xác nhận của owner (chat, 04/08)
+
+Nguyên văn: *"cusstomer có từ data cần có đủ hết, nguồn trong setting sẽ là source of truth, acq là
+danh sách tên đúng, tier cũng sẽ có 1 module để customize, ko sử dụng sol, note lại là dự án này sẽ
+chỉ sử dụng sonnet làm worker"*.
+
+Đối chiếu từng mệnh đề:
+
+| Câu của owner | Chốt điều gì |
+|---|---|
+| "nguồn trong setting sẽ là source of truth" | **E-a** — Cfg trong màn setting là nguồn duy nhất của dải |
+| "cusstomer có từ data cần có đủ hết" | **E-b** + một luật thêm: Customer phải mang **đủ** các field ĐẾN TỪ DATA. Giá trị thô (tài sản, tuổi, số tháng) là thứ đến từ data ⇒ phải có đủ; nhãn dải KHÔNG đến từ data (nó là thứ tính ra) ⇒ không lưu. Nói cách khác: bỏ 3 field nhãn không phải là "bớt field", mà là bỏ thứ không thuộc data |
+| "acq là danh sách tên đúng" | **E-d** |
+| "tier cũng sẽ có 1 module để customize" | **E-e** — tier ra khỏi module này, nhưng có module riêng về sau |
+
+**E-c** (nhãn luôn sinh từ cut) và **E-f** (thứ tự làm) owner không nhắc riêng; E-c là hệ quả trực tiếp
+của E-a (nếu setting là nguồn duy nhất thì nhãn không được là nguồn thứ hai), E-f giữ nguyên.
+
+**Luật worker của dự án (owner 04/08):** "ko sử dụng sol" và "dự án này sẽ chỉ sử dụng sonnet làm
+worker". Nên: KHÔNG dispatch SOL, KHÔNG dùng tầng DeepSeek/Terra. Mọi section giao bằng Agent tool
+`model: sonnet` theo Worker Contract; phần cắt section và review section do Opus tự làm.
 
 ## Bốn phát hiện từ code hiện tại (đã đo, không suy đoán)
 
