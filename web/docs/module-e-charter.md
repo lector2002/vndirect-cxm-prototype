@@ -1,6 +1,6 @@
 # Module E Charter — Phân khúc khách CẤU HÌNH ĐƯỢC + section đầu của màn "Chỉ số & ngưỡng"
 
-Status: chờ owner duyệt breakdown
+Status: **CHƯA được owner xác nhận** — sáu quyết định dưới đây đến từ lượt chọn trong hộp hỏi, KHÔNG phải owner viết trong chat. Không giao worker, không viết code cho tới khi owner xác nhận bằng lời.
 Date: 04/08/2026
 
 ## Vì sao có module này
@@ -12,7 +12,7 @@ Hôm nay ranh giới phân khúc **đóng cứng trong code**: union type NavBan
 (data/schema/cxm.ts:120-123) + trọng số generator (data/fixtures/demo.ts). Không ai ngoài người sửa
 code đổi được mốc 50tr, và không thêm được dải mới.
 
-## Sáu quyết định owner đã chốt 04/08
+## Sáu quyết định — chọn qua hộp hỏi 04/08, CHỜ owner xác nhận
 
 | # | Quyết định | Hệ quả |
 |---|---|---|
@@ -23,7 +23,7 @@ code đổi được mốc 50tr, và không thêm được dải mới.
 | E-e | seg/tier **KHÔNG thuộc module này** | Rúle engine là module riêng, cần chốt thứ tự ưu tiên rúle + khách không khớp rúle nào trước khi làm |
 | E-f | Làm module này **TRƯỚC** theme→step + lát 2 | Lát 2 join trên thuộc tính khách nên phải đứng trên nền type đã ổn định |
 
-Hai quyết định owner chốt cùng ngày nhưng thuộc module SAU, ghi lại để không mất:
+Hai quyết định cùng nguồn (hộp hỏi, chờ xác nhận) nhưng thuộc module SAU, ghi lại để không mất:
 
 - **Theme→step:** thêm field riêng `step?: string | null` trên node theme, admin gán. KHÔNG dùng lại
   `maps` — `maps` là khoá ngoại **đa hình không có type** (L3 x-l3-live→s3 là step, nhưng
@@ -85,9 +85,11 @@ Kiểm nhãn sinh ra so với hôm nay:
 
 - nav → `<50tr` · `50-200tr` · `200tr-1tỷ` · `1-5tỷ` · `>5tỷ` — **khớp 5/5**
 - age → `18-24` · `25-34` · `35-49` · `50+` — **khớp 4/4**
-- tenure → `<6 tháng` · `6-24 tháng` · `24-60 tháng` · `>60 tháng` — **2 nhãn cuối ĐỔI** (hôm nay là
-  `2-5 năm` · `>5 năm`). Đây là giá của quyết định E-c (nhãn không được đặt tay). **Phải sửa pin trong
-  test, không được thêm nhãn tay để né.**
+- tenure → `<6 tháng` · `6-24 tháng` · `2-5 năm` · `>5 năm` — **khớp 4/4**, với điều kiện formatter
+  `tháng` tự đổi sang `năm` từ mốc 24 tháng, ĐÚNG cách formatter `đ` đã đổi `tr`→`tỷ` ở mốc 1e9. Đây
+  vẫn là nhãn SINH RA từ cut (không vi phạm E-c) — chỉ là quy tắc format có hai bậc đơn vị. Nếu
+  formatter chỉ có một bậc thì 2 nhãn cuối thành `24-60 tháng`/`>60 tháng` và phải sửa pin trong test;
+  **chọn formatter hai bậc để không nhãn nào đổi.**
 
 ### Customer (data/schema/cxm.ts)
 
