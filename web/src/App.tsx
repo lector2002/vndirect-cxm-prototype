@@ -5,6 +5,7 @@ import { GlobalToolbar } from './features/overview/GlobalToolbar.tsx'
 import { QuantifyPage } from './features/quantify/QuantifyPage.tsx'
 import { ValidateBanner } from './features/quantify/ValidateBanner.tsx'
 import { WorkPage } from './features/work/WorkPage.tsx'
+import { AtlasPage } from './features/atlas/AtlasPage.tsx'
 import { ThemeDetailPage } from './features/topic/ThemeDetailPage.tsx'
 import { SettingsPage } from './features/settings/SettingsPage.tsx'
 import { DemoBanner } from './features/settings/DemoBanner.tsx'
@@ -146,6 +147,8 @@ function Shell() {
                     <OverviewPage sec="voc" />
                   ) : n.r === 'work' ? (
                     <WorkPage />
+                  ) : n.r === 'atlas' ? (
+                    <AtlasPage />
                   ) : n.r === 'settings' ? (
                     <SettingsPage />
                   ) : (
