@@ -171,17 +171,26 @@ const seedRaw: CxmData = {
     { id:'tp5', stepId:'s5', name:'Ký HĐ điện tử SmartCA',channel:'app', owner:'Onboarding',  users:12760, desc:'Chọn số TK và ký hợp đồng' },
     { id:'tp6', stepId:'s6', name:'Kích hoạt tại core',   channel:'backend', owner:'Core Account', users:11990, desc:'Đồng bộ tài khoản sang hệ thống lõi' },
   ],
+  /* Signal.values — danh sách giá trị RỜI RẠC mà chính điểm đo bắn ra (thiết kế
+     output/thiet-ke-chart-signal.html §2 lỗ hổng A, §7). Chỉ sg4 có danh sách VIẾT SẴN trong chính
+     `desc` ("blur / glare / crop / expired") — bốn signal còn lại (sg1/2/7/10) không có liệt kê
+     tường minh trong desc, giá trị dưới đây là SUY DIỄN có căn cứ từ tên/`desc` của chính signal đó
+     (quyết định của session này, không phải số đo thật — báo lại trong response, xem mục "tự quyết"):
+     sg1/sg10 là sự kiện MỘT giá trị (không có biến thể kết quả) nên values chỉ có đúng 1 phần tử;
+     sg2 "bắn lặp theo bước" → giá trị là MÃ BƯỚC (khớp 6 bước s1..s6 của flow f-open-2026); sg3/sg5/
+     sg8 là "kết quả mỗi lần" → hai giá trị thành/bại; sg7 "sửa thông tin OCR đọc sai" → giá trị là
+     TRƯỜNG bị sửa. sg6 (gap) và sg9 (designed, vol:0) → rỗng, đúng luật "vol===0 ⇒ []". */
   signals: [
-{ id:'sg1', tpId:'tp1', name:'account_open_started',        st:'live',       pf:['ios','android','web'], es:'client', vol:614,  seen:'27/07 · 14:52', metrics:['m-completion'], desc:'Khách bấm Mở tài khoản' },
-    { id:'sg2', tpId:'tp1', name:'account_open_step_viewed',    st:'live',       pf:['ios','android','web'], es:'client', vol:2840, seen:'27/07 · 14:52', metrics:['m-completion'], desc:'Hiển thị từng bước, bắn lặp theo bước' },
-    { id:'sg3', tpId:'tp2', name:'ekyc_document_capture_result',st:'live',       pf:['ios','android'],       es:'client', vol:920,  seen:'27/07 · 14:50', metrics:['m-ocr'], desc:'Kết quả mỗi lần chụp giấy tờ' },
-    { id:'sg4', tpId:'tp2', name:'ekyc_document_fail_reason',   st:'validating', pf:['ios','android'],       es:'client', vol:410,  seen:'27/07 · 13:20', metrics:['m-ocr'], desc:'Lý do thất bại: blur / glare / crop / expired' },
-    { id:'sg5', tpId:'tp3', name:'ekyc_face_liveness_result',   st:'live',       pf:['ios','android'],       es:'client', vol:1180, seen:'27/07 · 14:48', metrics:['m-liveness'], desc:'Kết quả mỗi lần liveness' },
-    { id:'sg6', tpId:'tp3', name:'ekyc_face_device_context',    st:'gap',        pf:['android'],             es:'client', vol:0,    seen:null, metrics:['m-liveness'], desc:'Model máy, mức sáng môi trường — CHƯA instrument' },
-    { id:'sg7', tpId:'tp4', name:'account_info_edited',         st:'live',       pf:['ios','android'],       es:'client', vol:520,  seen:'27/07 · 14:31', metrics:['m-ocr'], desc:'Khách sửa thông tin OCR đọc sai' },
-    { id:'sg8', tpId:'tp5', name:'contract_sign_result',        st:'live',       pf:['ios','android'],       es:'client', vol:430,  seen:'27/07 · 14:40', metrics:['m-contract'], desc:'Kết quả ký hợp đồng điện tử' },
-    { id:'sg9', tpId:'tp5', name:'contract_session_abandoned',  st:'designed',   pf:['ios','android'],       es:'client', vol:0,    seen:null, metrics:['m-contract'], desc:'Phiên ký hết hạn — đã có spec, chưa implement' },
-    { id:'sg10',tpId:'tp6', name:'account_activated',           st:'live',       pf:['server'],              es:'server', vol:395,  seen:'27/07 · 14:45', metrics:['m-completion'], desc:'Tài khoản sẵn sàng giao dịch' },
+{ id:'sg1', tpId:'tp1', name:'account_open_started',        st:'live',       pf:['ios','android','web'], es:'client', vol:614,  seen:'27/07 · 14:52', metrics:['m-completion'], desc:'Khách bấm Mở tài khoản', values:['tapped'] },
+    { id:'sg2', tpId:'tp1', name:'account_open_step_viewed',    st:'live',       pf:['ios','android','web'], es:'client', vol:2840, seen:'27/07 · 14:52', metrics:['m-completion'], desc:'Hiển thị từng bước, bắn lặp theo bước', values:['step_01','step_02','step_03','step_04','step_05','step_06'] },
+    { id:'sg3', tpId:'tp2', name:'ekyc_document_capture_result',st:'live',       pf:['ios','android'],       es:'client', vol:920,  seen:'27/07 · 14:50', metrics:['m-ocr'], desc:'Kết quả mỗi lần chụp giấy tờ', values:['success','fail'] },
+    { id:'sg4', tpId:'tp2', name:'ekyc_document_fail_reason',   st:'validating', pf:['ios','android'],       es:'client', vol:410,  seen:'27/07 · 13:20', metrics:['m-ocr'], desc:'Lý do thất bại: blur / glare / crop / expired', values:['blur','glare','crop','expired'] },
+    { id:'sg5', tpId:'tp3', name:'ekyc_face_liveness_result',   st:'live',       pf:['ios','android'],       es:'client', vol:1180, seen:'27/07 · 14:48', metrics:['m-liveness'], desc:'Kết quả mỗi lần liveness', values:['success','fail'] },
+    { id:'sg6', tpId:'tp3', name:'ekyc_face_device_context',    st:'gap',        pf:['android'],             es:'client', vol:0,    seen:null, metrics:['m-liveness'], desc:'Model máy, mức sáng môi trường — CHƯA instrument', values:[] },
+    { id:'sg7', tpId:'tp4', name:'account_info_edited',         st:'live',       pf:['ios','android'],       es:'client', vol:520,  seen:'27/07 · 14:31', metrics:['m-ocr'], desc:'Khách sửa thông tin OCR đọc sai', values:['name','dob','id_number','address','bank'] },
+    { id:'sg8', tpId:'tp5', name:'contract_sign_result',        st:'live',       pf:['ios','android'],       es:'client', vol:430,  seen:'27/07 · 14:40', metrics:['m-contract'], desc:'Kết quả ký hợp đồng điện tử', values:['success','fail'] },
+    { id:'sg9', tpId:'tp5', name:'contract_session_abandoned',  st:'designed',   pf:['ios','android'],       es:'client', vol:0,    seen:null, metrics:['m-contract'], desc:'Phiên ký hết hạn — đã có spec, chưa implement', values:[] },
+    { id:'sg10',tpId:'tp6', name:'account_activated',           st:'live',       pf:['server'],              es:'server', vol:395,  seen:'27/07 · 14:45', metrics:['m-completion'], desc:'Tài khoản sẵn sàng giao dịch', values:['activated'] },
   ],
   metrics: [
 { id:'m-completion', name:'Hoàn tất mở tài khoản', value:'64,3%', target:'≥ 72%', unit:'%',
@@ -707,6 +716,10 @@ const seedRaw: CxmData = {
           { id:'AF-07', lane:'voice', sev:'medium', at:'27/07 · 07:00', title:'Theme mới xuất hiện tuần này',
             detail:'34 verbatim dùng cụm "ứng dụng định danh quốc gia" chưa gán vào node VNeID / NFC. Cần người xác nhận cách gán.', ev:['EV-305'] } ] },
   ],
+  /* Demo Mode TẮT = trạng thái TRUNG THỰC "chưa nhận được số đếm sẵn từ bên dữ liệu" (thiết kế §2)
+     — RỖNG ở đây không phải lỗi, không phải chỗ thiếu code. demoData (fixtures/demo.ts) mới là nơi
+     có số, sinh từ các lần bắn nội bộ rồi cộng qua projectSignalCounts. */
+  sigCounts: [],
 };
 
 export const seedNav: { g?: string; r?: string; ic?: string; l?: string }[] = [
@@ -818,6 +831,15 @@ export const dims: Record<string, Dim> = {
   nav: { label: "Phân khúc NAV", unit: "phân khúc", base: "cust", cut: { kind: "band", source: "navVnd" } },
   tenure: { label: "Thâm niên giao dịch", unit: "nhóm thâm niên", base: "cust", cut: { kind: "band", source: "tenureMonths" } },
   acq: { label: "Kênh mở TK", unit: "kênh", base: "cust", cut: { kind: "values", source: "acq" } },
+  /* Chiều thứ năm của chart điểm đo (thiết kế §4) — thuộc tính CỦA CHÍNH LẦN BẮN (nền tảng nó xảy
+     ra), không phải của khách: `base:'fire'`, KHÔNG dùng lại `base:'ev'` như `pf` ở trên. `source`
+     vẫn trỏ "pf" trong `cut` để tự tài liệu hoá "đọc field pf" nhưng phép cộng (projectSignalCounts)
+     đọc THẲNG `pf` của lần bắn, không qua CUST_CAT/CUST_NUM — `cut.source` ở đây không được
+     `rawFields.ts` diễn giải (danh mục đó chỉ có dữ kiện CỦA KHÁCH). `unit`/`label` KHÔNG có trong
+     câu chốt gốc của owner ("dims.sigpf = { label:'Nền tảng', base:'fire', cut:{...} }") — Dim đòi
+     `unit` bắt buộc nên tự quyết thêm, lấy đúng "nền tảng" như `dims.pf` vì cùng một khái niệm vật
+     lý, chỉ khác chỗ đọc (lần bắn thay vì mẫu bằng chứng). */
+  sigpf: { label: "Nền tảng", unit: "nền tảng", base: "fire", cut: { kind: "values", source: "pf" } },
 };
 
 /** Fixture 7 khách thật, nhãn nhóm ĐÃ CHIẾU theo `cfgDefault` + `dims`. Phải khai SAU cả hai (const

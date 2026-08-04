@@ -72,7 +72,13 @@ export type Cfg = {
 };
 
 // ----- DIMS -----
-export type DimBase = 'agg' | 'ev' | 'cust';
+/** `'fire'` thêm cho chart điểm đo (output/thiet-ke-chart-signal.html §4): thuộc tính CỦA CHÍNH LẦN
+    BẮN (nền tảng), không phải của khách (`'cust'`) lẫn của bằng chứng VoC (`'ev'`) — một lần bắn
+    chưa gắn được với khách vẫn có nền tảng, khác `'cust'` chết ngay khi chưa định danh. Mọi chỗ
+    switch trên `base` phải xử lý biến thể này TƯỜNG MINH (ném lỗi hoặc trả rỗng có comment), không
+    để rơi vào nhánh mặc định im lặng — xem domain/quantify.ts, domain/themeSegments.ts,
+    design-system/QuantifyWidget.tsx (BASE_AXIS/BASE_NOUN, hai Record đã compile-error nếu thiếu). */
+export type DimBase = 'agg' | 'ev' | 'cust' | 'fire';
 
 export type DimRow = {
   id: string;

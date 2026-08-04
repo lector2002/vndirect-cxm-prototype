@@ -28,4 +28,5 @@ export const EMPTY_DATA: CxmData = {
   qt: [],
   dash: [],
   ag: [],
+  sigCounts: [],
 };

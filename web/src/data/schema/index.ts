@@ -4,11 +4,17 @@ export type { IssueSt, IssueSev, IssuePri, IssueImp, Issue, ActionAp, ActionCf, 
 export type { ChartKind, ShowMark, SeriesMark, QuantifyView, StackMode, QuantifyShow, QuantifySeriesPoint, QuantifySeries, QuantifyItem, DashQuestion, DashSet, AgentKind, AgentFindingLane, AgentFinding, Agent } from './quantify.ts';
 export type { CfgStep, CfgMetricBand, CfgData, CfgAnomaly, CfgSub, CfgBandAxis, CfgSegment, Cfg, DimBase, DimRow, DimCut, Dim, MetricKind } from './config.ts';
 export type { NavItem, Meta, TourStop, Chip } from './ui.ts';
+/* `SigCount` khai ở `../projectSignalCounts.ts` (tầng data/, KHÔNG ở schema/) theo đúng chủ ý của
+   thiết kế chart điểm đo: type sống cạnh phép cộng sinh ra nó (projectBands.ts cũng không có type
+   "hàng" riêng trong schema/), CxmData chỉ re-export để mọi consumer vẫn `import … from
+   './schema/index.ts'` như các type khác — không phải ngoại lệ về CÁCH DÙNG, chỉ khác NƠI KHAI. */
+export type { SigCount } from '../projectSignalCounts.ts';
 
 import type { Period, Scope, Phase, Group, Flow, Step, Obs, Touchpoint, Signal } from './journey.ts';
 import type { Metric, Source, Survey, TaxNode, Category, Evidence, VoiceInsight } from './voc.ts';
 import type { Issue, Action, Outcome, Snapshot, Loop, Customer } from './cxm.ts';
 import type { QuantifyItem, DashSet, Agent } from './quantify.ts';
+import type { SigCount } from '../projectSignalCounts.ts';
 
 export type CxmData = {
   periods: Period[];
@@ -39,4 +45,9 @@ export type CxmData = {
   qt: QuantifyItem[];
   dash: DashSet[];
   ag: Agent[];
+  /** Năm bảng đếm của chart điểm đo — giá trị của MỘT signal × nhóm của MỘT chiều → bao nhiêu lần
+      (xem data/projectSignalCounts.ts). Demo Mode TẮT ⇒ RỖNG là trạng thái TRUNG THỰC (chưa nhận
+      được số đếm sẵn từ bên dữ liệu), không phải lỗi — chart điểm đo tự nói "chưa có dữ liệu", không
+      vẽ rỗng giả vờ là 0 (cùng nguyên tắc với Signal.st==='gap'). */
+  sigCounts: SigCount[];
 };

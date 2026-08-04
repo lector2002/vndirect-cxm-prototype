@@ -122,7 +122,12 @@ type RowBuilder = (data: CxmData) => DimRow[];
    Hai kiểu chia đọc từ hai chỗ khác nhau, và sự khác nhau đó có chủ ý:
    - `band`   → đọc NHÃN ĐÃ CHIẾU (`c.bands[id]`), vì nhãn phụ thuộc ranh giới, mà ranh giới nằm trong
                 cấu hình — thứ tầng này không được biết tới (xem data/projectBands.ts).
-   - `values` → đọc THẲNG dữ kiện từ danh mục, không phải chiếu gì. */
+   - `values` → đọc THẲNG dữ kiện từ danh mục, không phải chiếu gì.
+
+   `base:'fire'` (chart điểm đo, output/thiet-ke-chart-signal.html §4) KHÔNG đi qua hàm này — điều
+   kiện `dim.base !== "cust"` bên dưới đã loại nó TƯỜNG MINH cùng với 'agg'/'ev', trả `undefined` như
+   một chiều không có cách đọc "thuộc tính khách". Chiều đó đọc thẳng `fire.pf` của lần bắn (xem
+   data/projectSignalCounts.ts), không qua Customer nên không có getter nào ở đây cho nó. */
 export function custField(dims: Record<string, Dim>, id: string): ((c: Customer) => string) | undefined {
   const dim = dims[id];
   if (!dim || dim.base !== "cust" || !dim.cut) return undefined;
@@ -166,6 +171,16 @@ export const ROW_BUILDERS: Record<string, RowBuilder> = {
 export function rowBuilder(dims: Record<string, Dim>, id: string, data: CxmData): RowBuilder | undefined {
   const fixed = ROW_BUILDERS[id];
   if (fixed) return fixed;
+  /* `base:'fire'` (chart điểm đo, output/thiet-ke-chart-signal.html §4) đọc từ `data.sigCounts`
+     GỘP THEO MỘT SIGNAL cụ thể (data/projectSignalCounts.ts) — `qRun` ở đây không có khái niệm
+     "đang xem signal nào" nên KHÔNG CÓ cách đếm qua đường chung cho chiều này. Trả `undefined` (SỰ
+     THẬT: không có cách đếm ở đây), KHÔNG trả builder-luôn-rỗng — một builder luôn rỗng làm test
+     "thiếu là biểu đồ rỗng im lặng" xanh trong khi tạo ra chính cái nó canh (builder tồn tại nhưng
+     luôn trả rows rỗng = biểu đồ rỗng im lặng). Test quantify.test.ts loại trừ base:'fire' KHỎI phép
+     kiểm đó theo đúng lý do này (chiều này đếm qua đường riêng, không qua rowBuilder) — xem comment
+     tại test, đó là thu hẹp phạm vi vì đổi tiền đề, không phải nới lỏng kỳ vọng. Chart thật sự dùng
+     chiều này là section sau, qua đường riêng (data.sigCounts), không qua `rowBuilder`/`qRun`. */
+  if (dims[id]?.base === "fire") return undefined;
   const getter = custFieldPresent(dims, id, data);
   return getter ? (d) => byCustGroup(d, getter) : undefined;
 }
@@ -589,9 +604,17 @@ export type QuantifyCrossResult = {
 /* Suy "trục khách không ghép chéo được" từ `base`, KHÔNG hardcode danh sách id — cùng lý do đã nêu
    ở qRunSegment: hardcode là tạo bản sao thứ hai của "trục nào là trục khách". */
 function custAxisUnsupported(dim: Dim | undefined, id: string): string | null {
-  return dim?.base === "cust"
-    ? `Trục "${id}" là thuộc tính khách (base:'cust'), không nối được với evidence nên không ghép chéo được.`
-    : null;
+  if (dim?.base === "cust") {
+    return `Trục "${id}" là thuộc tính khách (base:'cust'), không nối được với evidence nên không ghép chéo được.`;
+  }
+  /* `base:'fire'` (chart điểm đo) không có entry trong CROSS_EXTRACT nên `rowExtract`/`colExtract`
+     phía dưới sẽ undefined và hàm trả `empty` — TƯỜNG MINH lý do ở đây thay vì để `unsupported: null`
+     (đọc như "ghép được nhưng không match gì", một câu SAI cho trường hợp này) rơi vào nhánh mặc
+     định im lặng. */
+  if (dim?.base === "fire") {
+    return `Trục "${id}" là thuộc tính của lần bắn tín hiệu (base:'fire') — chart điểm đo chưa nối vào ghép chéo evidence ở đợt này.`;
+  }
+  return null;
 }
 
 /* Các node taxonomy cùng tầng mà MỘT ev mang qua e.tax[] — port từ evTaxLv() (~dòng 1420). Đa trị:

@@ -64,6 +64,14 @@ function axisDisabledReason(dim: Dim, key: string): string | undefined {
   if (dim.base === "ev" && !EV_FIELD[key]) {
     return `Chiều "${dim.label}" chưa có cách đọc trực tiếp từ một bằng chứng (Evidence) nên không đếm được.`;
   }
+  /* `base:'fire'` (chart điểm đo, output/thiet-ke-chart-signal.html §4) là thuộc tính của LẦN BẮN
+     tín hiệu, không phải của Evidence — không có đường nối nào tới `data.ev` nên không thể là trục
+     chia của chart theme. Khoá TƯỜNG MINH ở đây thay vì để lọt qua (hai nhánh trên không bắt biến
+     thể này) rồi rơi vào "không khoá" ngầm định — đúng loại lỗi mà `custField` ở quantify.ts đã né
+     bằng cách chỉ nhận `base==='cust'`. */
+  if (dim.base === "fire") {
+    return `Chiều "${dim.label}" là thuộc tính của lần bắn tín hiệu (base:'fire'), không nối được với bằng chứng (Evidence) nên chart theme chưa dùng được chiều này.`;
+  }
   return undefined;
 }
 

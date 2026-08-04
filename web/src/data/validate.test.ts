@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { seed, seedNav, seedTour, dims, cfgDefault } from "./fixtures/seed.ts";
 import { validateFixture } from "./validate.ts";
 import { projectCustomerBands } from "./projectBands.ts";
-import type { CxmData } from "./schema/index.ts";
+import { NOT_IDENTIFIED } from "./projectSignalCounts.ts";
+import type { CxmData, Signal, SigCount } from "./schema/index.ts";
 
 describe("validateFixture", () => {
   it("positive: seed passes all 19 groups", () => {
@@ -120,7 +121,7 @@ describe("validateFixture", () => {
     d.flows.push({ id: "f-test-m", groupId: "g-in", name: "t", owner: "x", version: "v1", src: "\u2014", verified: false, observed: false, note: "" });
     d.steps.push({ id: "s-test", flowId: "f-test-m", code: "01", name: "t", stationId: "JS-TEST-01", owner: "x" });
     d.touchpoints.push({ id: "tp-test", stepId: "s-test", name: "t", channel: "app", owner: "x", users: 10, desc: "" });
-    d.signals.push({ id: "sg-test", tpId: "tp-test", name: "deposit_test", st: "live", pf: [], es: "client", vol: 1, seen: null, metrics: [], desc: "" });
+    d.signals.push({ id: "sg-test", tpId: "tp-test", name: "deposit_test", st: "live", pf: [], es: "client", vol: 1, seen: null, metrics: [], desc: "", values: [] });
     const r = validateFixture(d, dims, seedNav, seedTour);
     expect(r.some((e) => e.includes("d\u00F2ng ti\u1EC1n"))).toBe(true);
   });
@@ -535,6 +536,156 @@ describe("validateFixture", () => {
 
   it("21: seed nguyên bản qua hết luật ck — 7/17 dòng có ck không tra ra khách nhưng ĐÚNG DẠNG nên không lỗi", () => {
     const r = validateFixture(seed, dims, seedNav, seedTour, cfgDefault);
+    expect(r).toEqual([]);
+  });
+
+  /* Group 22: chart điểm đo — sigCounts (thiết kế: output/thiet-ke-chart-signal.html §2/§3).
+     seed.signals (sg1..sg10) không có sigCounts nào (seed.sigCounts=[] — Demo Mode tắt, trạng thái
+     trung thực), nên dựng một signal test riêng ("sg-x") + sigCounts CHỈ của signal đó — không
+     đụng tới 10 signal thật, không ảnh hưởng các nhóm luật khác.
+
+     `withSigX` THAY HẲN d.signals (không PUSH thêm vào 10 signal thật của seed): sau khi validate.ts
+     siết thêm luật "vol>0 mà 0 dòng trong sigCounts không rỗng ⇒ lỗi", nếu vẫn giữ 10 signal thật
+     cùng lúc (chúng có vol>0 nhưng không có mặt trong sigCounts CỦA RIÊNG TEST NÀY) thì luật mới sẽ
+     báo lỗi SAI cho cả sg1..sg10 — phá mọi test bên dưới. THAY là cách đúng để giữ đúng ý cô lập đã
+     nêu ở trên, không phải nới lỏng gì.
+
+     Mô hình 10 lần bắn của "sg-x": 3 fires val='a' biết khách (acq=banner, nav=<50tr, age=18-24,
+     tier=new, pf=ios) + 2 fires val='a' KHÔNG biết khách (pf=android) + 4 fires val='b' biết khách
+     (acq=chi nhánh, nav=50-200tr, age=25-34, tier=standard, pf=ios) + 1 fire val='b' không biết
+     khách (pf=android). Tổng = 10 = vol. */
+  function sigXSignal(): Signal {
+    return {
+      id: "sg-x", tpId: "tp1", name: "test_signal", st: "live", pf: ["ios", "android"], es: "client",
+      vol: 10, seen: null, metrics: [], desc: "signal test cho nhóm 22", values: ["a", "b"],
+    };
+  }
+
+  /* Signal ĐỒNG HÀNH cho hai test "vắng mặt hoàn toàn" mới — cần MỘT signal khác sg-x có vol>0
+     nhưng KHÔNG có dòng nào trong sigCounts, trong khi bảng sigCounts vẫn có dòng (của sig-x), để
+     phân biệt "riêng signal này vắng mặt" khỏi "cả bảng rỗng". */
+  function sigYSignal(): Signal {
+    return {
+      id: "sg-y", tpId: "tp1", name: "test_signal_y", st: "live", pf: ["ios"], es: "client",
+      vol: 5, seen: null, metrics: [], desc: "signal test thứ hai cho nhóm 22 — cố tình KHÔNG có sigCounts", values: ["z"],
+    };
+  }
+
+  function baseSigXCounts(): SigCount[] {
+    return [
+      { sig: "sg-x", dim: "acq", val: "a", band: "banner", n: 3 },
+      { sig: "sg-x", dim: "acq", val: "a", band: NOT_IDENTIFIED, n: 2 },
+      { sig: "sg-x", dim: "nav", val: "a", band: "<50tr", n: 3 },
+      { sig: "sg-x", dim: "nav", val: "a", band: NOT_IDENTIFIED, n: 2 },
+      { sig: "sg-x", dim: "age", val: "a", band: "18-24", n: 3 },
+      { sig: "sg-x", dim: "age", val: "a", band: NOT_IDENTIFIED, n: 2 },
+      { sig: "sg-x", dim: "tier", val: "a", band: "new", n: 3 },
+      { sig: "sg-x", dim: "tier", val: "a", band: NOT_IDENTIFIED, n: 2 },
+      { sig: "sg-x", dim: "sigpf", val: "a", band: "ios", n: 3 },
+      { sig: "sg-x", dim: "sigpf", val: "a", band: "android", n: 2 },
+      { sig: "sg-x", dim: "acq", val: "b", band: "chi nhánh", n: 4 },
+      { sig: "sg-x", dim: "acq", val: "b", band: NOT_IDENTIFIED, n: 1 },
+      { sig: "sg-x", dim: "nav", val: "b", band: "50-200tr", n: 4 },
+      { sig: "sg-x", dim: "nav", val: "b", band: NOT_IDENTIFIED, n: 1 },
+      { sig: "sg-x", dim: "age", val: "b", band: "25-34", n: 4 },
+      { sig: "sg-x", dim: "age", val: "b", band: NOT_IDENTIFIED, n: 1 },
+      { sig: "sg-x", dim: "tier", val: "b", band: "standard", n: 4 },
+      { sig: "sg-x", dim: "tier", val: "b", band: NOT_IDENTIFIED, n: 1 },
+      { sig: "sg-x", dim: "sigpf", val: "b", band: "ios", n: 4 },
+      { sig: "sg-x", dim: "sigpf", val: "b", band: "android", n: 1 },
+    ];
+  }
+
+  function withSigX(sigCounts: SigCount[]): CxmData {
+    const d = structuredClone(seed) as CxmData;
+    d.signals = [sigXSignal()];
+    d.sigCounts = sigCounts;
+    return d;
+  }
+
+  it("22: bảng đếm đúng (baseline) — không lỗi nào", () => {
+    const r = validateFixture(withSigX(baseSigXCounts()), dims, seedNav, seedTour, cfgDefault);
+    expect(r).toEqual([]);
+  });
+
+  it("22: giá trị không có trong Signal.values đã khai", () => {
+    const rows = baseSigXCounts();
+    rows.push({ sig: "sg-x", dim: "sigpf", val: "c-la", band: "ios", n: 1 });
+    const r = validateFixture(withSigX(rows), dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("sg-x") && e.includes('giá trị "c-la"'))).toBe(true);
+  });
+
+  it("22: ràng buộc 1 — tổng một chiều lệch Signal.vol", () => {
+    const rows = baseSigXCounts();
+    const acqA = rows.find((r) => r.dim === "acq" && r.val === "a" && r.band === "banner")!;
+    acqA.n += 1; // acq: 3+1=4, tổng acq = 4+2+4+1 = 11 ≠ vol=10
+    const r = validateFixture(withSigX(rows), dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("sg-x") && e.includes("acq") && e.includes("ràng buộc 1"))).toBe(true);
+  });
+
+  it("22: ràng buộc 2 — năm chiều không khớp nhau cho CÙNG một giá trị (tổng theo chiều vẫn = vol)", () => {
+    const rows = baseSigXCounts();
+    // Đổi lệch NGAY BÊN TRONG chiều tier: val 'a' +1, val 'b' -1 — tổng chiều tier vẫn = 10 (không
+    // phạm ràng buộc 1), nhưng theo TỪNG giá trị thì tier không còn khớp acq/nav/age/sigpf nữa.
+    rows.find((r) => r.dim === "tier" && r.val === "a" && r.band === "new")!.n += 1;
+    rows.find((r) => r.dim === "tier" && r.val === "b" && r.band === "standard")!.n -= 1;
+    const r = validateFixture(withSigX(rows), dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("sg-x") && e.includes("ràng buộc 2"))).toBe(true);
+    // Không lây sang ràng buộc 1: tổng theo chiều vẫn đúng vol.
+    expect(r.some((e) => e.includes("ràng buộc 1"))).toBe(false);
+  });
+
+  it("22: ràng buộc 3 — số \"chưa định danh\" lệch nhau giữa bốn chiều khách (tổng theo chiều/giá trị vẫn đúng)", () => {
+    const rows = baseSigXCounts();
+    // tier/val='a': new 3→2, NOT_IDENTIFIED 2→3 — tổng tier/val='a' vẫn = 5 (khớp acq/nav/age), tổng
+    // chiều tier vẫn = 10 (không phạm ràng buộc 1/2), nhưng số "chưa định danh" của tier (3) giờ lệch
+    // acq/nav/age (vẫn 2).
+    rows.find((r) => r.dim === "tier" && r.val === "a" && r.band === "new")!.n -= 1;
+    rows.find((r) => r.dim === "tier" && r.val === "a" && r.band === NOT_IDENTIFIED)!.n += 1;
+    const r = validateFixture(withSigX(rows), dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("sg-x") && e.includes(`"${NOT_IDENTIFIED}"`) && e.includes("ràng buộc 3"))).toBe(true);
+    expect(r.some((e) => e.includes("ràng buộc 1"))).toBe(false);
+    expect(r.some((e) => e.includes("ràng buộc 2"))).toBe(false);
+  });
+
+  it("22: ràng buộc 1/2 — MỘT CHIỀU vắng mặt hoàn toàn (0 dòng) vẫn phải bị bắt, không được bỏ lọt vì Map không có key", () => {
+    // Xóa sạch mọi dòng của chiều sigpf (cả val='a' lẫn 'b') — khác các test lệch-số ở trên, đây là
+    // chiều HOÀN TOÀN KHÔNG XUẤT HIỆN trong sigCounts của sig-x. Nếu vòng lặp chỉ duyệt các dim ĐÃ
+    // thấy trong Map (không khởi tạo sẵn cả năm chiều), lỗi này sẽ lọt lưới im lặng.
+    const rows = baseSigXCounts().filter((r) => r.dim !== "sigpf");
+    const r = validateFixture(withSigX(rows), dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("sg-x") && e.includes("sigpf") && e.includes("ràng buộc 1"))).toBe(true);
+    expect(r.some((e) => e.includes("sg-x") && e.includes("ràng buộc 2"))).toBe(true);
+  });
+
+  it("22: chiều sigpf được MIỄN ràng buộc 3 — lệch phân bố nền tảng không bị báo lỗi", () => {
+    const rows = baseSigXCounts().filter((r) => !(r.dim === "sigpf" && r.val === "a"));
+    // Toàn bộ 5 lần bắn val='a' đổi sang nền tảng 'web' thay vì tách ios/android — tổng vẫn 5, chỉ
+    // đổi CÁCH CHIA của riêng chiều sigpf, bốn chiều khách giữ nguyên như baseline.
+    rows.push({ sig: "sg-x", dim: "sigpf", val: "a", band: "web", n: 5 });
+    const r = validateFixture(withSigX(rows), dims, seedNav, seedTour, cfgDefault);
+    expect(r).toEqual([]);
+  });
+
+  it("22: signal vol>0 VẮNG MẶT HOÀN TOÀN trong sigCounts (bảng KHÔNG rỗng — có dòng của signal khác) ⇒ lỗi", () => {
+    // sig-y (vol=5) không có dòng nào trong sigCounts, NHƯNG bảng sigCounts không rỗng (có dòng của
+    // sig-x) — đây là ca "cổng nhận số bỏ lọt": vol>0 nghĩa là đã instrument, có bắn thật, mà không
+    // nổi một dòng đếm thì rất có thể quên khai Signal.values (giá trị rỗng ⇒ demo generator không
+    // sinh fire nào để đếm).
+    const d = withSigX(baseSigXCounts());
+    d.signals.push(sigYSignal());
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("sg-y") && e.includes("vol=5") && e.includes("Signal.values"))).toBe(true);
+    // Không lây sang sig-x — sig-x vẫn đầy đủ dòng đúng baseline, không bị báo lỗi gì.
+    expect(r.some((e) => e.includes("sg-x"))).toBe(false);
+  });
+
+  it("22: sigCounts RỖNG TOÀN BỘ (Demo Mode TẮT) ⇒ KHÔNG lỗi dù signal có vol>0", () => {
+    // Khác test trên: ở đây CẢ BẢNG sigCounts rỗng (không có dòng của signal nào, kể cả sig-x) —
+    // đây là trạng thái trống TRUNG THỰC của toàn hệ thống (seed.sigCounts=[] thật cũng đúng ca
+    // này), KHÔNG được báo lỗi dù sig-x có vol=10 > 0.
+    const d = withSigX([]);
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
     expect(r).toEqual([]);
   });
 });

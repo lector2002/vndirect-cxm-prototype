@@ -1,10 +1,11 @@
 import type { CxmData, Dim, NavItem, TourStop, Cfg } from "./schema/index.ts";
 import type { Step, Metric, Evidence, Issue, Action, Source, Survey, VoiceInsight, QuantifyItem, DashSet, Flow, Customer, Outcome, Snapshot, Group, Phase, Agent, TaxNode } from "./schema/index.ts";
-import type { CfgBandAxis } from "./schema/index.ts";
+import type { CfgBandAxis, SigCount } from "./schema/index.ts";
 import { CUST_NUM, CUST_CAT } from "./rawFields.ts";
 import { BLOCKS } from "./blocks.ts";
 import { isSegUnknown } from "./segment.ts";
 import { bandLabels, bandOf } from "./bands.ts";
+import { NOT_IDENTIFIED, SIG_CUST_DIMS, SIG_FIRE_DIM } from "./projectSignalCounts.ts";
 
 /* validateFixture — 19 nhóm bất biến (port từ prototype; nhóm 19 thêm 02/08 cho phân khúc khách) */
 
@@ -634,6 +635,110 @@ export function validateFixture(
        giá store, ghi chú RM không định danh) không có id để đối chiếu VÀ không có pipeline nào
        để "sửa" ra id, vì bản chất nguồn vốn không mang id. Coi nó là lỗi sẽ buộc giả lập id cho
        một nguồn vốn dĩ không có — sai hướng (module-f-charter.md, mục "Chỉnh charter" #2). */
+  }
+
+  /* 22. Chart điểm đo — sigCounts (thiết kế: output/thiet-ke-chart-signal.html §2, §3, §9). Bên dữ
+     liệu đếm sẵn nghĩa là hệ thống KHÔNG tự kiểm lại được bằng cách cộng từ đầu (khác 300 khách ở
+     trên, nơi validate còn tự đếm được) — ba ràng buộc dưới đây LÀ cửa nhận số. Kiểm Ở VÒNG NGOÀI
+     (theo signal), không theo từng dòng sigCounts: một bảng đếm sai là MỘT lỗi cấu hình/pipeline,
+     không phải N lỗi dữ liệu (docs/DB-FIRST-HANDOFF.md, "Bẫy đã trả giá"). */
+  {
+    const bySig = new Map<string, SigCount[]>();
+    for (const row of data.sigCounts) {
+      const arr = bySig.get(row.sig);
+      if (arr) arr.push(row);
+      else bySig.set(row.sig, [row]);
+    }
+
+    for (const sig of data.signals) {
+      const rows = bySig.get(sig.id) ?? [];
+      if (rows.length === 0) {
+        /* Rỗng có HAI nguyên nhân khác hẳn nhau — phải phân biệt bằng PHẠM VI kiểm (cả bảng
+           `data.sigCounts`), không thể phân biệt chỉ nhìn riêng `rows` của một signal:
+           - CẢ BẢNG sigCounts rỗng (data.sigCounts.length === 0): Demo Mode TẮT, seed chưa giao
+             dòng nào cho signal nào cả — trạng thái trống TRUNG THỰC của toàn hệ thống, không phải
+             lỗi. Ba ràng buộc dưới đây chỉ có nghĩa khi ĐÃ có dòng để so nên bỏ qua toàn bộ.
+           - Bảng CÓ dòng (ít nhất một signal khác đã có sigCounts) nhưng RIÊNG signal này vắng mặt:
+             nếu sig.vol > 0 (đã instrument, có bắn thật) mà không nổi một dòng đếm, đây là "cổng
+             nhận số" bị bỏ lọt im lặng đúng ca nguy hiểm nhất — không có gì để cộng. Nguyên nhân
+             nhiều khả năng nhất là quên khai Signal.values (rỗng ⇒ demo generator không sinh fire
+             nào để đếm, xem data/fixtures/demo.ts genFiresForSignal) — nêu thẳng trong câu lỗi. */
+        if (data.sigCounts.length > 0 && sig.vol > 0) {
+          e.push(
+            `sigCounts ${sig.id}: vol=${sig.vol} > 0 nhưng KHÔNG có dòng đếm nào — kiểm lại Signal.values (rỗng thì demo generator không sinh fire nào để đếm)`,
+          );
+        }
+        continue;
+      }
+
+      // Giá trị lạ — không có trong danh mục Signal.values đã khai (thiết kế §7: giá trị chưa khai
+      // phải HIỆN RA chứ không bị bỏ im lặng; cột "giá trị chưa khai" là việc của section sau, ở đây
+      // chỉ chặn giá trị không rõ nguồn gốc lọt vào sigCounts).
+      const validVals = new Set(sig.values);
+      for (const r of rows) {
+        if (!validVals.has(r.val)) {
+          e.push(`sigCounts ${sig.id}: giá trị "${r.val}" không có trong Signal.values đã khai`);
+        }
+      }
+
+      // Ràng buộc 1 — tổng n của MỘT CHIỀU bất kỳ phải bằng Signal.vol. Khởi tạo sẵn cả NĂM chiều
+      // bằng 0 (không chỉ những chiều CÓ dòng) — nếu không, một chiều bị THIẾU HẲN (0 dòng) sẽ không
+      // bao giờ vào Map nên vòng lặp bỏ qua, "tổng=0 ≠ vol" lọt lưới im lặng.
+      const ALL_SIG_DIMS = [...SIG_CUST_DIMS, SIG_FIRE_DIM];
+      const byDim = new Map<string, number>(ALL_SIG_DIMS.map((d) => [d, 0]));
+      for (const r of rows) byDim.set(r.dim, (byDim.get(r.dim) ?? 0) + r.n);
+      for (const [dim, total] of byDim) {
+        if (total !== sig.vol) {
+          e.push(`sigCounts ${sig.id}/"${dim}": tổng n=${total} không khớp Signal.vol=${sig.vol} (ràng buộc 1)`);
+        }
+      }
+
+      // Ràng buộc 2 — CÙNG một giá trị, NĂM bảng đếm phải cộng ra CÙNG một số, không chỉ khớp tổng
+      // (bắt được lỗi mà ràng buộc 1 bỏ lọt: lệch ở giá trị này bù lại ở giá trị khác, tổng vẫn khớp).
+      // Cũng khởi tạo sẵn cả năm chiều bằng 0 cùng lý do như ràng buộc 1 — một chiều vắng mặt hoàn
+      // toàn cho MỘT giá trị vẫn phải hiện ra là lệch, không được coi như "chưa nói gì nên bỏ qua".
+      const byVal = new Map<string, Map<string, number>>();
+      for (const r of rows) {
+        let m = byVal.get(r.val);
+        if (!m) {
+          m = new Map(ALL_SIG_DIMS.map((d) => [d, 0]));
+          byVal.set(r.val, m);
+        }
+        m.set(r.dim, (m.get(r.dim) ?? 0) + r.n);
+      }
+      for (const [val, m] of byVal) {
+        const totals = [...m.values()];
+        if (new Set(totals).size > 1) {
+          e.push(
+            `sigCounts ${sig.id}/"${val}": năm chiều không khớp nhau — ${[...m.entries()].map(([d, n]) => `${d}=${n}`).join(", ")} (ràng buộc 2)`,
+          );
+        }
+      }
+
+      // Ràng buộc 3 — số "chưa định danh" phải GIỐNG NHAU ở BỐN CHIỀU KHÁCH (SIG_CUST_DIMS). Chiều
+      // "sigpf" (SIG_FIRE_DIM) được MIỄN: lần bắn không biết khách vẫn biết nền tảng của chính nó,
+      // nên chênh lệch ở chiều đó là ĐÚNG — ĐỪNG "sửa" cho nó cân (thiết kế §3, ràng buộc 3; đã có
+      // ca đo được: một điểm đo xảy ra trước bước biết khách gần như toàn "chưa định danh" ở bốn
+      // chiều khách, trong khi chiều nền tảng vẫn nói được điều gì đó).
+      const byValUnid = new Map<string, Map<string, number>>();
+      for (const r of rows) {
+        if (r.dim === SIG_FIRE_DIM || r.band !== NOT_IDENTIFIED) continue;
+        let m = byValUnid.get(r.val);
+        if (!m) {
+          m = new Map(SIG_CUST_DIMS.map((d) => [d, 0]));
+          byValUnid.set(r.val, m);
+        }
+        m.set(r.dim, (m.get(r.dim) ?? 0) + r.n);
+      }
+      for (const [val, m] of byValUnid) {
+        const totals = SIG_CUST_DIMS.map((d) => m.get(d) ?? 0);
+        if (new Set(totals).size > 1) {
+          e.push(
+            `sigCounts ${sig.id}/"${val}": số "${NOT_IDENTIFIED}" không giống nhau ở bốn chiều khách (${SIG_CUST_DIMS.map((d, i) => `${d}=${totals[i]}`).join(", ")}) — chiều "${SIG_FIRE_DIM}" được MIỄN (ràng buộc 3)`,
+          );
+        }
+      }
+    }
   }
 
   return e;

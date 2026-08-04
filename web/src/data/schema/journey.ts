@@ -76,4 +76,9 @@ export type Signal = {
   seen: string | null;
   metrics: string[];
   desc: string;
+  /** Danh sách giá trị RỜI RẠC mà chính điểm đo này bắn ra — khai bởi đội dữ liệu, KHÔNG quét ngược
+      từ dữ liệu (thiết kế: output/thiet-ke-chart-signal.html §2, lỗ hổng A). Đây là cột của chart
+      điểm đo. `vol > 0` (đã instrument, có bắn) → danh sách thật; `st:'gap'` hoặc `vol === 0`
+      (chưa instrument / chưa implement) → mảng rỗng, không có cột nào để vẽ. */
+  values: string[];
 };

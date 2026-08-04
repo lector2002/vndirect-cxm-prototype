@@ -1,9 +1,10 @@
-import type { CfgBandAxis, CxmData, Customer, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, TaxNode } from "../schema/index.ts";
+import type { CfgBandAxis, CxmData, Customer, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, Signal, TaxNode } from "../schema/index.ts";
 import { cfgDefault, dims, seed } from "./seed.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
 import { ANON_CK } from "../validate.ts";
 import { bandLabels } from "../bands.ts";
 import { projectCustomerBands } from "../projectBands.ts";
+import { projectSignalCounts } from "../projectSignalCounts.ts";
 import { CUST_CAT } from "../rawFields.ts";
 
 /* demoData — chế độ "demo bật/tắt" (Module C, section C4): trải seed thật (7 khách trung thực,
@@ -596,7 +597,79 @@ const demoEv: Evidence[] = [
   ),
 ];
 
+/* ---------- Lần bắn tín hiệu — chart điểm đo (thiết kế output/thiet-ke-chart-signal.html §2) ----------
+   Một dòng = MỘT lần một signal bắn ra một giá trị, có thể gắn hoặc KHÔNG gắn được với một khách.
+   Type CHỈ sống trong file này (KHÔNG đưa vào CxmData, không export ra ngoài) — hệ thống chạy thật
+   nhận thẳng NĂM BẢNG ĐẾM đã cộng sẵn (data/projectSignalCounts.ts) từ bên dữ liệu, không đưa từng
+   lần bắn qua mạng (thiết kế §2, khối "Còn data demo trong giai đoạn thiết kế thì sinh thế nào"). */
+type Fire = { sigId: string; val: string; custKey: string | null; pf: string };
+
+/* Hạt giống RIÊNG, KHÔNG dùng chung DEMO_SEED/RAW_SEED/DEMO_EV_SEED — cùng lý do đã nêu ở
+   DEMO_EV_SEED: một stream riêng thì mọi số khách/bằng chứng đã sinh trước đó không lệch một bit dù
+   thêm lần bắn vào lúc nào. */
+const SIG_SEED = 0x51624e;
+
+/* Tỉ lệ custKey NULL theo TỪNG SIGNAL — càng SỚM trong hành trình (tpId → stepId, s1 trước s6), càng
+   ít lần bắn định danh được khách (thiết kế §3/§4: "Bắt đầu mở tài khoản" xảy ra TRƯỚC bước biết
+   khách là ai nên gần như toàn bộ là "chưa định danh"). sg4 CỐ Ý lấy ĐÚNG 31% — khớp con số ví dụ
+   minh hoạ trong thiết kế (§1, mock "410 lần bắn · 31% chưa gắn được với khách"). Các signal còn lại
+   KHÔNG có số đo thật để tham chiếu — đây LÀ số demo (data/fixtures/ được phép mã hoá mẫu tay, cùng
+   loại quyết định với NAV_BANDS_TRANSFER ở trên trong file này), chọn theo cùng quy luật giảm dần
+   khi bước trong hành trình đi xa hơn (tp1/s1 cao nhất, tp6/s6 thấp nhất). */
+const SIG_NULL_RATE: Record<string, number> = {
+  sg1: 0.92, // tp1/s1 — bấm bắt đầu, trước MỌI bước định danh
+  sg2: 0.92, // tp1/s1 — cùng bước, bắn lặp theo từng bước hiển thị
+  sg3: 0.45, // tp2/s2 — đang chụp giấy tờ, một phần đã đối chiếu được
+  sg4: 0.31, // tp2/s2 — khớp đúng ví dụ minh hoạ trong thiết kế §1
+  sg5: 0.22, // tp3/s3 — qua liveness, phần lớn đã có hồ sơ
+  sg7: 0.15, // tp4/s4 — đã xác nhận thông tin
+  sg8: 0.1, // tp5/s5 — sắp ký hợp đồng, gần như đã định danh
+  sg10: 0.05, // tp6/s6 — tài khoản đã kích hoạt
+};
+
+/* Sinh các lần bắn của MỘT signal. `vol===0` (gap/designed) luôn đi kèm `values:[]` (luật khai ở
+   seed.ts) nên không có gì để sinh — trả rỗng, không throw: đây là bộ sinh demo, không phải luật
+   kiểm (validate.ts mới là nơi ném lỗi khi khai báo sai). */
+function genFiresForSignal(rng: () => number, sig: Signal, custPool: readonly Customer[]): Fire[] {
+  if (sig.vol === 0 || sig.values.length === 0) return [];
+  // Phòng khi một signal mới thêm quên khai tỉ lệ ở SIG_NULL_RATE — mặc định 0.5, không throw.
+  const nullRate = SIG_NULL_RATE[sig.id] ?? 0.5;
+  const valWeights = sig.values.map((v) => [v, 1] as const);
+  const pfWeights = sig.pf.map((p) => [p, 1] as const);
+  const out: Fire[] = [];
+  for (let i = 0; i < sig.vol; i++) {
+    const val = pickWeighted(rng, valWeights);
+    const pf = pickWeighted(rng, pfWeights);
+    const custKey = rng() < nullRate ? null : custPool[Math.floor(rng() * custPool.length)].key;
+    out.push({ sigId: sig.id, val, custKey, pf });
+  }
+  return out;
+}
+
+/* generateFires — sinh TẤT ĐỊNH các lần bắn của MỌI signal. `custPool` PHẢI là tập khách CUỐI CÙNG
+   sẽ dùng (`demoCust`) để `custKey` luôn tra ra được một khách thật — cùng nguyên tắc với
+   `generateEvidence` ở trên (không tự bịa khoá mới, chỉ NỐI tới khách đã tồn tại). */
+export function generateFires(signals: readonly Signal[], custPool: readonly Customer[]): Fire[] {
+  const rng = mulberry32(SIG_SEED);
+  const out: Fire[] = [];
+  for (const sig of signals) out.push(...genFiresForSignal(rng, sig, custPool));
+  return out;
+}
+
+const demoFires = generateFires(seed.signals, demoCust);
+
 /* Chiếu lại nhãn dải qua `cfgDefault` — CÙNG phép chiếu mà MockRepository.getSnapshot() chạy với
    cfg hiện tại, nên fixture và runtime không thể lệch cách hiểu dải. Idempotent với 7 khách của
    `seed` (đã chiếu một lần rồi): nhãn luôn tính từ số thô, không đọc nhãn cũ. */
-export const demoData: CxmData = projectCustomerBands({ ...seed, cust: demoCust, ev: demoEv }, cfgDefault, dims);
+const demoProjected: CxmData = projectCustomerBands({ ...seed, cust: demoCust, ev: demoEv }, cfgDefault, dims);
+
+/* sigCounts PHẢI cộng SAU projectCustomerBands ở trên: projectSignalCounts đọc `Customer.bands[id]`
+   cho hai chiều cắt-ngưỡng (nav/age) — cộng trước khi chiếu sẽ đọc `bands` rỗng và ném lỗi khai báo
+   giả (xem docblock projectSignalCounts, data/projectSignalCounts.ts). Nghiệm thu: đổi ranh giới NAV
+   trong `cfgDefault` rồi gọi lại `projectCustomerBands` + `projectSignalCounts` (không sửa dòng nào
+   ở đây) → `band` của chiều `nav` trong `sigCounts` chia lại theo ranh giới mới — xem
+   projectSignalCounts.test.ts. */
+export const demoData: CxmData = {
+  ...demoProjected,
+  sigCounts: projectSignalCounts(demoFires, demoProjected.cust, dims),
+};

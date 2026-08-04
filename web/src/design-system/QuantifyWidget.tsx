@@ -118,10 +118,15 @@ function groupsContent(tail: DimRow[], fmt: (v: number) => string): DrillContent
    - buildDenomStrip() → mẫu số + caveat "tập mẫu" (base='ev'), render ở Card.denomStrip (R2).
    base='ev' (mẫu bằng chứng, khác mẫu số agg/cust) phải nói rõ đây là tập mẫu — CrossTable đã tự
    có caveat này nên chỉ show item (không by) cần render ở đây. */
+/* `fire` (chart điểm đo, output/thiet-ke-chart-signal.html §4) thêm vào Record này CHỈ để tsc không
+   đỏ — chart dùng chiều đó là việc của section sau (chưa có `qt` nào khai `show`/`by`/`split` trỏ
+   vào `dims.sigpf`), nên nhãn dưới đây CHƯA từng hiện ra thật trên UI. Không xoá field lẫn không để
+   trống: Record<Dim["base"], string> là map ĐÓNG theo union, thiếu một biến thể là lỗi biên dịch. */
 const BASE_AXIS: Record<Dim["base"], string> = {
   agg: "Số tín hiệu khách hàng",
   ev: "Số bằng chứng mẫu",
   cust: "Số khách trong cohort",
+  fire: "Số lần bắn tín hiệu",
 };
 
 /* Danh từ đơn vị cho nhãn nhỏ dưới số ở tâm donut — cùng nguồn nghĩa với BASE_AXIS, bỏ tiền tố
@@ -133,6 +138,7 @@ const BASE_NOUN: Record<Dim["base"], string> = {
   agg: "tín hiệu khách hàng",
   ev: "bằng chứng mẫu",
   cust: "khách trong cohort",
+  fire: "lần bắn tín hiệu",
 };
 
 /* CHỈ đơn vị trục — mẫu số (agg) và caveat tập mẫu (ev) đã dời sang buildDenomStrip(). Nhánh pct

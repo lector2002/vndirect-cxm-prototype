@@ -72,9 +72,20 @@ describe("qRun", () => {
      qRun trả rỗng IM LẶNG — không throw, không log. Sau đợt 2a điều kiện đó KHÔNG còn là "hai bảng
      khớp 1-1": cách đếm của chiều khách SINH ra từ khai báo, nên phép kiểm đúng là "mọi chiều trong
      dims đều dựng được cách đếm", tức tính luôn cả chiều owner thêm sau này. So hai tập id như bản
-     cũ sẽ đỏ oan ngay khi bảng cách đếm cố tình không còn chứa trục khách. */
+     cũ sẽ đỏ oan ngay khi bảng cách đếm cố tình không còn chứa trục khách.
+
+     THU HẸP PHẠM VI (đợt sigCounts — KHÔNG phải nới lỏng kỳ vọng): xuất hiện một LOẠI chiều mới,
+     `base:'fire'`, có cách đếm THẬT nhưng đi qua đường riêng (`data.sigCounts` / projectSignalCounts,
+     xem rowBuilder trong domain/quantify.ts) — không qua `rowBuilder`/`qRun` chung, nên tiền đề "thiếu
+     ở đây = biểu đồ rỗng im lặng" không áp dụng cho loại chiều đó nữa. Loại trừ THEO `base`, KHÔNG
+     hardcode id 'sigpf' — hardcode id sẽ tạo bản sao thứ hai của "chiều nào đếm bằng đường riêng",
+     đúng lỗi mà comment `custAxisUnsupported` (quantify.ts) đã né. Mọi chiều KHÁC — kể cả chiều
+     khách nào thêm sau này — vẫn phải bị bắt nếu thiếu cách đếm; đã xác nhận bằng thực nghiệm: xoá
+     tạm một case xử lý chiều base:'cust' bất kỳ trong custField làm test này đỏ lại. */
   it("mọi chiều khai trong dims đều dựng được cách đếm — thiếu là biểu đồ rỗng im lặng", () => {
-    const thieu = Object.keys(dims).filter((id) => rowBuilder(dims, id, demoData) === undefined);
+    const thieu = Object.keys(dims)
+      .filter((id) => dims[id]?.base !== "fire")
+      .filter((id) => rowBuilder(dims, id, demoData) === undefined);
     expect(thieu).toEqual([]);
   });
 });
