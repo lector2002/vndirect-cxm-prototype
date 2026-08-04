@@ -444,16 +444,27 @@ export type DrillResult =
 /* Trục có rows dựng từ số tổng hợp sẵn — xem chú thích khối ở trên. */
 const AGG_TAX_AXES = new Set(["theme", "l1", "l2", "l3", "sub"]);
 
-/* Thuộc tính khách in kèm mỗi dòng, theo THỨ TỰ ƯU TIÊN cố định; trục đang xếp hàng bị loại (in lại
-   đúng giá trị vừa bấm là nhiễu), rồi lấy 2 cái đầu. Tất định, không phải chọn tuỳ hàng. */
+/* Thứ tự ưu tiên khi chọn thuộc tính in kèm mỗi dòng drill — GIỮ NGUYÊN từ bản trước (seg > tier >
+   nav > acq). Đây KHÔNG phải danh sách đóng: chiều nào không có trong đây vẫn được chọn, chỉ xếp sau.
+   Vì sao còn giữ: đổi thứ tự này là đổi CHỮ hiện trên mỗi dòng drill (drill theo `seg` thì bản trước
+   in "Value tier · Phân khúc NAV", bỏ ưu tiên đi sẽ thành "Value tier · Độ tuổi") — một thay đổi
+   hiển thị, không thuộc phạm vi đợt khai báo chiều. */
+const META_PRIORITY = ["seg", "tier", "nav", "acq"];
+
 /* Hai chiều khách hiện kèm theo mỗi dòng drill làm ngữ cảnh ("khách này còn thuộc nhóm nào nữa").
-   SUY từ khai báo thay vì hardcode `["seg","tier","nav","acq"]` như bản trước: danh sách hardcode sẽ
-   trỏ vào một chiều owner đã xoá (hiện "—" mãi mãi) và bỏ qua chiều owner mới thêm. Thứ tự lấy theo
-   thứ tự khai báo, để owner sắp lại chiều là đổi được ngữ cảnh hiện ra. */
+   Tập ứng viên SUY từ khai báo thay vì hardcode như bản trước: danh sách hardcode sẽ trỏ vào một
+   chiều owner đã xoá (hiện "—" mãi mãi) và bỏ qua chiều owner mới thêm. Chiều mới xếp sau nhóm ưu
+   tiên, giữ thứ tự khai báo (sort ổn định) — nên không chiều nào vô hình, mà chữ hiện ra vẫn tất
+   định, không phụ thuộc thứ tự khai. */
 function custMetaAxes(dims: Record<string, Dim>, exclude: string): string[] {
+  const rank = (id: string) => {
+    const i = META_PRIORITY.indexOf(id);
+    return i === -1 ? META_PRIORITY.length : i;
+  };
   return Object.entries(dims)
     .filter(([id, d]) => d.base === "cust" && d.cut !== undefined && id !== exclude)
     .map(([id]) => id)
+    .sort((a, b) => rank(a) - rank(b))
     .slice(0, 2);
 }
 

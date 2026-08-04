@@ -450,6 +450,21 @@ describe("qRunDrill", () => {
     expect(res.lines[0].meta).not.toContain("Kênh mở TK");
   });
 
+  /* Hai thuộc tính in kèm mỗi dòng phải TẤT ĐỊNH và không đổi theo thứ tự khai chiều. Ca này canh
+     đúng chỗ đợt 2a suýt làm đổi chữ trên màn hình: tập ứng viên giờ suy từ `dims`, nếu chỉ lấy 2
+     cái đầu theo thứ tự khai thì drill theo `seg` sẽ in "Độ tuổi" thay cho "Phân khúc NAV" — không
+     một test nào ghim, mà owner thì thấy chữ khác. `META_PRIORITY` giữ đúng thứ tự bản trước. */
+  it("meta của dòng drill giữ THỨ TỰ ƯU TIÊN (seg > tier > nav), không theo thứ tự khai chiều", () => {
+    const seg: QuantifyShow = { ...acq, show: "seg" };
+    const res = qRunDrill(seg, demoData, dims, demoData.cust[0].seg);
+    expect(res.kind).toBe("full");
+    if (res.kind !== "full") throw new Error("unreachable");
+    expect(res.lines[0].meta).toContain("Value tier");
+    expect(res.lines[0].meta).toContain("Phân khúc NAV");
+    expect(res.lines[0].meta).not.toContain("Độ tuổi");
+    expect(res.lines[0].meta).not.toContain("Segment khách");
+  });
+
   it("hàng 'Không xác định': kind='unknown', TÁCH LẠI hai sentinel mà chart đã gộp (bài học D0)", () => {
     const res = qRunDrill(acq, demoData, dims, UNKNOWN_ROW_ID);
     expect(res.kind).toBe("unknown");
