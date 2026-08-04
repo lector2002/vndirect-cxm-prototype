@@ -1,9 +1,10 @@
 import type { CfgBandAxis, CxmData, Customer, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, TaxNode } from "../schema/index.ts";
-import { cfgDefault, seed } from "./seed.ts";
+import { cfgDefault, dims, seed } from "./seed.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
 import { ANON_CK } from "../validate.ts";
 import { bandLabels } from "../bands.ts";
 import { projectCustomerBands } from "../projectBands.ts";
+import { CUST_CAT } from "../rawFields.ts";
 
 /* demoData — chế độ "demo bật/tắt" (Module C, section C4): trải seed thật (7 khách trung thực,
    giữ nguyên KHÔNG đụng) rồi thay bảng `cust` bằng 300 khách SINH RA, đủ lớn để các biểu đồ phân
@@ -245,10 +246,10 @@ function genOne(rng: () => number, rawRng: () => number, usedKeys: Set<string>):
      nhất: tài sản của họ đúng bằng 0 (chưa nạp tiền / chưa mở xong TK). Nhờ vậy nhóm "chưa có tài
      sản" tách được khỏi nhóm "có ít tài sản" nếu owner thêm một cut sát 0 — đúng ca dùng mà
      data/bands.ts đã lường trước (nhãn "0đ"). */
-  const ageYears = age === UNKNOWN_YET ? UNKNOWN_YET : rawInBand(rawRng, cfgDefault.segment.age, age, AGE_TOP_MAX);
-  const navVnd = hasAssets ? rawInBand(rawRng, cfgDefault.segment.nav, nav, NAV_TOP_MAX) : 0;
+  const ageYears = age === UNKNOWN_YET ? UNKNOWN_YET : rawInBand(rawRng, cfgDefault.segment.band.age, age, AGE_TOP_MAX);
+  const navVnd = hasAssets ? rawInBand(rawRng, cfgDefault.segment.band.nav, nav, NAV_TOP_MAX) : 0;
   const tenureMonths =
-    tenure === UNKNOWN_YET ? UNKNOWN_YET : rawInBand(rawRng, cfgDefault.segment.tenure, tenure, TENURE_TOP_MAX);
+    tenure === UNKNOWN_YET ? UNKNOWN_YET : rawInBand(rawRng, cfgDefault.segment.band.tenure, tenure, TENURE_TOP_MAX);
 
   return {
     key,
@@ -259,9 +260,10 @@ function genOne(rng: () => number, rawRng: () => number, usedKeys: Set<string>):
     ageYears,
     navVnd,
     tenureMonths,
-    age,
-    nav,
-    tenure,
+    /* Nhãn nhóm mà BẢNG WEIGHT vừa chọn — CHỦ Ý phân bố của fixture. Phép chiếu ở cuối file tính
+       lại chúng từ số thô; hai bên phải bằng nhau, và projectBands.test.ts so đúng cặp đó trên cả
+       300 khách để bắt lỗi lệch biên một đơn vị của rawInBand. */
+    bands: { age, nav, tenure },
     acq,
     _pos: pos,
     _deposited: deposited,
@@ -491,11 +493,20 @@ const THEME_SKEW: Record<string, ThemeSkew> = {
    theme không lệch, khi đó p=0 nên nhánh match không bao giờ chạy). */
 type CkPool = { readonly all: readonly string[]; readonly match: readonly string[]; readonly p: number };
 
+/* Đọc giá trị của một chiều để so với bảng lệch. Hai đường vì hai kiểu chia: `seg`/`acq` là dữ kiện
+   danh mục đọc thẳng, `nav`/`tenure` là NHÃN NHÓM nằm trong map đã chiếu. Dùng lại danh mục dữ kiện
+   thay vì `c[field]` như bản trước — sau đợt 2a `c.nav` không còn tồn tại, và một phép truy cập
+   động vào Customer sẽ phải ép kiểu, tức là một `field` sai lọt qua compiler rồi lặng lẽ trả
+   undefined (bias mất tác dụng, phân bố demo phẳng đi mà không ai biết). */
+function biasValue(c: Customer, field: string): string {
+  return CUST_CAT[field]?.(c) ?? (c.bands[field] as string);
+}
+
 function ckPoolFor(theme: TaxNode, cust: readonly Customer[]): CkPool {
   const all = cust.map((c) => c.key);
   const bias = THEME_SKEW[theme.id]?.cust;
   if (!bias) return { all, match: [], p: 0 };
-  const match = cust.filter((c) => bias.values.includes(c[bias.field])).map((c) => c.key);
+  const match = cust.filter((c) => bias.values.includes(biasValue(c, bias.field))).map((c) => c.key);
   /* match rỗng = giá trị trong bảng không còn tồn tại trong tập khách (đổi enum, sai chính tả).
      Hạ p về 0 để không index vào mảng rỗng ra `undefined`. Không im lặng: test
      "theme có bias thì nhóm khớp phải chiếm ≥40%" trong demo.test.ts đỏ ngay khi bias mất tác dụng. */
@@ -588,4 +599,4 @@ const demoEv: Evidence[] = [
 /* Chiếu lại nhãn dải qua `cfgDefault` — CÙNG phép chiếu mà MockRepository.getSnapshot() chạy với
    cfg hiện tại, nên fixture và runtime không thể lệch cách hiểu dải. Idempotent với 7 khách của
    `seed` (đã chiếu một lần rồi): nhãn luôn tính từ số thô, không đọc nhãn cũ. */
-export const demoData: CxmData = projectCustomerBands({ ...seed, cust: demoCust, ev: demoEv }, cfgDefault);
+export const demoData: CxmData = projectCustomerBands({ ...seed, cust: demoCust, ev: demoEv }, cfgDefault, dims);

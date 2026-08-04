@@ -16,7 +16,7 @@ import type { Cfg } from "./schema/index.ts";
     "có ít tài sản". Thêm cut 1 vào đầu ⇒ dải đầu là "0đ", dải kế là "<50tr" (data/bands.ts). */
 function cfgWithZeroAssetCut(): Cfg {
   const cfg = structuredClone(cfgDefault);
-  cfg.segment.nav = { min: null, cuts: [1, 50e6, 200e6, 1e9, 5e9], unit: "đ" };
+  cfg.segment.band.nav = { min: null, cuts: [1, 50e6, 200e6, 1e9, 5e9], unit: "đ" };
   return cfg;
 }
 
@@ -25,27 +25,27 @@ describe("projectCustomerBands", () => {
     /* `seed` export đã là bản CHIẾU, nên chiếu thêm lần nữa phải ra y nguyên. Nếu hàm chiếu có lúc
        nào đọc nhãn cũ làm đầu vào thì ca này đỏ. Cặp nhãn/số thô có khớp nhau hay không là việc của
        validate rule 19 (nó tính lại bằng bandOf), đã xanh ở validate.test.ts. */
-    expect(projectCustomerBands(seed, cfgDefault)).toEqual(seed);
+    expect(projectCustomerBands(seed, cfgDefault, dims)).toEqual(seed);
   });
 
   it("sentinel của số thô đi qua nguyên vẹn, không bị dải nào hấp thụ", () => {
     const c = seed.cust.find((x) => x.tenureMonths === "chưa-biết")!;
-    expect(projectCustomer(c, cfgDefault).tenure).toBe("chưa-biết");
+    expect(projectCustomer(c, cfgDefault, dims).bands.tenure).toBe("chưa-biết");
     /* KHÔNG được thành "<6 tháng": xếp 'chưa-biết' vào dải thấp nhất là biến "chưa tới chỗ biết
        được" thành "quan hệ mới" — đúng lỗi mà data/segment.ts cấm. */
-    expect(projectCustomer(c, cfgDefault).tenure).not.toBe("<6 tháng");
+    expect(projectCustomer(c, cfgDefault, dims).bands.tenure).not.toBe("<6 tháng");
   });
 
   it("đổi cut ⇒ CÙNG số thô rơi sang dải khác", () => {
     const zero = seed.cust.find((c) => c.navVnd === 0)!;
     const small = seed.cust.find((c) => c.navVnd === 12e6)!;
 
-    expect(projectCustomer(zero, cfgDefault).nav).toBe("<50tr");
-    expect(projectCustomer(small, cfgDefault).nav).toBe("<50tr");
+    expect(projectCustomer(zero, cfgDefault, dims).bands.nav).toBe("<50tr");
+    expect(projectCustomer(small, cfgDefault, dims).bands.nav).toBe("<50tr");
 
     const cfg = cfgWithZeroAssetCut();
-    expect(projectCustomer(zero, cfg).nav).toBe("0đ");
-    expect(projectCustomer(small, cfg).nav).toBe("<50tr");
+    expect(projectCustomer(zero, cfg, dims).bands.nav).toBe("0đ");
+    expect(projectCustomer(small, cfg, dims).bands.nav).toBe("<50tr");
   });
 });
 
@@ -62,9 +62,9 @@ describe("fixture demo: số thô rút ra phải chiếu lại ĐÚNG nhãn đã
     expect(raw).toHaveLength(300);
 
     const lech = raw
-      .map((c) => ({ c, p: projectCustomer(c, cfgDefault) }))
-      .filter(({ c, p }) => p.age !== c.age || p.nav !== c.nav || p.tenure !== c.tenure)
-      .map(({ c, p }) => `${c.key}: age ${c.age}->${p.age} · nav ${c.nav}->${p.nav} · tenure ${c.tenure}->${p.tenure}`);
+      .map((c) => ({ c, p: projectCustomer(c, cfgDefault, dims) }))
+      .filter(({ c, p }) => (["age", "nav", "tenure"] as const).some((k) => p.bands[k] !== c.bands[k]))
+      .map(({ c, p }) => `${c.key}: age ${c.bands.age}->${p.bands.age} · nav ${c.bands.nav}->${p.bands.nav} · tenure ${c.bands.tenure}->${p.bands.tenure}`);
 
     expect(lech).toEqual([]);
   });
@@ -74,7 +74,7 @@ describe("MockRepository.setCfg — cut đổi thì snapshot đổi", () => {
   it("getSnapshot() chiếu lại nhãn theo cfg MỚI, không phải cfg lúc dựng fixture", () => {
     const repo = new MockRepository(demoData);
 
-    const navOf = (key: string) => repo.getSnapshot().cust.find((c) => c.key === key)!.nav;
+    const navOf = (key: string) => repo.getSnapshot().cust.find((c) => c.key === key)!.bands.nav;
     expect(navOf("KH•••7A2")).toBe("<50tr"); // navVnd = 0
     expect(navOf("KH•••4B8")).toBe("<50tr"); // navVnd = 12tr — CÙNG dải với 7A2 lúc này
 
@@ -114,7 +114,7 @@ describe("MockRepository.setCfg — cut đổi thì snapshot đổi", () => {
     const repo = new MockRepository(demoData);
     const before = repo.getCfg();
     const bad = structuredClone(cfgDefault);
-    bad.segment.nav = { min: null, cuts: [200e6, 50e6], unit: "đ" };
+    bad.segment.band.nav = { min: null, cuts: [200e6, 50e6], unit: "đ" };
 
     expect(() => repo.setCfg({ segment: bad.segment })).toThrow(/setCfg/);
     expect(repo.getCfg()).toEqual(before);

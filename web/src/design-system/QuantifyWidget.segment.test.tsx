@@ -57,7 +57,7 @@ describe("QuantifyWidget — trục base:'cust' đi qua qRunSegment (S2.C3b)", (
     // total=7 (khác oracle gốc chỉ có unknown, chưa từng chạm nhánh 'thiếu' của buildSegDescription).
     const missData: CxmData = {
       ...seed,
-      cust: seed.cust.map((c, i) => (i < 2 ? { ...c, tenure: MISSING } : c)),
+      cust: seed.cust.map((c, i) => (i < 2 ? { ...c, bands: { ...c.bands, tenure: MISSING } } : c)),
     };
     render(<QuantifyWidget item={tenureItem} data={missData} dims={dims} />);
     const bars = screen.getByTestId("bars");
@@ -70,7 +70,7 @@ describe("QuantifyWidget — trục base:'cust' đi qua qRunSegment (S2.C3b)", (
 
   it("seg.kind='refuse' (known=0 sau khi loại bỏ khách có tenure thật) → render panel lý do, KHÔNG chart", () => {
     // Giữ đúng 4 khách 'chưa-biết' ⇒ known=0 (nhánh refuse của qRunSegment).
-    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.tenure === "chưa-biết") };
+    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.bands.tenure === "chưa-biết") };
     render(<QuantifyWidget item={tenureItem} data={miniData} dims={dims} />);
     expect(screen.queryByTestId("bars")).not.toBeInTheDocument();
     expect(screen.queryByTestId("vaxis-label")).not.toBeInTheDocument();

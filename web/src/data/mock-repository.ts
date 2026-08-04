@@ -99,7 +99,7 @@ export class MockRepository implements CxmRepository {
       khiển con số hiện trên chart (data/projectBands.ts). Trước section này `cuts` không có consumer
       nào trong production nên sửa ngưỡng ở setting không đổi được gì. */
   getSnapshot(): CxmData {
-    return projectCustomerBands(structuredClone(this.data), this.cfg);
+    return projectCustomerBands(structuredClone(this.data), this.cfg, this.dims);
   }
 
   getCfg(): Cfg {
@@ -146,7 +146,7 @@ export class MockRepository implements CxmRepository {
       setCfg cần kiểm với cfg ứng viên trước khi nhận. Không chiếu thì nhóm 19 báo lệch nhãn/số thô
       cho MỌI khách ngay khi cut đổi, vì `this.data` giữ nhãn nướng theo cut cũ. */
   private projectedValidationSnapshot(cfg: Cfg): CxmData {
-    return projectCustomerBands(this.buildValidationSnapshot(), cfg);
+    return projectCustomerBands(this.buildValidationSnapshot(), cfg, this.dims);
   }
 
   /** Hợp nhất overlay boards vào dash (mỗi câu hỏi đã sửa -> block overlay thay cho

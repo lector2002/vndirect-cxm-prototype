@@ -4,7 +4,7 @@ import { UNKNOWN_YET, MISSING } from "./segment.ts";
 import { cfgDefault } from "./fixtures/seed.ts";
 import type { CfgBandAxis } from "./schema/index.ts";
 
-const { nav, age, tenure } = cfgDefault.segment;
+const { nav, age, tenure } = cfgDefault.segment.band;
 
 describe("bandLabels", () => {
   it("nav mặc định: đúng 5 nhãn đang chạy hôm nay", () => {

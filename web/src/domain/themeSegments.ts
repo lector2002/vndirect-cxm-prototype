@@ -1,7 +1,7 @@
 import type { CxmData, Customer, Dim, Evidence, TaxNode } from "../data/schema/index.ts";
 import { ANON_CK } from "../data/validate.ts";
 import { isSegUnknown, MISSING, UNKNOWN_YET } from "../data/segment.ts";
-import { CUST_FIELD } from "./quantify.ts";
+import { custField } from "./quantify.ts";
 
 /* VOC-STACKED-SPEC §2 — chia n của một theme thành các đoạn cho Bars.segments.
    `subtheme` = trục THẬT (n thật của subtheme con, GIỮ NGUYÊN từ bản trước).
@@ -93,7 +93,13 @@ export function themeAxisOptions(dims: Record<string, Dim>): ThemeAxisOption[] {
    Hai nhóm sau CHỈ có nghĩa khi phải join qua `e.ck` để lấy giá trị, tức CHỈ áp dụng cho
    `dim.base==='cust'` — trục base:'ev' (pf) đọc `e.pf` thẳng từ chính dòng evidence, không cần
    `ck`, nên không có khái niệm "đối chiếu được" ở đó (mọi dòng đều đã có giá trị thật). */
-function countedSegments(data: CxmData, theme: TaxNode, axis: string, dim: Dim): ThemeSegment[] {
+function countedSegments(
+  data: CxmData,
+  theme: TaxNode,
+  axis: string,
+  dim: Dim,
+  dims: Record<string, Dim>,
+): ThemeSegment[] {
   const rows = data.ev.filter((e) => e.tax.includes(theme.id));
   const m = rows.length;
 
@@ -110,7 +116,8 @@ function countedSegments(data: CxmData, theme: TaxNode, axis: string, dim: Dim):
       counts.set(v, (counts.get(v) ?? 0) + 1);
     }
   } else {
-    const getter = CUST_FIELD[axis];
+    const getter = custField(dims, axis);
+    if (!getter) return [];
     const custByKey = new Map(data.cust.map((c) => [c.key, c] as const));
     for (const e of rows) {
       if (e.ck === ANON_CK) {
@@ -165,5 +172,5 @@ export function themeSegments(
   if (!dim) return [];
   if (axisDisabledReason(dim, axis)) return [];
 
-  return countedSegments(data, theme, axis, dim);
+  return countedSegments(data, theme, axis, dim, dims);
 }

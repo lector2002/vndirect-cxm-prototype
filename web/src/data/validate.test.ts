@@ -382,7 +382,7 @@ describe("validateFixture", () => {
      số thô", và luật này CẦN cfg (nhãn hợp lệ do `cuts` sinh) — vì thế các ca dưới truyền cfgDefault. */
   it("19: nhãn dải không khớp số thô (nhãn bị sửa tay)", () => {
     const d = structuredClone(seed) as CxmData;
-    d.cust = d.cust.map((c, i) => (i === 0 ? { ...c, age: "99-100" } : c));
+    d.cust = d.cust.map((c, i) => (i === 0 ? { ...c, bands: { ...c.bands, age: "99-100" } } : c));
     const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
     expect(r.some((e) => e.includes("age") && e.includes("không khớp ageYears"))).toBe(true);
   });
@@ -392,7 +392,7 @@ describe("validateFixture", () => {
     const c50 = d.cust.find((c) => c.seg === "Khách 50+")!;
     /* Sửa TUỔI THẬT, không sửa nhãn: luật này so `ageYears >= 50` để không báo sai khi owner đổi cut
        tuổi (nhãn dải cuối thành "60+" nhưng nghĩa nghiệp vụ của segment vẫn là "từ 50 tuổi"). */
-    d.cust = d.cust.map((c) => (c.key === c50.key ? { ...c, ageYears: 30, age: "25-34" } : c));
+    d.cust = d.cust.map((c) => (c.key === c50.key ? { ...c, ageYears: 30, bands: { ...c.bands, age: "25-34" } } : c));
     const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
     expect(r.some((e) => e.includes('seg "Khách 50+"') && e.includes("chưa tới 50"))).toBe(true);
   });
@@ -405,14 +405,18 @@ describe("validateFixture", () => {
   it("19: navVnd là sentinel ở khách THƯỜNG cũng đỏ (NAV luôn tính được từ tài sản hiện tại)", () => {
     const d = structuredClone(seed) as CxmData;
     const normal = d.cust.find((c) => c.tier !== "high-value")!;
-    d.cust = d.cust.map((c) => (c.key === normal.key ? { ...c, navVnd: "chưa-biết" as typeof c.navVnd, nav: "chưa-biết" } : c));
+    d.cust = d.cust.map((c) =>
+      c.key === normal.key ? { ...c, navVnd: "chưa-biết" as typeof c.navVnd, bands: { ...c.bands, nav: "chưa-biết" } } : c,
+    );
     const r = validateFixture(d, dims, seedNav, seedTour);
     expect(r.some((e) => e.includes("navVnd") && e.includes("sentinel"))).toBe(true);
   });
 
   it("19: navVnd 'thiếu' (bug pipeline) cũng đỏ — trục này không có chỗ cho ổ thiếu nữa", () => {
     const d = structuredClone(seed) as CxmData;
-    d.cust = d.cust.map((c, i) => (i === 0 ? { ...c, navVnd: "thiếu" as typeof c.navVnd, nav: "thiếu" } : c));
+    d.cust = d.cust.map((c, i) =>
+      i === 0 ? { ...c, navVnd: "thiếu" as typeof c.navVnd, bands: { ...c.bands, nav: "thiếu" } } : c,
+    );
     const r = validateFixture(d, dims, seedNav, seedTour);
     expect(r.some((e) => e.includes("navVnd") && e.includes("sentinel"))).toBe(true);
   });
@@ -420,58 +424,58 @@ describe("validateFixture", () => {
   /* Group 20: Cfg.segment (module E, E-a — cfg là source of truth cho ranh giới dải) */
   it("20: cuts rỗng", () => {
     const cfg = structuredClone(cfgDefault);
-    cfg.segment.nav.cuts = [];
+    cfg.segment.band.nav.cuts = [];
     const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
-    expect(r.some((e) => e.includes("cfg.segment.nav") && e.includes("cuts rỗng"))).toBe(true);
+    expect(r.some((e) => e.includes("cfg.segment.band[\"nav\"]") && e.includes("cuts rỗng"))).toBe(true);
   });
 
   it("20: cuts không tăng dần nghiêm ngặt", () => {
     const cfg = structuredClone(cfgDefault);
-    cfg.segment.nav.cuts = [50e6, 40e6, 1e9, 5e9];
+    cfg.segment.band.nav.cuts = [50e6, 40e6, 1e9, 5e9];
     const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
-    expect(r.some((e) => e.includes("cfg.segment.nav") && e.includes("không tăng dần"))).toBe(true);
+    expect(r.some((e) => e.includes("cfg.segment.band[\"nav\"]") && e.includes("không tăng dần"))).toBe(true);
   });
 
   it("20: cuts trùng nhau cũng bị chặn (không tăng dần NGHIÊM NGẶT)", () => {
     const cfg = structuredClone(cfgDefault);
-    cfg.segment.nav.cuts = [50e6, 50e6, 1e9, 5e9];
+    cfg.segment.band.nav.cuts = [50e6, 50e6, 1e9, 5e9];
     const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
-    expect(r.some((e) => e.includes("cfg.segment.nav") && e.includes("không tăng dần"))).toBe(true);
+    expect(r.some((e) => e.includes("cfg.segment.band[\"nav\"]") && e.includes("không tăng dần"))).toBe(true);
   });
 
   it("20: min >= cut đầu", () => {
     const cfg = structuredClone(cfgDefault);
-    cfg.segment.age.min = 25;
+    cfg.segment.band.age.min = 25;
     const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
-    expect(r.some((e) => e.includes("cfg.segment.age") && e.includes("min") && e.includes(">="))).toBe(true);
+    expect(r.some((e) => e.includes('cfg.segment.band["age"]') && e.includes("min") && e.includes(">="))).toBe(true);
   });
 
   it("20: unit không thuộc 3 giá trị cho phép", () => {
     const cfg = structuredClone(cfgDefault);
-    cfg.segment.tenure = { ...cfg.segment.tenure, unit: "usd" as typeof cfg.segment.tenure.unit };
+    cfg.segment.band.tenure = { ...cfg.segment.band.tenure, unit: "usd" as typeof cfg.segment.band.tenure.unit };
     const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
-    expect(r.some((e) => e.includes("cfg.segment.tenure") && e.includes("unit") && e.includes("không hợp lệ"))).toBe(true);
+    expect(r.some((e) => e.includes('cfg.segment.band["tenure"]') && e.includes("unit") && e.includes("không hợp lệ"))).toBe(true);
   });
 
   it("20: acq.values rỗng", () => {
     const cfg = structuredClone(cfgDefault);
-    cfg.segment.acq.values = [];
+    cfg.segment.values.acq = [];
     const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
-    expect(r.some((e) => e.includes("cfg.segment.acq") && e.includes("values rỗng"))).toBe(true);
+    expect(r.some((e) => e.includes('cfg.segment.values["acq"]') && e.includes("rỗng"))).toBe(true);
   });
 
   it("20: acq.values có tên trùng", () => {
     const cfg = structuredClone(cfgDefault);
-    cfg.segment.acq.values = ["banner", "banner", "chi nhánh"];
+    cfg.segment.values.acq = ["banner", "banner", "chi nhánh"];
     const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
-    expect(r.some((e) => e.includes("cfg.segment.acq") && e.includes('"banner"') && e.includes("trùng"))).toBe(true);
+    expect(r.some((e) => e.includes('cfg.segment.values["acq"]') && e.includes('"banner"') && e.includes("trùng"))).toBe(true);
   });
 
   it("20: thiếu trục nav trong cfg.segment (nguồn ngoài tsc, ví dụ JSON cũ)", () => {
-    const cfg = structuredClone(cfgDefault) as unknown as { segment: Record<string, unknown> };
-    delete cfg.segment.nav;
+    const cfg = structuredClone(cfgDefault) as unknown as { segment: { band: Record<string, unknown> } };
+    delete cfg.segment.band.nav;
     const r = validateFixture(seed, dims, seedNav, seedTour, cfg as unknown as Parameters<typeof validateFixture>[4]);
-    expect(r.some((e) => e.includes('thiếu trục "nav"'))).toBe(true);
+    expect(r.some((e) => e.includes('thiếu ranh giới cho chiều "nav"'))).toBe(true);
   });
 
   /* Cấu hình dưới đây hợp lệ theo MỌI luật khác của nhóm 20 (cuts tăng dần nghiêm ngặt, min null,
@@ -479,19 +483,19 @@ describe("validateFixture", () => {
      có luật nhãn-trùng, nó lọt qua validate rồi làm hai dải bị cộng dồn im lặng lúc đếm. */
   it("20: hai cut quá sát 0 ⇒ hai dải nav cùng ra nhãn '0đ'", () => {
     const cfg = structuredClone(cfgDefault);
-    cfg.segment.nav = { min: null, cuts: [1, 2, 50e6, 200e6], unit: "đ" };
+    cfg.segment.band.nav = { min: null, cuts: [1, 2, 50e6, 200e6], unit: "đ" };
     const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
-    expect(r.some((e) => e.includes("cfg.segment.nav") && e.includes('"0đ"') && e.includes("hai dải"))).toBe(true);
+    expect(r.some((e) => e.includes("cfg.segment.band[\"nav\"]") && e.includes('"0đ"') && e.includes("hai dải"))).toBe(true);
   });
 
   it("20: nav + MỘT cut sát 0 vẫn hợp lệ — tách được '0đ' khỏi '<50tr'", () => {
     const cfg = structuredClone(cfgDefault);
-    cfg.segment.nav = { min: null, cuts: [1, 50e6, 200e6, 1e9, 5e9], unit: "đ" };
+    cfg.segment.band.nav = { min: null, cuts: [1, 50e6, 200e6, 1e9, 5e9], unit: "đ" };
     /* Phải CHIẾU LẠI khách theo cfg đang kiểm: nhãn dải của `seed` là ảnh chiếu theo `cfgDefault`,
        nên đem nguyên nó đi kiểm với bộ cut khác thì nhóm 19 báo lệch nhãn/số thô — đúng luật, vì
        nhãn '<50tr' thật sự sai với cut mới (khách navVnd=0 giờ thuộc '0đ'). Đây chính là hợp đồng
        mới: đổi cut thì phải đọc lại snapshot (MockRepository.getSnapshot làm việc này). */
-    const r = validateFixture(projectCustomerBands(seed, cfg), dims, seedNav, seedTour, cfg);
+    const r = validateFixture(projectCustomerBands(seed, cfg, dims), dims, seedNav, seedTour, cfg);
     expect(r).toEqual([]);
   });
 

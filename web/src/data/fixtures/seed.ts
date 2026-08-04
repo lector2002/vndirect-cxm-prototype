@@ -519,35 +519,37 @@ const seedRaw: CxmData = {
     { iss:'CXI-017', need:29, done:0,  ch:'In-app + ZNS',   by:null,                    sent:null },
     { iss:'CXI-013', need:25, done:25, ch:'In-app',         by:'Thu Hà · Head of CX',   sent:'Sentiment sau liên hệ +0,4 · 18/25 phản hồi tích cực' },
   ],
-  /* Nhãn dải (age/nav/tenure) ở đây là GIÁ TRỊ MONG ĐỢI theo `cfgDefault` — nguồn thật là ba số thô
-     (ageYears/navVnd/tenureMonths) ngay cạnh, và `seed` export ở cuối file CHIẾU LẠI chúng bằng
-     `projectCustomerBands` nên nhãn thực tế luôn do `cuts` sinh. Giữ nhãn viết tay vì nó tự tài
-     liệu hoá số thô, và validate rule 19 canh `nhãn === bandOf(số thô)` để không lệch âm thầm.
+  /* `bands` ở đây là GIÁ TRỊ MONG ĐỢI theo `cfgDefault` — nguồn thật là ba số thô ngay cạnh
+     (ageYears/navVnd/tenureMonths), và `seed` export ở cuối file CHIẾU LẠI bằng
+     `projectCustomerBands` nên nhãn thực tế luôn do ranh giới sinh. Giữ nhãn viết tay vì nó tự tài
+     liệu hoá số thô, và validate nhóm 19 canh `nhãn === bandOf(số thô)` để không lệch âm thầm.
      navVnd = 0 nghĩa là CHƯA NẠP TIỀN (không phải "không đọc được số" — đó là sentinel). 4B8 có
-     12tr để dải thấp nhất không phải toàn số 0: nhờ vậy một cut sát 0 (owner tách nhóm CHƯA CÓ TÀI
-     SẢN) mới chia được nhóm này làm hai — kiểm được ở projectBands.test.ts. */
+     12tr để nhóm thấp nhất không phải toàn số 0: nhờ vậy một ranh giới sát 0 (owner tách nhóm CHƯA
+     CÓ TÀI SẢN) mới chia được nhóm này làm hai — kiểm được ở projectBands.test.ts.
+     Khoá của `bands` là ID CHIỀU, không phải tên field khách: đổi từ ba ô cố định sang map ở đợt 2a
+     để chiều owner tự thêm cũng có chỗ ghi nhãn (xem data/schema/cxm.ts). */
   cust: [
 { key:'KH•••7A2', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Bỏ dở tại bước 03',
       ageYears:29, navVnd:0, tenureMonths:'chưa-biết',
-      age:'25-34', nav:'<50tr', tenure:'chưa-biết', acq:'banner' },
+      bands:{ age:'25-34', nav:'<50tr', tenure:'chưa-biết' }, acq:'banner' },
     { key:'KH•••1C9', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Bỏ dở tại bước 03, đã gọi hỗ trợ',
       ageYears:41, navVnd:0, tenureMonths:'chưa-biết',
-      age:'35-49', nav:'<50tr', tenure:'chưa-biết', acq:'banner' },
+      bands:{ age:'35-49', nav:'<50tr', tenure:'chưa-biết' }, acq:'banner' },
     { key:'KH•••4B8', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Hoàn tất sau 4 lần thử',
       ageYears:31, navVnd:12e6, tenureMonths:3,
-      age:'25-34', nav:'<50tr', tenure:'<6 tháng', acq:'tự tìm' },
+      bands:{ age:'25-34', nav:'<50tr', tenure:'<6 tháng' }, acq:'tự tìm' },
     { key:'KH•••9F1', seg:'Khách chuyển từ CTCK khác',  tier:'high-value', pf:'android', st:'Đã hoàn tất, có 3 lần liên hệ',
       ageYears:44, navVnd:2.4e9, tenureMonths:84,
-      age:'35-49', nav:'1-5tỷ', tenure:'>5 năm', acq:'giới thiệu' },
+      bands:{ age:'35-49', nav:'1-5tỷ', tenure:'>5 năm' }, acq:'giới thiệu' },
     { key:'KH•••8B4', seg:'Mới mở TK',                  tier:'standard',   pf:'ios',     st:'Bỏ dở tại bước 05',
       ageYears:27, navVnd:0, tenureMonths:'chưa-biết',
-      age:'25-34', nav:'<50tr', tenure:'chưa-biết', acq:'đối tác' },
+      bands:{ age:'25-34', nav:'<50tr', tenure:'chưa-biết' }, acq:'đối tác' },
     { key:'KH•••5F6', seg:'Mới mở TK',                  tier:'standard',   pf:'ios',     st:'Hoàn tất · đã được liên hệ khép vòng',
       ageYears:38, navVnd:0, tenureMonths:4,
-      age:'35-49', nav:'<50tr', tenure:'<6 tháng', acq:'chi nhánh' },
+      bands:{ age:'35-49', nav:'<50tr', tenure:'<6 tháng' }, acq:'chi nhánh' },
     { key:'KH•••2C8', seg:'Khách 50+',                  tier:'standard',   pf:'android', st:'Chưa hoàn tất, cần hỗ trợ',
       ageYears:57, navVnd:0, tenureMonths:'chưa-biết',
-      age:'50+', nav:'<50tr', tenure:'chưa-biết', acq:'chi nhánh' },
+      bands:{ age:'50+', nav:'<50tr', tenure:'chưa-biết' }, acq:'chi nhánh' },
   ],
   qt: [
 { id:'q1', kind:'show', show:'theme', metric:'count', chart:'rank', name:'Volume theo Theme',
@@ -779,33 +781,48 @@ export const cfgDefault: Cfg = {
      ranh giới dải từ compile-time (union type) sang runtime (cfg.segment), nhãn phải sinh lại
      ĐÚNG những gì đang chạy hôm nay qua data/bands.ts, không đổi nhãn nào. */
   segment: {
-    nav: { min: null, cuts: [50e6, 200e6, 1e9, 5e9], unit: 'đ' },
-    age: { min: 18, cuts: [25, 35, 50], unit: 'năm' },
-    tenure: { min: null, cuts: [6, 24, 60], unit: 'tháng' },
-    acq: { values: ['banner', 'giới thiệu', 'chi nhánh', 'tự tìm', 'đối tác'] },
+    /* Khoá là ID CHIỀU (khớp `dims` bên dưới), không phải tên dữ kiện nguồn: hai chiều cắt cùng một
+       số thô theo hai bộ ranh giới khác nhau phải có hai entry riêng ở đây. */
+    band: {
+      nav: { min: null, cuts: [50e6, 200e6, 1e9, 5e9], unit: 'đ' },
+      age: { min: 18, cuts: [25, 35, 50], unit: 'năm' },
+      tenure: { min: null, cuts: [6, 24, 60], unit: 'tháng' },
+    },
+    /* `seg`/`tier` CHƯA có entry — chưa chốt danh sách đóng cho hai chiều đó, và thiếu entry là hợp
+       lệ (validate không kiểm giá trị lạ). Đừng thêm entry rỗng: `[]` nghĩa là "mọi giá trị đều lạ". */
+    values: {
+      acq: ['banner', 'giới thiệu', 'chi nhánh', 'tự tìm', 'đối tác'],
+    },
   },
 };
 
-/** Fixture 7 khách thật, nhãn dải ĐÃ CHIẾU theo `cfgDefault`. Phải khai SAU `cfgDefault` (const
-    không hoist). Mọi nơi import `seed` nhận nhãn do `cuts` sinh, không phải nhãn viết tay trong
-    literal — cùng một phép chiếu mà MockRepository.getSnapshot() chạy với cfg hiện tại, nên fixture
-    và runtime không thể lệch cách hiểu dải. */
-export const seed: CxmData = projectCustomerBands(seedRaw, cfgDefault);
-
+/* Bảng khai chiều. Sáu chiều khách (`base:'cust'`) khai thêm `cut` — CÁCH CHIA — từ đợt 2a: trước đó
+   cách chia là một bảng viết tay riêng ở tầng tính toán, phải khớp tay với bảng này, và thiếu một bên
+   thì chart trả rỗng không báo lỗi. Giờ khai một lần ở đây là đủ.
+   Ô `rows` (luôn rỗng, chưa nơi nào đọc) đã bỏ — nhóm của một chiều được ĐẾM RA từ dữ liệu, không
+   chứa sẵn trong khai báo.
+   `source` trỏ vào danh mục dữ kiện đang có (data/rawFields.ts) — xem giới hạn trung thực ở đó. */
 export const dims: Record<string, Dim> = {
-  l1: { label: "L1 Keyword · phase", unit: "keyword", base: "agg", evAttr: true, rows: [] },
-  l2: { label: "L2 Keyword · tính năng", unit: "keyword", base: "agg", evAttr: true, rows: [] },
-  l3: { label: "L3 Keyword · chi tiết", unit: "keyword", base: "agg", evAttr: true, rows: [] },
-  theme: { label: "Theme · vì sao", unit: "theme", base: "agg", evAttr: true, rows: [] },
-  sub: { label: "Sub-theme", unit: "sub-theme", base: "agg", evAttr: true, rows: [] },
-  src: { label: "Nguồn", unit: "nguồn", base: "agg", rows: [] },
-  cat: { label: "Category · intent", unit: "category", base: "ev", evAttr: true, rows: [] },
-  sen: { label: "User Sentiment", unit: "sentiment", base: "ev", evAttr: true, rows: [] },
-  pf: { label: "Nền tảng", unit: "nền tảng", base: "ev", evAttr: true, rows: [] },
-  seg: { label: "Segment khách", unit: "segment", base: "cust", rows: [] },
-  tier: { label: "Value tier", unit: "tier", base: "cust", rows: [] },
-  age: { label: "Độ tuổi", unit: "nhóm tuổi", base: "cust", rows: [] },
-  nav: { label: "Phân khúc NAV", unit: "phân khúc", base: "cust", rows: [] },
-  tenure: { label: "Thâm niên giao dịch", unit: "nhóm thâm niên", base: "cust", rows: [] },
-  acq: { label: "Kênh mở TK", unit: "kênh", base: "cust", rows: [] },
+  l1: { label: "L1 Keyword · phase", unit: "keyword", base: "agg", evAttr: true },
+  l2: { label: "L2 Keyword · tính năng", unit: "keyword", base: "agg", evAttr: true },
+  l3: { label: "L3 Keyword · chi tiết", unit: "keyword", base: "agg", evAttr: true },
+  theme: { label: "Theme · vì sao", unit: "theme", base: "agg", evAttr: true },
+  sub: { label: "Sub-theme", unit: "sub-theme", base: "agg", evAttr: true },
+  src: { label: "Nguồn", unit: "nguồn", base: "agg" },
+  cat: { label: "Category · intent", unit: "category", base: "ev", evAttr: true },
+  sen: { label: "User Sentiment", unit: "sentiment", base: "ev", evAttr: true },
+  pf: { label: "Nền tảng", unit: "nền tảng", base: "ev", evAttr: true },
+  seg: { label: "Segment khách", unit: "segment", base: "cust", cut: { kind: "values", source: "seg" } },
+  tier: { label: "Value tier", unit: "tier", base: "cust", cut: { kind: "values", source: "tier" } },
+  age: { label: "Độ tuổi", unit: "nhóm tuổi", base: "cust", cut: { kind: "band", source: "ageYears" } },
+  nav: { label: "Phân khúc NAV", unit: "phân khúc", base: "cust", cut: { kind: "band", source: "navVnd" } },
+  tenure: { label: "Thâm niên giao dịch", unit: "nhóm thâm niên", base: "cust", cut: { kind: "band", source: "tenureMonths" } },
+  acq: { label: "Kênh mở TK", unit: "kênh", base: "cust", cut: { kind: "values", source: "acq" } },
 };
+
+/** Fixture 7 khách thật, nhãn nhóm ĐÃ CHIẾU theo `cfgDefault` + `dims`. Phải khai SAU cả hai (const
+    không hoist) — đây là lý do khối này nằm dưới bảng khai chiều chứ không ngay sau `cfgDefault`.
+    Mọi nơi import `seed` nhận nhãn do ranh giới sinh, không phải nhãn viết tay trong literal — cùng
+    một phép chiếu mà MockRepository.getSnapshot() chạy với cfg hiện tại, nên fixture và runtime
+    không thể lệch cách hiểu nhóm. */
+export const seed: CxmData = projectCustomerBands(seedRaw, cfgDefault, dims);

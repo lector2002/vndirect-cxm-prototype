@@ -9,6 +9,7 @@ import type {
   TaxNode,
 } from "../data/schema/index.ts";
 import { isSegUnknown, MISSING, UNKNOWN_YET } from "../data/segment.ts";
+import { CUST_CAT } from "../data/rawFields.ts";
 /* Palette phân loại phía domain — dùng CHUNG với themeSegments.ts (đã export ở đó 03/08) thay vì
    khai bản sao thứ ba; xem ghi chú layer tại themeSegments.ts:10-14. */
 import { CAT_CYCLE } from "./themeSegments.ts";
@@ -106,24 +107,48 @@ function byCustGroup(data: CxmData, getter: (c: Customer) => string): DimRow[] {
 
 type RowBuilder = (data: CxmData) => DimRow[];
 
-/* Getter theo field khách cho MỌI trục base:'cust' — dùng CHUNG giữa ROW_BUILDERS (đếm gộp cả
-   sentinel, giữ nguyên hành vi qRun cũ) và qRunSegment (tách sentinel ra riêng qua isSegUnknown,
-   xem bên dưới). Một nguồn getter duy nhất để hai chỗ không lệch nhau nếu sau này thêm trục khách
-   mới — đúng bài học D5a đã dẫn tới việc gom `mdir`/sentinel về một chỗ. */
-/* export (F1, module-f-charter.md) để themeSegments.ts dùng lại CHUNG getter chiều khách thay vì
-   khai bản sao thứ tư của cùng bảng — đúng loại trùng lặp mà ghi chú CAT_CYCLE ở themeSegments.ts
-   đã cảnh báo (đã có 3 bản sao palette; đừng thêm bản sao thứ tư của CUST_FIELD). */
-export const CUST_FIELD: Record<string, (c: Customer) => string> = {
-  seg: (c) => c.seg,
-  tier: (c) => c.tier,
-  age: (c) => c.age,
-  nav: (c) => c.nav,
-  tenure: (c) => c.tenure,
-  acq: (c) => c.acq,
-};
+/* Getter đọc "khách này thuộc nhóm nào của chiều X" — dùng CHUNG giữa phép đếm rows (gộp cả sentinel,
+   giữ nguyên hành vi qRun cũ) và qRunSegment (tách sentinel ra riêng qua isSegUnknown, xem bên dưới).
+   Một nguồn getter duy nhất để hai chỗ không lệch nhau khi thêm chiều khách mới — đúng bài học D5a
+   đã dẫn tới việc gom `mdir`/sentinel về một chỗ. themeSegments.ts gọi lại hàm này thay vì khai bản
+   sao thứ tư của cùng bảng (xem ghi chú CAT_CYCLE ở đó).
 
-/* export CHỈ để test đối chiếu 1-1 với `dims` (bẫy quantify.ts: thiếu một bên khiến qRun trả rỗng
-   im lặng, xem qRun bên dưới) — bản thân module không có consumer ngoài nào cần import trực tiếp. */
+   ĐỔI Ở ĐỢT 2a: trước đây là BẢNG 6 dòng viết tay (seg/tier/age/nav/tenure/acq); giờ SINH ra từ khai
+   báo chiều. Đây là cổ chai đã đo được — toàn bộ production đọc nhãn nhóm của khách qua đúng bảng
+   này — nên đổi nó thành "sinh từ khai báo" là bỏ được yêu cầu sửa code mỗi lần owner thêm một cách
+   chia. Bảng viết tay còn một bẫy riêng: nó phải khớp TAY với bảng khai chiều ở tầng dữ liệu, thiếu
+   một bên thì chart trả RỖNG mà không báo lỗi gì.
+
+   Hai kiểu chia đọc từ hai chỗ khác nhau, và sự khác nhau đó có chủ ý:
+   - `band`   → đọc NHÃN ĐÃ CHIẾU (`c.bands[id]`), vì nhãn phụ thuộc ranh giới, mà ranh giới nằm trong
+                cấu hình — thứ tầng này không được biết tới (xem data/projectBands.ts).
+   - `values` → đọc THẲNG dữ kiện từ danh mục, không phải chiếu gì. */
+export function custField(dims: Record<string, Dim>, id: string): ((c: Customer) => string) | undefined {
+  const dim = dims[id];
+  if (!dim || dim.base !== "cust" || !dim.cut) return undefined;
+  if (dim.cut.kind === "values") return CUST_CAT[dim.cut.source];
+  return (c) => c.bands[id] as string;
+}
+
+/* Như trên nhưng KIỂM luôn nhãn có thật trong snapshot không. Thiếu nghĩa là snapshot chưa đi qua
+   phép chiếu, hoặc đi qua với bộ chiều khác — trả undefined để nơi gọi TỪ CHỐI vẽ. Không được bịa
+   một nhãn thay thế: bịa 'thiếu' ở đây là biến lỗi cấu hình thành một nhóm khách trông như thật. */
+function custFieldPresent(
+  dims: Record<string, Dim>,
+  id: string,
+  data: CxmData,
+): ((c: Customer) => string) | undefined {
+  const getter = custField(dims, id);
+  if (!getter) return undefined;
+  const probe = data.cust[0];
+  if (probe !== undefined && getter(probe) === undefined) return undefined;
+  return getter;
+}
+
+/* export CHỈ để test đối chiếu với `dims` (bẫy quantify.ts: thiếu một bên khiến qRun trả rỗng im
+   lặng, xem qRun bên dưới) — bản thân module không có consumer ngoài nào cần import trực tiếp.
+   CHỈ CÒN các trục đếm theo CẤU TRÚC (taxonomy, thuộc tính bằng chứng): chúng không chia theo một dữ
+   kiện của khách nên không sinh ra được từ khai báo. Sáu trục chiều khách đã rời khỏi bảng này. */
 export const ROW_BUILDERS: Record<string, RowBuilder> = {
   l1: (data) => byTaxLv(data, "L1"),
   l2: (data) => byTaxLv(data, "L2"),
@@ -134,13 +159,16 @@ export const ROW_BUILDERS: Record<string, RowBuilder> = {
   cat: catRows,
   sen: senRows,
   pf: pfRows,
-  seg: (data) => byCustGroup(data, CUST_FIELD.seg),
-  tier: (data) => byCustGroup(data, CUST_FIELD.tier),
-  age: (data) => byCustGroup(data, CUST_FIELD.age),
-  nav: (data) => byCustGroup(data, CUST_FIELD.nav),
-  tenure: (data) => byCustGroup(data, CUST_FIELD.tenure),
-  acq: (data) => byCustGroup(data, CUST_FIELD.acq),
 };
+
+/** Cách đếm của một chiều: trục cấu trúc lấy từ bảng trên, chiều khách SINH từ khai báo. Đây là chỗ
+    duy nhất biết cả hai đường, nên thêm một chiều khách không phải sửa `qRun`. */
+export function rowBuilder(dims: Record<string, Dim>, id: string, data: CxmData): RowBuilder | undefined {
+  const fixed = ROW_BUILDERS[id];
+  if (fixed) return fixed;
+  const getter = custFieldPresent(dims, id, data);
+  return getter ? (d) => byCustGroup(d, getter) : undefined;
+}
 
 /* Chạy một item `show`: trả rows đã xếp giảm dần theo v. Port từ qRun() (~dòng 1477) — RÚT GỌN so
    với bản gốc: chỉ trả DimRow[], không kèm total/shown/axis (những field đó là mối quan tâm của
@@ -150,7 +178,7 @@ export const ROW_BUILDERS: Record<string, RowBuilder> = {
    áp lúc format hiển thị qua METRICS.count.fmt) nên engine ở đây cũng trả count thô, chưa scale. */
 export function qRun(item: QuantifyShow, data: CxmData, dims: Record<string, Dim>): DimRow[] {
   if (!dims[item.show]) return [];
-  const build = ROW_BUILDERS[item.show];
+  const build = rowBuilder(dims, item.show, data);
   if (!build) return [];
   return build(data).sort((a, b) => b.v - a.v);
 }
@@ -181,11 +209,11 @@ export function qRunSegment(
       reason: `Trục "${item.show}" không phải trục phân khúc khách (base khác 'cust') nên không có khái niệm coverage phân khúc.`,
     };
   }
-  const getter = CUST_FIELD[item.show];
+  const getter = custFieldPresent(dims, item.show, data);
   if (!getter) {
     return {
       kind: "refuse",
-      reason: `Trục "${item.show}" khai base:'cust' trong dims nhưng thiếu getter khách tương ứng (bug nội bộ — ROW_BUILDERS/CUST_FIELD lệch nhau).`,
+      reason: `Trục "${item.show}" khai base:'cust' nhưng chưa đọc được nhãn nhóm: thiếu khai báo cách chia (Dim.cut), hoặc dữ kiện nguồn không có trong danh mục (data/rawFields.ts), hoặc snapshot chưa đi qua phép chiếu nhóm (data/projectBands.ts).`,
     };
   }
 
@@ -284,15 +312,15 @@ export function qRunSplit(
       reason: `Chia màu chỉ tính thật được khi CẢ hai chiều là thuộc tính khách (base:'cust') — khi đó hai giá trị nằm trên cùng một dòng khách nên đếm được. Trục "${culprit}" không phải, nên không có đường tính nào mà không phải bịa tỷ lệ.`,
     };
   }
-  const rowGetter = CUST_FIELD[item.show];
-  const splitGetter = CUST_FIELD[item.split];
+  const rowGetter = custFieldPresent(dims, item.show, data);
+  const splitGetter = custFieldPresent(dims, item.split, data);
   if (!rowGetter || !splitGetter) {
     /* So `=== undefined` tường minh, KHÔNG dùng ternary trên chính hàm (`rowGetter ? … : …`): TS2774
-       báo lỗi ở đó vì CUST_FIELD là Record<string, fn> nên phần tử được coi là luôn có. */
+       báo lỗi ở đó vì kiểu trả về là một hàm có thể undefined. */
     const missingAxis = rowGetter === undefined ? item.show : item.split;
     return {
       kind: "refuse",
-      reason: `Trục "${missingAxis}" khai base:'cust' nhưng thiếu getter khách (bug nội bộ — CUST_FIELD/dims lệch nhau).`,
+      reason: `Trục "${missingAxis}" khai base:'cust' nhưng chưa đọc được nhãn nhóm (thiếu khai báo cách chia, hoặc dữ kiện nguồn không có trong danh mục, hoặc snapshot chưa chiếu nhóm).`,
     };
   }
 
@@ -418,7 +446,16 @@ const AGG_TAX_AXES = new Set(["theme", "l1", "l2", "l3", "sub"]);
 
 /* Thuộc tính khách in kèm mỗi dòng, theo THỨ TỰ ƯU TIÊN cố định; trục đang xếp hàng bị loại (in lại
    đúng giá trị vừa bấm là nhiễu), rồi lấy 2 cái đầu. Tất định, không phải chọn tuỳ hàng. */
-const CUST_META_AXES = ["seg", "tier", "nav", "acq"] as const;
+/* Hai chiều khách hiện kèm theo mỗi dòng drill làm ngữ cảnh ("khách này còn thuộc nhóm nào nữa").
+   SUY từ khai báo thay vì hardcode `["seg","tier","nav","acq"]` như bản trước: danh sách hardcode sẽ
+   trỏ vào một chiều owner đã xoá (hiện "—" mãi mãi) và bỏ qua chiều owner mới thêm. Thứ tự lấy theo
+   thứ tự khai báo, để owner sắp lại chiều là đổi được ngữ cảnh hiện ra. */
+function custMetaAxes(dims: Record<string, Dim>, exclude: string): string[] {
+  return Object.entries(dims)
+    .filter(([id, d]) => d.base === "cust" && d.cut !== undefined && id !== exclude)
+    .map(([id]) => id)
+    .slice(0, 2);
+}
 
 /* Một `rowId` thuộc bản ghi nào — mỗi trục một phép so, không có trục nào dùng chung được. Trả null
    cho trục chưa có đường tra (vd trục cust đi nhánh riêng ở trên, hoặc trục mới thêm mà quên nối). */
@@ -441,11 +478,11 @@ export function qRunDrill(
   if (!dim) return { kind: "none", reason: `Trục "${item.show}" không tồn tại trong dims.` };
 
   if (dim.base === "cust") {
-    const getter = CUST_FIELD[item.show];
+    const getter = custFieldPresent(dims, item.show, data);
     if (!getter) {
       return {
         kind: "none",
-        reason: `Trục "${item.show}" khai base:'cust' nhưng thiếu getter khách (bug nội bộ — CUST_FIELD/dims lệch nhau).`,
+        reason: `Trục "${item.show}" khai base:'cust' nhưng chưa đọc được nhãn nhóm (thiếu khai báo cách chia, hoặc dữ kiện nguồn không có trong danh mục, hoặc snapshot chưa chiếu nhóm).`,
       };
     }
     /* `key` đã mask sẵn trong fixture ("KH•••7A2") — KHÔNG unmask, và KHÔNG dùng làm React key một
@@ -482,13 +519,13 @@ export function qRunDrill(
          đây là dims/rows lệch nhau, nói thẳng thay vì mở một panel trắng. */
       return { kind: "none", reason: `Không khách nào có giá trị "${rowId}" ở trục ${dim.label}.` };
     }
-    const metaAxes = CUST_META_AXES.filter((k) => k !== item.show).slice(0, 2);
+    const metaAxes = custMetaAxes(dims, item.show);
     return {
       kind: "full",
       lines: hit.slice(0, DRILL_MAX).map((c, i) => ({
         id: lineId(c.key, i),
         text: c.key,
-        meta: metaAxes.map((k) => `${dims[k]?.label ?? k}: ${CUST_FIELD[k]?.(c) ?? "—"}`).join(" · "),
+        meta: metaAxes.map((k) => `${dims[k]?.label ?? k}: ${custField(dims, k)?.(c) ?? "—"}`).join(" · "),
       })),
       total: hit.length,
     };
@@ -588,8 +625,8 @@ export function qRunCross(
   const cd = item.by ? dims[item.by] : undefined;
   const rowExtract = CROSS_EXTRACT[item.show];
   const colExtract = item.by ? CROSS_EXTRACT[item.by] : undefined;
-  const rowBuild = ROW_BUILDERS[item.show];
-  const colBuild = item.by ? ROW_BUILDERS[item.by] : undefined;
+  const rowBuild = rowBuilder(dims, item.show, data);
+  const colBuild = item.by ? rowBuilder(dims, item.by, data) : undefined;
 
   const unsupported =
     custAxisUnsupported(rd, item.show) ?? (item.by ? custAxisUnsupported(cd, item.by) : null);

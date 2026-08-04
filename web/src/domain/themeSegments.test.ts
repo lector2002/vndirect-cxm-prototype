@@ -4,7 +4,7 @@ import { demoData } from "../data/fixtures/demo.ts";
 import { dims } from "../data/fixtures/seed.ts";
 import type { Dim } from "../data/schema/index.ts";
 import { ANON_CK } from "../data/validate.ts";
-import { CUST_FIELD } from "./quantify.ts";
+import { custField } from "./quantify.ts";
 import { CAT_CYCLE, SUBTHEME_AXIS, themeAxisOptions, themeSegments } from "./themeSegments.ts";
 
 /* Oracle subtheme 03/08 (đọc trực tiếp seed.ts) — GIỮ NGUYÊN, trục subtheme không đổi ở F1:
@@ -59,7 +59,7 @@ describe("themeAxisOptions — phái sinh từ dims, không hardcode tên trục
 
   it("base:'agg' → khoá kèm disabledReason không rỗng, KHÔNG hardcode tên chiều (thêm Dim lạ vào dims tự hiện ra)", () => {
     const fakeDims: Record<string, Dim> = {
-      "x-lạ-nào-đó": { label: "Chiều lạ tự khai", unit: "cái", base: "agg", rows: [] },
+      "x-lạ-nào-đó": { label: "Chiều lạ tự khai", unit: "cái", base: "agg" },
     };
     const opts = themeAxisOptions(fakeDims);
     const opt = opts.find((o) => o.key === "x-lạ-nào-đó");
@@ -109,7 +109,7 @@ describe("themeSegments — trục đếm được từ dims (demoData)", () => 
         ? new Set(demoData.ev.map((e) => e.pf))
         : new Set(
             demoData.cust
-              .map((c) => CUST_FIELD[axis]!(c))
+              .map((c) => custField(dims, axis)!(c))
               .filter((v) => v !== "chưa-biết" && v !== "thiếu"),
           );
     for (const theme of themes) {

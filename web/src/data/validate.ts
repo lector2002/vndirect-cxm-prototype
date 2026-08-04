@@ -1,6 +1,7 @@
 import type { CxmData, Dim, NavItem, TourStop, Cfg } from "./schema/index.ts";
 import type { Step, Metric, Evidence, Issue, Action, Source, Survey, VoiceInsight, QuantifyItem, DashSet, Flow, Customer, Outcome, Snapshot, Group, Phase, Agent, TaxNode } from "./schema/index.ts";
 import type { CfgBandAxis } from "./schema/index.ts";
+import { CUST_NUM, CUST_CAT } from "./rawFields.ts";
 import { BLOCKS } from "./blocks.ts";
 import { isSegUnknown } from "./segment.ts";
 import { bandLabels, bandOf } from "./bands.ts";
@@ -471,15 +472,26 @@ export function validateFixture(
   /* 19. Phân khúc khách — age/nav/tenure/acq. Chạy RUNTIME (không phải chỉ tsc) vì fixture demo
      (module C4) sinh dữ liệu bằng hàm lúc chạy, tsc không canh được giá trị sinh động. */
   {
-    /* Ba trục dải kiểm theo CẶP (nhãn phái sinh, số thô là nguồn) — thay ba `Set` nhãn hardcode của
-       bản trước. Nhãn giờ do `cfg.segment[trục].cuts` sinh (data/bands.ts, bất biến E-c), nên gõ
-       tay danh sách nhãn ở đây là bản sao thứ tư của cùng ranh giới, và nó sẽ báo sai ngay lần đầu
-       owner sửa cut ở màn #/rules — đúng thứ module E tồn tại để bỏ. */
-    const BAND_AXES: ReadonlyArray<readonly ["age" | "nav" | "tenure", "ageYears" | "navVnd" | "tenureMonths"]> = [
-      ["age", "ageYears"],
-      ["nav", "navVnd"],
-      ["tenure", "tenureMonths"],
-    ];
+    /* Chiều cắt ngưỡng kiểm theo CẶP (nhãn phái sinh, số thô là nguồn) — thay ba `Set` nhãn hardcode
+       của bản trước. Nhãn do ranh giới sinh (data/bands.ts, bất biến E-c), nên gõ tay danh sách nhãn
+       ở đây là bản sao thứ tư của cùng ranh giới, và nó báo sai ngay lần đầu owner sửa ranh giới.
+       Danh sách chiều cũng SUY TỪ KHAI BÁO, không liệt kê tay 3 cặp như bản trước: liệt kê tay là bản
+       sao thứ hai của "chiều nào cắt theo dữ kiện nào", và nó sẽ bỏ qua đúng chiều owner mới thêm —
+       chiều mới không được canh một bất biến nào. */
+    const BAND_DIMS: Array<readonly [string, string]> = [];
+    for (const [dimId, dim] of Object.entries(dims)) {
+      if (dim.base !== "cust" || dim.cut?.kind !== "band") continue;
+      const rawField = dim.cut.source;
+      /* Kiểm khai báo MỘT LẦN ở đây, không trong vòng lặp khách: một khai báo sai là MỘT lỗi cấu
+         hình, không phải 300 lỗi dữ liệu — nhân nó lên theo số khách sẽ chôn mọi thông báo khác. */
+      if (!CUST_NUM[rawField]) {
+        e.push(
+          `chiều "${dimId}": cắt ngưỡng theo dữ kiện "${rawField}" nhưng dữ kiện đó không có trong danh mục số (CUST_NUM ở data/rawFields.ts) — khai báo sai, hoặc pipeline chưa mang dữ kiện này về`,
+        );
+        continue;
+      }
+      BAND_DIMS.push([dimId, rawField]);
+    }
 
     for (const c of data.cust) {
       /* nav là trục DUY NHẤT không nhận sentinel (owner chốt 04/08: NAV lấy trực tiếp từ tài sản hiện
@@ -492,22 +504,33 @@ export function validateFixture(
       }
 
       if (cfg) {
-        for (const [labelField, rawField] of BAND_AXES) {
-          const axis = cfg.segment?.[labelField];
+        for (const [dimId, rawField] of BAND_DIMS) {
+          const axis = cfg.segment?.band?.[dimId];
           /* Bỏ qua trục có CẤU HÌNH hỏng — nhóm 20 là chỗ báo việc đó. Ở đây phải bỏ qua thật sự vì
              `bandLabels` chỉ tổng trên 3 unit hợp lệ: unit lạ (cfg tới từ localStorage/JSON khi UI
              #/rules lưu) làm nó trả undefined và `bandOf` NÉM, che mất chính thông báo của nhóm 20.
              `cuts` rỗng thì không có dải nào để so nhãn — cũng để nhóm 20 nói. */
           if (!axis || axis.cuts.length === 0 || !BAND_UNITS.has(axis.unit)) continue;
-          const expected = bandOf(c[rawField], axis);
-          if (c[labelField] !== expected) {
+          const raw = CUST_NUM[rawField](c);
+          const expected = bandOf(raw, axis);
+          if (c.bands[dimId] !== expected) {
             e.push(
-              `khách ${c.key}: ${labelField} "${c[labelField]}" không khớp ${rawField}=${String(c[rawField])} — theo cuts phải là "${expected}"`,
+              `khách ${c.key}: nhãn nhóm chiều "${dimId}" là "${String(c.bands[dimId])}" không khớp ${rawField}=${String(raw)} — theo ranh giới phải là "${expected}"`,
             );
           }
         }
-        if (!isSegUnknown(c.acq) && !cfg.segment?.acq?.values.includes(c.acq)) {
-          e.push(`khách ${c.key}: acq "${c.acq}" không có trong cfg.segment.acq.values`);
+        /* Chiều LẤY NGUYÊN GIÁ TRỊ: chỉ kiểm khi cfg có khai danh sách đóng cho chiều đó. Thiếu khai
+           báo là hợp lệ (seg/tier hôm nay) — kiểm khi chưa chốt danh sách sẽ báo mọi giá trị là lạ. */
+        for (const [dimId, dim] of Object.entries(dims)) {
+          if (dim.base !== "cust" || dim.cut?.kind !== "values") continue;
+          const allowed = cfg.segment?.values?.[dimId];
+          if (!allowed) continue;
+          const read = CUST_CAT[dim.cut.source];
+          if (!read) continue;
+          const v = read(c);
+          if (!isSegUnknown(v) && !allowed.includes(v)) {
+            e.push(`khách ${c.key}: giá trị "${v}" của chiều "${dimId}" không có trong cfg.segment.values["${dimId}"]`);
+          }
         }
       }
 
@@ -530,27 +553,32 @@ export function validateFixture(
   if (cfg) {
     /* Runtime, không phải chỉ tsc — đúng lý do nhóm 16 đã chặn kiểu này: cfg tương lai có thể tới
        từ localStorage/JSON khi UI #/rules lưu (E6/E7), lúc đó tsc không canh được thiếu trục. */
-    const AXES = ["nav", "age", "tenure", "acq"] as const;
-    for (const ax of AXES) {
-      if (!cfg.segment?.[ax]) e.push(`cfg.segment: thiếu trục "${ax}"`);
+    /* Mỗi chiều CẮT NGƯỠNG phải có ranh giới. Suy từ khai báo thay vì danh sách `["nav","age",
+       "tenure","acq"]` viết tay: danh sách viết tay đòi ranh giới cho một chiều owner đã xoá (lỗi
+       giả không cách nào dẹp) và không đòi gì với chiều owner mới thêm (chiều đó lặng lẽ không có
+       nhóm nào). Chiều LẤY NGUYÊN GIÁ TRỊ không bị đòi: thiếu danh sách đóng là hợp lệ. */
+    for (const [dimId, dim] of Object.entries(dims)) {
+      if (dim.base === "cust" && dim.cut?.kind === "band" && !cfg.segment?.band?.[dimId]) {
+        e.push(`cfg.segment.band: thiếu ranh giới cho chiều "${dimId}" — chiều cắt ngưỡng mà không có ranh giới thì không có nhóm nào`);
+      }
     }
 
     const checkAxis = (name: string, axis: { min: number | null; cuts: number[]; unit: string }) => {
       if (axis.cuts.length === 0) {
-        e.push(`cfg.segment.${name}: cuts rỗng — không có dải nào để xếp khách vào`);
+        e.push(`cfg.segment.band["${name}"]: cuts rỗng — không có dải nào để xếp khách vào`);
       } else {
         for (let i = 1; i < axis.cuts.length; i++) {
           if (axis.cuts[i] <= axis.cuts[i - 1]) {
-            e.push(`cfg.segment.${name}: cuts không tăng dần nghiêm ngặt (${axis.cuts[i - 1]} rồi ${axis.cuts[i]})`);
+            e.push(`cfg.segment.band["${name}"]: cuts không tăng dần nghiêm ngặt (${axis.cuts[i - 1]} rồi ${axis.cuts[i]})`);
           }
         }
         if (axis.min !== null && axis.min >= axis.cuts[0]) {
-          e.push(`cfg.segment.${name}: min (${axis.min}) >= cut đầu (${axis.cuts[0]}) — dải đầu rỗng`);
+          e.push(`cfg.segment.band["${name}"]: min (${axis.min}) >= cut đầu (${axis.cuts[0]}) — dải đầu rỗng`);
         }
       }
       const unitOk = BAND_UNITS.has(axis.unit);
       if (!unitOk) {
-        e.push(`cfg.segment.${name}: unit "${axis.unit}" không hợp lệ (phải là 'đ', 'năm' hoặc 'tháng')`);
+        e.push(`cfg.segment.band["${name}"]: unit "${axis.unit}" không hợp lệ (phải là 'đ', 'năm' hoặc 'tháng')`);
       }
       /* Hai dải KHÁC NHAU không được ra CÙNG một nhãn. Không phải chuyện thẩm mỹ: mọi chỗ đếm theo
          trục này gom theo NHÃN (`bandOf` trả nhãn, không trả index), nên hai dải trùng nhãn bị cộng
@@ -563,25 +591,27 @@ export function validateFixture(
         const seen = new Set<string>();
         for (const label of bandLabels(axis as CfgBandAxis)) {
           if (seen.has(label)) {
-            e.push(`cfg.segment.${name}: hai dải cùng ra nhãn "${label}" — cut quá sát nhau để tách được ở unit '${axis.unit}'`);
+            e.push(`cfg.segment.band["${name}"]: hai dải cùng ra nhãn "${label}" — cut quá sát nhau để tách được ở unit '${axis.unit}'`);
           }
           seen.add(label);
         }
       }
     };
-    if (cfg.segment?.nav) checkAxis("nav", cfg.segment.nav);
-    if (cfg.segment?.age) checkAxis("age", cfg.segment.age);
-    if (cfg.segment?.tenure) checkAxis("tenure", cfg.segment.tenure);
+    /* Lặp trên NHỮNG GÌ CFG ĐANG CÓ, không trên danh sách trục viết tay: một bộ ranh giới rác dưới
+       tên chiều không còn tồn tại vẫn phải bị bắt (nó sẽ sống lại nếu owner tạo lại chiều cùng tên). */
+    for (const [dimId, axis] of Object.entries(cfg.segment?.band ?? {})) {
+      checkAxis(dimId, axis);
+    }
 
-    if (cfg.segment?.acq) {
-      if (cfg.segment.acq.values.length === 0) {
-        e.push(`cfg.segment.acq: values rỗng — không có kênh nào để xếp khách vào`);
-      } else {
-        const seenAcq = new Set<string>();
-        for (const v of cfg.segment.acq.values) {
-          if (seenAcq.has(v)) e.push(`cfg.segment.acq: tên kênh "${v}" trùng`);
-          seenAcq.add(v);
-        }
+    for (const [dimId, values] of Object.entries(cfg.segment?.values ?? {})) {
+      if (values.length === 0) {
+        e.push(`cfg.segment.values["${dimId}"]: rỗng — không có giá trị nào để xếp khách vào (bỏ hẳn entry nếu chưa muốn chốt danh sách đóng)`);
+        continue;
+      }
+      const seen = new Set<string>();
+      for (const v of values) {
+        if (seen.has(v)) e.push(`cfg.segment.values["${dimId}"]: giá trị "${v}" trùng`);
+        seen.add(v);
       }
     }
   }

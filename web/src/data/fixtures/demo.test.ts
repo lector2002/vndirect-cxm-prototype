@@ -3,6 +3,7 @@ import { generateCustomers, generateEvidence, demoData } from "./demo.ts";
 import { dims, seedNav, seedTour, cfgDefault, seed } from "./seed.ts";
 import { validateFixture, ANON_CK } from "../validate.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
+import { CUST_CAT } from "../rawFields.ts";
 import type { Customer, AgeBand, NavBand, TenureBand, AcqChannel, TaxNode } from "../schema/index.ts";
 
 /* Đếm known/chưa-biết/thiếu cho MỘT trục — dùng isSegUnknown/UNKNOWN_YET/MISSING của segment.ts,
@@ -15,6 +16,12 @@ function counts(values: readonly string[]): { known: number; unknown: number; mi
     else known++;
   }
   return { known, unknown, missing };
+}
+
+/* Đọc giá trị của một chiều khách theo id. Hai đường vì hai kiểu chia: `acq` là dữ kiện danh mục đọc
+   thẳng, `age`/`nav`/`tenure` là NHÃN NHÓM nằm trong map đã chiếu (xem data/projectBands.ts). */
+function valueOf(c: Customer, dimId: string): string {
+  return CUST_CAT[dimId] ? CUST_CAT[dimId](c) : (c.bands[dimId] as string);
 }
 
 describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
@@ -39,7 +46,7 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
 
   it("mỗi trục age/nav/tenure/acq: known + chưa-biết + thiếu === 300", () => {
     for (const axis of ["age", "nav", "tenure", "acq"] as const) {
-      const values = demoData.cust.map((c) => c[axis] as string);
+      const values = demoData.cust.map((c) => valueOf(c, axis));
       const { known, unknown, missing } = counts(values);
       expect(known + unknown + missing).toBe(300);
     }
@@ -56,7 +63,7 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
   });
 
   it("nav: KHÔNG có sentinel nào — mọi khách đều có dải (chưa có tài sản ⇒ '<50tr')", () => {
-    const values = demoData.cust.map((c) => c.nav as string);
+    const values = demoData.cust.map((c) => c.bands.nav as string);
     const { known, unknown, missing } = counts(values);
     expect(known).toBe(300);
     expect(unknown).toBe(0);
@@ -65,7 +72,7 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
 
   it("age/tenure: không có ổ 'thiếu' cố ý (chỉ known/chưa-biết) — chỉ acq mới có bug thu thập", () => {
     for (const axis of ["age", "tenure"] as const) {
-      const values = demoData.cust.map((c) => c[axis] as string);
+      const values = demoData.cust.map((c) => valueOf(c, axis));
       const { missing } = counts(values);
       expect(missing, `${axis}.missing`).toBe(0);
     }
@@ -73,19 +80,19 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
 
   it("mọi AgeBand khai trong schema đều xuất hiện ít nhất một lần", () => {
     const bands: AgeBand[] = ["18-24", "25-34", "35-49", "50+"];
-    const present = new Set(demoData.cust.map((c) => c.age));
+    const present = new Set(demoData.cust.map((c) => c.bands.age));
     for (const b of bands) expect(present.has(b), `age band ${b}`).toBe(true);
   });
 
   it("mọi NavBand khai trong schema đều xuất hiện ít nhất một lần", () => {
     const bands: NavBand[] = ["<50tr", "50-200tr", "200tr-1tỷ", "1-5tỷ", ">5tỷ"];
-    const present = new Set(demoData.cust.map((c) => c.nav));
+    const present = new Set(demoData.cust.map((c) => c.bands.nav));
     for (const b of bands) expect(present.has(b), `nav band ${b}`).toBe(true);
   });
 
   it("mọi TenureBand khai trong schema đều xuất hiện ít nhất một lần", () => {
     const bands: TenureBand[] = ["<6 tháng", "6-24 tháng", "2-5 năm", ">5 năm"];
-    const present = new Set(demoData.cust.map((c) => c.tenure));
+    const present = new Set(demoData.cust.map((c) => c.bands.tenure));
     for (const b of bands) expect(present.has(b), `tenure band ${b}`).toBe(true);
   });
 
@@ -113,7 +120,7 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
 
   it("bất biến: seg 'Khách 50+' luôn kèm age '50+'", () => {
     for (const c of demoData.cust) {
-      if (c.seg === "Khách 50+") expect(c.age).toBe("50+");
+      if (c.seg === "Khách 50+") expect(c.bands.age).toBe("50+");
     }
   });
 
@@ -123,8 +130,8 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
   it("bất biến: tier 'high-value' luôn ở dải NAV cao, hoặc là khách chuyển từ CTCK khác", () => {
     for (const c of demoData.cust) {
       if (c.tier !== "high-value") continue;
-      const ok = c.nav === "1-5tỷ" || c.nav === ">5tỷ" || c.seg === "Khách chuyển từ CTCK khác";
-      expect(ok, `${c.key}: tier high-value nhưng nav="${c.nav}" seg="${c.seg}"`).toBe(true);
+      const ok = c.bands.nav === "1-5tỷ" || c.bands.nav === ">5tỷ" || c.seg === "Khách chuyển từ CTCK khác";
+      expect(ok, `${c.key}: tier high-value nhưng nav="${c.bands.nav}" seg="${c.seg}"`).toBe(true);
     }
   });
 
@@ -214,11 +221,11 @@ describe("demoData.ev — bằng chứng demo sinh thêm cho theme (Module F, se
       .filter((e) => e.tax.includes(themeId))
       .map((e) => byKey.get(e.ck))
       .filter((c): c is Customer => c !== undefined);
-    return resolved.filter((c) => values.includes(c[field])).length / resolved.length;
+    return resolved.filter((c) => values.includes(valueOf(c, field))).length / resolved.length;
   }
 
   function shareInPopulation(field: BiasField, values: readonly string[]): number {
-    return demoData.cust.filter((c) => values.includes(c[field])).length / demoData.cust.length;
+    return demoData.cust.filter((c) => values.includes(valueOf(c, field))).length / demoData.cust.length;
   }
 
   /* 4 dòng này là bảng THEME_SKEW của demo.ts phát biểu lại độc lập, không import — nếu ai xoá một

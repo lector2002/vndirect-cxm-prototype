@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { demoData } from "../data/fixtures/demo.ts";
 import { dims, seed } from "../data/fixtures/seed.ts";
 import type { Customer, CxmData, QuantifyShow } from "../data/schema/index.ts";
-import { qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, ROW_BUILDERS, UNKNOWN_ROW_ID } from "./quantify.ts";
+import { qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, rowBuilder, UNKNOWN_ROW_ID } from "./quantify.ts";
 
 function findShow(id: string): QuantifyShow {
   const q = seed.qt.find((x) => x.id === id);
@@ -68,11 +68,14 @@ describe("qRun", () => {
     expect(qRun(item, seed, dims)).toEqual([]);
   });
 
-  // Chặn bẫy quantify.ts:126 (`if (!dims[item.show]) return []`): nếu ai đó thêm một trục vào
-  // ROW_BUILDERS mà quên khai trong `dims` (hoặc ngược lại), qRun trả rỗng IM LẶNG — không throw,
-  // không log. Test này khẳng định hai tập id luôn khớp nhau, kể cả sau khi thêm age/nav/tenure/acq.
-  it("ROW_BUILDERS và dims khớp 1-1 về tập id — lệch một bên là biểu đồ rỗng im lặng", () => {
-    expect(Object.keys(ROW_BUILDERS).sort()).toEqual(Object.keys(dims).sort());
+  /* Chặn bẫy `if (!build) return []` của qRun: một chiều khai trong `dims` mà không có cách đếm thì
+     qRun trả rỗng IM LẶNG — không throw, không log. Sau đợt 2a điều kiện đó KHÔNG còn là "hai bảng
+     khớp 1-1": cách đếm của chiều khách SINH ra từ khai báo, nên phép kiểm đúng là "mọi chiều trong
+     dims đều dựng được cách đếm", tức tính luôn cả chiều owner thêm sau này. So hai tập id như bản
+     cũ sẽ đỏ oan ngay khi bảng cách đếm cố tình không còn chứa trục khách. */
+  it("mọi chiều khai trong dims đều dựng được cách đếm — thiếu là biểu đồ rỗng im lặng", () => {
+    const thieu = Object.keys(dims).filter((id) => rowBuilder(dims, id, demoData) === undefined);
+    expect(thieu).toEqual([]);
   });
 });
 
@@ -220,7 +223,7 @@ describe("qRunSegment", () => {
   it("known=0 (chưa khách nào biết) → refuse, KHÔNG vẽ matrix rỗng như thật", () => {
     /* Dựng fixture tối giản: giữ đúng 4 khách có tenure 'chưa-biết' → known=0. Trục dùng ở đây ĐỔI TỪ
        nav SANG tenure (04/08): nav không còn sentinel nên known=0 không thể xảy ra trên nav nữa. */
-    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.tenure === "chưa-biết") };
+    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.bands.tenure === "chưa-biết") };
     const item: QuantifyShow = { id: "test-seg-zero", kind: "show", show: "tenure", metric: "count", chart: "rank", name: "test" };
     const res = qRunSegment(item, miniData, dims);
     expect(res.kind).toBe("refuse");
@@ -268,7 +271,7 @@ describe("qRunSplit", () => {
     const byLabel = Object.fromEntries(sp.byRow["banner"].map((s) => [s.label, s.n]));
 
     // (a) đếm tay, KHÔNG qua qRunSplit — đường tính hoàn toàn khác
-    const hand = (nav: string) => demoData.cust.filter((c) => c.acq === "banner" && c.nav === nav).length;
+    const hand = (nav: string) => demoData.cust.filter((c) => c.acq === "banner" && c.bands.nav === nav).length;
     for (const nav of ["<50tr", "50-200tr", "200tr-1tỷ", "1-5tỷ", ">5tỷ"]) {
       expect(byLabel[nav]).toBe(hand(nav));
     }
@@ -322,7 +325,7 @@ describe("qRunSplit", () => {
       .filter((s) => s.label === "Không xác định")
       .reduce((a, s) => a + s.n, 0);
     // Chỉ tính khách có age BIẾT được (hàng của chart là age) — phần còn lại không có hàng để nằm.
-    expect(unknownSegs).toBe(unknownAcq.filter((c) => c.age !== "chưa-biết" && c.age !== "thiếu").length);
+    expect(unknownSegs).toBe(unknownAcq.filter((c) => c.bands.age !== "chưa-biết" && c.bands.age !== "thiếu").length);
   });
 
   /* "Khác" KHÔNG tới được bằng data thật ở section 1: mọi union trục khách có tối đa 5 thành viên
@@ -333,7 +336,7 @@ describe("qRunSplit", () => {
     const base = demoData.cust[0];
     // v1 xuất hiện 8 lần, v2 7 lần, … v8 1 lần ⇒ top6 = v1..v6, dồn v7(2)+v8(1) = 3 vào "Khác".
     const cust = ["v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8"].flatMap((v, i) =>
-      Array.from({ length: 8 - i }, (_, j) => ({ ...base, key: `KH•••X${i}${j}`, acq: "banner", nav: v }) as Customer),
+      Array.from({ length: 8 - i }, (_, j) => ({ ...base, key: `KH•••X${i}${j}`, acq: "banner", bands: { ...base.bands, nav: v } }) as Customer),
     );
     const sp = qRunSplit(acqByNav, { ...demoData, cust }, dims);
     if (sp.kind !== "draw") throw new Error("kỳ vọng draw");
@@ -371,7 +374,7 @@ describe("qRunSplit", () => {
   it("refuse: known=0 ở trục hàng → không có thanh nào để chia màu", () => {
     // Giữ 4 khách tenure 'chưa-biết' ⇒ known=0 (cùng ca đã dùng cho qRunSegment; đổi từ nav sang
     // tenure vì nav hết sentinel từ 04/08 nên không dựng được known=0 trên nó nữa).
-    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.tenure === "chưa-biết") };
+    const miniData: CxmData = { ...seed, cust: seed.cust.filter((c) => c.bands.tenure === "chưa-biết") };
     expect(qRunSplit({ ...acqByNav, show: "tenure", split: "acq" }, miniData, dims).kind).toBe("refuse");
   });
 });

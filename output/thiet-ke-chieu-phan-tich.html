@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chiều phân tích do owner định nghĩa — thiết kế bước 2</title>
+<style>
+  :root{
+    --bg:#faf9f7; --card:#fff; --line:#e5e1db; --ink:#2b2724; --ink2:#5b554f; --ink3:#8c8681;
+    --acc:#7a5c3e; --bad:#a2402f; --ok:#3f6b4a; --warn:#8a6a1f;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .wrap{max-width:1020px;margin:0 auto;padding:32px 22px 80px}
+  h1{font-size:26px;line-height:1.25;margin:0 0 6px}
+  .sub{color:var(--ink2);margin:0 0 28px;font-size:14px}
+  h2{font-size:18px;margin:38px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+  h3{font-size:15px;margin:22px 0 8px}
+  p{margin:0 0 12px}
+  code,.m{font-family:var(--mono);font-size:.88em;background:#f0ede8;padding:1px 5px;border-radius:3px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin:0 0 16px}
+  .thesis{border-left:3px solid var(--acc);background:#fff;padding:16px 20px;margin:0 0 26px;
+    border-radius:0 8px 8px 0}
+  .thesis b{color:var(--acc)}
+  .warnbox{border-left:3px solid var(--warn);background:#faf6ea;padding:16px 20px;margin:0 0 20px;
+    border-radius:0 8px 8px 0}
+  .warnbox b{color:var(--warn)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:0 0 14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:600;color:var(--ink2);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .scroll{overflow-x:auto;margin:0 0 14px}
+  .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;
+    border:1px solid;white-space:nowrap}
+  .t-ok{color:var(--ok);border-color:#bcd0c0;background:#f1f6f2}
+  .t-bad{color:var(--bad);border-color:#e0bdb6;background:#fbf2f0}
+  .t-mid{color:var(--warn);border-color:#ded0aa;background:#faf6ea}
+  .q{background:#fff;border:1px solid var(--line);border-left:3px solid var(--acc);
+    border-radius:0 8px 8px 0;padding:16px 20px;margin:0 0 14px}
+  .q h3{margin-top:0}
+  ul,ol{margin:0 0 12px;padding-left:22px}
+  li{margin:0 0 6px}
+  .quote{font-style:italic;color:var(--ink2);border-left:2px solid var(--line);padding-left:14px;margin:0 0 14px}
+  .foot{margin-top:44px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink3);font-size:12.5px}
+  .lane{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:0 0 18px}
+  .lane .card{margin:0}
+  .lane h3{margin:0 0 8px;font-size:14px}
+  .own{display:inline-block;font-size:11px;font-weight:700;border-radius:3px;padding:1px 6px;margin-left:6px}
+  .own-o{color:#7a5c3e;background:#f5efe7;border:1px solid #ddcdb8}
+  .own-d{color:#3d5a80;background:#eaf0f7;border:1px solid #c3d3e6}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Chiều phân tích do owner định nghĩa</h1>
+<p class="sub">Thiết kế bước 2 · 04/08/2026 · viết để anh đọc và chốt, không phải để review code</p>
+
+<div class="thesis">
+<p><b>Chuyện cần giải.</b> Hôm nay muốn thêm một cách chia khách mới — ví dụ "chia theo tỉnh
+thành" hay "chia NAV thành 8 nhóm thay vì 5" — là phải <b>sửa code ở hai chỗ nằm hai tầng khác
+nhau</b>, và hai chỗ đó phải khớp nhau từng chữ. Lệch một chữ thì chart <b>trả về rỗng, không báo
+lỗi gì</b>. Nghĩa là mọi cách chia mới đều phải đi qua dev.</p>
+<p style="margin-bottom:0"><b>Đích của bước 2.</b> Anh khai một cách chia mới ngay trên màn hình
+quản trị, chart nhận ra nó và vẽ được — không ai phải sửa code.</p>
+</div>
+
+<h2>1. Giới hạn trung thực: anh định nghĩa <i>cách chia</i>, không tạo ra <i>dữ liệu</i></h2>
+
+<p>Đây là điều quan trọng nhất cần nói trước, vì màn hình quản trị sẽ trông như thể anh thêm được
+chiều nào cũng được — và điều đó <b>không đúng</b>.</p>
+
+<div class="warnbox">
+<p style="margin-bottom:0"><b>Một chiều phân tích chỉ chia lại những dữ kiện hệ thống ĐANG CÓ về
+khách.</b> Nếu hồ sơ khách không mang thông tin tỉnh thành, thì không có cách khai báo nào sinh ra
+được chiều "theo tỉnh thành" — kể cả khi màn hình cho anh bấm nút thêm. Muốn có chiều đó, dữ liệu
+tỉnh thành phải về tới hệ thống trước; đó là việc của pipeline, không phải của màn hình quản trị.</p>
+</div>
+
+<p>Nên thiết kế tách làm hai phần có <b>chủ sở hữu khác nhau</b>:</p>
+
+<div class="lane">
+  <div class="card">
+    <h3>Danh mục dữ kiện đang có <span class="own own-d">dev</span></h3>
+    <p style="margin-bottom:0">Liệt kê hệ thống thật sự biết gì về mỗi khách: tuổi (số năm), tài sản
+    (số tiền), thâm niên (số tháng), phân khúc, hạng giá trị, kênh mở tài khoản, nền tảng dùng.
+    Danh mục này <b>dài ra khi pipeline mang về dữ kiện mới</b>, không phải khi anh bấm nút.</p>
+  </div>
+  <div class="card">
+    <h3>Khai báo cách chia <span class="own own-o">owner</span></h3>
+    <p style="margin-bottom:0">Anh chọn một dữ kiện trong danh mục trên, đặt tên hiển thị cho nó, và
+    nói chia thế nào: <b>cắt theo ngưỡng</b> (với số là ranh giới) hay <b>lấy nguyên các giá trị của
+    nó</b>. Thêm, sửa, xoá bao nhiêu lần cũng được.</p>
+  </div>
+</div>
+
+<p>Hệ quả dễ chịu: cùng một dữ kiện anh khai được <b>nhiều cách chia song song</b>. Ví dụ tài sản
+khách có thể vừa có chiều "NAV 5 nhóm" cho báo cáo lãnh đạo, vừa có chiều "NAV tách nhóm chưa nạp
+tiền" cho đội vận hành — hai chiều độc lập, hai chart khác nhau, cùng một con số gốc.</p>
+
+<h2>2. Hai kiểu chia, và kiểu nào cần gì</h2>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Kiểu chia</th><th>Anh khai gì</th><th>Ví dụ đang có</th><th>Nhãn nhóm ở đâu ra</th></tr></thead>
+<tbody>
+<tr>
+  <td><b>Cắt theo ngưỡng</b></td>
+  <td>Chọn dữ kiện dạng số + danh sách ranh giới + đơn vị</td>
+  <td>Độ tuổi, phân khúc NAV, thâm niên</td>
+  <td><b>Tự sinh</b> từ ranh giới. Anh không gõ nhãn — 5 ranh giới thì ra 6 nhóm, tên nhóm tính ra
+      từ chính các ranh giới đó</td>
+</tr>
+<tr>
+  <td><b>Lấy nguyên giá trị</b></td>
+  <td>Chọn dữ kiện dạng danh mục + danh sách giá trị hợp lệ</td>
+  <td>Segment khách, hạng giá trị, kênh mở TK</td>
+  <td>Chính là các giá trị anh khai</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p>Chuyện "nhãn tự sinh, anh không gõ tay" là bất biến đã chốt từ trước và bước 2 không tháo: nếu
+cho gõ nhãn tay thì có ngày nhãn ghi <i>"1–5 tỷ"</i> trong khi ranh giới thật đã sửa thành 2 tỷ, và
+chart sẽ nói dối một cách rất thuyết phục.</p>
+
+<h2>3. Hôm nay vướng ở đâu — số đo</h2>
+
+<div class="card">
+<p><b>Vướng 1: hai bảng phải khớp tay.</b> Tên và đơn vị của chiều nằm ở tầng dữ liệu; cách đếm ra
+con số của chiều nằm ở tầng tính toán. Thêm chiều mới là phải thêm vào <b>cả hai</b>. Thiếu một bên
+thì chart không lỗi — nó vẽ ra biểu đồ rỗng.</p>
+<p style="margin-bottom:0"><b>Vướng 2: ranh giới ngưỡng lại ở bảng thứ ba.</b> Sau bước 1 hôm qua,
+ranh giới của các chiều ngưỡng nằm trong phần cấu hình, tách khỏi bảng khai tên chiều. Nên một chiều
+ngưỡng hiện có <b>ba mảnh ở ba nơi</b>: tên hiển thị, cách đếm, và ranh giới.</p>
+</div>
+
+<div class="card">
+<p style="margin-bottom:6px"><b>Tin tốt — số đo hôm nay cho thấy chỗ phải sửa rất hẹp:</b></p>
+<ul style="margin-bottom:0">
+<li>Toàn bộ code chạy thật đọc <b>nhãn nhóm của khách ở đúng một chỗ</b> (bảng getter trong tầng
+  tính toán, 6 dòng). Đây là cổ chai — đổi được nó thành "sinh từ khai báo" là xong phần lớn việc.</li>
+<li><b>Màu không phải làm gì cả.</b> Mọi chart gán màu <b>theo thứ hạng</b> của nhóm (nhóm to nhất
+  màu 1, nhì màu 2…), không tra màu theo tên nhóm. Nên nhóm nào anh vừa tạo ra cũng có màu ngay,
+  không cần khai.</li>
+<li>Bảng khai tên chiều hiện có một ô <b>chưa bao giờ dùng</b> (chỗ để chứa sẵn các nhóm) — bỏ được,
+  không ảnh hưởng gì.</li>
+</ul>
+</div>
+
+<h2>4. Thiết kế: ba lớp, mỗi lớp một câu hỏi</h2>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Lớp</th><th>Trả lời câu hỏi</th><th>Ai sửa</th><th>Sửa xong thì sao</th></tr></thead>
+<tbody>
+<tr>
+  <td><b>Dữ kiện</b></td>
+  <td>Hệ thống biết gì về khách này?</td>
+  <td><span class="own own-d">dev / pipeline</span></td>
+  <td>Danh mục dữ kiện dài ra ⇒ anh có thêm nguyên liệu để khai chiều</td>
+</tr>
+<tr>
+  <td><b>Khai báo chiều</b></td>
+  <td>Chia khách theo dữ kiện đó thế nào?</td>
+  <td><span class="own own-o">owner, trên màn hình</span></td>
+  <td>Chart hiện chiều mới trong danh sách trục, vẽ được ngay</td>
+</tr>
+<tr>
+  <td><b>Chart</b></td>
+  <td>Đếm và vẽ</td>
+  <td>không ai — chạy theo khai báo</td>
+  <td>—</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p>Điểm cốt tử: <b>tầng tính toán không được biết đến phần cấu hình.</b> Đó là lý do bước 1 chọn
+cách chiếu nhãn ở tầng dưới cùng — đo được là truyền cấu hình xuống tầng tính toán phải sửa 3 chữ ký
+hàm công khai và ~35 chỗ gọi, <b>và mỗi chiều thêm về sau lại một lần sửa nữa</b>. Bước 2 giữ nguyên
+nguyên tắc đó: khai báo chiều đi xuống tầng tính toán qua <b>đường đã có sẵn</b> (mọi hàm tính đều
+đã nhận bảng khai chiều làm tham số), nên không thêm chữ ký nào.</p>
+
+<h3>Nhãn nhóm lưu ở đâu</h3>
+<p>Hôm nay mỗi khách có ba ô cố định chứa nhãn ba chiều ngưỡng. Chiều thứ tư anh tự thêm thì
+<b>không có ô nào để ghi</b>. Nên ba ô cố định đó gộp thành <b>một ô dạng "tra theo tên chiều"</b>:
+khách này, chiều "NAV 5 nhóm" → nhóm nào; chiều "NAV tách nhóm chưa nạp" → nhóm nào. Thêm chiều
+không còn là sửa cấu trúc hồ sơ khách.</p>
+
+<h2>5. Xoá một chiều đang có chart dùng thì sao</h2>
+
+<p>Anh đã chốt: <b>chặn xoá</b>, giống cách hệ thống đang chặn xoá một chỉ số đang được set dùng.
+Bước 2 làm đúng thế, nhưng phải đếm đủ <b>ba chỗ</b> một chiều được nhắc tới, không phải một:</p>
+
+<ol>
+<li>Chart lấy chiều đó làm <b>trục chính</b>;</li>
+<li>Chart lấy chiều đó làm <b>trục chia nhỏ</b> (bảng chéo, chart xếp lớp);</li>
+<li>Bản đồ hành trình lấy chiều đó làm <b>trục tách theme</b>.</li>
+</ol>
+
+<p>Chỉ đếm chỗ (1) là lỗi thật: anh xoá chiều, bảng chéo còn chia theo nó, và chart <b>rỗng không
+báo gì</b> — đúng cái loại lỗi mà chốt chặn này ra đời để ngăn.</p>
+
+<h2>6. Chia làm ba đợt</h2>
+
+<div class="scroll">
+<table>
+<thead><tr><th></th><th>Đợt</th><th>Làm gì</th><th>Xong thì anh thấy gì</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="tag t-mid">2a</span></td>
+  <td>Đổi máy móc sang chạy theo khai báo</td>
+  <td>Danh mục dữ kiện; nhãn nhóm chuyển sang ô tra-theo-tên; cách đếm sinh ra từ khai báo thay vì
+      viết tay; bỏ ô không dùng</td>
+  <td><b>Chưa thấy gì mới</b> — mọi chart giữ nguyên kết quả. Đây là đợt đổi nền, giá trị của nó là
+      2b làm được</td>
+</tr>
+<tr>
+  <td><span class="tag t-mid">2b</span></td>
+  <td>Mở đường thêm / sửa / xoá chiều</td>
+  <td>Gom ba mảnh của một chiều về một chỗ; đường ghi khai báo; chốt chặn xoá đếm đủ ba chỗ</td>
+  <td><b>Thêm được chiều mới</b> và nó xuất hiện trong danh sách trục của chart</td>
+</tr>
+<tr>
+  <td><span class="tag t-mid">2c</span></td>
+  <td>Dọn nợ trục hiển thị</td>
+  <td>Danh sách trục hiện đang <b>viết cứng 2 mục</b> ở chart xếp lớp và có hai mục cùng tên
+      "Sub-theme"; nền tảng hiện chữ thường (<code>android</code>) dù đã có nhãn đẹp sẵn</td>
+  <td>Danh sách trục phản ánh đúng những chiều đang có</td>
+</tr>
+</tbody>
+</table>
+</div>
+
+<p>Thứ tự này không đổi được: 2b <b>không thể</b> đi trước 2a. Mở màn hình thêm chiều khi máy đếm còn
+viết tay thì anh thêm được một chiều rồi không chart nào vẽ nó — đúng loại lỗi bước 1 vừa sửa
+(<i>ranh giới sửa được nhưng chart không đổi</i>). Đó là bài học đắt của hôm qua, không lặp lại.</p>
+
+<h2>7. Bảng tra tên — nghiệp vụ ↔ tên trong code</h2>
+
+<p>Để anh đọc phần trên không cần biết tên nào trong code, và khi cần tra thì có chỗ tra:</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Gọi trong tài liệu này</th><th>Tên trong code</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<tr><td>Chiều phân tích / cách chia khách</td><td><code>Dim</code></td><td>một cách chia, ví dụ "phân khúc NAV"</td></tr>
+<tr><td>Bảng khai tên chiều</td><td><code>dims</code></td><td>hiện viết tay trong fixture</td></tr>
+<tr><td>Nhóm / dải</td><td><code>band</code></td><td>một khoảng giữa hai ranh giới</td></tr>
+<tr><td>Ranh giới ngưỡng</td><td><code>cuts</code></td><td>n ranh giới ⇒ n+1 nhóm</td></tr>
+<tr><td>Cách đếm ra con số của chiều</td><td><code>ROW_BUILDERS</code></td><td>bảng viết tay, đợt 2a sinh tự động</td></tr>
+<tr><td>Cổ chai đọc nhãn nhóm của khách</td><td><code>CUST_FIELD</code></td><td>6 dòng, chỗ hẹp nhất phải đổi</td></tr>
+<tr><td>Ô tra-theo-tên chứa nhãn nhóm</td><td><code>Customer.bands</code></td><td>thay 3 ô cố định <code>age</code>/<code>nav</code>/<code>tenure</code></td></tr>
+<tr><td>Danh mục dữ kiện đang có</td><td><code>data/rawFields.ts</code></td><td>file mới, dev sở hữu</td></tr>
+<tr><td>Chốt chặn xoá</td><td><code>dimUsedBy</code></td><td>theo khuôn <code>quantifyUsedBy</code> đã có</td></tr>
+<tr><td>Phần cấu hình ngưỡng</td><td><code>cfg.segment</code></td><td>đợt 2b gộp về khai báo chiều</td></tr>
+<tr><td>Ô chưa bao giờ dùng</td><td><code>Dim.rows</code></td><td>luôn rỗng, bỏ ở 2a</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>8. Chỗ cần anh chốt</h2>
+
+<div class="q">
+<h3>Câu 1 — Chiều "cắt theo ngưỡng" có cho anh tự thêm mới, hay chỉ sửa ranh giới của 3 chiều đang có?</h3>
+<p style="margin-bottom:0"><b>Đề xuất: cho thêm mới.</b> Vì nó gần như miễn phí sau 2a, và nó là ca
+dùng thật — cùng một con số tài sản, đội vận hành cần cách chia khác lãnh đạo. Nếu chỉ cho sửa ranh
+giới thì hai đội phải giành nhau một bộ ranh giới duy nhất.</p>
+</div>
+
+<div class="q">
+<h3>Câu 2 — Chiều "lấy nguyên giá trị" có cho anh tự thêm mới không?</h3>
+<p style="margin-bottom:0"><b>Đề xuất: chưa, ở bước này.</b> Khác với chiều ngưỡng, chiều loại này
+cần một dữ kiện dạng danh mục <b>đã có trong hồ sơ khách</b> mà chưa chiều nào dùng — hôm nay không
+có dữ kiện nào như vậy đang bỏ trống. Mở nút thêm mà không có nguyên liệu để chọn là hứa suông.
+Sửa danh sách giá trị hợp lệ của chiều đang có thì vẫn cho.</p>
+</div>
+
+<div class="q">
+<h3>Câu 3 — Đợt 2a không cho anh thấy gì mới. Có chấp nhận một đợt "vô hình" không?</h3>
+<p style="margin-bottom:0"><b>Đề xuất: có.</b> Cách duy nhất để tránh nó là làm 2a+2b thành một đợt
+lớn — mà đợt lớn thì lúc vỡ không biết vỡ vì đổi nền hay vì màn hình mới. Đợt 2a có tiêu chí nghiệm
+thu rõ và kiểm được: <b>toàn bộ chart phải ra đúng con số như trước khi sửa</b>.</p>
+</div>
+
+<p class="foot">Liên quan: <code>output/thiet-ke-db-first.html</code> §8 (thứ tự các bước, đã sửa
+04/08). File đó viết theo lối cũ — dựng giải thích lên trên tên biến — nên đọc sẽ khó hơn file này;
+sửa lại được nhưng chưa làm, chờ anh nói có cần không.</p>
+
+</div>
+</body>
+</html>

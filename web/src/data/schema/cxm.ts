@@ -157,17 +157,25 @@ export type Customer = {
   /** Thâm niên quan hệ (số tháng). `SegUnknown` khi chưa mở xong TK — chưa có mốc nào để tính. */
   tenureMonths: number | SegUnknown;
 
-  /* ---- NHÃN DẢI: PHÁI SINH, do data/projectBands.ts điền từ ba số trên + `cfg.segment`. ----
-     `string` chứ không phải union đóng (AgeBand/NavBand/TenureBand): nhãn do `cuts` sinh ra
-     (data/bands.ts, bất biến E-c) nên owner đổi cut là ra nhãn chưa có trong bất kỳ union nào —
-     khai union ở đây sẽ chặn đúng cái linh hoạt mà module này tồn tại để mở. Bất biến: luôn bằng
-     `bandOf(<số thô tương ứng>, cfg.segment[trục])`, validate rule 19 canh không cho lệch.
-     Sentinel của số thô đi qua nguyên vẹn (bandOf trả lại chính nó) — không dải nào hấp thụ nó. */
-  age: string | SegUnknown;
-  nav: string | SegUnknown;
-  tenure: string | SegUnknown;
+  /* ---- NHÃN NHÓM: PHÁI SINH, do data/projectBands.ts điền từ số thô + ranh giới của từng chiều. ----
+     MAP theo id chiều, không phải ba ô cố định `age`/`nav`/`tenure` như bản trước. Đổi sang map vì
+     ba ô cố định là trần cứng của việc owner thêm chiều: chiều thứ tư anh khai ra không có ô nào để
+     ghi nhãn, và mỗi chiều thêm sau đó lại là một lần sửa type này — đúng cái hardcode cần bỏ.
+     Hệ quả có ích: hai chiều cắt cùng một số thô theo hai bộ ranh giới khác nhau cùng tồn tại được
+     (`bands['nav-5nhom']` và `bands['nav-tach-chua-nap']`), việc mà ba ô cố định không làm được.
 
-  /** Kênh mở TK — trục CATEGORICAL (`cfg.segment.acq.values`), không có cut nên không đi qua phép
-      chiếu dải: giá trị lưu thẳng, không có "số thô" nào phía sau. */
+     `string` chứ không phải union đóng (AgeBand/NavBand/TenureBand): nhãn do ranh giới sinh ra
+     (data/bands.ts, bất biến E-c) nên owner đổi ranh giới là ra nhãn chưa có trong bất kỳ union nào.
+     Bất biến: `bands[id]` luôn bằng `bandOf(<số thô của chiều>, cfg.segment.band[id])`, validate
+     nhóm 19 canh không cho lệch. Sentinel của số thô đi qua nguyên vẹn (bandOf trả lại chính nó) —
+     không nhóm nào hấp thụ nó.
+
+     Khách CHƯA đi qua phép chiếu có `bands` rỗng (hoặc chỉ mang nhãn fixture khai làm CHỦ Ý, xem
+     data/fixtures/demo.ts). Không đọc `bands` để suy ra khách thuộc nhóm nào ngoài tầng `data/` —
+     đường đọc chuẩn là getter chiều khách ở domain/quantify.ts. */
+  bands: Record<string, string | SegUnknown>;
+
+  /** Kênh mở TK — dữ kiện DẠNG DANH MỤC (`cfg.segment.values['acq']`), không có ranh giới nên không
+      đi qua phép chiếu nhóm: giá trị lưu thẳng, không có số thô nào phía sau. */
   acq: AcqChannel | SegUnknown;
 };
