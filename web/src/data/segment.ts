@@ -13,10 +13,11 @@ import type { SegUnknown } from "./schema/index.ts";
 
    nav là NGOẠI LỆ về DỮ LIỆU, không phải về type (owner chốt 04/08): NAV đọc trực tiếp từ tài sản
    hiện tại nên không có đường nào để "chưa tới chỗ biết được" — khách chưa nạp tiền vẫn tính ra
-   được, bằng 0đ ⇒ dải '<50tr'. Vì vậy dữ liệu đúng thì trục nav KHÔNG có nhóm "Không xác định".
-   Type `Customer.nav` vẫn nhận sentinel, và validate rule 19 coi mọi sentinel nav là LỖI: chỗ duy
-   nhất sentinel nav còn nghĩa là khi lời gọi lấy tài sản thất bại — đó là 'thiếu' (đi sửa pipeline),
-   không được ghi thành '<50tr' vì như thế là báo "khách không có tài sản" thay cho "không đọc được".
+   được, bằng 0 ⇒ rơi vào dải thấp nhất. Vì vậy dữ liệu đúng thì trục nav KHÔNG có nhóm "Không xác
+   định". Type `Customer.navVnd` vẫn nhận sentinel, và validate rule 19 coi mọi sentinel navVnd là
+   LỖI: chỗ duy nhất sentinel nav còn nghĩa là khi lời gọi lấy tài sản thất bại — đó là 'thiếu' (đi
+   sửa pipeline), không được ghi thành 0 vì như thế là báo "khách không có tài sản" thay cho "không
+   đọc được số".
    Gộp hai loại này làm một sẽ biến quy luật hành trình thành bug (báo động giả, đi sửa cái không
    sửa được) hoặc giấu bug dưới danh nghĩa quy luật (bug thật bị bỏ qua vì tưởng "khách chưa tới
    đó thôi"). Coverage của một trục phải là số ĐẾM ĐƯỢC (đếm sentinel), không phải số khai báo.
@@ -30,6 +31,9 @@ import type { SegUnknown } from "./schema/index.ts";
 export const UNKNOWN_YET = "chưa-biết" as SegUnknown;
 export const MISSING = "thiếu" as SegUnknown;
 
-export function isSegUnknown(v: string): v is SegUnknown {
+/** Nhận cả `number` vì các trục dải giờ lưu SỐ THÔ (`Customer.navVnd`…): câu hỏi "giá trị này có
+    phải sentinel không" phải hỏi được TRƯỚC khi biết nó là số hay chuỗi, không thì nơi gọi lại tự
+    so chuỗi lần nữa — đúng thứ file này tồn tại để dẹp. */
+export function isSegUnknown(v: string | number): v is SegUnknown {
   return v === UNKNOWN_YET || v === MISSING;
 }

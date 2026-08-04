@@ -1,6 +1,7 @@
 import type { Action, Cfg, CxmData, DashSet, Dim, Issue, IssuePri, NavItem, Outcome, OutcomeMeasure, QuantifyItem, QuantifyShow, Snapshot, TourStop, Verdict } from "./schema/index.ts";
 import { cfgDefault, dims, seed, seedApprovers, seedNav, seedOwners, seedTour } from "./fixtures/seed.ts";
 import { validateFixture } from "./validate.ts";
+import { projectCustomerBands } from "./projectBands.ts";
 import { metricDirection } from "./metric-direction.ts";
 import { advanceBlockedReason } from "../domain/loop.ts";
 import type { CreateIssueFields, ConfirmFields, CxmRepository } from "./repository.ts";
@@ -94,8 +95,11 @@ export class MockRepository implements CxmRepository {
     this.boards = {};
   }
 
+  /** Chiếu nhãn dải theo cfg HIỆN TẠI trước khi trả ra — đây là chỗ `cfg.segment.cuts` thật sự điều
+      khiển con số hiện trên chart (data/projectBands.ts). Trước section này `cuts` không có consumer
+      nào trong production nên sửa ngưỡng ở setting không đổi được gì. */
   getSnapshot(): CxmData {
-    return structuredClone(this.data);
+    return projectCustomerBands(structuredClone(this.data), this.cfg);
   }
 
   getCfg(): Cfg {
@@ -119,7 +123,30 @@ export class MockRepository implements CxmRepository {
   }
 
   validate(): string[] {
-    return validateFixture(this.buildValidationSnapshot(), this.dims, this.nav, this.tour, this.cfg);
+    return validateFixture(this.projectedValidationSnapshot(this.cfg), this.dims, this.nav, this.tour, this.cfg);
+  }
+
+  /** Ghi cfg — xem hợp đồng ở CxmRepository.setCfg. Kiểm bằng cách chạy CHÍNH validateFixture với cfg
+      ứng viên rồi so danh sách lỗi trước/sau: chỉ lỗi MỚI PHÁT SINH mới chặn. So kiểu này thay vì
+      match chuỗi thông báo của nhóm 20, vì (a) không phụ thuộc câu chữ của một nhóm kiểm cụ thể —
+      thêm bất biến mới ở validate là tự động được canh ở đây, (b) không chặn oan khi state đang có
+      lỗi sẵn từ trước không liên quan đến cut. */
+  setCfg(patch: Partial<Cfg>): void {
+    const next: Cfg = { ...this.cfg, ...structuredClone(patch) };
+    const before = this.validate();
+    const after = validateFixture(this.projectedValidationSnapshot(next), this.dims, this.nav, this.tour, next);
+    const introduced = after.filter((m) => !before.includes(m));
+    if (introduced.length > 0) {
+      throw new Error(`setCfg: cấu hình mới làm vỡ bất biến — ${introduced.join(" · ")}`);
+    }
+    this.cfg = next;
+  }
+
+  /** Snapshot để kiểm, đã chiếu nhãn dải theo `cfg` ĐANG ĐƯỢC KIỂM (không phải luôn `this.cfg`) —
+      setCfg cần kiểm với cfg ứng viên trước khi nhận. Không chiếu thì nhóm 19 báo lệch nhãn/số thô
+      cho MỌI khách ngay khi cut đổi, vì `this.data` giữ nhãn nướng theo cut cũ. */
+  private projectedValidationSnapshot(cfg: Cfg): CxmData {
+    return projectCustomerBands(this.buildValidationSnapshot(), cfg);
   }
 
   /** Hợp nhất overlay boards vào dash (mỗi câu hỏi đã sửa -> block overlay thay cho

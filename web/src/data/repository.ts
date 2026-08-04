@@ -39,6 +39,23 @@ export interface CxmRepository {
       kiểm cả set đã tùy chỉnh (không chỉ set mặc định). Rỗng = hợp lệ. */
   validate(): string[];
 
+  // ----- Cấu hình (màn #/rules — "Chỉ số & ngưỡng") -----
+  /** Ghi cấu hình. Đây là ĐƯỜNG GHI DUY NHẤT của `Cfg`: trước section này repo chỉ có reader nên
+      không màn customize nào ghi được gì.
+
+      Merge NÔNG một tầng: `setCfg({ segment })` thay TOÀN BỘ `segment`, nên nơi gọi phải truyền đủ
+      cả 4 trục (đọc `getCfg()`, sửa trục cần sửa, gửi lại). Cố ý không merge sâu — merge sâu trên
+      `cuts: number[]` không có nghĩa rõ ràng (gộp hai mảng cut? lấy mảng nào?), và một API "ghi
+      một phần mảng" là chỗ để lệch cut âm thầm.
+
+      NÉM Error nếu cfg mới không hợp lệ (cuts rỗng / không tăng dần / min chồng cut đầu / hai dải
+      cùng ra một nhãn) — cùng khuôn `deleteQuantify` đã ném khi bị set dùng: chặn ở seam ghi, không
+      để state hỏng rồi mới báo ở tầng validate. Cut sai làm `bandOf` xếp khách sai LẶNG LẼ.
+
+      Lưu ý cho nơi gọi: `getSnapshot()` chiếu nhãn dải theo cfg HIỆN TẠI, nên ghi cfg xong phải đọc
+      lại snapshot (store gọi `refresh()`) — không thì chart vẫn hiện nhãn theo cut cũ. */
+  setCfg(patch: Partial<Cfg>): void;
+
   // ----- Quantify (thư viện chart) -----
   /** Tạo item MỚI từ builder: repo cấp id tươi (prefix "qu"), trả item đã tạo (kèm id).
       Nhận `Omit<QuantifyShow, "id">` — builder CHỈ dựng item `show`, không dựng series

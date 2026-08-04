@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { seed, seedNav, seedTour, dims, cfgDefault } from "./fixtures/seed.ts";
 import { validateFixture } from "./validate.ts";
+import { projectCustomerBands } from "./projectBands.ts";
 import type { CxmData } from "./schema/index.ts";
 
 describe("validateFixture", () => {
@@ -375,38 +376,45 @@ describe("validateFixture", () => {
     expect(r.some((e) => e.includes("route"))).toBe(true);
   });
 
-  /* Group 19: Phân khúc khách — age/nav/tenure/acq */
-  it("19: age không phải band hợp lệ cũng không phải sentinel", () => {
+  /* Group 19: Phân khúc khách — age/nav/tenure/acq.
+     Kể từ 04/08 nhóm này kiểm theo CẶP (số thô là nguồn, nhãn là ảnh chiếu — data/projectBands.ts)
+     thay vì đối chiếu nhãn với một danh sách gõ tay. Nên "nhãn sai" giờ có nghĩa là "nhãn không khớp
+     số thô", và luật này CẦN cfg (nhãn hợp lệ do `cuts` sinh) — vì thế các ca dưới truyền cfgDefault. */
+  it("19: nhãn dải không khớp số thô (nhãn bị sửa tay)", () => {
     const d = structuredClone(seed) as CxmData;
-    d.cust = d.cust.map((c, i) => (i === 0 ? { ...c, age: "99-100" as unknown as typeof c.age } : c));
-    const r = validateFixture(d, dims, seedNav, seedTour);
-    expect(r.some((e) => e.includes("age") && e.includes("không hợp lệ"))).toBe(true);
+    d.cust = d.cust.map((c, i) => (i === 0 ? { ...c, age: "99-100" } : c));
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("age") && e.includes("không khớp ageYears"))).toBe(true);
   });
 
-  it("19: seg \"Khách 50+\" nhưng age khác 50+", () => {
+  it("19: seg \"Khách 50+\" nhưng tuổi thật chưa tới 50", () => {
     const d = structuredClone(seed) as CxmData;
     const c50 = d.cust.find((c) => c.seg === "Khách 50+")!;
-    d.cust = d.cust.map((c) => (c.key === c50.key ? { ...c, age: "25-34" as typeof c.age } : c));
-    const r = validateFixture(d, dims, seedNav, seedTour);
-    expect(r.some((e) => e.includes('seg "Khách 50+"') && e.includes("khác 50+"))).toBe(true);
+    /* Sửa TUỔI THẬT, không sửa nhãn: luật này so `ageYears >= 50` để không báo sai khi owner đổi cut
+       tuổi (nhãn dải cuối thành "60+" nhưng nghĩa nghiệp vụ của segment vẫn là "từ 50 tuổi"). */
+    d.cust = d.cust.map((c) => (c.key === c50.key ? { ...c, ageYears: 30, age: "25-34" } : c));
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes('seg "Khách 50+"') && e.includes("chưa tới 50"))).toBe(true);
   });
 
   /* Thay test "high-value ⟹ nav không sentinel" (bất biến C1 cũ) bằng luật MẠNH HƠN kể từ 04/08: nav
      không nhận sentinel cho BẤT KỲ khách nào, vì NAV lấy trực tiếp từ tài sản hiện tại. Ép vào một
      khách thường (không phải high-value) để chứng minh rule không chỉ áp cho nhóm high-value. */
-  it("19: nav là sentinel ở khách THƯỜNG cũng đỏ (NAV luôn tính được từ tài sản hiện tại)", () => {
+  /* Sentinel nav kiểm trên `navVnd` (SỐ THÔ), không trên nhãn: nhãn chỉ là ảnh chiếu, nên sentinel
+     lọt vào nhãn thì gốc phải ở số thô. Ép vào chính số thô là ép đúng chỗ luật canh. */
+  it("19: navVnd là sentinel ở khách THƯỜNG cũng đỏ (NAV luôn tính được từ tài sản hiện tại)", () => {
     const d = structuredClone(seed) as CxmData;
     const normal = d.cust.find((c) => c.tier !== "high-value")!;
-    d.cust = d.cust.map((c) => (c.key === normal.key ? { ...c, nav: "chưa-biết" as typeof c.nav } : c));
+    d.cust = d.cust.map((c) => (c.key === normal.key ? { ...c, navVnd: "chưa-biết" as typeof c.navVnd, nav: "chưa-biết" } : c));
     const r = validateFixture(d, dims, seedNav, seedTour);
-    expect(r.some((e) => e.includes("nav") && e.includes("sentinel"))).toBe(true);
+    expect(r.some((e) => e.includes("navVnd") && e.includes("sentinel"))).toBe(true);
   });
 
-  it("19: nav 'thiếu' (bug pipeline) cũng đỏ — trục này không có chỗ cho ổ thiếu nữa", () => {
+  it("19: navVnd 'thiếu' (bug pipeline) cũng đỏ — trục này không có chỗ cho ổ thiếu nữa", () => {
     const d = structuredClone(seed) as CxmData;
-    d.cust = d.cust.map((c, i) => (i === 0 ? { ...c, nav: "thiếu" as typeof c.nav } : c));
+    d.cust = d.cust.map((c, i) => (i === 0 ? { ...c, navVnd: "thiếu" as typeof c.navVnd, nav: "thiếu" } : c));
     const r = validateFixture(d, dims, seedNav, seedTour);
-    expect(r.some((e) => e.includes("nav") && e.includes("sentinel"))).toBe(true);
+    expect(r.some((e) => e.includes("navVnd") && e.includes("sentinel"))).toBe(true);
   });
 
   /* Group 20: Cfg.segment (module E, E-a — cfg là source of truth cho ranh giới dải) */
@@ -479,7 +487,11 @@ describe("validateFixture", () => {
   it("20: nav + MỘT cut sát 0 vẫn hợp lệ — tách được '0đ' khỏi '<50tr'", () => {
     const cfg = structuredClone(cfgDefault);
     cfg.segment.nav = { min: null, cuts: [1, 50e6, 200e6, 1e9, 5e9], unit: "đ" };
-    const r = validateFixture(seed, dims, seedNav, seedTour, cfg);
+    /* Phải CHIẾU LẠI khách theo cfg đang kiểm: nhãn dải của `seed` là ảnh chiếu theo `cfgDefault`,
+       nên đem nguyên nó đi kiểm với bộ cut khác thì nhóm 19 báo lệch nhãn/số thô — đúng luật, vì
+       nhãn '<50tr' thật sự sai với cut mới (khách navVnd=0 giờ thuộc '0đ'). Đây chính là hợp đồng
+       mới: đổi cut thì phải đọc lại snapshot (MockRepository.getSnapshot làm việc này). */
+    const r = validateFixture(projectCustomerBands(seed, cfg), dims, seedNav, seedTour, cfg);
     expect(r).toEqual([]);
   });
 

@@ -3,7 +3,7 @@ import type { Step, Metric, Evidence, Issue, Action, Source, Survey, VoiceInsigh
 import type { CfgBandAxis } from "./schema/index.ts";
 import { BLOCKS } from "./blocks.ts";
 import { isSegUnknown } from "./segment.ts";
-import { bandLabels } from "./bands.ts";
+import { bandLabels, bandOf } from "./bands.ts";
 
 /* validateFixture — 19 nhóm bất biến (port từ prototype; nhóm 19 thêm 02/08 cho phân khúc khách) */
 
@@ -11,6 +11,11 @@ const ROUTES = new Set([
   "cxm", "voc", "quantify", "assistant", "atlas", "work",
   "sources", "topics", "topic", "vocjourney", "agents", "rules", "issue",
 ]);
+
+/* Ba unit mà `bandLabels` (data/bands.ts) biết định dạng. MỘT nguồn cho cả nhóm 19 (bỏ qua trục
+   cấu hình hỏng) và nhóm 20 (báo unit sai) — hai nơi cùng hỏi "unit này có dùng được không" nên
+   không được có hai danh sách. */
+const BAND_UNITS = new Set<string>(['đ', 'năm', 'tháng']);
 
 /* Evidence.ck — hằng dạng khoá khách + sentinel ẩn danh (F4, module-f-charter.md). Đặt Ở ĐÂY,
    KHÔNG ở segment.ts: segment.ts chỉ nói về sentinel 'chưa-biết'/'thiếu' của các TRỤC PHÂN KHÚC
@@ -466,29 +471,51 @@ export function validateFixture(
   /* 19. Phân khúc khách — age/nav/tenure/acq. Chạy RUNTIME (không phải chỉ tsc) vì fixture demo
      (module C4) sinh dữ liệu bằng hàm lúc chạy, tsc không canh được giá trị sinh động. */
   {
-    const AGE_BANDS = new Set(["18-24", "25-34", "35-49", "50+"]);
-    const NAV_BANDS = new Set(["<50tr", "50-200tr", "200tr-1tỷ", "1-5tỷ", ">5tỷ"]);
-    const TENURE_BANDS = new Set(["<6 tháng", "6-24 tháng", "2-5 năm", ">5 năm"]);
-    const ACQ_CHANNELS = new Set(["banner", "giới thiệu", "chi nhánh", "tự tìm", "đối tác"]);
+    /* Ba trục dải kiểm theo CẶP (nhãn phái sinh, số thô là nguồn) — thay ba `Set` nhãn hardcode của
+       bản trước. Nhãn giờ do `cfg.segment[trục].cuts` sinh (data/bands.ts, bất biến E-c), nên gõ
+       tay danh sách nhãn ở đây là bản sao thứ tư của cùng ranh giới, và nó sẽ báo sai ngay lần đầu
+       owner sửa cut ở màn #/rules — đúng thứ module E tồn tại để bỏ. */
+    const BAND_AXES: ReadonlyArray<readonly ["age" | "nav" | "tenure", "ageYears" | "navVnd" | "tenureMonths"]> = [
+      ["age", "ageYears"],
+      ["nav", "navVnd"],
+      ["tenure", "tenureMonths"],
+    ];
 
     for (const c of data.cust) {
-      if (!AGE_BANDS.has(c.age) && !isSegUnknown(c.age)) e.push(`khách ${c.key}: age "${c.age}" không hợp lệ`);
       /* nav là trục DUY NHẤT không nhận sentinel (owner chốt 04/08: NAV lấy trực tiếp từ tài sản hiện
-         tại nên luôn tính ra được — khách chưa nạp tiền là 0đ, thuộc '<50tr'). Bắt cả 'chưa-biết' và
-         'thiếu' ở đây, vì fixture demo sinh lúc chạy nên tsc không canh được. */
-      if (!NAV_BANDS.has(c.nav)) {
+         tại nên luôn tính ra được — khách chưa nạp tiền có tài sản 0). Kiểm trên SỐ THÔ, không phải
+         nhãn: nhãn chỉ là ảnh chiếu, sentinel nào lọt vào nhãn cũng phải đến từ số thô. */
+      if (isSegUnknown(c.navVnd)) {
         e.push(
-          isSegUnknown(c.nav)
-            ? `khách ${c.key}: nav "${c.nav}" là sentinel — NAV lấy từ tài sản hiện tại nên phải luôn có dải (chưa có tài sản ⇒ "<50tr")`
-            : `khách ${c.key}: nav "${c.nav}" không hợp lệ`,
+          `khách ${c.key}: navVnd "${c.navVnd}" là sentinel — NAV lấy từ tài sản hiện tại nên phải luôn có số (chưa có tài sản ⇒ 0)`,
         );
       }
-      if (!TENURE_BANDS.has(c.tenure) && !isSegUnknown(c.tenure)) e.push(`khách ${c.key}: tenure "${c.tenure}" không hợp lệ`);
-      if (!ACQ_CHANNELS.has(c.acq) && !isSegUnknown(c.acq)) e.push(`khách ${c.key}: acq "${c.acq}" không hợp lệ`);
 
-      /* seg nghiệp vụ "Khách 50+" phải khớp dải tuổi thật — bắt lệch giữa nhãn segment và dữ liệu tuổi. */
-      if (c.seg === "Khách 50+" && c.age !== "50+") {
-        e.push(`khách ${c.key}: seg "Khách 50+" nhưng age "${c.age}" khác 50+`);
+      if (cfg) {
+        for (const [labelField, rawField] of BAND_AXES) {
+          const axis = cfg.segment?.[labelField];
+          /* Bỏ qua trục có CẤU HÌNH hỏng — nhóm 20 là chỗ báo việc đó. Ở đây phải bỏ qua thật sự vì
+             `bandLabels` chỉ tổng trên 3 unit hợp lệ: unit lạ (cfg tới từ localStorage/JSON khi UI
+             #/rules lưu) làm nó trả undefined và `bandOf` NÉM, che mất chính thông báo của nhóm 20.
+             `cuts` rỗng thì không có dải nào để so nhãn — cũng để nhóm 20 nói. */
+          if (!axis || axis.cuts.length === 0 || !BAND_UNITS.has(axis.unit)) continue;
+          const expected = bandOf(c[rawField], axis);
+          if (c[labelField] !== expected) {
+            e.push(
+              `khách ${c.key}: ${labelField} "${c[labelField]}" không khớp ${rawField}=${String(c[rawField])} — theo cuts phải là "${expected}"`,
+            );
+          }
+        }
+        if (!isSegUnknown(c.acq) && !cfg.segment?.acq?.values.includes(c.acq)) {
+          e.push(`khách ${c.key}: acq "${c.acq}" không có trong cfg.segment.acq.values`);
+        }
+      }
+
+      /* seg nghiệp vụ "Khách 50+" phải khớp TUỔI THẬT — so trên `ageYears`, không so nhãn "50+":
+         nhãn dải cuối đổi theo cut (owner sửa cut tuổi là nhãn thành "60+"), còn nghĩa nghiệp vụ của
+         segment này vẫn là "từ 50 tuổi", nên so nhãn sẽ báo lỗi giả ngay khi cut đổi. */
+      if (c.seg === "Khách 50+" && !(typeof c.ageYears === "number" && c.ageYears >= 50)) {
+        e.push(`khách ${c.key}: seg "Khách 50+" nhưng ageYears "${String(c.ageYears)}" chưa tới 50`);
       }
 
       /* Rule "high-value ⟹ nav không sentinel" (bất biến C1 cũ) đã BỎ: rule nav ngay trên bắt sentinel
@@ -521,7 +548,7 @@ export function validateFixture(
           e.push(`cfg.segment.${name}: min (${axis.min}) >= cut đầu (${axis.cuts[0]}) — dải đầu rỗng`);
         }
       }
-      const unitOk = axis.unit === 'đ' || axis.unit === 'năm' || axis.unit === 'tháng';
+      const unitOk = BAND_UNITS.has(axis.unit);
       if (!unitOk) {
         e.push(`cfg.segment.${name}: unit "${axis.unit}" không hợp lệ (phải là 'đ', 'năm' hoặc 'tháng')`);
       }

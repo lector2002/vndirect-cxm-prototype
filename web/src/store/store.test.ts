@@ -169,4 +169,37 @@ describe("CxmStore", () => {
       expect(state().validate()).toEqual([]);
     });
   });
+
+  describe("Cấu hình (setCfg)", () => {
+    /** Cut sát 0 cho nav — thêm cut 1 vào đầu ⇒ dải đầu thành "0đ" (xem data/projectBands.test.ts). */
+    function zeroAssetSegment() {
+      const cfg = state().cfg;
+      return { ...cfg.segment, nav: { min: null, cuts: [1, 50e6, 200e6, 1e9, 5e9], unit: "đ" as const } };
+    }
+
+    it("setCfg đổi cut ⇒ refresh() nạp lại CẢ data, không chỉ cfg", () => {
+      /* Mắt nối quyết định việc màn #/rules có vẽ lại được hay không: nhãn dải của khách nằm trong
+         `data` (getSnapshot chiếu theo cfg), nên nếu setCfg chỉ set lại `cfg` mà không refresh `data`
+         thì chart vẫn hiện nhãn theo cut cũ dù cfg đã đổi. */
+      const navBefore = state().data.cust.find((c) => c.navVnd === 0)!.nav;
+      expect(navBefore).toBe("<50tr");
+
+      state().setCfg({ segment: zeroAssetSegment() });
+
+      expect(state().cfg.segment.nav.cuts).toEqual([1, 50e6, 200e6, 1e9, 5e9]);
+      expect(state().data.cust.find((c) => c.navVnd === 0)!.nav).toBe("0đ");
+      expect(state().validate()).toEqual([]);
+    });
+
+    it("setCfg với cut sai → bị chặn, cfg và data KHÔNG đổi (như deleteQuantify)", () => {
+      const cfgBefore = state().cfg;
+      const dataBefore = state().data;
+      const bad = { ...cfgBefore.segment, nav: { min: null, cuts: [200e6, 50e6], unit: "đ" as const } };
+
+      expect(() => state().setCfg({ segment: bad })).toThrow();
+      expect(state().cfg).toBe(cfgBefore);
+      expect(state().data).toBe(dataBefore);
+      expect(state().validate()).toEqual([]);
+    });
+  });
 });

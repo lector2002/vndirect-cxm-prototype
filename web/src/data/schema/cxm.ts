@@ -131,21 +131,43 @@ export type Customer = {
   tier: string;
   pf: string;
   st: string;
-  age: AgeBand | SegUnknown;
-  /** NAV đọc TRỰC TIẾP từ giá trị tài sản hiện tại của khách (owner chốt 04/08: "NAV sẽ lấy trực
-   *  tiếp từ giá trị tài sản hiện tại của KH nên ko thể có ko xác định"), nên luôn tính ra được:
-   *  khách chưa mở xong TK hoặc mở xong mà chưa nạp tiền thì tài sản = 0đ ⇒ rơi vào dải thấp nhất
-   *  '<50tr' (owner chốt dồn vào dải này, không thêm dải '0đ'). Hệ quả khi đọc chart: '<50tr' nghĩa
-   *  là "chưa có hoặc còn rất ít tài sản" — phần lớn nhóm này là khách chưa nạp tiền, KHÔNG đọc
-   *  thành "khách nhỏ đã đầu tư".
+
+  /* ---- GIÁ TRỊ THÔ: cái khách hàng THẬT SỰ có. Nguồn duy nhất của ba nhãn dải bên dưới. ----
+     Ba trục phân dải (age/nav/tenure) lưu SỐ, không lưu nhãn: nhãn phụ thuộc `cfg.segment[trục].cuts`
+     mà owner sửa được ở màn #/rules, nên lưu nhãn là đóng băng một lần cắt vào dữ liệu — sửa cut sau
+     đó không đổi được gì (đúng lỗi đo được 04/08: `bandOf` không có consumer nào trong production,
+     `cuts` không điều khiển chart nào). Nhãn được CHIẾU lúc đọc, xem data/projectBands.ts. */
+
+  /** Tuổi thật (số năm). `SegUnknown` khi hành trình chưa tới chỗ biết ngày sinh (chưa qua bước 02
+   *  chụp CCCD/VNeID) — 'chưa-biết' theo quy luật, khác 'thiếu' do bug thu thập. */
+  ageYears: number | SegUnknown;
+  /** Tài sản hiện tại (VNĐ). Đọc TRỰC TIẾP từ giá trị tài sản của khách (owner chốt 04/08: "NAV sẽ
+   *  lấy trực tiếp từ giá trị tài sản hiện tại của KH nên ko thể có ko xác định"), nên luôn tính ra
+   *  được: khách chưa mở xong TK hoặc mở xong mà chưa nạp tiền thì tài sản = **0**, không phải
+   *  sentinel. Hệ quả khi đọc chart: dải thấp nhất nghĩa là "chưa có hoặc còn rất ít tài sản" —
+   *  phần lớn nhóm này là khách chưa nạp tiền, KHÔNG đọc thành "khách nhỏ đã đầu tư".
    *
    *  VẪN giữ `| SegUnknown` dù dữ liệu đúng thì không bao giờ dùng tới: điều owner nói là NAV luôn
    *  ĐỌC RA ĐƯỢC, không phải "lời gọi lấy tài sản không bao giờ thất bại". Nếu hẹp type xuống còn
-   *  NavBand thì ngày pipeline tài sản trả về rỗng, mọi giá trị ghi được đều là lời nói dối — ghi
-   *  '<50tr' là báo "khách không có tài sản" trong khi sự thật là "không đọc được số" (đúng cặp
-   *  'chưa-biết' vs 'thiếu' mà data/segment.ts cấm gộp). Chốt: type CHO PHÉP biểu diễn ca đó,
-   *  validate rule 19 COI NÓ LÀ LỖI phải đi sửa pipeline — chứ không âm thầm thành một dải NAV. */
-  nav: NavBand | SegUnknown;
-  tenure: TenureBand | SegUnknown;
+   *  `number` thì ngày pipeline tài sản trả về rỗng, mọi giá trị ghi được đều là lời nói dối — ghi 0
+   *  là báo "khách không có tài sản" trong khi sự thật là "không đọc được số" (đúng cặp 'chưa-biết'
+   *  vs 'thiếu' mà data/segment.ts cấm gộp). Chốt: type CHO PHÉP biểu diễn ca đó, validate rule 19
+   *  COI NÓ LÀ LỖI phải đi sửa pipeline — chứ không âm thầm thành 0đ. */
+  navVnd: number | SegUnknown;
+  /** Thâm niên quan hệ (số tháng). `SegUnknown` khi chưa mở xong TK — chưa có mốc nào để tính. */
+  tenureMonths: number | SegUnknown;
+
+  /* ---- NHÃN DẢI: PHÁI SINH, do data/projectBands.ts điền từ ba số trên + `cfg.segment`. ----
+     `string` chứ không phải union đóng (AgeBand/NavBand/TenureBand): nhãn do `cuts` sinh ra
+     (data/bands.ts, bất biến E-c) nên owner đổi cut là ra nhãn chưa có trong bất kỳ union nào —
+     khai union ở đây sẽ chặn đúng cái linh hoạt mà module này tồn tại để mở. Bất biến: luôn bằng
+     `bandOf(<số thô tương ứng>, cfg.segment[trục])`, validate rule 19 canh không cho lệch.
+     Sentinel của số thô đi qua nguyên vẹn (bandOf trả lại chính nó) — không dải nào hấp thụ nó. */
+  age: string | SegUnknown;
+  nav: string | SegUnknown;
+  tenure: string | SegUnknown;
+
+  /** Kênh mở TK — trục CATEGORICAL (`cfg.segment.acq.values`), không có cut nên không đi qua phép
+      chiếu dải: giá trị lưu thẳng, không có "số thô" nào phía sau. */
   acq: AcqChannel | SegUnknown;
 };

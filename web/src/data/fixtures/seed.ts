@@ -1,6 +1,11 @@
 import type { CxmData, Cfg, Dim } from "../schema/index.ts";
+import { projectCustomerBands } from "../projectBands.ts";
 
-export const seed: CxmData = {
+/* KHÔNG export: `seed` thật là ảnh CHIẾU của literal này qua `cfgDefault` (xem cuối file). Tách hai
+   tên để nhãn dải của khách không thể là thứ viết tay lọt ra ngoài — mọi consumer nhận nhãn do
+   `cuts` sinh. Phải là hai `const` chứ không phải một, vì `cfgDefault` khai bên dưới trong cùng file
+   (const không hoist) nên phép chiếu chỉ chạy được sau chỗ đó. */
+const seedRaw: CxmData = {
   periods: [
     { id: "d7", label: "3 tháng gần nhất", range: "28/04/2026 – 27/07/2026", factor: 2.8 },
     { id: "d30", label: "6 tháng gần nhất", range: "28/01/2026 – 27/07/2026", factor: 5.6 },
@@ -514,20 +519,34 @@ export const seed: CxmData = {
     { iss:'CXI-017', need:29, done:0,  ch:'In-app + ZNS',   by:null,                    sent:null },
     { iss:'CXI-013', need:25, done:25, ch:'In-app',         by:'Thu Hà · Head of CX',   sent:'Sentiment sau liên hệ +0,4 · 18/25 phản hồi tích cực' },
   ],
+  /* Nhãn dải (age/nav/tenure) ở đây là GIÁ TRỊ MONG ĐỢI theo `cfgDefault` — nguồn thật là ba số thô
+     (ageYears/navVnd/tenureMonths) ngay cạnh, và `seed` export ở cuối file CHIẾU LẠI chúng bằng
+     `projectCustomerBands` nên nhãn thực tế luôn do `cuts` sinh. Giữ nhãn viết tay vì nó tự tài
+     liệu hoá số thô, và validate rule 19 canh `nhãn === bandOf(số thô)` để không lệch âm thầm.
+     navVnd = 0 nghĩa là CHƯA NẠP TIỀN (không phải "không đọc được số" — đó là sentinel). 4B8 có
+     12tr để dải thấp nhất không phải toàn số 0: nhờ vậy một cut sát 0 (owner tách nhóm CHƯA CÓ TÀI
+     SẢN) mới chia được nhóm này làm hai — kiểm được ở projectBands.test.ts. */
   cust: [
 { key:'KH•••7A2', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Bỏ dở tại bước 03',
+      ageYears:29, navVnd:0, tenureMonths:'chưa-biết',
       age:'25-34', nav:'<50tr', tenure:'chưa-biết', acq:'banner' },
     { key:'KH•••1C9', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Bỏ dở tại bước 03, đã gọi hỗ trợ',
+      ageYears:41, navVnd:0, tenureMonths:'chưa-biết',
       age:'35-49', nav:'<50tr', tenure:'chưa-biết', acq:'banner' },
     { key:'KH•••4B8', seg:'Mới mở TK',                  tier:'new',        pf:'android', st:'Hoàn tất sau 4 lần thử',
+      ageYears:31, navVnd:12e6, tenureMonths:3,
       age:'25-34', nav:'<50tr', tenure:'<6 tháng', acq:'tự tìm' },
     { key:'KH•••9F1', seg:'Khách chuyển từ CTCK khác',  tier:'high-value', pf:'android', st:'Đã hoàn tất, có 3 lần liên hệ',
+      ageYears:44, navVnd:2.4e9, tenureMonths:84,
       age:'35-49', nav:'1-5tỷ', tenure:'>5 năm', acq:'giới thiệu' },
     { key:'KH•••8B4', seg:'Mới mở TK',                  tier:'standard',   pf:'ios',     st:'Bỏ dở tại bước 05',
+      ageYears:27, navVnd:0, tenureMonths:'chưa-biết',
       age:'25-34', nav:'<50tr', tenure:'chưa-biết', acq:'đối tác' },
     { key:'KH•••5F6', seg:'Mới mở TK',                  tier:'standard',   pf:'ios',     st:'Hoàn tất · đã được liên hệ khép vòng',
+      ageYears:38, navVnd:0, tenureMonths:4,
       age:'35-49', nav:'<50tr', tenure:'<6 tháng', acq:'chi nhánh' },
     { key:'KH•••2C8', seg:'Khách 50+',                  tier:'standard',   pf:'android', st:'Chưa hoàn tất, cần hỗ trợ',
+      ageYears:57, navVnd:0, tenureMonths:'chưa-biết',
       age:'50+', nav:'<50tr', tenure:'chưa-biết', acq:'chi nhánh' },
   ],
   qt: [
@@ -766,6 +785,12 @@ export const cfgDefault: Cfg = {
     acq: { values: ['banner', 'giới thiệu', 'chi nhánh', 'tự tìm', 'đối tác'] },
   },
 };
+
+/** Fixture 7 khách thật, nhãn dải ĐÃ CHIẾU theo `cfgDefault`. Phải khai SAU `cfgDefault` (const
+    không hoist). Mọi nơi import `seed` nhận nhãn do `cuts` sinh, không phải nhãn viết tay trong
+    literal — cùng một phép chiếu mà MockRepository.getSnapshot() chạy với cfg hiện tại, nên fixture
+    và runtime không thể lệch cách hiểu dải. */
+export const seed: CxmData = projectCustomerBands(seedRaw, cfgDefault);
 
 export const dims: Record<string, Dim> = {
   l1: { label: "L1 Keyword · phase", unit: "keyword", base: "agg", evAttr: true, rows: [] },

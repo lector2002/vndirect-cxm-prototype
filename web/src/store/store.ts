@@ -24,6 +24,12 @@ export type CxmStore = {
 
   /** validateFixture trên state hiện tại của repo. Rỗng = hợp lệ. */
   validate(): string[];
+
+  /** Ghi cấu hình (màn #/rules) — xem CxmRepository.setCfg cho hợp đồng merge nông + ném khi cut sai.
+      Sau khi ghi, refresh() đọc lại CẢ `data`: nhãn dải của khách được chiếu theo cfg mới trong
+      getSnapshot(), nên đổi cut là chart chia lại nhóm ngay. CHẶN (ném Error) khi cfg mới vỡ bất
+      biến — propagate như deleteQuantify để UI hiện lý do, và state cũ giữ nguyên. */
+  setCfg(patch: Partial<Cfg>): void;
   /** setId đang dùng Quantify item này — đọc, không mutate (UI cảnh báo trước khi xóa). */
   quantifyUsedBy(id: string): string[];
 
@@ -82,6 +88,11 @@ export function createCxmStore(repo: CxmRepository = new MockRepository()) {
 
       validate: () => repo.validate(),
       quantifyUsedBy: (id) => repo.quantifyUsedBy(id),
+
+      setCfg: (patch) => {
+        repo.setCfg(patch);
+        refresh();
+      },
 
       createQuantify: (fields) => {
         const created = repo.createQuantify(fields);

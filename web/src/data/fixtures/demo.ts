@@ -1,7 +1,9 @@
-import type { CxmData, Customer, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, TaxNode } from "../schema/index.ts";
-import { seed } from "./seed.ts";
+import type { CfgBandAxis, CxmData, Customer, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, TaxNode } from "../schema/index.ts";
+import { cfgDefault, seed } from "./seed.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
 import { ANON_CK } from "../validate.ts";
+import { bandLabels } from "../bands.ts";
+import { projectCustomerBands } from "../projectBands.ts";
 
 /* demoData — chế độ "demo bật/tắt" (Module C, section C4): trải seed thật (7 khách trung thực,
    giữ nguyên KHÔNG đụng) rồi thay bảng `cust` bằng 300 khách SINH RA, đủ lớn để các biểu đồ phân
@@ -24,6 +26,13 @@ function mulberry32(seed: number): () => number {
 }
 
 const DEMO_SEED = 0xc0ffee;
+
+/* Hạt giống RIÊNG cho việc rút số thô (rawInBand). Phải là một STREAM TÁCH BIỆT, không dùng chung
+   `rng` của các phép rút phân bố: mỗi lần gọi rng() làm dịch toàn bộ chuỗi số phía sau, nên rút
+   thêm 3 số/khách từ cùng stream sẽ sinh ra 300 khách KHÁC HẲN — đo được: 'tự tìm' đổi từ 62 sang
+   70 khách, làm sai mọi oracle đã live-check trên app đang chạy. Tách stream thì mọi phép rút cũ
+   nhận đúng dãy số như trước ⇒ fixture demo không đổi một khách nào, chỉ được thêm số thô. */
+const RAW_SEED = 0xc0ffee ^ 0x5a5a5a;
 
 function pickWeighted<T>(rng: () => number, items: ReadonlyArray<readonly [T, number]>): T {
   const total = items.reduce((s, [, w]) => s + w, 0);
@@ -119,6 +128,31 @@ const PF_CHOICES: ReadonlyArray<readonly ["android" | "ios", number]> = [
   ["ios", 0.45],
 ];
 
+/* Rút một GIÁ TRỊ THÔ nằm trong đúng dải vừa chọn được. Các bảng weight bên trên vẫn quyết định
+   phân bố THEO DẢI (giữ nguyên chủ ý owner đã chốt, không đổi một con số nào); helper này chỉ hạ
+   nhãn đó xuống thành số, để `bandOf` chiếu lại ra CHÍNH nhãn ấy dưới `cfgDefault` — phân bố demo
+   không đổi — nhưng khi owner sửa cut thì cùng số thô đó rơi sang dải khác.
+
+   `topMax` là trần lấy mẫu cho dải CUỐI (dải mở, không có biên trên): chọn tay ở tầng fixture, cùng
+   loại quyết định với các bảng weight bên trên (data/fixtures/ được phép mã hoá mẫu bằng tay).
+   Nhãn không thuộc dải nào ⇒ ném, không lặng lẽ trả 0: chỉ xảy ra khi ai đó sửa `cfgDefault.cuts`
+   mà quên bảng weight, và im lặng ở đây sẽ ra một fixture nói dối. */
+function rawInBand(rng: () => number, axis: CfgBandAxis, label: string, topMax: number): number {
+  const i = bandLabels(axis).indexOf(label);
+  if (i < 0) {
+    throw new Error(`fixture demo: nhãn "${label}" không phải dải nào của cfgDefault (cuts đã đổi?)`);
+  }
+  const lower = i === 0 ? axis.min ?? 0 : axis.cuts[i - 1];
+  const upper = i < axis.cuts.length ? axis.cuts[i] : topMax;
+  return Math.floor(lower + rng() * (upper - lower));
+}
+
+/* Trần lấy mẫu của dải cuối từng trục — 10 tỷ đồng / 75 tuổi / 15 năm quan hệ: đủ rộng để dải mở
+   không dồn hết vào một điểm, đủ hẹp để không sinh ra khách vô lý. */
+const NAV_TOP_MAX = 10e9;
+const AGE_TOP_MAX = 75;
+const TENURE_TOP_MAX = 180;
+
 const SEG_MOI = "Mới mở TK";
 const SEG_TRANSFER = "Khách chuyển từ CTCK khác";
 const SEG_50 = "Khách 50+";
@@ -147,7 +181,7 @@ function stFor(pos: Pos, deposited: boolean): string {
   }
 }
 
-function genOne(rng: () => number, usedKeys: Set<string>): GenCustomer {
+function genOne(rng: () => number, rawRng: () => number, usedKeys: Set<string>): GenCustomer {
   const pos = pickWeighted(rng, POSITIONS);
   /* "Đã qua bước 02" = đã rời khỏi s1/s2 (bước 02 là chụp CCCD/VNeID — chụp XONG mới có ngày
      sinh); dừng NGAY TẠI s2 nghĩa là đang giữa chừng bước đó, chưa chắc đã chụp xong, nên vẫn
@@ -204,12 +238,27 @@ function genOne(rng: () => number, usedKeys: Set<string>): GenCustomer {
   const pf = pickWeighted(rng, PF_CHOICES);
   const key = genUniqueKey(rng, usedKeys);
 
+  /* ---- Hạ ba nhãn dải vừa rút xuống GIÁ TRỊ THÔ (nguồn thật của nhãn, xem data/projectBands.ts) ----
+     Sentinel đi thẳng qua: 'chưa-biết' của age/tenure là QUY LUẬT hành trình, không có số nào đại
+     diện được cho nó (bandOf trả lại nguyên vẹn, không dải nào hấp thụ).
+     navVnd của khách KHÔNG có tài sản là **0 chính xác**, không phải số ngẫu nhiên trong dải thấp
+     nhất: tài sản của họ đúng bằng 0 (chưa nạp tiền / chưa mở xong TK). Nhờ vậy nhóm "chưa có tài
+     sản" tách được khỏi nhóm "có ít tài sản" nếu owner thêm một cut sát 0 — đúng ca dùng mà
+     data/bands.ts đã lường trước (nhãn "0đ"). */
+  const ageYears = age === UNKNOWN_YET ? UNKNOWN_YET : rawInBand(rawRng, cfgDefault.segment.age, age, AGE_TOP_MAX);
+  const navVnd = hasAssets ? rawInBand(rawRng, cfgDefault.segment.nav, nav, NAV_TOP_MAX) : 0;
+  const tenureMonths =
+    tenure === UNKNOWN_YET ? UNKNOWN_YET : rawInBand(rawRng, cfgDefault.segment.tenure, tenure, TENURE_TOP_MAX);
+
   return {
     key,
     seg,
     tier,
     pf,
     st: stFor(pos, deposited),
+    ageYears,
+    navVnd,
+    tenureMonths,
     age,
     nav,
     tenure,
@@ -224,9 +273,12 @@ function genOne(rng: () => number, usedKeys: Set<string>): GenCustomer {
    (xem lý do ở demoData bên dưới), nạp trước các khoá thật vào usedKeys để loại va chạm. */
 export function generateCustomers(n: number): Customer[] {
   const rng = mulberry32(DEMO_SEED);
+  /* Stream thứ hai, khởi tạo TRONG hàm (không phải ở module) để mỗi lần gọi generateCustomers đều
+     rút lại từ đầu — hằng ở module sẽ khiến lần gọi thứ hai ra số khác lần đầu, mất tính tất định. */
+  const rawRng = mulberry32(RAW_SEED);
   const usedKeys = new Set<string>(seed.cust.map((c) => c.key.slice(-3)));
   const list: GenCustomer[] = [];
-  for (let i = 0; i < n; i++) list.push(genOne(rng, usedKeys));
+  for (let i = 0; i < n; i++) list.push(genOne(rng, rawRng, usedKeys));
 
   /* ---- Phủ có chủ đích hai ổ 'thiếu' (bug dữ liệu thật, khác hẳn 'chưa-biết' quy luật) ----
      Chọn theo THỨ TỰ sinh (không random thêm) để số lượng luôn > 0 một cách tất định, không phụ
@@ -533,4 +585,7 @@ const demoEv: Evidence[] = [
   ),
 ];
 
-export const demoData: CxmData = { ...seed, cust: demoCust, ev: demoEv };
+/* Chiếu lại nhãn dải qua `cfgDefault` — CÙNG phép chiếu mà MockRepository.getSnapshot() chạy với
+   cfg hiện tại, nên fixture và runtime không thể lệch cách hiểu dải. Idempotent với 7 khách của
+   `seed` (đã chiếu một lần rồi): nhãn luôn tính từ số thô, không đọc nhãn cũ. */
+export const demoData: CxmData = projectCustomerBands({ ...seed, cust: demoCust, ev: demoEv }, cfgDefault);
