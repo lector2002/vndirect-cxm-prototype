@@ -1,23 +1,18 @@
-import type { Cfg, Obs, Signal, SignalSt, Step, Touchpoint } from "../../data/schema/index.ts";
+import type { Cfg, Dim, Obs, SigCount, Signal, Step, Touchpoint } from "../../data/schema/index.ts";
 import { fx, stepState, stepWhy } from "../../domain/index.ts";
 import { Badge, Card, Note, Stat } from "../../design-system/index.ts";
-import type { BadgeState } from "../../design-system/index.ts";
 import { nf, pv } from "../../design-system/format.ts";
+import { AtlasSignalPanel } from "./AtlasSignalPanel.tsx";
 
 /* Hồ sơ một bước — port CHỈ tab "Touchpoint & signal" của stepInspector() (prototype
    output/cxm-platform-prototype.html dòng 3475-3520). Hai tab còn lại ("Chỉ số liên kết", "Độ phủ
    dữ liệu", dòng 3478/3519-3529) CỐ Ý không dựng ở bước này (đúng contract của section này) — không
    render nút tab cho hai cái đó để không mời bấm vào chỗ chưa có gì. Component nhận step/obs/cfg/
-   touchpoints/signals qua props đã lọc sẵn ở AtlasPage — không tự đọc store (giống JourneySpine). */
+   touchpoints/signals qua props đã lọc sẵn ở AtlasPage — không tự đọc store (giống JourneySpine).
 
-/** Nhãn trạng thái signal bằng chữ — port 1-1 map `SG` (prototype dòng 3481), giữ ĐÚNG câu chữ gốc
-    (kể cả dấu phẩy ở 'designed') vì đây là NGUỒN SỰ THẬT được contract trích dẫn theo số dòng. */
-const SIGNAL_STATUS: Record<SignalSt, { badge: BadgeState; label: string }> = {
-  live: { badge: "ok", label: "Đang đo" },
-  validating: { badge: "watch", label: "Đang validate" },
-  designed: { badge: "watch", label: "Đã có spec, chưa implement" },
-  gap: { badge: "unknown", label: "Chưa đo (gap)" },
-};
+   Khối "Signal đang gắn vào bước này" (nhãn + bảng) đã CHUYỂN sang AtlasSignalPanel.tsx — nơi đó
+   giờ còn nối thêm chart điểm đo (domain/signalChart.ts) + panel "gắn ở đâu" (Đ4), xem docblock file
+   đó. Component này chỉ còn forward props xuống, không tự đọc SIGNAL_STATUS/bảng gì nữa. */
 
 export type AtlasStepInspectorProps = {
   step: Step;
@@ -30,9 +25,14 @@ export type AtlasStepInspectorProps = {
   /** Signal thuộc các touchpoint trên (đã lọc ở caller) — PHẢI giữ cả signal `gap`/`designed`,
       không lọc bỏ (rule contract: "must not be filtered out"). */
   signals: Signal[];
+  /** Bảng khai chiều — cần để AtlasSignalPanel dựng chart điểm đo. */
+  dims: Record<string, Dim>;
+  /** Bảng đếm TOÀN CỤC của chart điểm đo (`data.sigCounts`) — forward xuống AtlasSignalPanel,
+      component này không tự lọc/đọc. */
+  sigCounts: SigCount[];
 };
 
-export function AtlasStepInspector({ step, obs, cfg, touchpoints, signals }: AtlasStepInspectorProps) {
+export function AtlasStepInspector({ step, obs, cfg, touchpoints, signals, dims, sigCounts }: AtlasStepInspectorProps) {
   const st = stepState(obs, cfg);
   const why = stepWhy(obs, cfg);
   const covWarn = obs.cov < cfg.step.covMin;
@@ -96,47 +96,14 @@ export function AtlasStepInspector({ step, obs, cfg, touchpoints, signals }: Atl
           ))}
         </div>
 
-        <div className="t-lbl mt-4 mb-2">Signal đang gắn vào bước này</div>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-[13px]">
-            <thead>
-              <tr>
-                {["Event", "Nguồn", "Platform", "Volume/ngày", "Lần thấy cuối", "Trạng thái"].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left px-2.5 py-1.5 border-b-2 border-line font-semibold text-ink-2 text-xs whitespace-nowrap"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {signals.map((g) => {
-                const status = SIGNAL_STATUS[g.st];
-                return (
-                  <tr key={g.id} data-testid={`atlas-signal-${g.id}`}>
-                    <td className="px-2.5 py-1.5 border-b border-line">
-                      <code className="font-mono text-[12px] text-primary">{g.name}</code>
-                      <div className="t-meta text-[12px] mt-0.5">{g.desc}</div>
-                    </td>
-                    <td className="px-2.5 py-1.5 border-b border-line t-meta whitespace-nowrap">
-                      {g.es === "server" ? "server" : "client"}
-                    </td>
-                    <td className="px-2.5 py-1.5 border-b border-line t-meta whitespace-nowrap">{g.pf.join(", ")}</td>
-                    <td className="px-2.5 py-1.5 border-b border-line tabular-nums">{g.vol ? nf(g.vol) : "—"}</td>
-                    <td className="px-2.5 py-1.5 border-b border-line t-meta whitespace-nowrap">
-                      {g.seen || <span className="text-ink-3">chưa từng</span>}
-                    </td>
-                    <td className="px-2.5 py-1.5 border-b border-line whitespace-nowrap">
-                      <Badge state={status.badge} text={status.label} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <AtlasSignalPanel
+          key={step.id}
+          signals={signals}
+          touchpoints={touchpoints}
+          rows={sigCounts}
+          dims={dims}
+          stationId={step.stationId}
+        />
       </div>
     </Card>
   );

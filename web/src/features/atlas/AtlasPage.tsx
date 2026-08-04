@@ -35,6 +35,8 @@ function flowDotTitle(f: Flow): string {
 export function AtlasPage() {
   const data = useCxmStore((s) => s.data);
   const cfg = useCxmStore((s) => s.cfg);
+  // Cần cho AtlasSignalPanel (chart điểm đo, domain/signalChart.ts) — nhãn/unit của năm chiều cố định.
+  const dims = useCxmStore((s) => s.dims);
 
   /* Mặc định mở đúng flow đang có dữ liệu quan sát (hôm nay là f-open-2026, flow pilot duy nhất) —
      tra bằng `observed` thay vì hardcode id fixture, để không gãy nếu seed đổi id. */
@@ -240,6 +242,8 @@ export function AtlasPage() {
             cfg={cfg}
             touchpoints={inspectorTouchpoints}
             signals={inspectorSignals}
+            dims={dims}
+            sigCounts={data.sigCounts}
           />
         </div>
       ) : null}
