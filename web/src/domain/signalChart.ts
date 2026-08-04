@@ -2,9 +2,15 @@ import { NOT_IDENTIFIED, SIG_CUST_DIMS, SIG_FIRE_DIM } from "../data/projectSign
 import type { SigCount } from "../data/projectSignalCounts.ts";
 import type { Dim, Signal } from "../data/schema/index.ts";
 
-/* Chiếu NĂM bảng đếm (data/projectSignalCounts.ts) thành đúng hình dạng chart điểm đo cần vẽ —
-   thiết kế: output/thiet-ke-chart-signal.html §2 (cột = giá trị của MỘT signal), §7 (giá trị chưa
-   khai phải hiện ra), §8 (chân nhóm — "chưa gắn được khách" không được bịa số).
+/* Chiếu NĂM bảng đếm (data/projectSignalCounts.ts) thành đúng hình dạng chart điểm đo cần vẽ. Thiết
+   kế nằm ở HAI bản, đừng trích lẫn:
+   - output/thiet-ke-chart-signal-bo-sung-dot-2.html — Đ1 "Cách B" (một signal = một NHÓM, trong nhóm
+     mỗi giá trị của CHÍNH nó là một cột; cấm gộp cột cùng tên giữa các signal), Đ2 (chân đế RIÊNG
+     từng nhóm: tổng và "chưa gắn được khách" của chính nó, KHÔNG có dòng tổng chung), Đ3 (signal chỉ
+     bắn một giá trị thì vẫn đúng một cột).
+   - output/thiet-ke-chart-signal.html — §3 (luôn hiện "x% lần bắn chưa gắn được khách", và ba ràng
+     buộc trung thực), §7 mục "Chỗ duy nhất vấn đề đó chạm vào chart điểm đo" (giá trị chưa khai phải
+     hiện thành cột VÀ báo lên để người khai bổ sung), §9 (11 tiêu chí nghiệm thu).
 
    KHÔNG qua `rowBuilder`/`qRun` (domain/quantify.ts) — chart này đếm trên đường riêng qua `sigCounts`
    (đã ghi lại ở data/projectSignalCounts.ts:4-15, đây là ĐƯỜNG DUY NHẤT), rowBuilder đếm trên
