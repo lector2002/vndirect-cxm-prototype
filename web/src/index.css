@@ -30,6 +30,15 @@
   --crit-bg: #fdf1f0;
   --crit-line: #f3c9c4;
   --unk: #8c8681;
+  /* Thang riêng cho 4 nghĩa "không biết" của chart theme (module-f-charter.md, F1) — `--unk` và
+     `--ink3` hôm nay TRÙNG mã màu #8c8681, nên nếu chỉ dùng `--unk` cho mọi đoạn "không biết" thì
+     chưa-biết/thiếu/Ẩn danh/Chưa đối chiếu được sẽ ra CÙNG MÀU, người xem không phân biệt được bốn
+     nghĩa khác nhau (data/segment.ts cấm gộp chưa-biết/thiếu; F1 charter cấm gộp Ẩn danh/Chưa đối
+     chiếu được). `--unk` giữ nguyên cho "chưa-biết"; ba token dưới cho ba nghĩa còn lại. */
+  --unk-gap: #6b655e;
+  --unk-anon: #a9a39c;
+  --unk-join: #c5bfb7;
+  --rem: #ded9d2;
   --good: #3f6212;
   --good-bg: #f8faf1;
   --good-line: #dde8c4;

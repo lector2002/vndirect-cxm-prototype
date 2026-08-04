@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đặt lại ngôn ngữ thiết kế — DB-first, chiều do user định nghĩa</title>
+<style>
+  :root{
+    --bg:#faf9f7; --card:#fff; --line:#e5e1db; --ink:#2b2724; --ink2:#5b554f; --ink3:#8c8681;
+    --acc:#7a5c3e; --bad:#a2402f; --ok:#3f6b4a; --warn:#8a6a1f;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .wrap{max-width:1020px;margin:0 auto;padding:32px 22px 80px}
+  h1{font-size:26px;line-height:1.25;margin:0 0 6px}
+  .sub{color:var(--ink2);margin:0 0 28px;font-size:14px}
+  h2{font-size:18px;margin:38px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+  h3{font-size:15px;margin:22px 0 8px}
+  p{margin:0 0 12px}
+  code,.m{font-family:var(--mono);font-size:.88em;background:#f0ede8;padding:1px 5px;border-radius:3px}
+  pre{background:#2b2724;color:#eae6e0;padding:14px 16px;border-radius:6px;overflow-x:auto;
+    font-family:var(--mono);font-size:12.5px;line-height:1.55;margin:0 0 14px}
+  pre .c{color:#9d9689}
+  pre .k{color:#c9a978}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin:0 0 16px}
+  .thesis{border-left:3px solid var(--acc);background:#fff;padding:16px 20px;margin:0 0 26px;
+    border-radius:0 8px 8px 0}
+  .thesis b{color:var(--acc)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:0 0 14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:600;color:var(--ink2);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .scroll{overflow-x:auto;margin:0 0 14px}
+  .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;
+    border:1px solid;white-space:nowrap}
+  .t-ok{color:var(--ok);border-color:#bcd0c0;background:#f1f6f2}
+  .t-bad{color:var(--bad);border-color:#e0bdb6;background:#fbf2f0}
+  .t-mid{color:var(--warn);border-color:#ded0aa;background:#faf6ea}
+  .q{background:#fff;border:1px solid var(--line);border-left:3px solid var(--acc);
+    border-radius:0 8px 8px 0;padding:16px 20px;margin:0 0 14px}
+  .q h3{margin-top:0}
+  ul,ol{margin:0 0 12px;padding-left:22px}
+  li{margin:0 0 6px}
+  .num{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--bad)}
+  .quote{font-style:italic;color:var(--ink2);border-left:2px solid var(--line);padding-left:14px;margin:0 0 14px}
+  .foot{margin-top:44px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink3);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Đặt lại ngôn ngữ thiết kế: DB-first, chiều phân khúc do user định nghĩa</h1>
+<p class="sub">Bản đề xuất để owner chốt — chưa code. 04/08/2026 · CXM prototype (<code>web/</code>)</p>
+
+<div class="thesis">
+  <p style="margin:0">Hệ thống hôm nay coi <b>mỗi chiều phân tích là một cột trong TypeScript type</b>.
+  Đề xuất: chuyển sang <b>mỗi chiều là một dòng trong DB</b>. Số đo của thay đổi này:
+  thêm một chiều khách hôm nay phải sửa <span class="num">15</span> file code —
+  mục tiêu sau thiết kế là <span class="num">0</span> file code, chỉ một dòng cấu hình.</p>
+</div>
+
+<h2>1 · Audit: chỗ nào đã data-driven, chỗ nào fix cứng</h2>
+
+<p>Tin tốt trước: <b>khung bản đồ hành trình đã hoàn toàn quan hệ hoá</b> và không cần thiết kế lại.
+<code>Phase → Group → Flow → Step (+Obs) → Touchpoint → Signal</code> đều là bảng có <code>id</code> +
+khoá cha, thêm bớt dòng không cần sửa type. Đúng như owner nói: khung là thật cho cả bản production,
+chỉ data và set là chưa chốt.</p>
+
+<p>Hai seam nữa cũng đã đi đúng hướng và phải giữ:</p>
+<ul>
+  <li><code>data/bands.ts</code> — nhãn dải <b>luôn suy ra từ <code>cuts</code></b>, không khai tay ở đâu khác
+  (bất biến E-c). Đây chính là hạt giống của thiết kế mới: nguyên tắc đã đúng, chỉ đang bị giới hạn ở 3 trục.</li>
+  <li><code>Dim.base</code> (<code>agg</code>/<code>ev</code>/<code>cust</code>) — hành vi chart suy từ
+  <code>base</code>, không từ danh sách id hardcode. <code>qRunSegment</code> và
+  <code>QuantifyWidget</code> đều đã theo luật này.</li>
+</ul>
+
+<h3>Bảng chấm điểm</h3>
+<div class="scroll">
+<table>
+<thead><tr><th style="width:26%">Thành phần</th><th style="width:14%">Trạng thái</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<tr><td>Journey <code>Phase…Signal</code></td><td><span class="tag t-ok">data-driven</span></td>
+  <td>Đã là bảng quan hệ. Chỉ cần thêm writer + UI.</td></tr>
+<tr><td><code>data/bands.ts</code></td><td><span class="tag t-ok">data-driven</span></td>
+  <td>Nhãn suy từ <code>cuts</code>. Giữ nguyên nguyên tắc, mở rộng phạm vi.</td></tr>
+<tr><td><code>Dim.base</code> dispatch</td><td><span class="tag t-ok">data-driven</span></td>
+  <td>Không có nơi nào liệt kê tay id trục khách.</td></tr>
+<tr><td><code>CfgSegment</code></td><td><span class="tag t-bad">fix cứng</span></td>
+  <td>Bốn key có tên cố định <code>nav/age/tenure/acq</code>. Không thêm được trục thứ năm.</td></tr>
+<tr><td><code>AgeBand</code> <code>NavBand</code> <code>TenureBand</code> <code>AcqChannel</code></td>
+  <td><span class="tag t-bad">fix cứng</span></td>
+  <td>Nhãn nằm trong <b>type</b>. Đổi một cut là đổi type — đúng món nợ <code>&gt;5tỷ→5tỷ+</code> module E đang mắc.</td></tr>
+<tr><td><code>Customer</code> có cột <code>seg tier age nav tenure acq</code></td>
+  <td><span class="tag t-bad">fix cứng</span></td>
+  <td>Chiều là cột, nên thêm chiều là sửa schema.</td></tr>
+<tr><td><code>CUST_FIELD</code> (<code>domain/quantify.ts</code>)</td>
+  <td><span class="tag t-mid">accessor</span></td>
+  <td>6 accessor tay. Tự tiêu biến khi record mang <code>attrs</code> — chỉ còn <code>attrs[dimId]</code>.</td></tr>
+<tr><td><code>ROW_BUILDERS</code></td><td><span class="tag t-mid">hai loại lẫn nhau</span></td>
+  <td>6 builder khách đều là cùng một hàm; 9 builder agg/ev là logic riêng. Xem §3.</td></tr>
+<tr><td><code>dims</code> record (<code>seed.ts:770</code>)</td><td><span class="tag t-bad">fix cứng</span></td>
+  <td>15 dòng khai tay. Đáng chú ý: <code>rows: []</code> ở <b>mọi</b> dim — rows vốn đã derived, field này là vestigial.</td></tr>
+<tr><td><code>TaxNode.lv</code> union 5 tầng</td><td><span class="tag t-bad">fix cứng</span></td>
+  <td>Độ sâu taxonomy nằm trong type. Có nên mở? — câu hỏi §9.</td></tr>
+<tr><td><code>CxmRepository</code></td><td><span class="tag t-bad">thiếu seam</span></td>
+  <td>Không có <code>setCfg</code>/<code>setDims</code>. Không có đường ghi thì không có customization.</td></tr>
+<tr><td><code>MetricKind</code> union 6 literal</td><td><span class="tag t-bad">fix cứng</span></td>
+  <td>Chưa cấp bách — chỉ mở khi owner muốn tự định nghĩa chỉ số.</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>2 · Biên của chữ &ldquo;không fix cứng&rdquo;</h2>
+
+<p>Cần chốt biên này trước, không thì lượt sau sẽ đi &ldquo;tổng quát hoá&rdquo; cả bộ sinh demo và không ra sản phẩm gì.</p>
+
+<div class="card">
+<p style="margin:0 0 8px"><b>Nhắm vào</b> — hành vi hệ thống:
+<code>CfgSegment</code> bốn key cố định · các union <code>*Band</code>/<code>AcqChannel</code> ·
+cột chiều trên <code>Customer</code> · <code>CUST_FIELD</code> · <code>dims</code> khai tay ·
+<code>TaxNode.lv</code> · <code>CxmRepository</code> thiếu writer.</p>
+<p style="margin:0"><b>KHÔNG nhắm vào</b> — dữ liệu mẫu:
+<code>THEME_SKEW</code> · <code>THEME_TAX</code> · <code>EV_PF</code> · <code>ANON_RATE</code> ·
+<code>NAV_BANDS_TRANSFER</code>. Đây là <i>sample data</i> trong <code>fixtures/</code>;
+sample data <b>đáng lẽ</b> phải viết ra bằng tay. Tổng quát hoá chúng là làm sai.</p>
+</div>
+
+<h2>3 · Hình DB đề xuất</h2>
+
+<p>Giai đoạn này chưa có pipeline nên &ldquo;bắt đầu từ DB&rdquo; nghĩa là:
+<b>thiết kế hình của schema bền vững, rồi để TS type là phép chiếu của nó</b> — không phải chọn engine.
+Nếu owner muốn chốt engine luôn thì đó là quyết định riêng.</p>
+
+<h3>3.1 Hai loại chiều — phân biệt này là gốc</h3>
+<p>Grep <code>ROW_BUILDERS</code> cho thấy 15 chiều thực ra là hai loài khác nhau, và gộp chúng vào một
+<code>DimDef</code> sẽ đau về sau:</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th style="width:20%"></th><th style="width:40%">Chiều thuộc tính (user thêm được)</th><th style="width:40%">Chiều cấu trúc (hệ thống sở hữu)</th></tr></thead>
+<tbody>
+<tr><td><b>Ví dụ</b></td><td><code>seg tier age nav tenure acq</code> · <code>cat sen pf</code></td>
+  <td><code>l1 l2 l3 theme sub src</code></td></tr>
+<tr><td><b>base</b></td><td><code>cust</code> · <code>ev</code></td><td><code>agg</code></td></tr>
+<tr><td><b>Cách ra rows</b></td><td>Đếm một field trên record → cùng <i>một</i> hàm cho mọi chiều</td>
+  <td>Logic riêng từng chiều (<code>byTaxLv</code>, <code>srcRows</code>…) + số là <b>mẫu đã scale</b> (<code>fx()</code>)</td></tr>
+<tr><td><b>Ai định nghĩa</b></td><td><span class="tag t-ok">User, trong màn Ngưỡng &amp; chỉ số</span></td>
+  <td><span class="tag t-mid">Suy từ tầng taxonomy / journey</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Nói cách khác: user thêm chiều <i>khách</i> và chiều <i>bằng chứng</i> tự do; các tầng taxonomy
+không phải là &ldquo;chiều user thêm&rdquo; mà là <b>hệ quả của việc user sửa cây taxonomy/journey</b> —
+sửa ở đó thì chiều tự đổi theo.</p>
+
+<h3>3.2 Bảng</h3>
+<pre><span class="c">-- Chiều thuộc tính: mỗi chiều là MỘT DÒNG, không phải một cột.</span>
+<span class="k">dim_def</span>(
+  id, label, unit,
+  source      <span class="c">-- 'customer' | 'evidence'   (agg không nằm ở đây)</span>
+  attr        <span class="c">-- tên thuộc tính đọc trên record</span>
+  kind        <span class="c">-- 'categorical' | 'band'</span>
+  ord, active
+)
+
+<span class="c">-- kind='band': nguồn duy nhất sinh nhãn. Đúng luật bands.ts hôm nay, chỉ bỏ giới hạn 4 trục.</span>
+<span class="k">dim_band</span>(dim_id, min, cuts[], unit)   <span class="c">-- unit: 'đ' | 'năm' | 'tháng' | …</span>
+
+<span class="c">-- kind='categorical': giá trị hợp lệ + màu + thứ tự do user xếp.</span>
+<span class="k">dim_value</span>(dim_id, value, label, colour, ord)
+
+<span class="c">-- Record mang TÚI thuộc tính thô, không phải cột đã chia dải.</span>
+<span class="c">-- Chia dải xảy ra lúc ĐỌC, qua dim_band → nên sửa cut không cần chạy lại pipeline.</span>
+<span class="k">customer</span>(key, …, attrs jsonb)      <span class="c">-- attrs: { nav: 1.8e9, tenure_m: 14, acq: 'banner', … }</span>
+<span class="k">evidence</span>(id, …, attrs jsonb)
+</pre>
+
+<p>Ba hệ quả đáng chú ý:</p>
+<ul>
+  <li><b>Nhãn rời khỏi type.</b> <code>NavBand</code> biến mất; giá trị lưu là số thô
+  <code>1.8e9</code>, nhãn <code>"1-5tỷ"</code> tính ra lúc đọc. Đổi cut không còn là đổi type, và món nợ
+  <code>&gt;5tỷ→5tỷ+</code> tự hết.</li>
+  <li><b><code>Dim.rows</code> chết hẳn.</b> Nó vốn đã <code>rows: []</code> ở cả 15 dim — rows là
+  <code>deriveRows(dimDef, data)</code>, không phải dữ liệu lưu. Bỏ field này là bớt một nguồn nói dối.</li>
+  <li><b><code>CUST_FIELD</code>/<code>EV_FIELD</code> co lại thành một dòng</b> <code>attrs[def.attr]</code>.
+  Không còn bảng accessor phải nhớ cập nhật.</li>
+</ul>
+
+<h2>4 · Bốn bất biến trung thực sống sót thế nào</h2>
+
+<p>Đây là chỗ &ldquo;flexibility&rdquo; dễ giết chất lượng nhất: nếu user tự đặt tên giá trị, họ có thể
+đặt một giá trị tên &ldquo;chưa biết&rdquo; <i>không phải</i> sentinel, hoặc tô màu rực cho <code>thiếu</code> —
+và bốn bất biến chết âm thầm.</p>
+
+<div class="card">
+<p style="margin:0"><b>Luật hai tầng:</b> user sở hữu cách hiện của <b>giá trị thật</b>;
+hệ thống giữ độc quyền cách hiện của <b>giá trị sentinel</b>.</p>
+</div>
+
+<p>Cụ thể: <code>chưa-biết</code>, <code>thiếu</code>, <code>Ẩn danh</code>,
+<code>Chưa đối chiếu được</code>, và phần dư coverage — <b>nhãn hệ thống gán, màu trung tính hệ thống gán,
+luôn xếp cuối, không sửa được, không chọn màu được</b>, và tên của chúng là <b>tên đặt trước</b> nên
+<code>dim_value</code> của user không thể trùng. Mọi chiều tự động có đủ bộ sentinel này, không phải khai.</p>
+
+<p>Điều này khiến 4 token màu mới (<code>--unk-gap</code>, <code>--unk-anon</code>, <code>--unk-join</code>,
+<code>--rem</code>) là <b>đúng</b> theo thiết kế mới, chứ không phải đồ sót lại — chúng là bảng màu
+hệ thống-sở-hữu, tách hẳn khỏi <code>--cat-*</code> là bảng màu user-sở-hữu.</p>
+
+<h2>5 · Toàn vẹn tham chiếu — đặt vào schema từ đầu</h2>
+
+<p>Khi chiều sửa được thì mỗi <code>QuantifyItem</code>, mỗi <code>CfgSub</code>, mỗi board overlay đang
+giữ một tham chiếu có thể treo. Repo đã có sẵn thành ngữ đúng: <code>quantifyUsedBy(id)</code> chặn xoá
+chart đang được dùng. Cần bản tương ứng <code>dimUsedBy(dimId)</code>, cộng với quyết định cho ba ca:
+<b>đổi tên</b> (an toàn, id không đổi) · <b>đổi cut/giá trị</b> (chart cũ vẫn chạy nhưng số đổi — có cần
+cảnh báo?) · <b>xoá</b> (chặn, hay để chart hiện trạng thái &ldquo;trục này đã bị xoá&rdquo;?).
+Ca thứ ba là câu hỏi §9.</p>
+
+<h2>6 · Màn &ldquo;Ngưỡng &amp; chỉ số&rdquo; — bề mặt customize, đi theo từng layer</h2>
+
+<p>Owner chốt màn này là nơi customize bản đồ hành trình. Đề xuất cấu trúc theo đúng thứ tự layer của
+khung đã có:</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th style="width:24%">Tab</th><th style="width:38%">Sửa được gì</th><th>Ghi vào</th></tr></thead>
+<tbody>
+<tr><td><b>Bản đồ hành trình</b></td>
+  <td>CRUD <code>Phase → Group → Flow → Step</code>, xếp thứ tự, gắn <code>Obs</code></td>
+  <td><code>phase/group/flow/step</code></td></tr>
+<tr><td><b>Điểm tiếp xúc &amp; tín hiệu</b></td>
+  <td>CRUD <code>Touchpoint</code>, <code>Signal</code> + trạng thái <code>live/designed/gap/validating</code>
+  — owner đã nói touchpoint <i>chưa đầy đủ</i>, nên đây là tab sẽ dùng nhiều nhất</td>
+  <td><code>touchpoint/signal</code></td></tr>
+<tr><td><b>Chiều &amp; phân khúc</b></td>
+  <td>CRUD <code>dim_def</code>; với <code>band</code> thì sửa <code>cuts</code> (nhãn tự sinh, xem trước ngay);
+  với <code>categorical</code> thì sửa nhãn/màu/thứ tự</td>
+  <td><code>dim_def/dim_band/dim_value</code></td></tr>
+<tr><td><b>Ngưỡng chỉ số</b></td>
+  <td>Phần <code>Cfg</code> đang có: <code>step/metric/source/data/anomaly/sub</code></td>
+  <td><code>cfg</code></td></tr>
+<tr><td><b>Taxonomy</b></td>
+  <td>Cây <code>L1/L2/L3/theme/subtheme</code>; và <b>quan hệ theme→step</b> —
+  món nợ semantic mapping đang treo, dưới thiết kế mới nó thành <i>quan hệ user sửa được</i>
+  chứ không phải bảng hardcode</td>
+  <td><code>tax_node</code>, <code>theme_step</code></td></tr>
+</tbody>
+</table>
+</div>
+
+<p>Điều kiện tiên quyết cho cả màn này: <code>CxmRepository</code> phải có writer
+(<code>setDimDef</code>, <code>setBand</code>, <code>setJourneyNode</code>, <code>setCfg</code>) —
+hiện chỉ có reader.</p>
+
+<h2>7 · Tiêu chí &ldquo;xong&rdquo; đo được</h2>
+
+<p>Một yêu cầu &ldquo;đặt flexibility lên&rdquo; không có điều kiện xong thì không kiểm được. Đề xuất lấy
+<b>một thao tác cụ thể</b> làm thước:</p>
+
+<div class="card">
+<p style="margin:0 0 10px"><b>Bài kiểm:</b> owner thêm chiều <i>&ldquo;Số lệnh/tháng&rdquo;</i>, 4 dải, và nó
+phải xuất hiện đủ ở: dải chip của chart theme · danh sách trục trong Quantify builder ·
+danh sách chia màu · màn Ngưỡng &amp; chỉ số.</p>
+<table style="margin:0">
+<tr><td style="width:50%;border:0;padding-left:0"><b>Hôm nay:</b> <span class="num">15</span> file code</td>
+    <td style="border:0"><b>Sau thiết kế:</b> <span class="num">0</span> file code, 1 dòng <code>dim_def</code> + N dòng <code>dim_band</code></td></tr>
+</table>
+<p style="margin:10px 0 0;color:var(--ink2);font-size:13px">15 file đo bằng
+<code>grep -rln tenure src</code> — chiều khách thêm gần nhất: <code>schema/cxm.ts</code>,
+<code>schema/config.ts</code>, <code>segment.ts</code>, <code>bands.ts</code>, <code>validate.ts</code>,
+<code>quantify.ts</code>, <code>QuantifyWidget.tsx</code>, <code>fixtures/seed.ts</code>,
+<code>fixtures/demo.ts</code> + 6 file test.</p>
+</div>
+
+<p>Sau khi đạt, hai nhóm file <i>vẫn</i> phải sửa và đó là đúng: <code>fixtures/*</code> (sample data cho
+chiều mới) và test của chính chiều đó. Không tính vào con số 0.</p>
+
+<h2>8 · Thứ tự làm (đề xuất, chưa dispatch)</h2>
+<ol>
+  <li><b>Writer seam</b> — thêm writer vào <code>CxmRepository</code> + <code>mock-repository</code>.
+  Không có nó thì không bước nào sau chạy được.</li>
+  <li><b><code>dim_def</code> + <code>dim_band</code> + <code>dim_value</code></b> thay <code>dims</code> khai tay;
+  <code>deriveRows</code> thay phần <code>cust</code>/<code>ev</code> của <code>ROW_BUILDERS</code>;
+  <code>dimUsedBy</code>. Bỏ <code>Dim.rows</code>.</li>
+  <li><b><code>Customer.attrs</code></b> — chuyển sang giá trị thô, xoá các union <code>*Band</code>.
+  Đây là bước phá vỡ nhiều nhất; module E3 đã cam kết hướng này nên là phần tiếp nối tự nhiên.</li>
+  <li><b>Sentinel hai tầng</b> — khoá tên đặt trước + màu hệ thống, có test cấm user trùng tên.</li>
+  <li><b>Màn Ngưỡng &amp; chỉ số</b> — từng tab một, theo §6.</li>
+  <li><b>Journey/taxonomy CRUD</b> + quan hệ <code>theme→step</code>.</li>
+</ol>
+<p style="color:var(--ink2)">Bước 1–2 không phá giao diện. Bước 3 phá nhiều nên cần chốt trước khi chạm.</p>
+
+<h2>9 · Hai câu cần owner quyết</h2>
+
+<div class="q">
+<h3>Câu 1 — Customize sâu đến đâu?</h3>
+<p style="margin:0 0 8px">Thang bậc:</p>
+<ol style="margin:0 0 8px">
+  <li>Sửa cut/giá trị của 4 trục phân khúc hiện có <span style="color:var(--ink3)">— module E đã làm</span></li>
+  <li>Thêm/xoá <b>chiều</b> mới</li>
+  <li>Thêm/xoá <b>layer bản đồ hành trình</b> và touchpoint</li>
+  <li>Độ sâu taxonomy <b>tuỳ ý</b>, bỏ union <code>lv</code> 5 tầng cố định</li>
+</ol>
+<p style="margin:0"><b>Tôi đọc &ldquo;đi sâu vào từng layer&rdquo; là tối thiểu tới (3), và đề xuất chốt (2)+(3), để (4) lại.</b>
+Lý do để (4) lại: 5 tầng taxonomy là ngôn ngữ nghiệp vụ đang dùng thật, mở độ sâu tuỳ ý làm phức tạp
+mọi chart mà chưa thấy nhu cầu. Nếu owner muốn (4) thì nói ngay, vì nó đổi hình bảng ở §3.</p>
+</div>
+
+<div class="q">
+<h3>Câu 2 — Chart đã lưu sẽ sao khi chiều của nó bị sửa/xoá?</h3>
+<p style="margin:0 0 8px">Ba lựa chọn:</p>
+<ul style="margin:0 0 8px">
+  <li><b>Chặn</b> — không cho xoá chiều đang có chart dùng (giống <code>quantifyUsedBy</code> hôm nay)</li>
+  <li><b>Xoá lan</b> — xoá chiều thì xoá luôn chart dùng nó</li>
+  <li><b>Giữ + hiện trạng thái</b> — chart còn đó nhưng vẽ &ldquo;trục này đã bị xoá&rdquo;</li>
+</ul>
+<p style="margin:0"><b>Đề xuất: chặn khi xoá, cảnh báo khi đổi cut.</b> Lý do: xoá lan làm mất việc của
+người khác không báo trước; giữ-và-hiện-trạng-thái thêm một trạng thái rỗng phải thiết kế ở mọi chart.
+Chặn là hành vi đã có trong repo nên nhất quán.</p>
+</div>
+
+<div class="foot">
+<p style="margin:0 0 6px">Trích nguyên văn yêu cầu của owner làm gốc cho tài liệu này:</p>
+<p class="quote" style="margin:0">&ldquo;check lại code và đặt lại ngôn ngữ thiết kế của toàn bộ hệ thống,
+ko thiết kế theo kiểu fix cứng code mà cho phép user customize các segment trong hệ thống, bắt đầu
+thiết kế từ DB và cách DB này reflect lên hệ thống thiết kế. màn hình quản trị các ngưỡng chỉ số sẽ
+là nơi để customize các bản đồ hành trình, đi sâu vào từng layer. dự án sẽ cần đặt flexability lên&rdquo;</p>
+<p style="margin:10px 0 0">&ldquo;khung của bản đồ hành trình là chính xác cho cả bản real ko chỉ demo,
+chỉ có các data và set là chưa chốt, các touchpoint cũng chưa đầy đủ&rdquo; — nên §6 không thiết kế lại
+khung, chỉ thêm đường sửa data trên khung đó.</p>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,38 +1,42 @@
-import type { CxmData, TaxNode } from "../data/schema/index.ts";
+import type { CxmData, Customer, Dim, Evidence, TaxNode } from "../data/schema/index.ts";
+import { ANON_CK } from "../data/validate.ts";
+import { isSegUnknown, MISSING, UNKNOWN_YET } from "../data/segment.ts";
+import { CUST_FIELD } from "./quantify.ts";
 
 /* VOC-STACKED-SPEC §2 — chia n của một theme thành các đoạn cho Bars.segments.
-   `subtheme` = trục THẬT (n thật của subtheme con), `group` = trục DEMO (nhãn nhóm khách thật
-   từ data.ins nhưng KHÔNG có count per-group thật nên phải bịa tỷ lệ — mọi đoạn đánh dấu demo:true). */
-export type ThemeAxis = "subtheme" | "group";
+   `subtheme` = trục THẬT (n thật của subtheme con, GIỮ NGUYÊN từ bản trước).
+   Mọi trục KHÁC `subtheme` giờ PHÁI SINH từ `dims` (module-f-charter.md, F1): không còn trục
+   `group` bịa tỷ lệ từ `data.ins[].seg` — nhãn đó là tag tự do, không loại trừ nhau, không đếm
+   được (xem charter, mục "Chẩn đoán"). Đoạn nào không đếm được từ `data.ev` thì trục đó bị khoá
+   (themeAxisOptions trả disabledReason) và themeSegments trả []. */
+export const SUBTHEME_AXIS = "subtheme";
 
-export type ThemeSegment = { label: string; n: number; c: string; demo?: boolean };
+/** `"subtheme"` hoặc một KEY của `dims` (data/fixtures/seed.ts). KHÔNG còn union đóng — trục nào
+    đếm được là do `dims` quyết định lúc runtime, không hardcode ở đây (charter: "F lấy danh sách
+    chiều chọn được TỪ dims, không hardcode 5 tên chiều ở tầng features"). */
+export type ThemeAxis = string;
+
+/** BỎ field `demo` (bản trước): mọi đoạn giờ là số ĐẾM được từ `data.ev`, không còn đoạn nào bịa
+    tỷ trọng. */
+export type ThemeSegment = { label: string; n: number; c: string };
+
+export type ThemeAxisOption = { key: ThemeAxis; label: string; disabledReason?: string };
 
 /* Palette phân loại cố định — TRÙNG hằng CAT_CYCLE của design-system/paintCategorical.ts (var(--cat-1)
    .. var(--cat-5), token đã có sẵn trong index.css). KHÔNG import từ design-system: domain đứng DƯỚI
    design-system trong layer (data→store→domain→design-system→features) nên không được import ngược.
-   ĐÃ export (03/08) để domain/quantify.ts (qRunSplit — breakdown trục khách) dùng CHUNG thay vì tạo
-   bản sao THỨ BA của cùng palette — đúng loại trùng lặp mà ghi chú ngay trên đây đang cảnh báo. */
+   Export để domain/quantify.ts (qRunSplit — breakdown trục khách) dùng CHUNG thay vì tạo bản sao
+   THỨ BA của cùng palette. */
 export const CAT_CYCLE = ["var(--cat-1)", "var(--cat-2)", "var(--cat-3)", "var(--cat-4)", "var(--cat-5)"];
 
-/** Nhãn nhóm khách demo khi theme không có VoiceInsight nào (data.ins rỗng cho theme đó). */
-const DEMO_GROUPS = ["Khách mới", "Khách lâu năm", "Nhà đầu tư chủ động", "Khách VIP"];
-
-/** Tổng mã ký tự của id — nguồn "ngẫu nhiên" thuần (không Date.now/Math.random) để mỗi theme
-    ra một hình chia khác nhau, nhưng CÙNG id luôn ra CÙNG kết quả. */
-function themeSeed(themeId: string): number {
-  let sum = 0;
-  for (let i = 0; i < themeId.length; i++) sum += themeId.charCodeAt(i);
-  return sum;
-}
-
-/** Tỷ trọng DEMO cho `count` nhãn, dẫn từ themeId + vị trí — khác nhau giữa các theme (seed đổi
-    theo id) và giữa các vị trí trong cùng theme (không phải một mảng ratio lặp lại cho mọi theme). */
-function demoRatios(themeId: string, count: number): number[] {
-  const seed = themeSeed(themeId);
-  const weights = Array.from({ length: count }, (_, i) => ((seed + i * 17) % 7) + 3);
-  const total = weights.reduce((a, w) => a + w, 0);
-  return weights.map((w) => w / total);
-}
+/** Getter đọc trực tiếp một thuộc tính CỦA CHÍNH Evidence — chỉ những `dims` khai `base:'ev'` mà
+    CÓ entry ở đây mới đếm được theo bằng chứng. Hôm nay chỉ `pf` (nền tảng của lần tương tác) —
+    `cat`/`sen` là base:'ev' nhưng CHƯA có entry nên bị khoá (themeAxisOptions), không phải vì
+    chúng không đếm được về nguyên tắc mà vì chưa có ai kiểm việc thêm chúng vào đây có sai thứ tự
+    hiển thị/nhãn nào không (YAGNI — chỉ khai cái charter F1 cần: `pf`). */
+const EV_FIELD: Record<string, (e: Evidence) => string> = {
+  pf: (e) => e.pf,
+};
 
 /** Trục subtheme (THẬT): tách theme.n theo n thật của các subtheme con (data.tax, parentId===theme.id),
     sort n desc, màu CAT_CYCLE cố định theo index. Phần theme.n KHÔNG được subtheme nào phủ (rem =
@@ -50,28 +54,116 @@ function subthemeSegments(data: CxmData, theme: TaxNode): ThemeSegment[] {
   return segs;
 }
 
-/** Trục group (DEMO): nhãn thật (data.ins theo theme, distinct seg) hoặc DEMO_GROUPS khi rỗng; tỷ
-    trọng bịa DETERMINISTIC (demoRatios) rồi chuẩn hoá về đúng theme.n (dư dồn đoạn cuối). Mọi đoạn
-    demo:true — KHÔNG phải phép đo thật, chỉ minh hoạ hình dạng phân bố. */
-function groupSegments(data: CxmData, theme: TaxNode): ThemeSegment[] {
-  const realLabels = Array.from(
-    new Set(data.ins.filter((i) => i.theme === theme.id).flatMap((i) => i.seg)),
-  );
-  const labels = realLabels.length ? realLabels : DEMO_GROUPS;
-  const ratios = demoRatios(theme.id, labels.length);
-  const raw = ratios.map((r) => Math.floor(r * theme.n));
-  const usedSum = raw.reduce((a, n) => a + n, 0);
-  const remainder = theme.n - usedSum;
-  return labels.map((label, i) => ({
-    label,
-    n: i === raw.length - 1 ? raw[i] + remainder : raw[i],
-    c: CAT_CYCLE[i % CAT_CYCLE.length],
-    demo: true,
-  }));
+/** Vì sao một `dims[key]` KHÔNG đếm được theo bằng chứng — dùng CHUNG bởi `themeAxisOptions` (khoá
+    chip, hiện lý do) và `themeSegments` (trả [] khi bị khoá). Một nguồn duy nhất cho "trục nào
+    khoá" để hai nơi không lệch nhau (đúng bài học CUST_FIELD/ROW_BUILDERS lệch nhau ở quantify.ts). */
+function axisDisabledReason(dim: Dim, key: string): string | undefined {
+  if (dim.base === "agg") {
+    return `Chiều "${dim.label}" là số tổng hợp sẵn (TaxNode.n/Source.vol), không gắn được vào từng bằng chứng riêng lẻ nên không đếm theo bằng chứng được.`;
+  }
+  if (dim.base === "ev" && !EV_FIELD[key]) {
+    return `Chiều "${dim.label}" chưa có cách đọc trực tiếp từ một bằng chứng (Evidence) nên không đếm được.`;
+  }
+  return undefined;
 }
 
-export function themeSegments(data: CxmData, themeId: string, axis: ThemeAxis): ThemeSegment[] {
+/** Danh sách trục chọn được cho chart theme — luôn có `subtheme` trước, sau đó MỌI entry của
+    `dims` (không hardcode tên trục nào: thêm một Dim mới vào `dims` là nó tự hiện ra ở đây). Trục
+    `base:'agg'` hoặc `base:'ev'` thiếu getter (EV_FIELD) → khoá kèm lý do; tầng hiển thị (F3) hiện
+    nguyên văn lý do đó, không viết lại. */
+export function themeAxisOptions(dims: Record<string, Dim>): ThemeAxisOption[] {
+  const opts: ThemeAxisOption[] = [{ key: SUBTHEME_AXIS, label: "Sub-theme" }];
+  for (const [key, dim] of Object.entries(dims)) {
+    const disabledReason = axisDisabledReason(dim, key);
+    opts.push(disabledReason ? { key, label: dim.label, disabledReason } : { key, label: dim.label });
+  }
+  return opts;
+}
+
+/** Trục đếm được (base:'ev' có EV_FIELD, hoặc base:'cust'): chia `rows = data.ev` của theme theo
+   giá trị THẬT của chiều, ghép thêm các đoạn "không biết"/"chưa gán" để Σ luôn bằng `theme.n`.
+
+   Bốn nghĩa "không biết" KHÁC NHAU, KHÔNG được gộp (module-f-charter.md, "Chỉnh charter" #2; bất
+   biến data/segment.ts cấm gộp chưa-biết/thiếu):
+   - `chưa-biết`/`thiếu` — giá trị SENTINEL của chính chiều khách đó (Customer.age/nav/…), chỉ có
+     thể phát sinh khi `dim.base==='cust'` (chiều base:'ev' đọc thẳng từ Evidence, không có sentinel).
+   - `Ẩn danh` — `e.ck === ANON_CK`: bằng chứng cố ý không có id khách (đúng thiết kế, không phải lỗi).
+   - `Chưa đối chiếu được` — `e.ck` có giá trị nhưng không tra ra khách nào trong `data.cust` (join
+     hỏng — LÀ một defect dữ liệu, khác Ẩn danh).
+   Hai nhóm sau CHỈ có nghĩa khi phải join qua `e.ck` để lấy giá trị, tức CHỈ áp dụng cho
+   `dim.base==='cust'` — trục base:'ev' (pf) đọc `e.pf` thẳng từ chính dòng evidence, không cần
+   `ck`, nên không có khái niệm "đối chiếu được" ở đó (mọi dòng đều đã có giá trị thật). */
+function countedSegments(data: CxmData, theme: TaxNode, axis: string, dim: Dim): ThemeSegment[] {
+  const rows = data.ev.filter((e) => e.tax.includes(theme.id));
+  const m = rows.length;
+
+  const counts = new Map<string, number>();
+  let unk = 0;
+  let missing = 0;
+  let anon = 0;
+  let unjoined = 0;
+
+  if (dim.base === "ev") {
+    const getter = EV_FIELD[axis];
+    for (const e of rows) {
+      const v = getter(e);
+      counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+  } else {
+    const getter = CUST_FIELD[axis];
+    const custByKey = new Map(data.cust.map((c) => [c.key, c] as const));
+    for (const e of rows) {
+      if (e.ck === ANON_CK) {
+        anon += 1;
+        continue;
+      }
+      const cust: Customer | undefined = custByKey.get(e.ck);
+      if (!cust) {
+        unjoined += 1;
+        continue;
+      }
+      const v = getter(cust);
+      /* Gọi isSegUnknown() làm cổng — KHÔNG tự so chuỗi sentinel bằng literal (data/segment.ts).
+         Cùng khuôn với qRunSegment (quantify.ts) để hai chỗ không lệch cách nhận diện sentinel. */
+      if (isSegUnknown(v)) {
+        if (v === UNKNOWN_YET) unk += 1;
+        else if (v === MISSING) missing += 1;
+        continue;
+      }
+      counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+  }
+
+  const segs: ThemeSegment[] = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, n], i) => ({ label, n, c: CAT_CYCLE[i % CAT_CYCLE.length] }));
+
+  // Ghim cuối, KHÔNG tiêu slot CAT_CYCLE nào — bốn nghĩa "không biết", bốn đoạn, không gộp.
+  if (unk > 0) segs.push({ label: "chưa-biết", n: unk, c: "var(--unk)" });
+  if (missing > 0) segs.push({ label: "thiếu", n: missing, c: "var(--unk-gap)" });
+  // "Ẩn danh" LUÔN có mặt (kể cả n=0) khi trục có khái niệm join qua ck — chỉ base:'cust'.
+  if (dim.base === "cust") segs.push({ label: "Ẩn danh", n: anon, c: "var(--unk-anon)" });
+  if (unjoined > 0) segs.push({ label: "Chưa đối chiếu được", n: unjoined, c: "var(--unk-join)" });
+
+  const rem = theme.n - m;
+  if (rem > 0) segs.push({ label: "Chưa có bằng chứng gán", n: rem, c: "var(--rem)" });
+
+  return segs;
+}
+
+export function themeSegments(
+  data: CxmData,
+  themeId: string,
+  axis: ThemeAxis,
+  dims: Record<string, Dim>,
+): ThemeSegment[] {
   const theme = data.tax.find((t) => t.lv === "theme" && t.id === themeId);
   if (!theme) return [];
-  return axis === "subtheme" ? subthemeSegments(data, theme) : groupSegments(data, theme);
+  if (axis === SUBTHEME_AXIS) return subthemeSegments(data, theme);
+
+  const dim = dims[axis];
+  if (!dim) return [];
+  if (axisDisabledReason(dim, axis)) return [];
+
+  return countedSegments(data, theme, axis, dim);
 }

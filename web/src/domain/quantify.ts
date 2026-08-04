@@ -110,7 +110,10 @@ type RowBuilder = (data: CxmData) => DimRow[];
    sentinel, giữ nguyên hành vi qRun cũ) và qRunSegment (tách sentinel ra riêng qua isSegUnknown,
    xem bên dưới). Một nguồn getter duy nhất để hai chỗ không lệch nhau nếu sau này thêm trục khách
    mới — đúng bài học D5a đã dẫn tới việc gom `mdir`/sentinel về một chỗ. */
-const CUST_FIELD: Record<string, (c: Customer) => string> = {
+/* export (F1, module-f-charter.md) để themeSegments.ts dùng lại CHUNG getter chiều khách thay vì
+   khai bản sao thứ tư của cùng bảng — đúng loại trùng lặp mà ghi chú CAT_CYCLE ở themeSegments.ts
+   đã cảnh báo (đã có 3 bản sao palette; đừng thêm bản sao thứ tư của CUST_FIELD). */
+export const CUST_FIELD: Record<string, (c: Customer) => string> = {
   seg: (c) => c.seg,
   tier: (c) => c.tier,
   age: (c) => c.age,

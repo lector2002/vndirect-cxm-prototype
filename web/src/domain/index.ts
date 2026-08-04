@@ -9,5 +9,5 @@ export { qRun, qRunCross } from "./quantify.ts";
 export type { CrossAxisRow, QuantifyCrossResult } from "./quantify.ts";
 export { buildSearchIndex, queryIndex } from "./search.ts";
 export type { SearchKind, SearchEntry } from "./search.ts";
-export { themeSegments } from "./themeSegments.ts";
-export type { ThemeAxis, ThemeSegment } from "./themeSegments.ts";
+export { themeSegments, themeAxisOptions, SUBTHEME_AXIS } from "./themeSegments.ts";
+export type { ThemeAxis, ThemeSegment, ThemeAxisOption } from "./themeSegments.ts";

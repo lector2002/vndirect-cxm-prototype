@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import type { Cfg, CxmData } from "../../data/schema/index.ts";
+import type { Cfg, CxmData, Dim } from "../../data/schema/index.ts";
 import { Note, QuantifyWidget } from "../../design-system/index.ts";
 import { useCxmStore } from "../../store/store.ts";
 import { useTimeframeStore } from "../../store/timeframe.ts";
@@ -45,6 +45,9 @@ type BlockBodyProps = {
   b: string;
   data: CxmData;
   cfg: Cfg;
+  /** CHỈ @themestack dùng (F1, module-f-charter.md) — chart theo bằng chứng cần `dims[axis].label`
+      để đặt nhãn trục/denomStrip, khác 8 block còn lại (đọc data.tax/data.cats trực tiếp). */
+  dims: Record<string, Dim>;
   onGo: (route: string) => void;
   selectedLines: string[];
   onToggleLine: (id: string) => void;
@@ -56,14 +59,14 @@ type BlockBodyProps = {
 
 /* Map @block -> component S2.2/S2.3 đã dựng sẵn. Không tồn tại (id lạ) → không render gì, KHÔNG
    throw — cùng tinh thần "không throw" với fallback set (F3). */
-function BlockBody({ b, data, cfg, onGo, selectedLines, onToggleLine, months }: BlockBodyProps) {
+function BlockBody({ b, data, cfg, dims, onGo, selectedLines, onToggleLine, months }: BlockBodyProps) {
   switch (b) {
     case "@srcmatrix":
       return <SrcMatrixBlock data={data} cfg={cfg} onGo={onGo} />;
     case "@intent":
       return <IntentBlock data={data} cfg={cfg} onGo={onGo} />;
     case "@themestack":
-      return <ThemeStackBlock data={data} cfg={cfg} onGo={onGo} />;
+      return <ThemeStackBlock data={data} cfg={cfg} dims={dims} onGo={onGo} />;
     case "@anomlanes":
       return <AnomalyLanesBlock data={data} cfg={cfg} onGo={onGo} />;
     case "@topictrend":
@@ -162,6 +165,7 @@ export function OverviewPage({ sec, useStore = useCxmStore }: OverviewPageProps)
                           b={b}
                           data={data}
                           cfg={cfg}
+                          dims={dims}
                           onGo={onGo}
                           selectedLines={selectedLines}
                           onToggleLine={onToggleLine}
