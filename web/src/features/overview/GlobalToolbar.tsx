@@ -8,10 +8,12 @@ import { useCxmStore } from "../../store/store.ts";
 import { TimeframeBar } from "./TimeframeBar.tsx";
 
 /* Toolbar 2 hàng GLOBAL kiểu Enterpret — mount 1 lần thay TimeframeBar trong Shell (App.tsx).
-   Hàng 1: khung thời gian + toggle ẩn/hiện bộ lọc + Reset/Save. Hàng 2 (chỉ khi filter hiện):
-   ô tìm-kiếm-để-điều-hướng (KHÔNG phải lọc) + nút Áp dụng lọc.
-   `filterShown`/`query` là local state THUẦN (useState) — không Zustand, không localStorage,
-   không persistence: đúng theo hợp đồng "Hide Filter chỉ là UI ẩn/hiện, không phải cấu hình lưu". */
+   Hàng 1: khung thời gian + Reset/Save. Hàng 2: ô tìm-kiếm-để-điều-hướng (KHÔNG phải lọc) + nút
+   Áp dụng lọc.
+   Nút "Ẩn bộ lọc" đã BỎ (owner chốt 04/08). Nó ẩn/hiện đúng một hàng mà bản thân nó lại chiếm một
+   chỗ trên hàng trên nên chẳng tiết kiệm được chiều cao nào; và thứ nó ẩn là ô TÌM KIẾM — không phải
+   bộ lọc — nên nhãn nút nói sai việc nó làm.
+   `query` là local state THUẦN (useState) — không Zustand, không localStorage, không persistence. */
 export type GlobalToolbarProps = {
   useStore?: typeof useCxmStore;
 };
@@ -20,7 +22,6 @@ const btnEnabled = "border border-line rounded-lg px-3 py-1.5 text-[13px] text-i
 const btnDisabled = "border border-line rounded-lg px-3 py-1.5 text-[13px] text-ink-3 opacity-50 cursor-not-allowed";
 
 export function GlobalToolbar({ useStore = useCxmStore }: GlobalToolbarProps) {
-  const [filterShown, setFilterShown] = useState(true);
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
 
@@ -40,9 +41,6 @@ export function GlobalToolbar({ useStore = useCxmStore }: GlobalToolbarProps) {
     <div className="border-b border-line bg-surface">
       <div className="flex items-center gap-3 py-2.5 px-8">
         <TimeframeBar useStore={useStore} />
-        <button type="button" className="text-[13px] text-ink-3 hover:text-ink" onClick={() => setFilterShown((v) => !v)}>
-          {filterShown ? "Ẩn bộ lọc" : "Hiện bộ lọc"}
-        </button>
         <div className="flex-1" />
         <button type="button" className={btnEnabled} onClick={() => setQuery("")}>
           Đặt lại
@@ -56,27 +54,25 @@ export function GlobalToolbar({ useStore = useCxmStore }: GlobalToolbarProps) {
           Lưu làm mặc định
         </button>
       </div>
-      {filterShown ? (
-        <div className="flex items-center gap-3 pb-2.5 px-8">
-          <div className="flex-1 min-w-0">
-            <SearchBox
-              value={query}
-              onChange={setQuery}
-              results={results}
-              onSelect={onSelect}
-              placeholder="Tìm theo feature, lý do phản hồi, hoặc metadata"
-            />
-          </div>
-          <button
-            type="button"
-            disabled
-            title="Lọc toàn cục cần pipeline dữ liệu gắn feedback — chưa bật."
-            className={btnDisabled}
-          >
-            Áp dụng lọc
-          </button>
+      <div className="flex items-center gap-3 pb-2.5 px-8">
+        <div className="flex-1 min-w-0">
+          <SearchBox
+            value={query}
+            onChange={setQuery}
+            results={results}
+            onSelect={onSelect}
+            placeholder="Tìm theo feature, lý do phản hồi, hoặc metadata"
+          />
         </div>
-      ) : null}
+        <button
+          type="button"
+          disabled
+          title="Lọc toàn cục cần pipeline dữ liệu gắn feedback — chưa bật."
+          className={btnDisabled}
+        >
+          Áp dụng lọc
+        </button>
+      </div>
     </div>
   );
 }
