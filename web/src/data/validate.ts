@@ -12,6 +12,17 @@ const ROUTES = new Set([
   "sources", "topics", "topic", "vocjourney", "agents", "rules", "issue",
 ]);
 
+/* Evidence.ck — hằng dạng khoá khách + sentinel ẩn danh (F4, module-f-charter.md). Đặt Ở ĐÂY,
+   KHÔNG ở segment.ts: segment.ts chỉ nói về sentinel 'chưa-biết'/'thiếu' của các TRỤC PHÂN KHÚC
+   khách (age/tenure/acq/nav) — một khái niệm khác. Đây là khoá NỐI giữa Evidence và Customer,
+   không phải giá trị của một trục phân khúc, nên gộp vào segment.ts sẽ lẫn hai khái niệm không
+   cùng bản chất vào một file có docblock đầu chỉ nói về trục phân khúc. Export cả hai để
+   fixtures/demo.ts (F2) và domain/themeSegments.ts (F1, việc sau) dùng lại MỘT nguồn duy nhất
+   khi cần phân biệt "ẩn danh" với "join hỏng" — đúng bài học chống hai bản sao đã ghi ở
+   segment.ts dòng 24-29 (mdir lệch nhau vì có hai bản sao). */
+export const ANON_CK = "Ẩn danh";
+export const CK_KEY_RE = /^KH•••[0-9A-Z]{3}$/;
+
 const byId = <T extends { id: string }>(arr: readonly T[]): Map<string, T> =>
   new Map(arr.map((x: T) => [x.id, x]));
 
@@ -546,6 +557,26 @@ export function validateFixture(
         }
       }
     }
+  }
+
+  /* 21. Evidence.ck — luật ĐỊNH DẠNG, KHÔNG phải luật "tra ra được" (F4, module-f-charter.md,
+     mục "Chỉnh charter sau khi đọc code" #3). seed.cust chỉ có 7 khách mẫu và không tự nhận là
+     đầy đủ — 7/17 dòng ev trong seed có ck không tra ra khách nào trong 7 khách đó (đã đo, không
+     phải suy đoán), và đó KHÔNG phải lỗi của seed. Luật "mọi ck phải tra ra khách" sẽ SAI với
+     seed và buộc phải phình seed chỉ để né lỗi giả — nên luật ở đây chỉ bắt ĐÚNG DẠNG. Luật
+     "tra ra được" thật (chạy ở nơi có đủ khách để kiểm, tức demoData) nằm ở
+     fixtures/demo.test.ts, không phải đây. */
+  for (const ev of data.ev) {
+    if (!ev.ck || !ev.ck.trim()) {
+      e.push(`evidence ${ev.id}: ck rỗng — phải là "${ANON_CK}" hoặc đúng dạng khoá khách KH•••XXX (3 ký tự chữ-số in hoa)`);
+    } else if (ev.ck !== ANON_CK && !CK_KEY_RE.test(ev.ck)) {
+      e.push(`evidence ${ev.id}: ck "${ev.ck}" sai dạng — phải là "${ANON_CK}" hoặc khoá dạng KH•••XXX (3 ký tự chữ-số in hoa), ví dụ KH•••7A2`);
+    }
+    /* ck === ANON_CK là HỢP LỆ — loại "không biết" thứ BA, khác cả 'chưa-biết' (đợi cũng không
+       có id, quy luật hành trình) và 'thiếu' (bug pipeline, phải đi sửa): nguồn ẨN DANH (đánh
+       giá store, ghi chú RM không định danh) không có id để đối chiếu VÀ không có pipeline nào
+       để "sửa" ra id, vì bản chất nguồn vốn không mang id. Coi nó là lỗi sẽ buộc giả lập id cho
+       một nguồn vốn dĩ không có — sai hướng (module-f-charter.md, mục "Chỉnh charter" #2). */
   }
 
   return e;

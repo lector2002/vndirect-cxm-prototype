@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { generateCustomers, demoData } from "./demo.ts";
+import { generateCustomers, generateEvidence, demoData } from "./demo.ts";
 import { dims, seedNav, seedTour, cfgDefault, seed } from "./seed.ts";
-import { validateFixture } from "../validate.ts";
+import { validateFixture, ANON_CK } from "../validate.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
-import type { Customer, AgeBand, NavBand, TenureBand, AcqChannel } from "../schema/index.ts";
+import type { Customer, AgeBand, NavBand, TenureBand, AcqChannel, TaxNode } from "../schema/index.ts";
 
 /* Đếm known/chưa-biết/thiếu cho MỘT trục — dùng isSegUnknown/UNKNOWN_YET/MISSING của segment.ts,
    không tự so chuỗi sentinel. */
@@ -131,5 +131,55 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
   it("dùng Customer[] không any — khớp type khi ép vào readonly Customer", () => {
     const sample: Customer = demoData.cust[0];
     expect(typeof sample.key).toBe("string");
+  });
+});
+
+/* Module F, section F2 — bằng chứng demo có khối lượng + ck hợp lệ. seed.ev (17 dòng, giữ nguyên
+   không sửa) vẫn còn 7 dòng có ck không tra ra khách (đo lại 04/08: 15 giá trị ck khác nhau, 7
+   khớp cust.key, 2 dòng 'Ẩn danh', 7 dòng khoá mồ côi) — đó là luật
+   ĐỊNH DẠNG của validateFixture nhóm 21 chấp nhận được (xem validate.test.ts nhóm 21), KHÔNG phải
+   thứ nhóm test này kiểm. Test "tra ra được" dưới đây CHỈ áp cho bằng chứng MỚI SINH (id bắt đầu
+   'EV-DEMO-') — đây là điểm tôi phải tự quyết vì mô tả gốc nói "mọi ck trong demoData", mà áp
+   nguyên văn lên CẢ demoData.ev sẽ luôn đỏ với 8 giá trị mồ côi cũ của seed dù không đụng gì tới
+   phần mới sinh (xem "Điểm nghi vấn" trong báo cáo section). */
+describe("demoData.ev — bằng chứng demo sinh thêm cho theme (Module F, section F2)", () => {
+  const seedEvIds = new Set(seed.ev.map((e) => e.id));
+  const generatedEv = demoData.ev.filter((e) => !seedEvIds.has(e.id));
+
+  it("sinh TẤT ĐỊNH — gọi generateEvidence hai lần với cùng input ra cùng kết quả", () => {
+    const themes = seed.tax.filter((t): t is TaxNode => t.lv === "theme");
+    const custKeys = demoData.cust.map((c) => c.key);
+    const a = generateEvidence(themes, custKeys);
+    const b = generateEvidence(themes, custKeys);
+    expect(a).toEqual(b);
+  });
+
+  it("mọi ck của bằng chứng MỚI SINH không phải 'Ẩn danh' đều tra ra một cust.key thật trong demoData", () => {
+    const custKeys = new Set(demoData.cust.map((c) => c.key));
+    const unresolved = generatedEv.filter((e) => e.ck !== ANON_CK && !custKeys.has(e.ck));
+    expect(unresolved.map((e) => `${e.id}:${e.ck}`)).toEqual([]);
+  });
+
+  /* Số bằng chứng/theme KHÔNG còn là một hằng số chung — mẫu số là `theme.n` (bề rộng thanh
+     ThemeStackBlock, lệch 210-412 giữa theme), nên luật là COVERAGE=0.7 × theme.n, không phải
+     một số tuyệt đối. Ghim ĐÚNG kết quả của luật (không tính nhẩm một số cố định) để test kiểm
+     được chính công thức — nếu ai đổi COVERAGE hay cách tính, test này bắt được ngay. */
+  it("mỗi theme có ĐÚNG round(theme.n × 0.7) bằng chứng mới sinh — kiểm luật coverage theo theme.n, không phải một số tuyệt đối", () => {
+    const themes = seed.tax.filter((t): t is TaxNode => t.lv === "theme");
+    for (const theme of themes) {
+      const expected = Math.round(theme.n * 0.7);
+      const count = generatedEv.filter((e) => e.tax.includes(theme.id)).length;
+      expect(count, `theme ${theme.id} (n=${theme.n})`).toBe(expected);
+    }
+  });
+
+  it("có ít nhất vài bằng chứng 'Ẩn danh' trong phần mới sinh — đủ để đoạn Ẩn danh của chart hiện ra", () => {
+    const anonCount = generatedEv.filter((e) => e.ck === ANON_CK).length;
+    expect(anonCount).toBeGreaterThan(5);
+  });
+
+  it("validateFixture(demoData, dims, nav, tour, cfg) vẫn RỖNG sau khi thêm bằng chứng demo", () => {
+    const errors = validateFixture(demoData, dims, seedNav, seedTour, cfgDefault);
+    expect(errors).toEqual([]);
   });
 });

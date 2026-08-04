@@ -1,6 +1,7 @@
-import type { CxmData, Customer, AgeBand, NavBand, TenureBand, AcqChannel } from "../schema/index.ts";
+import type { CxmData, Customer, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, TaxNode } from "../schema/index.ts";
 import { seed } from "./seed.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
+import { ANON_CK } from "../validate.ts";
 
 /* demoData — chế độ "demo bật/tắt" (Module C, section C4): trải seed thật (7 khách trung thực,
    giữ nguyên KHÔNG đụng) rồi thay bảng `cust` bằng 300 khách SINH RA, đủ lớn để các biểu đồ phân
@@ -258,6 +259,148 @@ export function generateCustomers(n: number): Customer[] {
   return list.map(({ _pos, _deposited, ...c }) => c);
 }
 
+/* ---------- Bằng chứng demo cho từng theme (Module F, section F2) ----------
+   seed chỉ có 20 evidence rải cho 14 theme (`data.tax` với lv:'theme') — chia theo bất kỳ chiều
+   nào cũng ra n≈1, đúng nhưng vô dụng (module-f-charter.md, mục "Chỗ dataset thật sự thiếu").
+   Sinh THÊM bằng chứng, KHÔNG đụng seed.ev, bằng một RNG THỨ HAI seed riêng (DEMO_EV_SEED khác
+   DEMO_SEED) — nếu chèn draw mới vào CÙNG một chuỗi rng với generateCustomers thì mọi số khách
+   test đã ghim (vd `demoData.cust.length === 300`, các tỷ lệ age/nav/tenure/acq) sẽ lệch theo,
+   vì chuỗi draw sẽ dài ra và mọi giá trị rút SAU điểm chèn đổi hết. Hai rng độc lập ⇒ chuỗi
+   customer không đổi một bit dù gọi generateEvidence lúc nào. */
+const DEMO_EV_SEED = 0xbeef;
+
+/* KHÔNG dùng số TUYỆT ĐỐI cố định cho mọi theme — mẫu số của "đủ bằng chứng để chart đọc được"
+   không phải một hằng số chung, mà là `theme.n` (bề rộng thanh trong ThemeStackBlock: số tổng
+   hợp 210-412, lệch tới ~7×/theme trong seed). Bản trước dùng 40 cố định: coverage = 40/theme.n
+   ra 10% cho theme.n=412 (x-th-device) nhưng 19% cho theme.n=210 (x-th-wait) — hai theme cùng
+   "vài chục bằng chứng" nhưng một thanh gần như trắng, một thanh gần như đặc xám, không phải vì
+   dữ liệu khác nhau mà vì đơn vị sinh sai (owner đã bác đúng hình này trước đó ở trục subtheme).
+   Sửa: mỗi theme sinh COVERAGE × theme.n bằng chứng — cùng % phủ cho mọi theme dù n lệch bao nhiêu. */
+const COVERAGE = 0.7;
+/* 0.7 chứ không phải 1.0: phải CÒN một đoạn xám thật (30% theme.n) để nhãn "Phủ X%" có ý nghĩa —
+   phủ hết 100% xoá mất chính thông tin "bằng chứng không phủ hết khối lượng" mà đoạn xám tồn tại
+   để nói. */
+function evCountForTheme(theme: TaxNode): number {
+  return Math.round(theme.n * COVERAGE);
+}
+
+/* Ánh xạ theme -> (L1, L2) chọn theo đúng nội dung `why`/`name` của từng theme trong seed.ts.
+   validateFixture nhóm 9 KHÔNG đòi L1/L2/theme phải khớp nghĩa nhau (chỉ đòi đúng 1 node mỗi
+   tầng) — bảng này chỉ để demo không tạo cảnh evidence "Đặt lệnh" lại gắn theme "Trải nghiệm
+   nhanh mượt", gây hiểu lầm lúc review tay (nghĩa vụ review #1 trong charter: đếm tay một đoạn). */
+const THEME_TAX: Record<string, readonly [string, string]> = {
+  "x-th-device": ["x-l1-mtk", "x-l2-ekyc"],
+  "x-th-guide": ["x-l1-mtk", "x-l2-ekyc"],
+  "x-th-status": ["x-l1-mtk", "x-l2-sign"],
+  "x-th-wait": ["x-l1-care", "x-l2-claim"],
+  "x-th-info": ["x-l1-trade", "x-l2-bond"],
+  "x-th-praise": ["x-l1-mtk", "x-l2-ekyc"],
+  "x-th-fee": ["x-l1-trade", "x-l2-eq"],
+  "x-th-slow": ["x-l1-cash", "x-l2-wd"],
+  "x-th-start": ["x-l1-mtk", "x-l2-actv"],
+  "x-th-branch": ["x-l1-mtk", "x-l2-ekyc"],
+  "x-th-notify": ["x-l1-mtk", "x-l2-sign"],
+  "x-th-nfc": ["x-l1-mtk", "x-l2-ekyc"],
+  "x-th-cs": ["x-l1-care", "x-l2-hotl"],
+  "x-th-fast": ["x-l1-cash", "x-l2-dep"],
+};
+
+/* pf lấy từ giá trị nền tảng THẬT đang dùng trên Evidence trong seed (EV-101..EV-601 dùng đúng
+   'android'/'ios'/'web' — xem seed.ts, khối `ev`), không bịa tên nền tảng mới. */
+const EV_PF: ReadonlyArray<readonly [string, number]> = [
+  ["android", 0.4],
+  ["ios", 0.35],
+  ["web", 0.25],
+];
+
+/* Nguồn thật đang có trong seed.sources — kind suy từ đúng loại nguồn (event/case/verbatim/
+   survey-response) để không sinh cảnh "sự kiện app" mà lại gắn nguồn "ghi chú broker". */
+const EV_SOURCES: ReadonlyArray<readonly [string, number]> = [
+  ["src-ekyc", 0.2],
+  ["src-case", 0.2],
+  ["src-store", 0.15],
+  ["src-survey", 0.2],
+  ["src-broker", 0.15],
+  ["src-ga", 0.1],
+];
+
+const EV_KIND_BY_SOURCE: Record<string, EvidenceKind> = {
+  "src-ekyc": "event",
+  "src-case": "case",
+  "src-store": "verbatim",
+  "src-survey": "survey-response",
+  "src-broker": "verbatim",
+  "src-ga": "event",
+};
+
+const EV_STEPS: ReadonlyArray<readonly [string, number]> = [
+  ["s1", 0.1], ["s2", 0.2], ["s3", 0.25], ["s4", 0.15], ["s5", 0.2], ["s6", 0.1],
+];
+
+/* Tỷ lệ ẨN DANH: 8% — đủ nhỏ để không chiếm mất khối lượng "đối chiếu được" (mục đích chính của
+   F2), nhưng đủ để đoạn "Ẩn danh" của chart có gì để vẽ ở MỌI theme (40 × 8% = 3.2 kỳ vọng/theme,
+   không phải 0). Không có nguồn đo thật cho tỷ lệ này (đây LÀ số demo, không phải phép đo) — chọn
+   dựa trên tỷ lệ Ẩn danh quan sát được trong seed (2/20 = 10%, xem seed.ts EV-103/EV-304), lấy
+   tròn xuống 8% để phần lớn evidence vẫn đối chiếu được khách thật. */
+const ANON_RATE = 0.08;
+
+function genEvidenceForTheme(
+  rng: () => number,
+  theme: TaxNode,
+  startIdx: number,
+  custKeys: readonly string[],
+): Evidence[] {
+  const [l1, l2] = THEME_TAX[theme.id];
+  /* theme.cat luôn có giá trị cho lv:'theme' — validateFixture nhóm 8 đã bắt buộc điều này trên
+     seed (seed qua được nhóm 8 ⇒ mọi theme trong THEME_TAX đều có cat hợp lệ). */
+  const cat = theme.cat as string;
+  const senBase = cat === "complaint" ? -0.6 : cat === "help" ? -0.2 : cat === "improvement" ? -0.1 : 0.7;
+
+  const count = evCountForTheme(theme);
+  const out: Evidence[] = [];
+  for (let i = 0; i < count; i++) {
+    const pf = pickWeighted(rng, EV_PF);
+    const src = pickWeighted(rng, EV_SOURCES);
+    const step = pickWeighted(rng, EV_STEPS);
+    const ck = rng() < ANON_RATE ? ANON_CK : custKeys[Math.floor(rng() * custKeys.length)];
+    const sen = Math.max(-1, Math.min(1, senBase + (rng() - 0.5) * 0.4));
+
+    out.push({
+      id: `EV-DEMO-${theme.id}-${startIdx + i}`,
+      kind: EV_KIND_BY_SOURCE[src],
+      src,
+      ref: `DEMO•••${startIdx + i}`,
+      at: `28/07 · ${String(8 + (i % 12)).padStart(2, "0")}:00`,
+      step,
+      pf,
+      cat,
+      sen,
+      shift: 0,
+      q: `Bằng chứng demo sinh cho theme "${theme.name}" (#${i + 1}) — F2, không phải phản hồi thật.`,
+      sig: `Demo · ${pf}`,
+      ck,
+      tax: [l1, l2, theme.id],
+      why: `Sinh cho F2 để theme "${theme.id}" có đủ khối lượng bằng chứng chia được theo chiều`,
+    });
+  }
+  return out;
+}
+
+/* generateEvidence — sinh bằng chứng demo TẤT ĐỊNH cho mọi theme, `custKeys` là khoá của TẬP
+   KHÁCH ĐÃ SINH XONG (seed.cust + generateCustomers) để `ck` luôn trỏ vào một khách CÓ THẬT
+   trong đúng bộ dữ liệu sẽ dùng nó — không tự bịa khoá mới như generateCustomers làm với
+   genUniqueKey (đó là khoá KHÁCH, đây là khoá NỐI tới khách đã tồn tại). */
+export function generateEvidence(themes: readonly TaxNode[], custKeys: readonly string[]): Evidence[] {
+  const rng = mulberry32(DEMO_EV_SEED);
+  const out: Evidence[] = [];
+  let idx = 0;
+  for (const theme of themes) {
+    out.push(...genEvidenceForTheme(rng, theme, idx, custKeys));
+    idx += evCountForTheme(theme);
+  }
+  return out;
+}
+
 /* Ghép 7 khách THẬT của seed (giữ nguyên, không sửa) với 293 khách SINH — tổng vẫn đúng 300.
    KHÔNG thay hẳn bằng generateCustomers(300): nếu bỏ 7 khách thật, mọi `issue.cust` trong seed
    trỏ tới 7 khoá đó (vd CXI-021 → KH•••7A2…) sẽ thành tham chiếu ma, và validateFixture nhóm 3
@@ -265,4 +408,16 @@ export function generateCustomers(n: number): Customer[] {
    section này. Đây là chỗ công thức minh hoạ trong đặc tả (`cust: generateCustomers(300)`) va
    với ràng buộc thật của validateFixture; ghép thay vì thay thế là cách giữ cả hai vế: tổng
    300 khách VÀ validateFixture rỗng. */
-export const demoData: CxmData = { ...seed, cust: [...seed.cust, ...generateCustomers(293)] };
+const demoCust: Customer[] = [...seed.cust, ...generateCustomers(293)];
+
+/* Bằng chứng demo cộng thêm vào 20 bằng chứng thật của seed (giữ nguyên, không sửa) — theo đúng
+   tập khách `demoCust` ở trên để `ck` luôn tra ra được (trừ sentinel Ẩn danh). */
+const demoEv: Evidence[] = [
+  ...seed.ev,
+  ...generateEvidence(
+    seed.tax.filter((t): t is TaxNode => t.lv === "theme"),
+    demoCust.map((c) => c.key),
+  ),
+];
+
+export const demoData: CxmData = { ...seed, cust: demoCust, ev: demoEv };

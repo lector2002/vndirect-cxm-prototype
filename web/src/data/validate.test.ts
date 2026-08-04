@@ -487,4 +487,38 @@ describe("validateFixture", () => {
     const r = validateFixture(seed, dims, seedNav, seedTour, cfgDefault);
     expect(r).toEqual([]);
   });
+
+  /* Group 21: Evidence.ck — luật ĐỊNH DẠNG (F4, module-f-charter.md) */
+  it("21: ck rỗng", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.ev[0] = { ...d.ev[0], ck: "" };
+    const r = validateFixture(d, dims, seedNav, seedTour);
+    expect(r.some((e) => e.includes(d.ev[0].id) && e.includes("ck rỗng"))).toBe(true);
+  });
+
+  it("21: ck chỉ toàn khoảng trắng cũng bị bắt như rỗng", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.ev[0] = { ...d.ev[0], ck: "   " };
+    const r = validateFixture(d, dims, seedNav, seedTour);
+    expect(r.some((e) => e.includes(d.ev[0].id) && e.includes("ck rỗng"))).toBe(true);
+  });
+
+  it("21: ck sai dạng (không phải 'Ẩn danh', không đúng KH•••XXX)", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.ev[0] = { ...d.ev[0], ck: "abc-123" };
+    const r = validateFixture(d, dims, seedNav, seedTour);
+    expect(r.some((e) => e.includes(d.ev[0].id) && e.includes("sai dạng") && e.includes("abc-123"))).toBe(true);
+  });
+
+  it("21: ck = 'Ẩn danh' là HỢP LỆ dù không tra ra khách nào (loại 'không biết' thứ ba)", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.ev[0] = { ...d.ev[0], ck: "Ẩn danh" };
+    const r = validateFixture(d, dims, seedNav, seedTour);
+    expect(r.some((e) => e.includes(d.ev[0].id) && e.includes("ck"))).toBe(false);
+  });
+
+  it("21: seed nguyên bản qua hết luật ck — 7/17 dòng có ck không tra ra khách nhưng ĐÚNG DẠNG nên không lỗi", () => {
+    const r = validateFixture(seed, dims, seedNav, seedTour, cfgDefault);
+    expect(r).toEqual([]);
+  });
 });

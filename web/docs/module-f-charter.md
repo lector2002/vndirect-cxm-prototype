@@ -59,7 +59,7 @@ vào đoạn xám. Chỉ trục `group` phải bỏ.
 | `ev.tax[]` CÓ chứa id theme | `tax:['x-l1-mtk','x-l2-ekyc','x-l3-live','x-th-device','x-sub-android']` | theme → bằng chứng nối được THẬT, không cần thêm field |
 | `ev.pf` có sẵn | `data/schema/voc.ts:93` | chiều "nền tảng" đếm được ngay |
 | `ev.ck` có sẵn nhưng RỖ | 15 giá trị khác nhau, **chỉ 7 khớp** `cust.key`; có cả `'Ẩn danh'` (REBUILD-STATUS D-2) | 4 chiều khách (age/nav/tenure/acq) CHƯA nối được — điểm chặn thật |
-| Số bằng chứng | **20 dòng cho 14 theme** | mỗi theme 1-4 dòng ⇒ chia chiều ra n=1, đúng nhưng vô dụng |
+| Số bằng chứng | **17 dòng cho 14 theme** | mỗi theme 1-4 dòng ⇒ chia chiều ra n=1, đúng nhưng vô dụng |
 | `demo.ts` sinh bằng chứng | **KHÔNG sinh dòng nào** — chỉ sinh 300 khách | demo mode không có thêm bằng chứng nào so với seed |
 
 Nên thứ phải "redesign lại dataset" chính là: **bằng chứng phải có đủ khối lượng và có khoá nối khách
@@ -91,7 +91,7 @@ giá trị đọc. Điều bị cấm là dùng nó làm trục chart. Phải gh
 | # | Feature | Tiêu chí nghiệm thu |
 |---|---|---|
 | **F1** | `themeSegments`: bỏ trục `group`, thêm trục theo `dims` thật | `ThemeAxis` không còn `'group'`; `demoRatios`/`themeSeed`/`DEMO_GROUPS` **bị xoá hết** (không còn đường nào bịa tỷ lệ trong file); chia theo `pf` trên seed ra số **đếm được từ `data.ev`**, đối chiếu tay; Σ đoạn = `theme.n` nhờ đoạn xám; chiều không nối được ⇒ **refuse** kèm câu lý do, KHÔNG vẽ thanh rỗng |
-| **F2** | `demo.ts` sinh bằng chứng có khối lượng + `ck` hợp lệ | demoData vẫn **tất định**; mọi `ev.ck` hoặc khớp một `cust.key` thật hoặc là sentinel ẩn danh; mỗi theme có **đủ bằng chứng để 5 chiều đều ra ≥2 đoạn**; **KHÔNG sửa `seed.ts`** (7 khách + 20 bằng chứng thật giữ nguyên) |
+| **F2** | `demo.ts` sinh bằng chứng có khối lượng + `ck` hợp lệ | demoData vẫn **tất định**; mọi `ev.ck` hoặc khớp một `cust.key` thật hoặc là sentinel ẩn danh; mỗi theme có **đủ bằng chứng để 5 chiều đều ra ≥2 đoạn**; **KHÔNG sửa `seed.ts`** (7 khách + 17 bằng chứng thật giữ nguyên) |
 | **F3** | `ThemeStackBlock`: picker 2 lựa chọn → chip strip nhiều chiều | Chip cho `subtheme` + 5 chiều owner liệt kê; chiều không nối được **hiện nhưng khoá**, tooltip mang nguyên văn lý do từ domain (không viết lại ở tầng hiển thị); đổi chiều thì **cả nhãn legend LẪN số từng đoạn** đổi theo |
 | **F4** | Luật validate cho `ev.ck` (đóng nợ D-2) | `ck` trỏ vào khoá không tồn tại ⇒ **lỗi** có câu nói rõ; `ck` là sentinel ẩn danh ⇒ hợp lệ; `validateFixture` trên seed + demoData trả `[]` |
 | **F5** | Rà các block khác đọc data ad-hoc | Danh sách block nào tự đọc field thay vì đi qua `dims`, kèm đường dẫn — **chỉ liệt kê, không sửa trong module này** |
@@ -163,3 +163,36 @@ cần có. Ba điều dưới đây tôi tự quyết để charter đủ dùng 
 1. **Bề rộng thanh giữ `theme.n`**, phần chưa có bằng chứng thành đoạn xám + dòng "Phủ X%".
 2. **`ins.seg` xuống làm chữ mô tả**, không còn là trục chart (không xoá field).
 3. **Bằng chứng không nối được tới khách thành một đoạn "Không định danh" riêng**, luôn vẽ.
+
+## Chỉnh charter sau khi đọc code (04/08, trước khi giao section)
+
+Ba điều tôi viết trong charter khi chưa đọc kỹ, giờ đã đo và phải sửa:
+
+**1. `qRunSplit` KHÔNG dùng lại trực tiếp được.** Hợp đồng của nó là *cả hai trục đều `base:'cust'`*
+và nó chia `data.cust` (`quantify.ts:280-303`). Chart theme có trục hàng là theme (`base:'agg'`) và
+đếm **bằng chứng**, không đếm khách — nên nó sẽ bị đúng nhánh refuse của `qRunSplit`. Dùng lại được:
+`CUST_FIELD` (getter cho từng chiều khách), `CAT_CYCLE`, **hình** refuse, `bandLabels`/`bandOf`, và
+`SplitToggle` (đã ở `design-system/`, props `options`/`disabledReason`/`lockedReason` đủ tổng quát).
+Hàm đếm là hàm MỚI trong `themeSegments.ts`. Ràng buộc kèm theo: F **phải** đọc chiều khách qua
+`CUST_FIELD`, KHÔNG đọc `c.age`/`c.nav`/… trực tiếp — E3 sẽ đổi các field đó sang giá trị thô, và
+`CUST_FIELD` là chỗ duy nhất phải sửa khi đó.
+
+**2. Không phải MỘT đoạn "Không định danh" mà HAI đoạn.** Đo `ev.ck` trong seed: có `'Ẩn danh'`, và có
+7/17 dòng mang khoá dạng `KH•••XXX` **không** khớp `cust.key` nào (15 giá trị ck khác nhau, 7 khớp,
+2 dòng ẩn danh — seed chỉ có 7 khách mẫu). Hai thứ này khác
+nhau đúng theo cặp `chưa-biết`/`thiếu` mà `data/segment.ts` cấm gộp:
+
+- `'Ẩn danh'` ⇒ đoạn **"Ẩn danh"** — không có id để đối chiếu, đợi cũng không có (owner: *"có chỗ ko"*).
+- khoá có nhưng không tra ra khách ⇒ đoạn **"Chưa đối chiếu được"** — join hỏng, LÀ việc phải đi sửa.
+
+Gộp chúng lại là biến một bug thành quy luật. Đây là chỗ tôi **lệch khỏi điều owner vừa ok** (tôi trình
+một đoạn, giờ thành hai) — lệch theo hướng chặt hơn, ghi ra để owner bác được nếu không muốn.
+
+**3. Luật F4 phải là luật ĐỊNH DẠNG, không phải luật tra được.** `data.cust` của seed là 7 dòng mẫu,
+không tự nhận là đầy đủ — nên "mọi `ck` phải tra ra khách" là luật SAI với seed và sẽ buộc phình seed.
+Luật đúng: `ck` không rỗng, và nếu không phải `'Ẩn danh'` thì phải đúng dạng khoá khách. Phần "mọi
+`ck` không ẩn danh đều tra ra được" là **assert trên demoData** (nơi có 300 khách), đặt ở `demo.test.ts`.
+
+**Ràng buộc "không sửa `seed.ts`" HẾT hiệu lực** — nó chỉ có để tránh đụng section E đang chạy, mà
+section đó đã xong và đã commit. Vẫn không phình `data.cust` của seed: 7 khách mẫu là con số nhiều test
+đang ghim.

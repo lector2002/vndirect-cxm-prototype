@@ -383,11 +383,17 @@ describe("qRunDrill", () => {
   const q1 = findShow("q1");
   const acq = findShow("q19");
 
+  /* BA ca dưới đây chạy trên `seed`, KHÔNG phải `demoData` (đổi 04/08, Module F section 1). Cả ba số
+     đã ghim (412/8/17, 210/0, 9) vốn LÀ sự thật của seed.ev — trước F2 thì `demoData.ev === seed.ev`
+     nên dùng demoData chỉ là tình cờ, không phải chủ đích. F2 sinh thêm bằng chứng vào demoData để
+     chart chia chiều có số đáng xem, và ca "hàng không có bằng chứng nào" thì KHÔNG CÒN tồn tại trên
+     demoData nữa — nhánh code đó vẫn còn nên phải giữ độ phủ, và seed là chỗ nó còn thật.
+     Ca thứ tư là ca MỚI, chạy trên demoData, cho trạng thái SAU F2. */
   it("trục agg (theme): kind='sample' — total là số TỔNG HỢP, lines chỉ là tập mẫu, lệch ~50 lần", () => {
-    const res = qRunDrill(q1, demoData, dims, "x-th-device");
+    const res = qRunDrill(q1, seed, dims, "x-th-device");
     expect(res.kind).toBe("sample");
     if (res.kind !== "sample") throw new Error("unreachable");
-    // Oracle: TaxNode 'x-th-device'.n = 412; data.ev có đúng 8 bản ghi mang theme này; pool = 17.
+    // Oracle: TaxNode 'x-th-device'.n = 412; seed.ev có đúng 8 bản ghi mang theme này; pool = 17.
     expect(res.total).toBe(412);
     expect(res.lines).toHaveLength(8);
     expect(res.poolN).toBe(17);
@@ -397,10 +403,10 @@ describe("qRunDrill", () => {
   });
 
   it("trục agg, hàng KHÔNG có bằng chứng nào: vẫn kind='sample' với total thật, lines rỗng", () => {
-    /* 10/14 theme trong demoData rơi vào ca này (17 bản ghi cho 14 theme). Phải trả total=210 chứ
+    /* 10/14 theme trong seed rơi vào ca này (17 bản ghi cho 14 theme). Phải trả total=210 chứ
        KHÔNG phải 'none': hàng đó có số thật trên thanh, chỉ là chưa có bằng chứng mẫu gắn vào — hai
        chuyện khác nhau và panel nói hai câu khác nhau. */
-    const res = qRunDrill(q1, demoData, dims, "x-th-wait");
+    const res = qRunDrill(q1, seed, dims, "x-th-wait");
     expect(res.kind).toBe("sample");
     if (res.kind !== "sample") throw new Error("unreachable");
     expect(res.total).toBe(210);
@@ -408,11 +414,24 @@ describe("qRunDrill", () => {
   });
 
   it("trục ev (cat): kind='full' — total === số dòng, vì số trên thanh CHÍNH LÀ số bản ghi đếm được", () => {
-    const res = qRunDrill({ ...q1, show: "cat" }, demoData, dims, "complaint");
+    const res = qRunDrill({ ...q1, show: "cat" }, seed, dims, "complaint");
     expect(res.kind).toBe("full");
     if (res.kind !== "full") throw new Error("unreachable");
     expect(res.total).toBe(9);
     expect(res.lines).toHaveLength(res.total);
+  });
+
+  /* Sau F2: mọi theme trong demoData đều có bằng chứng, nên `kind` VẪN phải là 'sample' — số trên
+     thanh là `TaxNode.n` (tổng hợp), KHÔNG phải số bằng chứng đếm được, dù giờ đã có hàng chục bằng
+     chứng. Ca này chặn đúng cái bẫy F2 mở ra: có nhiều bằng chứng rồi rất dễ tưởng con số trên thanh
+     đã thành số đếm được và đổi kind thành 'full' — lúc đó panel nói dối về quan hệ giữa hai số. */
+  it("trục agg (theme) trên demoData sau F2: có nhiều bằng chứng nhưng kind VẪN 'sample'", () => {
+    const res = qRunDrill(q1, demoData, dims, "x-th-wait");
+    expect(res.kind).toBe("sample");
+    if (res.kind !== "sample") throw new Error("unreachable");
+    expect(res.total).toBe(210);
+    expect(res.lines.length).toBeGreaterThan(0);
+    expect(res.poolN).toBeGreaterThan(res.lines.length);
   });
 
   it("trục cust (acq): liệt kê KHÁCH, cắt ở DRILL_MAX nhưng total giữ số thật", () => {
