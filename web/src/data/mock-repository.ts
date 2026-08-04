@@ -1,4 +1,4 @@
-import type { Action, Cfg, CxmData, DashSet, Dim, Issue, IssuePri, NavItem, Outcome, OutcomeMeasure, QuantifyItem, QuantifyShow, Snapshot, TourStop, Verdict } from "./schema/index.ts";
+import type { Action, Cfg, CxmData, Customer, DashSet, Dim, Issue, IssuePri, NavItem, Outcome, OutcomeMeasure, QuantifyItem, QuantifyShow, SigCount, Snapshot, TourStop, Verdict } from "./schema/index.ts";
 import { cfgDefault, dims, seed, seedApprovers, seedNav, seedOwners, seedTour } from "./fixtures/seed.ts";
 import { validateFixture } from "./validate.ts";
 import { projectCustomerBands } from "./projectBands.ts";
@@ -82,24 +82,40 @@ export class MockRepository implements CxmRepository {
       Port từ ST.boards (lazy: chỉ có mặt khi set đó đã bị sửa). */
   private boards: Record<string, string[][]>;
 
+  /** Hàm cộng lại năm bảng đếm signal từ khách ĐÃ CHIẾU nhãn dải — tiêm được, giống lý do tiêm
+      `fixture` (đọc docblock constructor). Khi absent, `sigCounts` đi qua projectBands nguyên vẹn,
+      không tính toán gì thêm (khớp seed, nơi sigCounts luôn rỗng). */
+  private recount?: (cust: readonly Customer[], dims: Record<string, Dim>) => SigCount[];
+
   /* Fixture tiêm được (owner chốt 03/08). Mặc định `seed` để mọi `new MockRepository()` sẵn có —
      hàng chục test — giữ nguyên hành vi; app thật truyền `demoData` ở singleton trong store.ts.
      `cfg`/`dims`/`nav`/`tour` KHÔNG đi theo fixture: chúng là cấu hình chứ không phải dữ liệu, và
-     `demoData` chỉ khác `seed` ở mảng `cust`. */
-  constructor(fixture: CxmData = seed) {
+     `demoData` chỉ khác `seed` ở mảng `cust`.
+
+     `recount` (owner chốt 05/08): mảng `sigCounts` của fixture bị nướng SẴN theo cfg mặc định lúc
+     module load (data/fixtures/demo.ts) — đổi ranh giới NAV trong cfg tự nó không re-slice bảng đã
+     nướng. Tham số này là đường TÁI CỘNG lại từ khách vừa chiếu nhãn dải mới, chạy ở đúng hai chỗ
+     phép chiếu xảy ra bên dưới (getSnapshot/projectedValidationSnapshot). Optional + mặc định
+     undefined giữ nguyên hành vi của hàng chục test dùng `seed` (sigCounts luôn `[]`, xem seed.ts). */
+  constructor(fixture: CxmData = seed, recount?: (cust: readonly Customer[], dims: Record<string, Dim>) => SigCount[]) {
     this.data = structuredClone(fixture);
     this.cfg = structuredClone(cfgDefault);
     this.dims = structuredClone(dims);
     this.nav = structuredClone(seedNav);
     this.tour = structuredClone(seedTour);
     this.boards = {};
+    this.recount = recount;
   }
 
   /** Chiếu nhãn dải theo cfg HIỆN TẠI trước khi trả ra — đây là chỗ `cfg.segment.cuts` thật sự điều
       khiển con số hiện trên chart (data/projectBands.ts). Trước section này `cuts` không có consumer
-      nào trong production nên sửa ngưỡng ở setting không đổi được gì. */
+      nào trong production nên sửa ngưỡng ở setting không đổi được gì.
+      Sau khi chiếu nhãn, nếu có `recount` thì cộng lại `sigCounts` từ ĐÚNG tập khách vừa chiếu —
+      nếu không, chart điểm đo vẫn đọc bảng nướng theo cfg mặc định dù mọi chart khác đã chia lại. */
   getSnapshot(): CxmData {
-    return projectCustomerBands(structuredClone(this.data), this.cfg, this.dims);
+    const projected = projectCustomerBands(structuredClone(this.data), this.cfg, this.dims);
+    if (!this.recount) return projected;
+    return { ...projected, sigCounts: this.recount(projected.cust, this.dims) };
   }
 
   getCfg(): Cfg {
@@ -144,9 +160,13 @@ export class MockRepository implements CxmRepository {
 
   /** Snapshot để kiểm, đã chiếu nhãn dải theo `cfg` ĐANG ĐƯỢC KIỂM (không phải luôn `this.cfg`) —
       setCfg cần kiểm với cfg ứng viên trước khi nhận. Không chiếu thì nhóm 19 báo lệch nhãn/số thô
-      cho MỌI khách ngay khi cut đổi, vì `this.data` giữ nhãn nướng theo cut cũ. */
+      cho MỌI khách ngay khi cut đổi, vì `this.data` giữ nhãn nướng theo cut cũ.
+      Cùng lý do cộng lại `sigCounts` như getSnapshot() ở trên: cfg ứng viên có thể đổi ranh giới NAV,
+      validateFixture phải soi đúng bảng đếm SẼ có sau khi nhận cfg đó, không phải bảng nướng cũ. */
   private projectedValidationSnapshot(cfg: Cfg): CxmData {
-    return projectCustomerBands(this.buildValidationSnapshot(), cfg, this.dims);
+    const projected = projectCustomerBands(this.buildValidationSnapshot(), cfg, this.dims);
+    if (!this.recount) return projected;
+    return { ...projected, sigCounts: this.recount(projected.cust, this.dims) };
   }
 
   /** Hợp nhất overlay boards vào dash (mỗi câu hỏi đã sửa -> block overlay thay cho

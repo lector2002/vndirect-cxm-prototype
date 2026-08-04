@@ -1,10 +1,10 @@
-import type { CfgBandAxis, CxmData, Customer, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, Signal, TaxNode } from "../schema/index.ts";
+import type { CfgBandAxis, CxmData, Customer, Dim, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, Signal, TaxNode } from "../schema/index.ts";
 import { cfgDefault, dims, seed } from "./seed.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
 import { ANON_CK } from "../validate.ts";
 import { bandLabels } from "../bands.ts";
 import { projectCustomerBands } from "../projectBands.ts";
-import { projectSignalCounts } from "../projectSignalCounts.ts";
+import { projectSignalCounts, type SigCount } from "../projectSignalCounts.ts";
 import { CUST_CAT } from "../rawFields.ts";
 
 /* demoData — chế độ "demo bật/tắt" (Module C, section C4): trải seed thật (7 khách trung thực,
@@ -616,9 +616,15 @@ const demoEv: Evidence[] = [
 
 /* ---------- Lần bắn tín hiệu — chart điểm đo (thiết kế output/thiet-ke-chart-signal.html §2) ----------
    Một dòng = MỘT lần một signal bắn ra một giá trị, có thể gắn hoặc KHÔNG gắn được với một khách.
-   Type CHỈ sống trong file này (KHÔNG đưa vào CxmData, không export ra ngoài) — hệ thống chạy thật
-   nhận thẳng NĂM BẢNG ĐẾM đã cộng sẵn (data/projectSignalCounts.ts) từ bên dữ liệu, không đưa từng
-   lần bắn qua mạng (thiết kế §2, khối "Còn data demo trong giai đoạn thiết kế thì sinh thế nào"). */
+   RÚT LẠI (owner chốt 05/08): docblock trước đây khẳng định hệ thống chạy thật CHỈ nhận NĂM BẢNG
+   ĐẾM đã cộng sẵn, không đưa từng lần bắn qua mạng — đó là GIẢ ĐỊNH của người viết code, không phải
+   quyết định của owner, và đã bị rút: nhận RAW (từng lần bắn) vẫn là một khả năng mở, app không được
+   khoá cứng vào một chế độ nhận. Phép cộng/cắt (data/projectSignalCounts.ts) SỐNG ở tầng `data/` của
+   ta đúng vì lý do đó — để cả hai chế độ nhận (đã cộng sẵn HAY raw) đều đi qua cùng một phép cộng và
+   ra cùng hình dạng `sigCounts`. `Fire` chỉ sống trong file này vì bộ sinh demo là chủ của nó — KHÔNG
+   phải vì raw bị cấm qua mạng; nếu sau này nhận raw thật, kiểu lần bắn của đường nhận đó khai riêng ở
+   chỗ đọc dữ liệu thật, không nhất thiết trùng `Fire` (Fire chỉ mô phỏng đúng nhu cầu genFiresForSignal
+   ở dưới). */
 type Fire = { sigId: string; val: string; custKey: string | null; pf: string };
 
 /* Hạt giống RIÊNG, KHÔNG dùng chung DEMO_SEED/RAW_SEED/DEMO_EV_SEED — cùng lý do đã nêu ở
@@ -690,3 +696,14 @@ export const demoData: CxmData = {
   ...demoProjected,
   sigCounts: projectSignalCounts(demoFires, demoProjected.cust, dims),
 };
+
+/** Đường tái cộng `sigCounts` cho MockRepository (data/mock-repository.ts) — đóng kín trên
+    `demoFires` module-local ở trên, KHÔNG export `Fire`/`demoFires` ra ngoài file này. Owner chốt
+    05/08: `demoData.sigCounts` ở trên nướng SẴN theo `cfgDefault` lúc module load, nên đổi ranh giới
+    NAV trong cấu hình rồi chiếu lại `cust` không tự động re-slice bảng đó — phải có ai đó GỌI LẠI
+    `projectSignalCounts` với khách vừa chiếu. Đây là hàm đó; singleton của store (store.ts) truyền
+    nó vào `new MockRepository(demoData, recountDemoSignals)` để getSnapshot()/setCfg() re-aggregate
+    đúng lúc chiếu lại nhãn dải, không phải sửa gì ở projectSignalCounts.ts (xem test ở đó). */
+export function recountDemoSignals(cust: readonly Customer[], dims: Record<string, Dim>): SigCount[] {
+  return projectSignalCounts(demoFires, cust, dims);
+}

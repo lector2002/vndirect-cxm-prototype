@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { Action, Cfg, CxmData, DashSet, Dim, Issue, QuantifyItem, QuantifyShow } from "../data/schema/index.ts";
 import type { ConfirmFields, CreateIssueFields, CxmRepository } from "../data/repository.ts";
 import { MockRepository } from "../data/mock-repository.ts";
-import { demoData } from "../data/fixtures/demo.ts";
+import { demoData, recountDemoSignals } from "../data/fixtures/demo.ts";
 import { EMPTY_DATA } from "../data/emptyData.ts";
 
 /* Store — cầu nối reactive giữa CxmRepository và React. Giữ SNAPSHOT (data/cfg/dims/boards)
@@ -169,4 +169,4 @@ export function createCxmStore(repo: CxmRepository = new MockRepository()) {
 
    `createCxmStore` vẫn mặc định `new MockRepository()` (= seed) để test giữ fixture nhỏ, tất định.
    Demo Mode TẮT không đổi fixture — nó trả `EMPTY_DATA` (xem `refresh`/`setDemoMode` ở trên). */
-export const useCxmStore = createCxmStore(new MockRepository(demoData));
+export const useCxmStore = createCxmStore(new MockRepository(demoData, recountDemoSignals));

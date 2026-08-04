@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { MockRepository, UNASSIGNED, deriveVerdict } from "./mock-repository.ts";
-import { demoData } from "./fixtures/demo.ts";
+import { demoData, recountDemoSignals } from "./fixtures/demo.ts";
 import { seed } from "./fixtures/seed.ts";
 import { metricDirection } from "./metric-direction.ts";
+import { SIG_CUST_DIMS, SIG_FIRE_DIM } from "./projectSignalCounts.ts";
 import type { CreateIssueFields } from "./repository.ts";
 
 describe("MockRepository", () => {
@@ -42,6 +43,60 @@ describe("MockRepository", () => {
       demoRepo.getSnapshot().cust.pop();
       expect(demoData.cust).toHaveLength(before);
       expect(demoRepo.getSnapshot().cust).toHaveLength(before);
+    });
+  });
+
+  /* Seam re-aggregate `sigCounts` (owner chốt 05/08) — trước section này, `sigCounts` được nướng
+     MỘT LẦN với cfgDefault lúc module load (data/fixtures/demo.ts) rồi đi qua getSnapshot()/
+     setCfg() nguyên vẹn: đổi ranh giới NAV chia lại nhãn `cust.bands.nav` như mọi chart khác, nhưng
+     KHÔNG chia lại `sigCounts` — vỡ đúng tiêu chí "đổi ranh giới NAV → lát trong cột chia lại ngay,
+     không sửa dòng code nào" cho riêng chart điểm đo. */
+  describe("recount tiêm được qua constructor — sigCounts re-aggregate theo cfg", () => {
+    it("đổi ranh giới NAV qua setCfg ⇒ nhãn dải nav trong sigCounts chia lại — '>5tỷ' biến mất, '5-8tỷ'/'>8tỷ' xuất hiện", () => {
+      const demoRepo = new MockRepository(demoData, recountDemoSignals);
+      const navBandsBefore = new Set(
+        demoRepo.getSnapshot().sigCounts.filter((r) => r.dim === "nav").map((r) => r.band),
+      );
+      expect(navBandsBefore.has(">5tỷ")).toBe(true);
+      expect(navBandsBefore.has("5-8tỷ")).toBe(false);
+      expect(navBandsBefore.has(">8tỷ")).toBe(false);
+
+      demoRepo.setCfg({
+        segment: { ...demoRepo.getCfg().segment, band: { ...demoRepo.getCfg().segment.band, nav: { min: null, cuts: [50e6, 200e6, 1e9, 5e9, 8e9], unit: "đ" } } },
+      });
+      const navBandsAfter = new Set(
+        demoRepo.getSnapshot().sigCounts.filter((r) => r.dim === "nav").map((r) => r.band),
+      );
+      // Dải ">5tỷ" cũ đã CHIA THẬT làm hai — không chỉ đổi tên (cùng oracle với projectSignalCounts.test.ts).
+      expect(navBandsAfter.has(">5tỷ")).toBe(false);
+      expect(navBandsAfter.has("5-8tỷ")).toBe(true);
+      expect(navBandsAfter.has(">8tỷ")).toBe(true);
+    });
+
+    it("bất biến trung thực sống sót qua re-aggregate: Σ n mỗi chiều của MỖI signal vol>0 vẫn bằng đúng Signal.vol", () => {
+      const demoRepo = new MockRepository(demoData, recountDemoSignals);
+      demoRepo.setCfg({
+        segment: { ...demoRepo.getCfg().segment, band: { ...demoRepo.getCfg().segment.band, nav: { min: null, cuts: [50e6, 200e6, 1e9, 5e9, 8e9], unit: "đ" } } },
+      });
+      const { sigCounts } = demoRepo.getSnapshot();
+      for (const sig of seed.signals) {
+        if (sig.vol === 0 || sig.values.length === 0) continue;
+        for (const dim of [...SIG_CUST_DIMS, SIG_FIRE_DIM]) {
+          const total = sigCounts
+            .filter((r) => r.sig === sig.id && r.dim === dim)
+            .reduce((a, r) => a + r.n, 0);
+          expect(total).toBe(sig.vol);
+        }
+      }
+    });
+
+    it("KHÔNG truyền recount (mặc định seed) ⇒ sigCounts vẫn là [] — không bịa số cho fixture hợp lệ không có count", () => {
+      const seedRepo = new MockRepository();
+      expect(seedRepo.getSnapshot().sigCounts).toEqual([]);
+      seedRepo.setCfg({
+        segment: { ...seedRepo.getCfg().segment, band: { ...seedRepo.getCfg().segment.band, nav: { min: null, cuts: [50e6, 200e6, 1e9, 5e9, 8e9], unit: "đ" } } },
+      });
+      expect(seedRepo.getSnapshot().sigCounts).toEqual([]);
     });
   });
 
