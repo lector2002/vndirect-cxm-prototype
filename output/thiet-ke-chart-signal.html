@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chart theo điểm đo (signal) — thiết kế đợt tới</title>
+<style>
+  :root{
+    --bg:#faf9f7; --card:#fff; --line:#e5e1db; --ink:#2b2724; --ink2:#5b554f; --ink3:#8c8681;
+    --acc:#7a5c3e; --bad:#a2402f; --ok:#3f6b4a; --warn:#8a6a1f;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  .wrap{max-width:1020px;margin:0 auto;padding:32px 22px 80px}
+  h1{font-size:26px;line-height:1.25;margin:0 0 6px}
+  .sub{color:var(--ink2);margin:0 0 28px;font-size:14px}
+  h2{font-size:18px;margin:38px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+  h3{font-size:15px;margin:22px 0 8px}
+  p{margin:0 0 12px}
+  code,.m{font-family:var(--mono);font-size:.88em;background:#f0ede8;padding:1px 5px;border-radius:3px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin:0 0 16px}
+  .thesis{border-left:3px solid var(--acc);background:#fff;padding:16px 20px;margin:0 0 26px;
+    border-radius:0 8px 8px 0}
+  .thesis b{color:var(--acc)}
+  .warnbox{border-left:3px solid var(--warn);background:#faf6ea;padding:16px 20px;margin:0 0 20px;
+    border-radius:0 8px 8px 0}
+  .warnbox b{color:var(--warn)}
+  .badbox{border-left:3px solid var(--bad);background:#fbf2f0;padding:16px 20px;margin:0 0 20px;
+    border-radius:0 8px 8px 0}
+  .badbox b{color:var(--bad)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:0 0 14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-weight:600;color:var(--ink2);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .scroll{overflow-x:auto;margin:0 0 14px}
+  .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;
+    border:1px solid;white-space:nowrap}
+  .t-ok{color:var(--ok);border-color:#bcd0c0;background:#f1f6f2}
+  .t-bad{color:var(--bad);border-color:#e0bdb6;background:#fbf2f0}
+  .t-mid{color:var(--warn);border-color:#ded0aa;background:#faf6ea}
+  ul,ol{margin:0 0 12px;padding-left:22px}
+  li{margin:0 0 6px}
+  .quote{font-style:italic;color:var(--ink2);border-left:2px solid var(--line);padding-left:14px;margin:0 0 14px}
+  .foot{margin-top:44px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink3);font-size:12.5px}
+  .own{display:inline-block;font-size:11px;font-weight:700;border-radius:3px;padding:1px 6px;margin-left:6px}
+  .own-o{color:#7a5c3e;background:#f5efe7;border:1px solid #ddcdb8}
+  .own-d{color:#3d5a80;background:#eaf0f7;border:1px solid #c3d3e6}
+  .steps{counter-reset:s;list-style:none;padding:0}
+  .steps li{counter-increment:s;position:relative;padding-left:38px;margin:0 0 14px}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:25px;height:25px;
+    border-radius:50%;background:var(--acc);color:#fff;font-weight:700;font-size:13px;
+    display:flex;align-items:center;justify-content:center}
+  .mock{font-family:var(--mono);font-size:12.5px;line-height:1.5;background:#f6f3ef;
+    border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin:0 0 14px;white-space:pre;overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Chart theo điểm đo</h1>
+<p class="sub">Thiết kế đợt tới · 04/08/2026 · viết để anh đọc và chốt, không phải để review code</p>
+
+<div class="thesis">
+<p><b>Chart hôm nay trả lời "khách nói gì".</b> Chart mới trả lời một câu khác hẳn: <b>"một điểm đo của hệ thống đang bắn ra những giá trị nào — và ai là người tạo ra chúng"</b>.</p>
+<p style="margin:0">Nguyên văn anh mô tả: <i>user chọn 1 nguồn data là các signal/điểm chạm của hệ thống đang đo để biểu diễn, hệ thống bẻ nhỏ các giá trị của nguồn data đó thành các cột trong chart, ngoài ra user chọn chiều để view data đó.</i></p>
+</div>
+
+<h2>1 · Người dùng làm ba việc</h2>
+
+<ol class="steps">
+<li><b>Chọn một điểm đo.</b> Danh sách là những gì hệ thống <i>đang thật sự đo</i> — ví dụ "Lý do thất bại giấy tờ eKYC". Điểm đo chưa gắn (trạng thái <span class="tag t-bad">gap</span>) vẫn hiện nhưng chọn không ra chart, và nói rõ lý do: chưa instrument.</li>
+<li><b>Hệ thống bẻ điểm đo đó thành các cột.</b> Cột chính là các giá trị mà điểm đo bắn ra: <i>blur · glare · crop · expired</i>. Người dùng không gõ gì, không chọn gì ở bước này.</li>
+<li><b>Chọn một chiều để nhìn.</b> Mỗi cột tách thành các lát theo chiều đã chọn — ví dụ nhìn theo Phân khúc NAV thì mỗi lý do thất bại tách ra theo nhóm tài sản của khách.</li>
+</ol>
+
+<div class="mock">Điểm đo:  Lý do thất bại giấy tờ eKYC        Nhìn theo:  Phân khúc NAV ▾
+
+  blur     ████████████████████░░░░░  186
+  glare    ██████████░░░░░              97
+  crop     ███████░░                    72
+  expired  █████░                       55
+           ▉ &lt;50tr  ▉ 50–200tr  ▉ 200tr–1tỷ  ░ chưa định danh
+
+  410 lần bắn · 31% chưa gắn được với khách</div>
+
+<h3>Chiều nào cho chọn, chiều nào khoá</h3>
+
+<p>Không phải nguồn nào cũng ghi đủ cả năm chiều (xem §4). Câu hỏi là: chiều mà nguồn này không ghi thì <b>giấu nút đi hay vẫn hiện</b>? <span class="tag t-ok">anh đã chốt</span> <b>Vẫn hiện, nhưng khoá lại kèm lý do.</b> Giấu đi thì người dùng không học được giới hạn của dữ liệu và tưởng hệ thống lúc có lúc không. Hệ thống đã có tiền lệ đúng dạng này: điểm đo trạng thái <span class="tag t-bad">gap</span> vẫn nằm trong danh sách, chọn không ra chart, và nói rõ "chưa instrument".</p>
+
+<p>Nhưng "ghi được / không ghi được" <b>không phải nhị phân</b> — một chart gộp nhiều nguồn thì survey có nền tảng còn ghi chú broker thì không. Nên ba trạng thái:</p>
+
+<div class="scroll">
+<table>
+<tr><th style="width:24%">Tình trạng dữ liệu</th><th>Nút chiều đó hiện thế nào</th></tr>
+<tr><td><b>Ghi đủ</b></td><td>Chọn bình thường, không chú thích gì.</td></tr>
+<tr><td><b>Ghi được một phần</b></td><td><b>Chọn được</b>, và hiện sẵn con số ngay trên nút <i>trước khi bấm</i>: <b>"38% dữ liệu không gán được nền tảng"</b>. Người dùng biết mình sắp đọc gì trước khi mất công đọc.</td></tr>
+<tr><td><b>Không ghi gì</b></td><td><b>Khoá</b>, kèm câu nói rõ: <i>"nguồn này không ghi nền tảng"</i>. Không phải nút hỏng.</td></tr>
+</table>
+</div>
+
+<p>Câu chữ dùng <b>"không gán được nền tảng"</b> — nói thẳng bằng tiếng người, không dùng chữ "không áp dụng" hay "N/A" trên giao diện. Cùng khuôn với dòng <i>"x% lần bắn chưa gắn được khách"</i> ở §3: cùng một cách nói, hai loại thiếu khác nhau.</p>
+
+<div class="thesis">
+<p style="margin:0"><b>Ba trạng thái này phải tính ra từ chính dữ liệu, tuyệt đối không khai tay.</b> Ghi cứng "nguồn broker không có nền tảng" thì đến ngày team data bắt đầu ghi, nút vẫn khoá cho tới khi có người nhớ ra và sửa code. Tính từ dữ liệu thì <b>nút tự sáng lên khi dữ liệu tốt lên</b> — không ai phải sửa gì. Đúng tinh thần cả stream này: tờ khai và dữ liệu quyết định giao diện, không phải code.</p>
+</div>
+
+<h2>2 · Hai chỗ hôm nay chưa có — đây là phần nặng nhất</h2>
+
+<p>Mô hình trên nghe đơn giản, nhưng dữ liệu hiện tại chưa đỡ nổi. Hai lỗ hổng, cả hai đều nằm <b>dưới</b> màn hình, nên phải lấp trước khi vẽ.</p>
+
+<div class="card">
+<h3>A · Điểm đo chưa khai danh sách giá trị nó bắn ra <span class="own own-d">đội dữ liệu sở hữu</span></h3>
+<p style="margin:0">Hôm nay danh sách "blur / glare / crop / expired" chỉ nằm trong <b>một dòng mô tả bằng chữ tiếng người</b> để người đọc hiểu — máy không đọc được, nên không dựng cột được. Cần khai nó thành danh sách có cấu trúc, <b>ngay cạnh chỗ khai điểm đo</b>. Cùng nguyên tắc với danh mục dữ kiện khách đã làm ở đợt trước: đội dữ liệu khai, owner không gõ tay. Lý do vẫn thế — một giá trị chỉ có mặt trong danh sách nếu pipeline thật sự bắn nó về.</p>
+</div>
+
+<div class="card">
+<h3>B · Chưa có số đã đếm sẵn theo từng chiều <span class="own own-d">đội dữ liệu sở hữu</span></h3>
+<p>Hôm nay mỗi điểm đo chỉ mang <b>đúng một con số tổng</b> (ví dụ 410 lần). Từ một con số tổng thì không tách ra được cột, càng không tách ra được lát theo chiều khách.</p>
+<p><b>Anh chốt: bên dữ liệu lọc và đếm sẵn, hệ thống này chỉ vẽ.</b> Tôi đồng ý — và nó rẻ hơn nhiều so với mang từng lần bắn về đây, vì <b>các chiều không còn ghép chéo với nhau</b> (anh đã bỏ hết chart chéo, xem §5). Không ghép chéo nghĩa là mỗi chiều chỉ cần một bảng đếm riêng, không nhân lên với nhau.</p>
+<p style="margin:0">Cụ thể mỗi điểm đo cần đúng chừng này, không hơn — <b>đây là phần cần bên dữ liệu gật hoặc lắc trước khi tôi cắt việc</b>:</p>
+<ul style="margin-top:8px">
+<li>Danh sách giá trị nó bắn ra (lỗ hổng A ở trên).</li>
+<li><b>Năm bảng đếm</b>, mỗi chiều một bảng: <i>giá trị của điểm đo × nhóm của chiều → bao nhiêu lần</i>.</li>
+<li>Khoá kỳ, để chart đổi theo bộ lọc thời gian đang có.</li>
+</ul>
+<p style="margin:0">Quy mô: khoảng <b>300 dòng cho một điểm đo</b> — đúng một câu <code>GROUP BY</code> bên kho dữ liệu, không phải một luồng sự kiện.</p>
+</div>
+
+<div class="card">
+<h3>Còn data demo trong giai đoạn thiết kế thì sinh thế nào</h3>
+<p style="margin:0">Không thể viết tay năm bảng đếm rời rồi mong chúng khớp nhau. Nên <b>bộ sinh data demo vẫn phải nghĩ theo từng lần bắn</b> ở bên trong — sinh ra các lần bắn, rồi cộng lại theo năm cách — và <b>thứ nó xuất ra là năm bảng đếm</b>, đúng hình dạng bên dữ liệu sẽ giao. Từng lần bắn không đi ra khỏi bộ sinh, không có trong hệ thống chạy thật.</p>
+</div>
+
+<h2>3 · Hai ràng buộc trung thực, không được nới</h2>
+
+<p>Bên dữ liệu đếm sẵn nghĩa là <b>hệ thống này không còn tự kiểm được bằng cách cộng lại từ đầu</b>. Đổi lại phải có ba luật kiểm ngay tại cửa nhận số — một bảng đếm sai vẫn vẽ ra chart đẹp, nên không kiểm thì không ai phát hiện.</p>
+
+<div class="warnbox">
+<p><b>Ràng buộc 1 — mỗi bảng đếm cộng lại phải ra đúng con số tổng đang hiện.</b> Con số tổng của điểm đo và các bảng đếm không được là hai nguồn sự thật độc lập, nếu không thì lần giao dữ liệu sau nó lệch mà không ai biết. Cách kiểm giống hệt luật đang có: "tổng các loại evidence phải bằng tổng chung".</p>
+<p><b>Ràng buộc 2 — năm bảng đếm phải khớp nhau, không chỉ khớp với tổng.</b> Cùng một giá trị của cùng một điểm đo thì cộng theo NAV, theo tuổi, theo hạng giá trị hay theo nguồn lead <b>đều phải ra cùng một số</b>. Đây là luật bắt được lỗi mà ràng buộc 1 bỏ lọt: năm bảng được đếm rời nhau từ năm câu truy vấn khác nhau, lệch nhau là chuyện thường.</p>
+<p style="margin:0"><b>Ràng buộc 3 — số "chưa định danh" phải giống nhau ở cả bốn chiều khách.</b> Cùng những lần bắn đó, bốn cách chia đều thất bại như nhau. NAV báo 128 chưa định danh mà Tuổi báo 131 thì bảng đếm đang nói dối, dù tổng vẫn khớp. <b>Riêng chiều Nền tảng được miễn</b> — lần bắn không biết khách vẫn biết nó xảy ra trên nền tảng nào, nên "chưa biết" của Nền tảng là <i>chưa biết nền tảng</i>, một nghĩa khác hẳn. Chênh lệch này là <b>đúng</b>, đừng ai "sửa" cho nó cân.</p>
+</div>
+
+<p><b>Đi theo phương án 2 ở §6 (mình tự cộng) thì ràng buộc 2 và 3 tự đúng, không phải kiểm.</b> Nhưng <b>ràng buộc 1 vẫn phải kiểm</b> — con số tổng của điểm đo đến từ một nguồn khác với các lần bắn, nên hai bên vẫn lệch được. Đừng ai xoá luật kiểm đó vì tưởng nó thừa.</p>
+
+<p><span class="tag t-ok">anh đã chốt</span> <i>"chấp nhận việc chưa khai báo customer nên không chia được và để là unknown, không vấn đề"</i> — nhóm "chưa định danh" là một lát bình thường trên chart, không phải lỗi cần giấu. Đúng nguyên tắc "mẫu số không âm thầm bỏ nhóm không biết" đã chốt từ trước.</p>
+
+<div class="badbox">
+<p style="margin:0 0 8px"><b>Anh cần thấy trước hệ quả này, không thì lúc chạy sẽ tưởng là hỏng:</b></p>
+<p style="margin:0">Điểm đo <b>"Bắt đầu mở tài khoản"</b> (614 lần) xảy ra <b>trước</b> bước eKYC — lúc đó hệ thống chưa biết khách là ai. Chọn nó rồi nhìn theo NAV sẽ ra <b>gần như một lát "chưa định danh" duy nhất</b>. Đó là <b>kết quả đúng</b>, không phải chart lỗi. Vì vậy chart phải luôn hiện một dòng <i>"x% lần bắn chưa gắn được khách"</i> ngay dưới trục — người đọc hiểu ngay giới hạn của lát cắt thay vì kết luận sai về khách hàng.</p>
+</div>
+
+<h2>4 · Năm chiều để nhìn — cố định, không có màn thêm/sửa/xoá</h2>
+
+<p>Anh đã chốt: <i>"bỏ phần thêm sửa xoá chiều, chiều sẽ fix"</i>. Danh sách đóng, dev khai:</p>
+
+<div class="scroll">
+<table>
+<tr><th>Chiều</th><th>Nói về cái gì</th><th>Áp được cho lần bắn nào</th></tr>
+<tr><td><b>Nguồn lead</b> (kênh mở tài khoản)</td><td rowspan="4">Thuộc tính <b>của khách</b> — khách này là ai</td><td rowspan="4">Chỉ những lần bắn đã gắn được với một khách</td></tr>
+<tr><td><b>Phân khúc NAV</b></td></tr>
+<tr><td><b>Độ tuổi</b></td></tr>
+<tr><td><b>Hạng giá trị</b> (value tier)</td></tr>
+<tr><td><b>Nền tảng</b></td><td>Thuộc tính <b>của chính lần bắn</b> — nó xảy ra trên iOS hay Android</td><td><b>Mọi</b> lần bắn, kể cả chưa định danh khách</td></tr>
+</table>
+</div>
+
+<p><b>Nền tảng khác loại với bốn chiều kia</b> — và đó là lý do nó đáng có. Bốn chiều đầu chết ngay khi lần bắn chưa định danh; Nền tảng thì không, vì nó là thuộc tính của sự kiện chứ không phải của người. Với những điểm đo sớm trong hành trình (như ví dụ 614 lần ở trên), Nền tảng thường là <b>chiều duy nhất còn nói được điều gì</b>.</p>
+
+<h3>Chiều Nền tảng: đòi ở đâu, không đòi ở đâu</h3>
+<p><span class="tag t-ok">anh đã chốt</span> Không phải nguồn nào cũng khai được nền tảng, và <b>không đòi nguồn nào khó</b>. Đo thật năm nguồn đang có: In-app survey khai đủ iOS/Android/Web; review App Store + Google Play khai iOS/Android; CS case là <i>server</i> (việc xảy ra phía hệ thống, không trên thiết bị khách); ghi chú broker nhập tay trong CRM và Zalo OA inbox thì <b>không có nền tảng nào</b>.</p>
+<p><b>Phạm vi đòi dữ liệu:</b> nền tảng là <b>bắt buộc</b> với <b>In-app survey</b> và <b>review App Store / Google Play</b> — hai nguồn quan trọng nhất. Các nguồn còn lại <b>không đòi</b>.</p>
+
+<div class="warnbox">
+<p style="margin:0"><b>"Không đòi" là chuyện của khâu xin dữ liệu, không phải khâu đếm.</b> Bản ghi không có nền tảng <b>vẫn nằm trong chart</b>, mang nhãn <b>"không áp dụng"</b>. Bỏ hẳn chúng ra sẽ làm cột của chiều Nền tảng thấp hơn cột của bốn chiều kia cho cùng một giá trị — <b>ràng buộc 2 ở §3 vỡ ngay</b>, và mẫu số âm thầm rụng mất một phần. Và <b>"không áp dụng" không phải "chưa biết"</b>: một ghi chú broker gõ tay trong CRM thì câu hỏi "xảy ra trên iOS hay Android" <i>không có câu trả lời đúng</i>, chứ không phải mình chưa tìm ra. Gộp hai nghĩa này là đúng loại sai lầm mà dự án đã tách bốn nghĩa "không biết" để tránh.</p>
+</div>
+
+<p>Riêng chart điểm đo của đợt này <b>không vướng</b>: mọi điểm đo đều đã khai nền tảng — chín cái trên thiết bị, một cái phía server. Vấn đề "không áp dụng" chỉ chạm phần VoC.</p>
+
+<p><b>Một điều đáng nhớ hơn cả danh sách chiều:</b> độ phủ là thuộc tính của <b>nguồn</b>, không phải của <b>chiều</b>. Nên câu hỏi hữu ích không phải "chiều này cắt được không" mà "nguồn này cắt theo chiều đó thì bao nhiêu phần rơi vào không biết". Ví dụ 186 review App Store gần như không nối về khách được — cắt theo NAV ra 100% "chưa định danh": đúng, nhưng vô dụng.</p>
+
+<p><span class="tag t-mid">rút khỏi danh sách</span> <b>Segment khách</b> và <b>Thâm niên giao dịch</b> — đã kiểm: không chart nào đang dùng hai chiều này, nên rút là miễn phí. Rút <i>khai báo chiều</i>, không đụng đến dữ liệu khách: hệ thống vẫn biết segment và thâm niên của từng người, chỉ là không còn cắt chart theo chúng.</p>
+
+<h2>5 · Dọn kèm trong cùng đợt</h2>
+
+<ul>
+<li><b>Bỏ hai chart ghép chéo:</b> "Kênh mở TK × Phân khúc NAV" và "Theme × Nền tảng". <span class="tag t-mid">tôi tự quyết</span> Anh nói <i>"bỏ các chart x chéo như nav x kênh mở"</i> — trong hệ thống có đúng hai chart kiểu này, tôi bỏ cả hai. Muốn giữ "Theme × Nền tảng" thì nói, sửa lại một dòng.</li>
+<li><b>Nền tảng đang hiện chữ thường</b> <code>android</code> / <code>ios</code> / <code>web</code> trên chart theme, trong khi tên đẹp (Android · iOS · Web) đã có sẵn từ lâu. Đợt này đằng nào cũng động vào Nền tảng, sửa luôn.</li>
+</ul>
+
+<h2>6 · Nếu bên dữ liệu <i>không</i> đếm sẵn thì phương án là gì</h2>
+
+<p>Câu trả lời ngắn: <b>chart không bao giờ cần biết ai đã đếm</b>. Năm bảng đếm ở §2 là <i>cửa nhận số</i>; ai đứng sau cửa đó là chuyện thay được, và hệ thống đã có sẵn chỗ để thay — chính chỗ đang cho phép bật/tắt Demo Mode. Nên đây không phải hai thiết kế, mà là một thiết kế với ba chỗ đặt phép cộng:</p>
+
+<div class="scroll">
+<table>
+<tr><th>Phương án</th><th>Ai cộng</th><th>Đánh đổi</th></tr>
+<tr><td><b>1 · Bên dữ liệu đếm</b></td><td>Kho dữ liệu, một câu <code>GROUP BY</code></td><td>Rẻ nhất, nhẹ nhất. <b>Bắt buộc</b> phải có ba luật kiểm ở §3 — không có thì một bảng lệch vẫn vẽ ra chart đẹp.</td></tr>
+<tr><td><b>2 · Mình tự cộng trong một tầng mỏng</b><br><span class="tag t-ok">đang đi hướng này</span></td><td>Bên dữ liệu giao raw; mình query và cộng một lượt</td><td>Nặng hơn, nhưng <b>ràng buộc 2 và 3 ở §3 trở thành miễn phí</b>: cùng một lượt duyệt thì không thể sinh ra năm bảng lệch nhau, và số "chưa định danh" tự khắc giống nhau ở bốn chiều. Không phải kiểm vì <i>không thể sai</i>. Đổi lại phải tự lo phần lấy và cộng — xem §11 cho danh sách dữ liệu cần xin.</td></tr>
+<tr><td><b>3 · Đưa raw thẳng vào màn hình</b></td><td>Ngay tại trình duyệt</td><td>Chỉ chạy được khi raw đã lọc rất hẹp (một điểm đo, một kỳ). <b>Không dùng cho quy mô thật.</b></td></tr>
+</table>
+</div>
+
+<p><b>Điểm đáng chú ý:</b> bộ sinh data demo mô tả ở §2 <i>chính là</i> phương án 2 thu nhỏ — nó đã làm raw → năm bảng đếm rồi. Nên nếu bên dữ liệu lắc đầu, mình <b>không thiết kế lại</b>, chỉ đổi chỗ đặt phép cộng đó và cho nó ăn dữ liệu thật.</p>
+
+<p>Tóm một câu để anh cân: <b>dữ liệu rẻ + cổng kiểm nghiêm</b> (1), hay <b>dữ liệu nặng + đúng theo cấu tạo</b> (2).</p>
+
+<h2>7 · Phân loại — chart điểm đo không vướng vấn đề này</h2>
+
+<p>Anh lo đúng chỗ, nhưng nỗi lo đó không rơi vào thiết kế này. Phải tách hai loại dữ liệu thô, chúng khác nhau về bản chất:</p>
+
+<div class="scroll">
+<table>
+<tr><th>Loại dữ liệu thô</th><th>Có cần phân loại không</th></tr>
+<tr><td><b>Điểm đo bắn ra giá trị rời rạc sẵn</b><br><i>Lý do thất bại giấy tờ eKYC</i></td><td><b>Không.</b> Đây không phải câu chữ tự do cần ai đó đọc rồi xếp loại — nó là một ô đã có sẵn giá trị <i>blur / glare / crop / expired</i>, do chính đoạn code đo sinh ra. <b>Cột của chart chính là ô đó.</b> Không cần AI, không cần gom cụm, không có câu hỏi "phân đúng hay sai".</td></tr>
+<tr><td><b>Câu chữ khách nói</b><br><i>verbatim, phản hồi khảo sát</i></td><td><b>Có</b> — và đây mới là chỗ khó anh đang nói. Nhưng nó thuộc phần VoC <b>đã có từ trước</b>, không phải phần đợt này dựng.</td></tr>
+</table>
+</div>
+
+<p>Nói cách khác: <b>đây là một lý do nữa để chọn mô hình chart điểm đo</b>. Nó lấy số ở chỗ máy đã tự phân loại xong ngay lúc bắn, nên không thừa hưởng bài toán phân loại nào cả.</p>
+
+<h3>Chỗ duy nhất vấn đề đó chạm vào chart điểm đo</h3>
+
+<p>Pipeline bắn ra một <b>giá trị chưa ai khai</b> — ví dụ hôm nay xuất hiện thêm một lý do thất bại mới mà danh sách ở §2 chưa có. Nếu lẳng lặng bỏ nó thì <b>ràng buộc 1 vỡ ngay</b>: cộng các cột không còn ra đúng con số tổng. Nên xử lý bắt buộc là:</p>
+<ul>
+<li>Hiện thành một cột <b>"giá trị chưa khai"</b> — thấy được, không bị bỏ.</li>
+<li>Đồng thời <b>báo lên để người khai bổ sung</b> vào danh sách.</li>
+</ul>
+<p>Đây đúng khuôn hệ thống đang dùng cho taxonomy: node được đánh dấu <i>new-term</i> kèm ghi chú <i>"34 verbatim dùng từ 'app định danh quốc gia' chưa gán vào node này"</i>, và cảnh báo tương ứng ghi <i>"Cần người xác nhận cách gán"</i> — <b>máy nêu, người chốt</b>. Anh đã chấp nhận khuôn này ở chỗ khác, nên tôi dùng lại nguyên vẹn thay vì nghĩ ra cách mới.</p>
+
+<h3>Còn phía VoC và vấn đề mới nổi lần đầu</h3>
+
+<p>Nói thẳng: <b>không có cách nào bảo đảm phân loại đúng</b>, kể cả dùng AI. Nên nguyên tắc của hệ thống này không phải "phân cho đúng hết" mà là <b>để phần chưa phân loại nhìn thấy được</b>. Hệ thống đang làm đúng thế: ba chart taxonomy cộng lại là số bản ghi <i>đã được gán</i>, nhỏ hơn tổng thu được, và chênh lệch đó được nói ra chứ không giấu. <b>Vấn đề mới nổi hiện ra chính ở chỗ chênh lệch đó phình lên</b> — đó là tín hiệu đáng tin hơn bất kỳ nhãn tự động nào.</p>
+<p>Làm sâu hơn phần này (gom cụm câu chữ chưa gán để đề xuất node mới cho người duyệt) là một đợt riêng, không nằm trong đợt đang bàn. Khi nào anh muốn thì mở ra.</p>
+
+<h3>Bấm một thanh thì đi đâu — giữ nguyên</h3>
+
+<p><span class="tag t-ok">anh đã chốt</span> Giữ giống hệt như cũ, nên đợt này <b>không đụng gì tới hành vi bấm thanh</b>. Hai chặn tôi nêu ở bản trước — màn "VoC theo hành trình" chưa dựng, và tầng theme chưa khai điểm chạm — <b>thôi là chặn</b>, vì không có gì điều hướng cả.</p>
+<p>Một điều đáng ghi lại cho sau này: chart điểm đo <b>đã sẵn có đường về hành trình mà không cần khai thêm gì</b> — mỗi điểm đo đã gắn với một điểm chạm, điểm chạm đã gắn với một bước. Đúng như anh nói, chỗ đến không phụ thuộc đang cắt theo chiều nào, vì vấn đề thuộc về giai đoạn đó của hành trình. Khi nào dựng màn đích thì nối vào là xong.</p>
+
+<h2>8 · Hai câu anh trả lời hôm nay đã thành vô nghĩa — nói thẳng</h2>
+
+<p>Câu 1 (<i>owner được tạo chiều cắt-ngưỡng mới không</i>) và câu 2 (<i>enum của cột lấy từ đâu</i>) chỉ có ý nghĩa khi <b>có màn cho owner tạo chiều</b>. Anh đã bỏ màn đó, nên hai câu trả lời không còn chỗ dùng — <b>không phải anh trả lời sai, mà là phạm vi đổi sau đó</b>. Hai việc từng gắn với chúng cũng bị bỏ theo, và tôi sẽ không âm thầm làm tiếp:</p>
+<ul>
+<li>Gom ba mảnh rời của một chiều về một chỗ — chỉ cần thiết để có màn sửa. Không còn màn, không gom, vì đụng vào khoảng 15 luật kiểm và 10 file test mà không ai được lợi.</li>
+<li>Khai danh sách giá trị đóng cho Segment khách / Hạng giá trị — chỉ cần khi owner tự tạo chiều phân loại. Chiều đã cố định thì không cần.</li>
+</ul>
+<p>Cái <b>còn nguyên giá trị</b> từ câu trả lời của anh là nguyên tắc: <i>danh sách giá trị do đội dữ liệu khai sẵn, không quét ngược từ dữ liệu</i>. Nguyên tắc đó đi thẳng vào lỗ hổng A ở §2.</p>
+
+<h2>9 · Nghiệm thu — làm xong thì kiểm bằng gì</h2>
+
+<ol>
+<li>Chọn "Lý do thất bại giấy tờ eKYC" → ra 4 cột đúng bằng 4 giá trị đã khai, không phải chữ trong mô tả.</li>
+<li>Đổi chiều nhìn từ NAV sang Nền tảng → cột giữ nguyên, chỉ lát trong cột đổi.</li>
+<li>Cộng chiều cao các cột = đúng con số tổng của điểm đo đó.</li>
+<li>Cùng một cột, đổi qua lại giữa bốn chiều khách → <b>chiều cao cột không đổi</b>, và <b>lát "chưa định danh" cũng không đổi</b>. Đổi sang Nền tảng thì chiều cao cột vẫn không đổi nhưng lát "chưa biết" được phép khác — đó là thiết kế, không phải lỗi.</li>
+<li>Cố tình sửa một ô trong một bảng đếm cho lệch đi → hệ thống <b>báo dữ liệu không hợp lệ</b>, không vẽ chart sai một cách im lặng.</li>
+<li>Chọn "Bắt đầu mở tài khoản" + nhìn theo NAV → hiện lát "chưa định danh" chiếm gần hết, kèm dòng cảnh báo tỷ lệ. Không rỗng, không báo lỗi.</li>
+<li>Đổi ranh giới nhóm NAV trong cấu hình → lát trong cột chia lại ngay, không sửa dòng code nào <i>(tính chất đã có từ bước 1, đợt này không được làm mất)</i>.</li>
+<li>Chọn một điểm đo trạng thái <span class="tag t-bad">gap</span> → nói rõ "chưa instrument", không vẽ chart rỗng giả vờ là 0.</li>
+<li>Chart cũ (VoC, taxonomy, hành trình) giữ nguyên số như trước, trừ hai chart ghép chéo đã bỏ.</li>
+<li>Cho pipeline bắn ra một giá trị <b>không có trong danh sách đã khai</b> → hiện thành cột "giá trị chưa khai" kèm cảnh báo cần bổ sung, <b>và tổng vẫn khớp</b>. Không bị bỏ im lặng.</li>
+<li>Hành vi bấm thanh của mọi chart hiện có <b>không đổi một chút nào</b> so với trước đợt này.</li>
+</ol>
+
+<h2>10 · Bảng tra: nghiệp vụ ↔ tên trong code</h2>
+
+<div class="scroll">
+<table>
+<tr><th>Nói trong tài liệu này</th><th>Tên trong code</th><th>Trạng thái</th></tr>
+<tr><td>Điểm đo</td><td><code>Signal</code> (<code>data/schema/journey.ts</code>)</td><td><span class="tag t-ok">đã có</span></td></tr>
+<tr><td>Con số tổng của một điểm đo</td><td><code>Signal.vol</code></td><td><span class="tag t-ok">đã có</span></td></tr>
+<tr><td>Danh sách giá trị điểm đo bắn ra</td><td>—</td><td><span class="tag t-bad">phải thêm</span> hôm nay chỉ nằm trong <code>Signal.desc</code> bằng chữ</td></tr>
+<tr><td>Năm bảng đếm theo chiều <i>(giá trị × nhóm → số lần)</i></td><td>—</td><td><span class="tag t-bad">phải thêm</span> bên dữ liệu giao, hệ thống chỉ vẽ</td></tr>
+<tr><td>Từng lần bắn</td><td>—</td><td><span class="tag t-ok">không cần</span> chỉ tồn tại bên trong bộ sinh data demo</td></tr>
+<tr><td>Chiều để nhìn</td><td><code>dims[id]</code> có <code>cut</code> (<code>data/fixtures/seed.ts</code>)</td><td><span class="tag t-ok">đã có</span> rút bớt còn 5</td></tr>
+<tr><td>Chiều Nền tảng theo lần bắn</td><td>—</td><td><span class="tag t-mid">phải thêm</span> <code>dims.pf</code> hiện có là chiều của mẫu phản hồi, không nối được với khách/lần bắn</td></tr>
+<tr><td>Nhãn nhóm của một khách</td><td><code>Customer.bands[id]</code></td><td><span class="tag t-ok">đã có</span></td></tr>
+<tr><td>Ranh giới nhóm owner đặt</td><td><code>cfg.segment.band[id]</code></td><td><span class="tag t-ok">đã có</span> giữ nguyên chỗ cũ</td></tr>
+<tr><td>Hai chart ghép chéo bị bỏ</td><td><code>q19</code> · <code>q16</code></td><td><span class="tag t-mid">xoá</span> nhớ gỡ cả tham chiếu trong bảng điều khiển</td></tr>
+<tr><td>Hộp thoại liệt kê khi bấm thanh</td><td><code>DrillPanel</code> (<code>design-system/</code>)</td><td><span class="tag t-ok">không đụng tới</span> đợt này giữ nguyên hành vi</td></tr>
+<tr><td>Đường từ điểm đo về hành trình</td><td><code>Signal.tpId</code> → <code>Touchpoint.stepId</code></td><td><span class="tag t-ok">đã có</span> ghi lại để dùng sau, đợt này chưa nối</td></tr>
+<tr><td>Máy nêu — người chốt (giá trị/nhãn mới)</td><td><code>TaxNode.drift</code> = <code>'new-term'</code> · cảnh báo của agent</td><td><span class="tag t-ok">đã có</span> khuôn sẵn, dùng lại cho "giá trị chưa khai"</td></tr>
+</table>
+</div>
+
+<h2>11 · Danh sách dữ liệu cần yêu cầu bên dữ liệu cung cấp</h2>
+
+<div class="thesis">
+<p style="margin:0"><b>Phần này là phần gửi thẳng cho bên dữ liệu.</b> Cột cuối để họ điền. Tôi <b>không</b> tự đánh dấu trường nào "đã có" — mình không nắm kho dữ liệu của họ, đoán rồi ghi vào đây là tạo ra sự thật giả.</p>
+</div>
+
+<h3>Bảng A — từng lần điểm đo bắn <span style="font-weight:400;color:var(--ink2)">(một dòng = một lần bắn)</span></h3>
+<div class="scroll">
+<table>
+<tr><th style="width:26%">Trường</th><th>Dùng để làm gì</th><th style="width:22%">Bên dữ liệu điền<br><span style="font-weight:400;text-transform:none">có sẵn / chưa có / cần bắt đầu record</span></th></tr>
+<tr><td><b>Mã điểm đo</b></td><td>Biết dòng này thuộc điểm đo nào</td><td></td></tr>
+<tr><td><b>Thời điểm bắn</b></td><td>Cắt theo bộ lọc kỳ 3 / 6 / 12 tháng. <b>Xin thời điểm thô, không xin sẵn theo kỳ</b> — mình tự gộp, họ đỡ việc và mình linh hoạt hơn.</td><td></td></tr>
+<tr><td><b>Giá trị phân loại của lần bắn</b></td><td><b>Đây chính là cột của chart.</b> Ví dụ lý do thất bại là blur / glare / crop / expired.</td><td></td></tr>
+<tr><td><b>Nền tảng</b></td><td>Chiều "Nền tảng" — thuộc tính của lần bắn, không phải của khách</td><td></td></tr>
+<tr><td><b>Khoá khách</b></td><td>Nối sang bảng B cho bốn chiều còn lại. <b>Được phép rỗng — rỗng là hợp lệ</b>, xem yêu cầu 1 bên dưới.</td><td></td></tr>
+</table>
+</div>
+
+<h3>Bảng B — hồ sơ khách <span style="font-weight:400;color:var(--ink2)">(một dòng = một khách)</span></h3>
+<div class="scroll">
+<table>
+<tr><th style="width:26%">Trường</th><th>Dùng để làm gì</th><th style="width:22%">Bên dữ liệu điền</th></tr>
+<tr><td><b>Khoá khách</b></td><td>Nối với bảng A</td><td></td></tr>
+<tr><td><b>Kênh mở tài khoản</b></td><td>Chiều "Nguồn lead"</td><td></td></tr>
+<tr><td><b>Giá trị tài sản</b></td><td>Chiều "Phân khúc NAV" — <b>xin số đồng, không xin nhãn nhóm</b>, xem yêu cầu 2</td><td></td></tr>
+<tr><td><b>Tuổi hoặc ngày sinh</b></td><td>Chiều "Độ tuổi" — cũng là số thô</td><td></td></tr>
+<tr><td><b>Hạng giá trị</b></td><td>Chiều "Hạng giá trị"</td><td></td></tr>
+</table>
+</div>
+
+<h3>Bảng C — danh mục điểm đo <span style="font-weight:400;color:var(--ink2)">(một dòng = một điểm đo)</span></h3>
+<div class="scroll">
+<table>
+<tr><th style="width:26%">Trường</th><th>Dùng để làm gì</th><th style="width:22%">Bên dữ liệu điền</th></tr>
+<tr><td><b>Mã điểm đo</b></td><td>Nối với bảng A</td><td></td></tr>
+<tr><td><b>Danh sách giá trị hợp lệ</b></td><td>Dựng cột của chart, và biết giá trị nào là <i>chưa khai</i> (§7). Đây là lỗ hổng A ở §2 — nhiều khả năng <b>chưa tồn tại ở đâu cả</b> và phải khai mới.</td><td></td></tr>
+<tr><td><b>Con số tổng đang công bố</b></td><td>Đối chiếu ràng buộc 1 ở §3. Nếu tổng chỉ được tính ra từ bảng A thì ghi rõ, khỏi cần trường này.</td><td></td></tr>
+</table>
+</div>
+
+<h3>Ba yêu cầu về <i>cách lấy</i> — quan trọng ngang danh sách trường</h3>
+
+<div class="badbox">
+<p style="margin:0 0 6px"><b>1 · Nối bằng LEFT JOIN, không phải INNER JOIN. Dòng không có khách vẫn phải về.</b></p>
+<p style="margin:0">Phản xạ tự nhiên khi nghe "cho tôi các lần bắn kèm thông tin khách" là nối hai bảng rồi bỏ dòng không khớp. Làm thế là <b>xoá mất khoảng một phần ba dữ liệu mà không ai biết</b>, tổng không còn khớp, và cái nhóm "chưa định danh" mà anh vừa chấp nhận là thông tin có ý nghĩa thì biến mất. <b>Khoá khách rỗng là một giá trị hợp lệ, không phải dòng lỗi.</b></p>
+</div>
+
+<div class="warnbox">
+<p style="margin:0 0 6px"><b>2 · Xin số thô, không xin nhãn nhóm.</b></p>
+<p style="margin:0">NAV bằng đồng và tuổi bằng năm — đừng xin "&lt;50tr" hay "25–34". Ranh giới nhóm là thứ owner đặt và đổi được ngay trên hệ thống; nhận nhãn làm sẵn là khoá cứng lại đúng thứ đang mềm, và mất luôn tính chất đã làm được ở bước 1.</p>
+</div>
+
+<div class="warnbox">
+<p style="margin:0 0 6px"><b>3 · Thuộc tính khách lấy ở thời điểm nào? — đây là câu hỏi đúng/sai, không phải câu hỏi tiện lợi.</b></p>
+<p style="margin:0 0 6px">Cắt lỗi eKYC của quý trước theo <b>NAV hôm nay</b> nghĩa là gán phân khúc hiện tại cho hành vi quá khứ — người đó lúc gặp lỗi có thể ở nhóm khác hẳn. Hai lựa chọn, cần <b>bên dữ liệu trả lời</b> chứ mình không được đoán:</p>
+<ul style="margin:0">
+<li><b>Giá trị tại thời điểm bắn</b> — đúng về nghĩa, nhưng đắt (phải có lịch sử NAV).</li>
+<li><b>Giá trị hiện tại</b> — rẻ, chấp nhận được, <b>nhưng chart phải nói ra</b> rằng đang cắt theo phân khúc hiện tại chứ không phải phân khúc lúc đó.</li>
+</ul>
+<p style="margin:6px 0 0">Áp dụng cho cả ba: NAV, tuổi, hạng giá trị.</p>
+</div>
+
+<p class="foot">Bốn nguyên tắc trung thực và sáu bất biến tầng kiến trúc của stream này không đổi trong đợt tới — đặc biệt: tầng tính toán vẫn không được biết cấu hình tồn tại, nhãn dải vẫn không bao giờ gõ tay, và bốn nghĩa của "không biết" (chưa-biết · thiếu · ẩn danh · chưa đối chiếu được) vẫn không gộp. "Lần bắn chưa gắn được khách" là <b>nghĩa thứ năm</b>, cũng đứng riêng.</p>
+
+</div>
+</body>
+</html>
