@@ -222,10 +222,31 @@
 
 <ul>
   <li>Một người viết một lúc. S2 đã trả giá cho việc em sửa file trong khi một luồng khác còn đang sửa cùng file đó — mất mấy lượt chỉ để dựng lại xem cây code đang thật sự thế nào.</li>
-  <li>Kết quả từng mảnh em tự chạy lại và tự đối chiếu số, không tin con số báo về. Mốc hiện tại: dịch sạch, <strong>751/751 test xanh</strong> trên 74 file.</li>
+  <li>Kết quả từng mảnh em tự chạy lại và tự đối chiếu số, không tin con số báo về. Mốc lúc lập kế hoạch: dịch sạch, <strong>751/751 test xanh</strong> trên 74 file.</li>
   <li>Đếm của chart điểm đo đi đường riêng qua bảng đếm, không mượn đường dựng dòng của các chart khác — thiết kế đã ghi rõ chỗ này.</li>
 </ul>
 
-<p class="fine">Việc tiếp theo: anh xem mục 1 (chỗ hở, em đã chọn cách đóng) và mục 3 (hai câu em tự chốt). Nếu không phản đối thì em bắt đầu S3a.</p>
+<h2>6 · Đã làm xong — 05/08/2026</h2>
+
+<p>Cả ba mảnh đã dựng và đã lưu vào lịch sử dự án. Dịch sạch, <strong>827/827 test xanh</strong> trên 79 file (mốc lúc lập kế hoạch là 751/74 — mọi test cũ vẫn xanh, không test nào bị sửa cho vừa code mới).</p>
+
+<ul>
+  <li><strong>S3a</strong> — phép tính của chart, và đường cộng lại bảng đếm khi ranh giới nhóm đổi.</li>
+  <li><strong>S3b</strong> — dải hành trình dày mỏng theo số thật, vạch đỏ chỗ rơi.</li>
+  <li><strong>S3c</strong> — màn Bản đồ hành trình: thanh giai đoạn → thẻ luồng → dải hành trình → hồ sơ bước với <em>một</em> tab, trong tab có bảng điểm đo bấm-chọn-nhiều, chart cột nhóm, năm nút chiều, và khung “gắn ở đâu”.</li>
+</ul>
+
+<div class="box bad">
+  <span class="lbl">Hai chỗ bản kế hoạch này sai, phải sửa lúc làm</span>
+  <p><strong>Một.</strong> Kế hoạch coi “không biết” là một khái niệm duy nhất. Thực tế có <strong>ba nghĩa khác nhau</strong> cùng chảy vào chart — <em>chưa biết, đợi thì sẽ có</em> · <em>thiếu, tức lỗi dữ liệu</em> · <em>không nối được về khách nào</em> — và trong dữ liệu demo <strong>cả ba cùng xuất hiện trong một cột</strong>. Vẽ chúng cùng một màu xám là gộp lại đúng thứ mà cả stream này tồn tại để tách ra, chỉ là gộp bằng màu thay vì bằng số. Đã tách thành ba cách vẽ riêng.</p>
+  <p><strong>Hai.</strong> Kế hoạch để mọi nhóm cột dùng chung một thang chiều cao. Với điểm đo 2 840 lượt đứng cạnh điểm đo bốn cột ~100 lượt, bốn cột nhỏ bị nén sát sàn và <strong>cao gần bằng nhau</strong> — người đọc mất hẳn phần “giá trị nào nhiều hơn giá trị nào” <em>trong</em> một điểm đo, tức mất đúng công dụng chart này tồn tại để trả lời. Đã đổi sang <strong>thang riêng từng nhóm</strong>, và vì thế phải in thêm một câu: chiều cao chỉ đọc trong từng nhóm, hai nhóm không so chiều cao với nhau.</p>
+</div>
+
+<div class="box warn">
+  <span class="lbl">Một chỗ màn hình từng nói sai về chính nó — đã sửa</span>
+  <p>Khi tắt Demo Mode, bảng đếm rỗng (trạng thái trống <em>trung thực</em>, không phải lỗi). Lúc đó <strong>cả năm nút chiều đều khoá</strong>, nhưng màn hình lại khuyên “chọn một chiều khác ở trên” — lời khuyên không làm được, và nói sai nguyên nhân: không phải “chiều này không ghi” mà là “chưa có bảng đếm cho điểm đo đang chọn”. Đã tách hai trường hợp và nói đúng nguyên nhân từng cái.</p>
+</div>
+
+<p class="fine">Còn lại không phải việc code: chờ danh sách giá trị thật của điểm đo và Bảng D (định danh element) từ bên dữ liệu; hai tab còn lại của hồ sơ bước; tour màn Bản đồ hành trình. Chi tiết ở <code>docs/DB-FIRST-HANDOFF.md</code>, mục “Còn hở” và “Việc còn lại của stream”.</p>
 
 </main>

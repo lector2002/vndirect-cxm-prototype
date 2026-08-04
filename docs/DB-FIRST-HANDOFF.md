@@ -4,9 +4,9 @@ _Cập nhật: 2026-08-05. Đọc file này + `AI-CONTEXT.md` + **`output/thiet-
 
 ## Trạng thái
 
-- `main` = **`88a41ec`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`).
-- `npx tsc -b` sạch. **793/793 test xanh (77 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1). Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
-- Còn lại: **S3c-2** (chart điểm đo trong tab) — xem "Việc còn lại của stream".
+- `main` = **`17b84ec`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`).
+- `npx tsc -b` sạch. **827/827 test xanh (79 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b). Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
+- **Cả stream đã xong về code.** Còn lại là việc của owner + việc chờ dữ liệu thật: xem "Còn hở" và "Việc còn lại của stream".
 - Tài liệu thiết kế owner đã duyệt: **`output/thiet-ke-chart-signal.html`** (6 vòng) + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** (bổ sung đợt 2, owner chốt 04/08/2026) — cả hai là nguồn sự thật cho stream này, đọc trước khi code. `output/thiet-ke-chieu-phan-tich.html` và `output/thiet-ke-db-first.html` là của stream trước, còn giá trị lịch sử.
 
 ## Stream này làm gì
@@ -117,9 +117,29 @@ Bản chia việc S3 đầy đủ (S3a phép tính → S3b dải hành trình �
 
 **Tôi siết thêm một chỗ:** hồ sơ bước tra trong tập bước **đã có** quan sát, không tra toàn bộ bước rồi ép kiểu `as Obs` — bất biến "chỉ bước có quan sát mới mở được hồ sơ" thành **cấu trúc**, không còn đúng nhờ tình cờ.
 
-## Còn hở sau S3c-1 — nói thẳng, đừng đọc thành đã phủ
+## S3c-2a — ĐÃ XONG, đã tự kiểm, commit `869338b`
 
-- **Hai trạng thái "ghi được một phần" / "khoá" của nút chiều không có đường kiểm bằng mắt.** Dữ liệu demo ghi đủ cả năm chiều (test canh điều đó), nên hai nhánh này chỉ render trong unit test với fixture dựng tay. Test chứng minh nhánh **chạy đúng**, không chứng minh nó **trông đúng**. Owner cần tự nhìn khi có dữ liệu thật, hoặc chấp nhận đây là phần chưa được mắt người duyệt.
+`design-system/SignalColumns.tsx` — chart cột nhóm theo điểm đo (Cách B): một điểm đo = một nhóm, trong nhóm mỗi giá trị của **chính nó** là một cột, chân đế riêng từng nhóm, không có dòng tổng chung. Kèm tầng phân loại "không biết" ở `domain/signalChart.ts` (`SigUnknown` + `unknownKindOf`). 17 test cho chart + 4 test cho domain.
+
+**Hai lỗi hợp đồng của CHÍNH TÔI, cả hai đều do reviewer chặn lại:**
+
+1. **Tôi khai "không biết" là một cờ boolean** ⇒ cả ba nghĩa (`chưa-biết` / `thiếu` / `chưa định danh`) ra **một màu xám** — đúng phép gộp mà cả stream tồn tại để tránh, chỉ là gộp bằng màu thay vì bằng số. `index.css:32-40` đã dựng sẵn bốn token xám cho bốn nghĩa vì lý do đó. **Đã đo: cả ba nghĩa CÙNG có mặt trong dữ liệu demo** (chiều `acq` có cột chứa đủ 8 lát), nên lỗi này sẽ hiện ngay màn đầu tiên mở lên, không phải lỗi lý thuyết. Nhận diện bằng `isSegUnknown`/`NOT_IDENTIFIED` của `data/segment.ts` (nguồn duy nhất), không so chuỗi rải rác.
+2. **Tôi khai một thang chiều cao dùng chung toàn chart** ⇒ bốn cột ~100 lượt của `sg4` bị nén sát sàn khi đứng cạnh `sg2` (2840) và **cao gần bằng nhau** — mất hẳn cách đọc "giá trị nào nhiều hơn giá trị nào" **trong** một điểm đo, tức mất lý do chart tồn tại. Tiêu chí §9-3 tính tổng trong phạm vi **một** điểm đo, và sketch Đ1 vẽ hai nhóm cao xấp xỉ bằng nhau. Đã đổi sang **thang riêng từng nhóm**, đổi lại phải in một câu chống đọc nhầm ("hai nhóm không so chiều cao với nhau"). **Đo sau khi đổi: không cột nào tràn hộp, biên hẹp nhất còn 4,03 lần** (`acq`/`sg4`/`expired`: cao 96,8px, cần 24px cho 8 lát) — nếu sau này thêm dải hoặc thêm chiều nhiều nhóm hơn, đo lại con số này trước khi tin.
+
+Bảng màu chỉ có 5 màu (`--cat-1..5`). Hôm nay chưa chiều nào quá 5 dải có tên (nav 5, acq 5, age 4, sigpf 4) nên chưa với tới, nhưng **thêm một mốc NAV là trùng màu trong im lặng** — nên chart in note cảnh báo nêu đúng số nhóm bị trùng, kèm test chống rỗng ở đúng ngưỡng 5.
+
+## S3c-2b — ĐÃ XONG, đã tự kiểm, commit `17b84ec`
+
+`features/atlas/AtlasSignalPanel.tsx` — nhà thật của chart: bảng signal thêm cột chọn (giữ nguyên sáu cột và testid cũ nên test S3c-1 không phải sửa), chart cột nhóm, **năm nút chiều ba trạng thái tính từ dữ liệu**, panel Đ4 "gắn ở đâu". Mở ra là đã có chart của điểm đo sống đầu tiên; đổi bước thì lựa chọn reset (`key={step.id}`). Điểm đo `gap`/`designed` vẫn tick được và nói đúng lý do chưa có số, không vẽ chart rỗng giả vờ là 0. 13 test.
+
+**Một lỗi hợp đồng của tôi, worker báo lại thay vì im lặng sửa:** tôi ghi mã trạm là `Step.code`, nhưng `code` của bước 2 chỉ là `'02'` — mã trạm thật là `Step.stationId` = `JS-MTK-02`, đúng như ví dụ đã chốt ở Đ4.
+
+**Một lỗi thật tôi đo ra được:** tắt Demo Mode ⇒ bảng đếm rỗng ⇒ **cả năm nút chiều cùng khoá**, nhưng màn hình lại khuyên *"chọn một chiều khác ở trên"* — lời khuyên **không làm được** (mọi nút disabled) và nói **sai nguyên nhân** (không phải "chiều này không ghi" mà là "chưa có bảng đếm cho điểm đo này"). Đã tách hai ca; ca "cả năm khoá" được test bằng `seed.sigCounts` thật, không fixture dựng tay.
+
+## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
+
+- **Trạng thái "ghi được một phần" của nút chiều không có đường kiểm bằng mắt trong demo — nhưng KHÔNG phải code chết.** Đã lần lại đủ đường: ràng buộc 1 (`data/validate.ts` ~683-694) buộc cả năm chiều cộng ra đúng `Signal.vol` (Map khởi tạo sẵn cả năm chiều bằng 0, nên một chiều vắng hẳn cũng bị bắt), nên **bộ dữ liệu đã qua kiểm không sinh nổi ca này** — đúng như bản kế hoạch S3 đã nói trước với owner (`output/ke-hoach-s3-chart-diem-do.html`, box "Một điều đi kèm, cần nói ra") và owner đã chốt **không nới ràng buộc 1** chỉ để bấm thử được trong demo. Điều bản kế hoạch chưa nói rõ, tôi kiểm bổ sung: `validate()` **không chặn render**, nó chỉ dựng banner đỏ toàn cục (`App.tsx:75`, `features/quantify/ValidateBanner.tsx`) — nên với **dữ liệu thật** thiếu dòng ở một chiều, app vẫn vẽ, nút chiều đó hiện `partial` kèm *"x% dữ liệu không gán được …"*, **cùng lúc** với banner đỏ nói bảng đếm lệch. Đó là hành vi đúng, không phải xung đột: banner nói với người vận hành pipeline, chữ trên nút nói với người đọc chart. **Đừng xoá nhánh `partial`, và đừng nới ràng buộc 1 để "test cho dễ".** Cái còn hở đúng là: nhánh này chưa từng được **mắt người** duyệt, chỉ được test chứng minh là **chạy đúng**.
+- **Trạng thái "khoá" thì CÓ ca thật và đã đo.** Khi `sigCounts` rỗng (Demo Mode TẮT — trạng thái trống trung thực, ghi ở `data/schema/index.ts:52`), chọn `sg1` cho ra **cả năm chiều `locked`** cùng lúc, cột tổng 0, "chưa gắn được khách" = không biết. Đây là đường duy nhất tới `locked` hiện nay, và nó không phải "chiều này không ghi X" mà là "chưa có bảng đếm cho điểm đo này". Panel phải nói đúng nguyên nhân đó (xem S3c-2b).
 - **Tour của `#/atlas` chưa nối.** `seed.ts:743-745` khai ba mốc tour (`atlas-prail`, `atlas-spine`, `atlas-inspector`) và mô tả "Hồ sơ bước — 3 tab", nhưng màn ship **1 tab** và tour chưa được dựng ở React (`App.tsx:21` ghi "dựng ở bước sau"). Không phải hồi quy — trước đó `#/atlas` là `Placeholder`. **Đừng gắn mốc tour bây giờ**: gắn vào là tour khẳng định "3 tab", một câu sai. Sửa chữ tour cùng lúc hai tab kia lên.
 
 ## S2 + S4 — ĐÃ XONG, đã tự kiểm (04/08, đã commit `13199fd` + `27fd4f6`)
@@ -147,12 +167,17 @@ Bản chia việc S3 đầy đủ (S3a phép tính → S3b dải hành trình �
 
 ## Việc còn lại của stream
 
-**Cập nhật 05/08/2026:** S1, S2, S4, S3a-1, S3a-2, S3b, S3c-1 **đã xong và đã commit** (xem các mục ở trên). Còn đúng **S3c-2** — chart điểm đo bên trong tab "Touchpoint & signal": chọn nhiều điểm đo, nhóm cột, nút chiều ba trạng thái, cột "giá trị chưa khai", panel "gắn ở đâu" (Đ4) nói rõ là **mô tả nghiệp vụ chưa phải vị trí kỹ thuật**. Hai bullet S2/S4 ngay dưới **giữ lại làm hồ sơ cái giá đã trả**, không phải việc còn phải làm.
+**Cập nhật 05/08/2026 (cuối phiên):** **toàn bộ stream đã xong về code và đã commit** — S1, S2, S4, S3a-1, S3a-2, S3b, S3c-1, S3c-2a, S3c-2b (xem các mục ở trên). Các bullet dưới đây **giữ lại làm hồ sơ cái giá đã trả**, không phải việc còn phải làm.
+
+Còn lại, không phải việc code:
+
+1. **Chờ dữ liệu thật:** `Signal.values` phần lớn còn là suy diễn (lỗ hổng A) và **Bảng D** (định danh element trên web/app) chưa xin được. Khi có, phần lớn cột của chart sẽ đổi — đó là chủ ý, không phải hồi quy.
+3. **Hai tab còn lại của hồ sơ bước** ("Chỉ số liên kết", "Độ phủ dữ liệu") và **tour `#/atlas`** — cố ý hoãn, xem bullet cuối mục "Còn hở". Sửa chữ tour **cùng lúc** hai tab kia lên, đừng gắn mốc tour trước.
 
 - **S2 (ĐÃ XONG) — chiều.** Rút `seg` và `tenure` khỏi danh sách chiều (đã đo: không chart nào dùng; nhớ gỡ **cả** `cfg.segment.band.tenure` cùng lúc — luật quanh `validate.ts:602` lặp trên chính `cfg` nên bỏ sót sẽ sinh lỗi mồ côi). Sửa chữ thường `android`/`ios`/`web` ở chart theme. **Sửa lại một câu sai của bản trước:** `server` **đã có** trong bảng tên đẹp nền tảng (`domain/quantify.ts:46` và `design-system/SrcMatrix.tsx:16`) — không thiếu, đừng thêm lần nữa.
   - **Cái giá đã biết và owner đã đồng ý:** rút `seg` làm **đổi chữ trên dòng drill**. Commit `56128e3` tồn tại đúng để giữ chữ đó ("drill theo seg phải in 'Phân khúc NAV'"). Tài liệu thiết kế §4 nói việc rút này "miễn phí vì không chart nào dùng" — đúng với chart, **sai với panel drill**. Owner đã chấp nhận đổi chữ.
   - `tenure` là chiều **duy nhất** sinh từ seed có sentinel `'chưa-biết'` thật. Test canh sentinel/từ chối phải **chuyển sang một dim khai trong test** trên `tenureMonths` (tiền lệ `projectBands.test.ts:32`), **không được xoá**.
-- **S3 (còn S3c-2) — chart điểm đo.** Cách đếm đi qua `data.sigCounts` bằng **đường riêng**, không qua `rowBuilder`/`qRun` chung. Cột **"giá trị chưa khai"** (§7). Ba trạng thái của nút chiều (§1): chọn được / chọn được kèm *"x% dữ liệu không gán được nền tảng"* / khoá kèm lý do — **tính từ dữ liệu, tuyệt đối không khai tay**. Nhà của chart: **tab "Touchpoint & signal" của `#/atlas`** — mà `#/atlas` hiện là `Placeholder` trong React (`App.tsx:152`), nên phải dựng tối thiểu trước: dải pha → chip nhóm/luồng → **spine có dải nối dày mỏng + vạch đỏ** → panel bước chỉ với tab 1 (tab "Chỉ số liên kết" và "Độ phủ dữ liệu" hoãn). Hình tham chiếu: `output/cxm-platform-prototype.html` (`V.atlas`, `journeySpine`, `stepInspector`).
+- **S3 (ĐÃ XONG) — chart điểm đo.** Cách đếm đi qua `data.sigCounts` bằng **đường riêng**, không qua `rowBuilder`/`qRun` chung. Cột **"giá trị chưa khai"** (§7). Ba trạng thái của nút chiều (§1): chọn được / chọn được kèm *"x% dữ liệu không gán được nền tảng"* / khoá kèm lý do — **tính từ dữ liệu, tuyệt đối không khai tay**. Nhà của chart: **tab "Touchpoint & signal" của `#/atlas`** — lúc lập kế hoạch `#/atlas` còn là `Placeholder`, nên phải dựng tối thiểu trước (đã xong ở S3c-1): dải pha → chip nhóm/luồng → **spine có dải nối dày mỏng + vạch đỏ** → panel bước chỉ với tab 1 (tab "Chỉ số liên kết" và "Độ phủ dữ liệu" hoãn). Hình tham chiếu: `output/cxm-platform-prototype.html` (`V.atlas`, `journeySpine`, `stepInspector`).
 - **S4 (ĐÃ XONG) — dọn.** Bỏ `q16` và `q19`; nhớ gỡ tham chiếu trong `dash` (`seed.ts` có `b:['q17','q18','q19']`) nếu không sẽ lỗi khối treo.
 - **Không đụng hành vi bấm thanh.** Owner chốt giữ nguyên. Màn "VoC theo hành trình" chưa dựng và tầng theme chưa khai `maps` — **không còn là chặn** vì không có gì điều hướng.
 
@@ -167,13 +192,16 @@ Bản chia việc S3 đầy đủ (S3a phép tính → S3b dải hành trình �
 ## Prompt cho session mới
 
 ```
-Đọc docs/DB-FIRST-HANDOFF.md, AI-CONTEXT.md và output/thiet-ke-chart-signal.html.
+Đọc docs/DB-FIRST-HANDOFF.md, AI-CONTEXT.md, output/thiet-ke-chart-signal.html và
+output/thiet-ke-chart-signal-bo-sung-dot-2.html.
 
-Stream: chart theo điểm đo (signal). S1 (nền dữ liệu) đã xong — tsc sạch, 749/749 test xanh,
-NHƯNG CHƯA COMMIT, working tree đang có 13 file thay đổi. Hỏi tôi có commit không trước khi làm gì.
+Stream "chart theo điểm đo (signal)" ĐÃ XONG về code, đã commit hết (main = 17b84ec,
+tsc sạch, 827/827 test xanh / 79 file). Working tree sạch — đừng bắt đầu bằng việc
+commit hay dọn gì.
 
-Việc của session này: làm S2 rồi S3 (xem mục "Việc còn lại"). Không cần bàn lại thiết kế —
-output/thiet-ke-chart-signal.html là bản owner đã duyệt qua sáu vòng.
+Việc còn lại của stream KHÔNG phải code — xem mục "Việc còn lại của stream": chờ dữ
+liệu thật (Signal.values + Bảng D), hai tab còn lại của hồ sơ bước, và tour #/atlas.
+Nếu tôi nhờ làm việc khác, đọc mục "Còn hở" trước để đừng hứa những gì chưa phủ.
 
 Đừng tháo các bất biến ở mục "Bất biến KHÔNG được tháo" — đặc biệt số 7 và 8.
 Đọc mục "Bẫy đã trả giá" TRƯỚC khi sửa bất kỳ test nào.
