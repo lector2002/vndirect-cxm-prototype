@@ -40,6 +40,8 @@
   .q{background:#fff;border:1px solid var(--line);border-left:3px solid var(--acc);
     border-radius:0 8px 8px 0;padding:16px 20px;margin:0 0 14px}
   .q h3{margin-top:0}
+  .done{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.03em;
+    color:#166534;background:#eaf6ee;border:1px solid #b9dfc6;border-radius:999px;padding:1px 9px}
   ul,ol{margin:0 0 12px;padding-left:22px}
   li{margin:0 0 6px}
   .num{font-family:var(--mono);font-size:19px;font-weight:700;color:var(--bad)}
@@ -277,20 +279,45 @@ danh sách chia màu · màn Ngưỡng &amp; chỉ số.</p>
 <p>Sau khi đạt, hai nhóm file <i>vẫn</i> phải sửa và đó là đúng: <code>fixtures/*</code> (sample data cho
 chiều mới) và test của chính chiều đó. Không tính vào con số 0.</p>
 
-<h2>8 · Thứ tự làm (đề xuất, chưa dispatch)</h2>
+<h2>8 · Thứ tự làm</h2>
+
+<div class="q" style="border-left-color:#d97706">
+  <p><b>Sửa thứ tự đã công bố (04/08).</b> Bản đầu của mục này để <i>writer seam</i> ở bước 1 và
+  <code>Customer.attrs</code> ở bước 3. Thứ tự đó <b>sai</b>, và đây là bằng chứng:
+  <code>grep -rn "bandOf\|bandLabels" src</code> chỉ trả về <code>validate.ts</code> —
+  <b><code>bandOf</code> không có consumer nào trong production</b>. Cùng với việc
+  <code>Customer.nav</code> lưu <b>nhãn đã nướng sẵn</b> (<code>'1-5tỷ'</code>), hệ quả là sửa
+  <code>cfg.segment.nav.cuts</code> hôm qua <b>không đổi một pixel nào</b>. Module E dựng đúng máy
+  tính dải nhưng chưa nối vào đường đọc.</p>
+  <p>Làm writer seam trước tiên sẽ cho ra một màn sửa ngưỡng <i>trông như chạy được mà không đổi
+  số nào</i>. Nên hai bước đó <b>gộp và đảo</b>: giá trị thô + phép chiếu phải đi trước hoặc đi
+  cùng writer.</p>
+</div>
+
 <ol>
-  <li><b>Writer seam</b> — thêm writer vào <code>CxmRepository</code> + <code>mock-repository</code>.
-  Không có nó thì không bước nào sau chạy được.</li>
+  <li><b>Giá trị thô + chiếu dải lúc đọc + <code>setCfg</code></b> &mdash; <span class="done">ĐÃ LÀM
+  (<code>c798d2b</code>)</span>. <code>Customer</code> nhận
+  <code>ageYears</code>/<code>navVnd</code>/<code>tenureMonths</code>;
+  <code>data/projectBands.ts</code> chiếu số thô thành nhãn theo <code>cfg.segment</code>, gọi từ
+  hai chỗ (fixture lúc dựng với <code>cfgDefault</code>; <code>getSnapshot()</code> với cfg hiện
+  tại); <code>setCfg</code> trên repo + store, ném khi cut sai. Chiếu ở tầng <code>data/</code>
+  <b>không</b> truyền <code>cfg</code> xuống <code>domain/</code> &mdash; <code>cfg</code> không tới
+  được domain mà không sửa 3 signature export (<code>qRun</code>, <code>qRunSegment</code>,
+  <code>themeSegments</code>) + ~35 call site test, và mỗi chiều thêm về sau lại là một lần sửa
+  signature nữa. Bằng chứng nghiệm thu: thêm một cut sát 0 làm nhãn <code>"0đ"</code> xuất hiện trên
+  chart theme, Σ vẫn bằng <code>theme.n</code>.</li>
   <li><b><code>dim_def</code> + <code>dim_band</code> + <code>dim_value</code></b> thay <code>dims</code> khai tay;
   <code>deriveRows</code> thay phần <code>cust</code>/<code>ev</code> của <code>ROW_BUILDERS</code>;
   <code>dimUsedBy</code>. Bỏ <code>Dim.rows</code>.</li>
-  <li><b><code>Customer.attrs</code></b> — chuyển sang giá trị thô, xoá các union <code>*Band</code>.
-  Đây là bước phá vỡ nhiều nhất; module E3 đã cam kết hướng này nên là phần tiếp nối tự nhiên.</li>
+  <li><b>Dọn union <code>*Band</code></b> &mdash; phần còn lại của bước 1, thuần cơ học: xoá
+  <code>AgeBand</code>/<code>NavBand</code>/<code>TenureBand</code> khi không còn ai đọc (nay chỉ
+  các bảng weight của fixture dùng). Một lần <code>grep</code>, không phải quyết định thiết kế.</li>
   <li><b>Sentinel hai tầng</b> — khoá tên đặt trước + màu hệ thống, có test cấm user trùng tên.</li>
   <li><b>Màn Ngưỡng &amp; chỉ số</b> — từng tab một, theo §6.</li>
   <li><b>Journey/taxonomy CRUD</b> + quan hệ <code>theme→step</code>.</li>
 </ol>
-<p style="color:var(--ink2)">Bước 1–2 không phá giao diện. Bước 3 phá nhiều nên cần chốt trước khi chạm.</p>
+<p style="color:var(--ink2)">Bước 1 đã xong và không phá giao diện (nhãn dưới <code>cfgDefault</code>
+giữ nguyên từng ký tự — 725/725 test xanh). Bước 2 là bước phá vỡ nhiều nhất còn lại.</p>
 
 <h2>9 · Hai câu cần owner quyết</h2>
 
