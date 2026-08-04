@@ -1,5 +1,6 @@
 import { NOT_IDENTIFIED, SIG_CUST_DIMS, SIG_FIRE_DIM } from "../data/projectSignalCounts.ts";
 import type { SigCount } from "../data/projectSignalCounts.ts";
+import { isSegUnknown, MISSING } from "../data/segment.ts";
 import type { Dim, Signal } from "../data/schema/index.ts";
 
 /* Chiếu NĂM bảng đếm (data/projectSignalCounts.ts) thành đúng hình dạng chart điểm đo cần vẽ. Thiết
@@ -24,8 +25,27 @@ import type { Dim, Signal } from "../data/schema/index.ts";
     `dimId` và vòng dựng `dimStates` không thể lệch nhau. */
 const SIG_DIMS: readonly string[] = [...SIG_CUST_DIMS, SIG_FIRE_DIM];
 
+/** BA nghĩa "không biết" có thể xuất hiện trong bảng đếm điểm đo — phải tách hẳn nhau, ở đây và ở
+    mọi tầng phía trên. `unknown-yet` = đợi thì sẽ có (`chưa-biết`); `missing` = đáng ra phải có mà
+    trống, tức lỗi dữ liệu (`thiếu`); `not-identified` = lần bắn không nối được về khách nào
+    (`chưa định danh`). Hai nghĩa còn lại của "không biết" trong hệ thống (`Ẩn danh`,
+    `Chưa đối chiếu được`) thuộc trục bằng chứng VoC, KHÔNG bao giờ vào bảng đếm điểm đo — đừng thêm
+    vào union này cho "đủ bộ năm". */
+export type SigUnknown = "unknown-yet" | "missing" | "not-identified";
+
+/** Dải này mang nghĩa "không biết" nào, hay là một dải có tên thật (`null`). Nhận diện bằng
+    `isSegUnknown`/`NOT_IDENTIFIED` của tầng `data/`, KHÔNG tự so chuỗi — `data/segment.ts:25-30`
+    ghi rõ đó là nguồn duy nhất, và ghi luôn dự án đã từng dính lỗi vì so chuỗi rải rác nhiều nơi.
+    Trả `null` cho dải lạ chưa phân loại được là CÓ CHỦ Ý: nó sẽ hiện thành một dải bình thường có
+    tên riêng — thấy được và đọc được — chứ không bị nhét vào một rổ "không biết" chung. */
+function unknownKindOf(band: string): SigUnknown | null {
+  if (band === NOT_IDENTIFIED) return "not-identified";
+  if (!isSegUnknown(band)) return null;
+  return band === MISSING ? "missing" : "unknown-yet";
+}
+
 /** Một dải (band) của một cột — `band` lấy VERBATIM từ dòng đếm, không hand-type (rule 4). */
-export type SigSlice = { band: string; n: number; rank: number };
+export type SigSlice = { band: string; n: number; rank: number; unknown: SigUnknown | null };
 
 /** Một cột = một giá trị của CHÍNH signal đang xét (rule 3) — không merge cột cùng tên giữa các
     signal khác nhau (`success`/`fail` của sg3/sg5/sg8 là ba số khác nhau, xem test "hai signal cùng
@@ -80,7 +100,7 @@ function noteFor(sig: Signal): SigNote {
 function buildCol(rowsForSigDim: readonly SigCount[], val: string, declared: boolean): SigCol {
   const slices = rowsForSigDim
     .filter((r) => r.val === val)
-    .map((r) => ({ band: r.band, n: r.n }))
+    .map((r) => ({ band: r.band, n: r.n, unknown: unknownKindOf(r.band) }))
     .sort((a, b) => b.n - a.n || (a.band < b.band ? -1 : a.band > b.band ? 1 : 0))
     .map((s, i) => ({ ...s, rank: i }));
   const total = slices.reduce((a, s) => a + s.n, 0);

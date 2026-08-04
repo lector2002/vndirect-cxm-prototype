@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { demoData } from "../data/fixtures/demo.ts";
 import { dims } from "../data/fixtures/seed.ts";
-import { NOT_IDENTIFIED, type SigCount } from "../data/projectSignalCounts.ts";
+import { NOT_IDENTIFIED, SIG_CUST_DIMS, SIG_FIRE_DIM, type SigCount } from "../data/projectSignalCounts.ts";
+import { UNKNOWN_YET } from "../data/segment.ts";
 import type { Signal } from "../data/schema/index.ts";
 import { signalChart } from "./signalChart.ts";
 
@@ -267,5 +268,50 @@ describe("signalChart — pure: không mutate input, cùng input ra cùng output
     expect(chart1).toEqual(chart2);
     expect(demoData.sigCounts).toEqual(rowsBefore);
     expect(demoData.signals[0]).toEqual(sig1Before);
+  });
+});
+
+/* Ba nghĩa "không biết" phải tách hẳn nhau NGAY TỪ ĐÂY. Nếu tầng này trả về một cờ boolean thì tầng
+   vẽ chỉ còn một cách tô cho cả ba, tức gộp ba nghĩa bằng màu — index.css dòng 33-37 đã ghi rõ đó là
+   sai và đã dựng thang màu riêng vì lý do đó. */
+describe("signalChart — ba nghĩa 'không biết' tách riêng, dải có tên thật thì để nguyên", () => {
+  const live = demoData.signals.filter((s) => s.vol > 0).map((s) => s.id);
+  const seen = new Map<string, Set<string>>();
+  for (const dimId of [...SIG_CUST_DIMS, SIG_FIRE_DIM]) {
+    for (const g of signalChart(demoData.sigCounts, demoData.signals, dims, live, dimId).groups) {
+      for (const c of g.cols) {
+        for (const s of c.slices) {
+          const kinds = seen.get(s.band) ?? new Set<string>();
+          kinds.add(String(s.unknown));
+          seen.set(s.band, kinds);
+        }
+      }
+    }
+  }
+
+  it("một dải luôn ra CÙNG một nghĩa, ở mọi chiều và mọi điểm đo", () => {
+    for (const [band, kinds] of seen) {
+      expect([...kinds], `dải "${band}" ra nhiều nghĩa khác nhau`).toHaveLength(1);
+    }
+  });
+
+  it("`chưa định danh` là 'not-identified', không lẫn với hai loại thiếu dữ kiện của khách", () => {
+    expect(seen.get(NOT_IDENTIFIED)).toEqual(new Set(["not-identified"]));
+    expect(seen.get(UNKNOWN_YET)).toEqual(new Set(["unknown-yet"]));
+  });
+
+  it("dải có tên thật để nguyên `null` — không bị quét vào rổ 'không biết'", () => {
+    // Nền tảng và phân khúc NAV là dải có tên thật; `android` là chữ thô, làm đẹp ở tầng hiển thị.
+    expect(seen.get("android")).toEqual(new Set(["null"]));
+    expect(seen.get("<50tr")).toEqual(new Set(["null"]));
+  });
+
+  /* ĐÃ ĐO (05/08): cả BA nghĩa cùng có mặt trong dữ liệu demo. Nên đây không phải ca lý thuyết —
+     tô cả ba cùng một màu xám thì màn hình đầu tiên owner mở đã hiện ba lát không phân biệt được.
+     Test này đứng đây để nếu ai rút bớt phủ của fixture, người sửa biết mình vừa làm mất một ca
+     kiểm THẬT chứ không phải một ca dựng tay. */
+  it("chống rỗng: fixture thật có cả BA nghĩa 'không biết' cùng tồn tại", () => {
+    const kinds = new Set([...seen.values()].flatMap((s) => [...s]).filter((k) => k !== "null"));
+    expect([...kinds].sort()).toEqual(["missing", "not-identified", "unknown-yet"]);
   });
 });

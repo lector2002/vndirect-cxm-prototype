@@ -5,8 +5,10 @@ export { stepState, stepWhy, metricState, sourceHealth, laneOf } from "./state.t
 export type { DerivedState, SourceHealth, LaneKey } from "./state.ts";
 export { getPrimaryAction, advanceAction, advanceBlockedReason } from "./loop.ts";
 export type { LoopStageKey, PrimaryAction } from "./loop.ts";
-export { qRun, qRunCross } from "./quantify.ts";
+export { qRun, qRunCross, PF_LABEL } from "./quantify.ts";
 export type { CrossAxisRow, QuantifyCrossResult } from "./quantify.ts";
+export { signalChart } from "./signalChart.ts";
+export type { SignalChart, SigGroup, SigCol, SigSlice, SigUnknown, DimState, SigNote } from "./signalChart.ts";
 export { buildSearchIndex, queryIndex } from "./search.ts";
 export type { SearchKind, SearchEntry } from "./search.ts";
 export { themeSegments, themeAxisOptions, SUBTHEME_AXIS } from "./themeSegments.ts";

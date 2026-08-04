@@ -51,3 +51,5 @@ export { SearchBox } from "./SearchBox.tsx";
 export type { SearchResult, SearchBoxProps } from "./SearchBox.tsx";
 export { JourneySpine } from "./JourneySpine.tsx";
 export type { SpineStep, JourneySpineProps } from "./JourneySpine.tsx";
+export { SignalColumns } from "./SignalColumns.tsx";
+export type { SigColUnknown, SigColSlice, SigColBar, SigColGroup, SignalColumnsProps } from "./SignalColumns.tsx";
