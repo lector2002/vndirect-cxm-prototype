@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Cfg, CxmData, DimRow, Obs, Step } from "../../../data/schema/index.ts";
 import { BASE_FACTOR } from "../../../domain/index.ts";
 import { Bars, Card, Note } from "../../../design-system/index.ts";
@@ -12,8 +13,15 @@ import { Bars, Card, Note } from "../../../design-system/index.ts";
    THUỘC số bước. 30 bước hay 300 bước vẫn đúng bốn dải. Gộp theo hành trình thì gọn hơn hiện tại
    nhưng vẫn nở tới 32 thanh khi map hết — tức chỉ hoãn đúng vấn đề owner đang chỉ ra.
 
-   Đổi lại, dải phủ không tự chỉ được chỗ cần làm, nên có thêm danh sách "mù nhất" — cắt cứng ở ba
-   bước, phần còn lại đếm ra chữ chứ không kéo dài danh sách.
+   XEM CHI TIẾT NẰM NGAY TẠI ĐÂY, KHÔNG ĐẨY SANG MÀN KHÁC (owner 06/08). Bản đầu bấm một dải là
+   `go('atlas')`, và owner đo bằng cách dùng thật: sang bản đồ hành trình thì thấy nguyên một hành
+   trình, chứ KHÔNG thấy rõ bước nào đang thiếu dữ liệu. Đúng — bản đồ hành trình trả lời "khách rơi
+   ở đâu", không trả lời "ta mù ở đâu". Đẩy người ta sang đó là đẩy sang một câu hỏi khác rồi để họ
+   tự dịch. Nên bấm một dải giờ MỞ NGAY danh sách bước của dải đó, tại chỗ.
+
+   Danh sách mở ra có thể dài (dải "đạt ngưỡng" khi map hết sẽ chứa hàng trăm bước) nên nó cuộn
+   trong khung cao cố định — mở rộng theo yêu cầu thì được, nhưng không được đẩy card dài vô tận,
+   vì như thế là lại rơi vào đúng cái bẫy vừa thoát ra.
 
    Mốc chia dải SUY TỪ `cfg.step.covMin`, không ghim 70 vào code: owner đổi ngưỡng thì cả nhãn dải
    lẫn câu chốt phải đổi theo, nếu không màn sẽ khoe một ngưỡng không còn hiệu lực.
@@ -25,7 +33,8 @@ import { Bars, Card, Note } from "../../../design-system/index.ts";
 export type CoverageBlockProps = {
   data: CxmData;
   cfg: Cfg;
-  /** Bấm một dải → điều hướng bản đồ hành trình (port click:()=>go('atlas'), prototype dòng 2201). */
+  /** Link phụ cuối khối → bản đồ hành trình (port click:()=>go('atlas'), prototype dòng 2201).
+      KHÔNG còn gắn vào thanh: xem chi tiết độ phủ là việc của chính khối này. */
   onGo?: (route: string) => void;
 };
 
@@ -36,7 +45,7 @@ function periodLabel(data: CxmData): string {
 
 type StepObs = { step: Step; obs: Obs };
 
-/** Số bước "mù nhất" nêu đích danh. Cắt cứng — danh sách này để CHỈ CHỖ, không để liệt kê hết. */
+/** Số bước "mù nhất" nêu sẵn không cần bấm. Muốn xem hết thì mở danh sách — xem `focus`. */
 const BLIND_SHOWN = 3;
 
 type Bucket = { id: string; label: string; lo: number; hi: number | null };
@@ -63,8 +72,12 @@ function bucketNote(b: Bucket, covMin: number): string {
   return b.lo === 0 ? "gần như mù" : "dưới ngưỡng";
 }
 
+/** Danh sách đang mở: một dải cụ thể, hay toàn bộ phần dưới ngưỡng. */
+type Focus = { kind: "bucket"; id: string } | { kind: "below" } | null;
+
 export function CoverageBlock({ data, cfg, onGo }: CoverageBlockProps) {
   const covMin = cfg.step.covMin;
+  const [focus, setFocus] = useState<Focus>(null);
 
   const measured: StepObs[] = data.steps
     .map((step) => ({ step, obs: data.obs.find((o) => o.stepId === step.id) }))
@@ -75,19 +88,37 @@ export function CoverageBlock({ data, cfg, onGo }: CoverageBlockProps) {
   const unmeasured = data.steps.length - measured.length;
 
   const buckets = coverageBuckets(covMin);
+  const inBucket = (b: Bucket) =>
+    measured.filter((p) => p.obs.cov >= b.lo && (b.hi === null || p.obs.cov <= b.hi));
+
   const rows: DimRow[] = buckets.map((b) => ({
     id: b.id,
     l: `${b.label} · ${bucketNote(b, covMin)}`,
-    v: measured.filter((p) => p.obs.cov >= b.lo && (b.hi === null || p.obs.cov <= b.hi)).length,
+    v: inBucket(b).length,
     c: b.lo < covMin ? "var(--watch)" : "var(--ink3)",
   }));
 
-  const below = measured
-    .filter((p) => p.obs.cov < covMin)
-    .sort((a, b) => a.obs.cov - b.obs.cov);
+  const below = measured.filter((p) => p.obs.cov < covMin).sort((a, b) => a.obs.cov - b.obs.cov);
   const passing = measured.length - below.length;
   const flowName = (flowId: string) => data.flows.find((f) => f.id === flowId)?.name ?? flowId;
   const flowsNoSteps = data.flows.filter((f) => !data.steps.some((s) => s.flowId === f.id)).length;
+
+  const focusBucket = focus?.kind === "bucket" ? buckets.find((b) => b.id === focus.id) : undefined;
+  const focusList: StepObs[] =
+    focus?.kind === "below"
+      ? below
+      : focusBucket
+        ? inBucket(focusBucket).sort((a, b) => a.obs.cov - b.obs.cov)
+        : [];
+  const focusTitle =
+    focus?.kind === "below"
+      ? `${below.length} bước dưới ngưỡng ${covMin}%`
+      : focusBucket
+        ? `${focusList.length} bước trong dải ${focusBucket.label}`
+        : "";
+
+  const toggleBucket = (id: string) =>
+    setFocus((cur) => (cur?.kind === "bucket" && cur.id === id ? null : { kind: "bucket", id }));
 
   return (
     <Card
@@ -99,7 +130,7 @@ export function CoverageBlock({ data, cfg, onGo }: CoverageBlockProps) {
         <b>
           {passing} trên {measured.length} bước
         </b>{" "}
-        đạt ngưỡng phủ {covMin}%
+        đạt ngưỡng phủ {covMin}% · <span className="text-ink-3">bấm một dải để xem bước trong dải đó</span>
       </p>
 
       <Bars
@@ -107,7 +138,7 @@ export function CoverageBlock({ data, cfg, onGo }: CoverageBlockProps) {
         total={measured.length}
         scaled={false}
         formatValue={(r) => String(r.v)}
-        onRowClick={onGo ? () => onGo("atlas") : undefined}
+        onRowClick={(r) => toggleBucket(r.id)}
         axisLabel="Số bước trong mỗi dải độ phủ"
       />
 
@@ -143,13 +174,77 @@ export function CoverageBlock({ data, cfg, onGo }: CoverageBlockProps) {
               ))}
             </ul>
             {below.length > BLIND_SHOWN ? (
-              <p className="text-[12px] text-ink-3 mt-1.5 mb-0" data-testid="cov-blind-more">
-                +{below.length - BLIND_SHOWN} bước nữa dưới ngưỡng — mở bản đồ hành trình để xem hết.
-              </p>
+              <button
+                type="button"
+                data-testid="cov-blind-more"
+                onClick={() => setFocus((cur) => (cur?.kind === "below" ? null : { kind: "below" }))}
+                className="mt-1.5 text-[12px] font-semibold text-primary hover:underline"
+              >
+                {focus?.kind === "below"
+                  ? "Thu gọn"
+                  : `Xem hết ${below.length} bước dưới ngưỡng (+${below.length - BLIND_SHOWN} nữa)`}
+              </button>
             ) : null}
           </>
         )}
       </div>
+
+      {focus ? (
+        <div
+          className="mt-3 border border-line rounded-lg bg-surface-2"
+          data-testid="cov-detail"
+        >
+          <div className="flex items-baseline gap-2 px-3 pt-2.5 pb-1.5">
+            <b className="text-[12.5px]">{focusTitle}</b>
+            <button
+              type="button"
+              data-testid="cov-detail-close"
+              onClick={() => setFocus(null)}
+              className="ml-auto text-[12px] font-semibold text-ink-3 hover:text-ink"
+            >
+              Đóng
+            </button>
+          </div>
+          {focusList.length === 0 ? (
+            /* Dải rỗng KHÔNG được im lặng đóng lại — người ta vừa bấm vào nó, phải trả lời. */
+            <p className="text-[12.5px] text-ink-3 px-3 pb-3 m-0" data-testid="cov-detail-empty">
+              Không bước nào rơi vào dải này.
+            </p>
+          ) : (
+            /* Cuộn trong khung cố định: mở rộng theo yêu cầu thì được, đẩy card dài vô tận thì lại
+               đúng cái bẫy vừa thoát. */
+            <ul className="list-none p-0 m-0 max-h-[220px] overflow-y-auto px-3 pb-3 flex flex-col gap-1">
+              {focusList.map((p) => (
+                <li key={p.step.id} className="text-[12.5px] text-ink-2 flex gap-2">
+                  <b
+                    className="font-mono tabular-nums shrink-0"
+                    style={{ color: p.obs.cov < covMin ? "var(--watch)" : "var(--ink3)" }}
+                  >
+                    {p.obs.cov}%
+                  </b>
+                  <span className="truncate">
+                    {flowName(p.step.flowId)} · {p.step.code} {p.step.name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+
+      {onGo ? (
+        <p className="text-[12px] text-ink-3 mt-2.5 mb-0">
+          <button
+            type="button"
+            data-testid="cov-go-atlas"
+            onClick={() => onGo("atlas")}
+            className="font-semibold text-ink-3 hover:text-ink hover:underline"
+          >
+            Mở bản đồ hành trình
+          </button>{" "}
+          — để xem khách rơi ở đâu; độ phủ thì xem ngay tại đây.
+        </p>
+      ) : null}
     </Card>
   );
 }

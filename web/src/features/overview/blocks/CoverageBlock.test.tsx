@@ -89,7 +89,7 @@ describe("CoverageBlock — phân bố theo dải, không một thanh mỗi bư�
     render(<CoverageBlock data={seed} cfg={cfgDefault} />);
     expect(belowCount).toBeGreaterThan(3); // tiền đề của test
     expect(screen.getByTestId("cov-blind-more")).toHaveTextContent(
-      `+${belowCount - 3} bước nữa dưới ngưỡng`,
+      `Xem hết ${belowCount} bước dưới ngưỡng (+${belowCount - 3} nữa)`,
     );
   });
 
@@ -139,10 +139,80 @@ describe("CoverageBlock — phân bố theo dải, không một thanh mỗi bư�
     expect(top).toHaveAttribute("title", expect.stringContaining(String(want)));
   });
 
-  it("bấm một dải gọi onGo('atlas')", () => {
+  /* Owner đo bằng cách dùng thật (06/08): bấm một dải mà nhảy sang bản đồ hành trình thì thấy nguyên
+     một hành trình, KHÔNG thấy rõ bước nào đang thiếu dữ liệu — vì bản đồ trả lời "khách rơi ở đâu",
+     không trả lời "ta mù ở đâu". Nên chi tiết độ phủ phải mở NGAY TẠI KHỐI NÀY. */
+  it("bấm một dải mở danh sách bước CỦA DẢI ĐÓ tại chỗ, không nhảy sang màn khác", () => {
     const onGo = vi.fn();
     render(<CoverageBlock data={seed} cfg={cfgDefault} onGo={onGo} />);
-    fireEvent.click(screen.getByTestId("bars").children[0]!);
+    expect(screen.queryByTestId("cov-detail")).not.toBeInTheDocument();
+
+    const band = coverageBuckets(covMin).find((b) => b.label === "50–69%")!;
+    const bar = [...screen.getByTestId("bars").children].find((el) =>
+      el.textContent?.startsWith(band.label),
+    )!;
+    fireEvent.click(bar);
+
+    const detail = within(screen.getByTestId("cov-detail"));
+    const want = seed.steps.filter((s) => covOf(s.id) >= band.lo && covOf(s.id) <= band.hi!);
+    expect(screen.getByTestId("cov-detail")).toHaveTextContent(
+      `${want.length} bước trong dải ${band.label}`,
+    );
+    expect(detail.getAllByRole("listitem")).toHaveLength(want.length);
+    expect(onGo).not.toHaveBeenCalled();
+  });
+
+  it("danh sách mở ra nêu ĐỦ mọi bước của dải, kèm tên hành trình và độ phủ", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    const band = coverageBuckets(covMin).find((b) => b.label === "50–69%")!;
+    fireEvent.click(
+      [...screen.getByTestId("bars").children].find((el) => el.textContent?.startsWith(band.label))!,
+    );
+    const detail = within(screen.getByTestId("cov-detail"));
+    for (const s of seed.steps.filter((x) => covOf(x.id) >= band.lo && covOf(x.id) <= band.hi!)) {
+      const flow = seed.flows.find((f) => f.id === s.flowId)!;
+      expect(detail.getByText(`${flow.name} · ${s.code} ${s.name}`)).toBeInTheDocument();
+    }
+  });
+
+  it("bấm lại chính dải đang mở thì đóng; nút Đóng cũng đóng", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    const bar = screen.getByTestId("bars").children[0]!;
+    fireEvent.click(bar);
+    expect(screen.getByTestId("cov-detail")).toBeInTheDocument();
+    fireEvent.click(bar);
+    expect(screen.queryByTestId("cov-detail")).not.toBeInTheDocument();
+
+    fireEvent.click(bar);
+    fireEvent.click(screen.getByTestId("cov-detail-close"));
+    expect(screen.queryByTestId("cov-detail")).not.toBeInTheDocument();
+  });
+
+  it("'Xem hết' mở ĐỦ mọi bước dưới ngưỡng, không chỉ ba bước mù nhất", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    fireEvent.click(screen.getByTestId("cov-blind-more"));
+    const detail = within(screen.getByTestId("cov-detail"));
+    expect(screen.getByTestId("cov-detail")).toHaveTextContent(
+      `${belowCount} bước dưới ngưỡng ${covMin}%`,
+    );
+    expect(detail.getAllByRole("listitem")).toHaveLength(belowCount);
+    expect(screen.getByTestId("cov-blind-more")).toHaveTextContent("Thu gọn");
+  });
+
+  /* Dải rỗng: người ta VỪA BẤM vào nó nên phải được trả lời, không được im lặng không mở gì. */
+  it("bấm một dải không có bước nào thì nói ra, không im lặng", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    expect(covs.filter((c) => c < 50)).toHaveLength(0); // tiền đề: dải '< 50%' đang rỗng
+    fireEvent.click(
+      [...screen.getByTestId("bars").children].find((el) => el.textContent?.startsWith("< 50%"))!,
+    );
+    expect(screen.getByTestId("cov-detail-empty")).toHaveTextContent("Không bước nào rơi vào dải này");
+  });
+
+  it("đường sang bản đồ hành trình vẫn còn, nhưng thành link phụ chứ không phải hành vi của thanh", () => {
+    const onGo = vi.fn();
+    render(<CoverageBlock data={seed} cfg={cfgDefault} onGo={onGo} />);
+    fireEvent.click(screen.getByTestId("cov-go-atlas"));
     expect(onGo).toHaveBeenCalledWith("atlas");
   });
 });

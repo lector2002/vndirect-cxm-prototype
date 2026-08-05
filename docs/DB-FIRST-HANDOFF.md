@@ -6,7 +6,7 @@ _Cập nhật: 2026-08-05 (đợt 3 — pilot mở rộng). Đọc file này + `
 
 - `main` = **`c6767d6`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`) · tài liệu S3 (`725d24d`+`c6767d6`).
 - **Working tree KHÔNG sạch.** Pilot mở rộng (đợt 3, 05/08) + ba vòng sửa layout + đổi điểm đo liveness + mở chia màu Quantify + **bản đồ hành trình bù cho bằng prototype & khoá phase ngoài pilot** + **hồ sơ bước lên đủ ba tab** + **bộ máy tour** đã làm xong và tự kiểm nhưng **chưa commit**. Owner chưa yêu cầu commit.
-- `npx tsc -b` sạch. **903/903 test xanh (82 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → 893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình) → **903/82 (độ phủ đổi sang phân bố theo dải)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
+- `npx tsc -b` sạch. **908/908 test xanh (82 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → 893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình) → 903/82 (độ phủ đổi sang phân bố theo dải) → **908/82 (bấm dải mở danh sách bước tại chỗ)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
 - **Cả stream đã xong về code, kể cả việc treo cuối cùng (bộ máy tour).** Còn lại là việc của owner + việc chờ dữ liệu thật: xem "Còn hở" và "Việc còn lại của stream".
 - Tài liệu thiết kế owner đã duyệt: **`output/thiet-ke-chart-signal.html`** (6 vòng) + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** (bổ sung đợt 2, owner chốt 04/08/2026) — cả hai là nguồn sự thật cho stream này, đọc trước khi code. `output/thiet-ke-chieu-phan-tich.html` và `output/thiet-ke-db-first.html` là của stream trước, còn giá trị lịch sử.
 
@@ -506,6 +506,52 @@ Câu chốt trên đầu: *"24 trên 30 bước đạt ngưỡng phủ 70%"*. Đ
 **Giữ nguyên D1** (charter Phase 2, owner chốt 01/08 — prototype paint `fx(85)=476`): giá trị khối này không được nhân `fx()`. Nay `v` là **số bước** nên bẫy đổi dạng — `fx()` của một số đếm nhỏ vẫn ra con số trông hợp lý cho "số bước". Nên truyền thẳng `scaled={false}` thay vì chỉ vá ở `formatValue`, và có test canh đích danh.
 
 `tsc -b` sạch, **903 test xanh / 82 file** (+20 test so với mốc trước).
+
+## Quét toàn bộ chart theo tiêu chí "nở theo dữ liệu" — 06/08, owner yêu cầu
+
+Câu hỏi áp cho từng chart: **khi map hết 32 flow / vài trăm bước / taxonomy VoC đầy đủ, chart này ra bao nhiêu hàng?**
+
+**Đã có chặn — không cần làm gì:**
+
+| Chart | Hàng = gì | Cái chặn |
+|---|---|---|
+| `@coverage` Độ phủ đo lường | dải độ phủ | **cố định 4 dải**, không phụ thuộc dữ liệu |
+| `@toppri` Điểm gãy ưu tiên | issue | `.slice(0, 10)` |
+| `@intent` Ý định | theme | `.slice(0, TOP_N)` |
+| `@themestack` Chồng theme | theme | `.slice(0, TOP_N)` |
+| `@lanes` Làn công việc | hằng `LANES` | danh mục cố định trong code |
+| `@anomalylanes` | chỉ đếm, không liệt kê | — |
+| `@srcmatrix` | không render danh sách nào | — |
+| `@outcomes` Kết quả | `data.out` | danh mục kết quả, 2 dòng, không nở theo hành trình |
+| Atlas — xương sống | bước của **một** flow | ≤ 7 bước/flow |
+| Atlas — chart điểm đo | chiều | 5 chiều, cố định |
+| Topic detail — sub-theme | sub-theme của **một** theme | ≤ 2/theme; bằng chứng `.slice(EVIDENCE_N)` |
+| `SignalColumns` | signal của một bước | 1 touchpoint/bước ở seed |
+| `QuantifyWidget` | do người dùng dựng | `foldRowTail` gộp đuôi |
+
+**Đang chờ hỏng — hai chỗ, xếp theo mức nguy:**
+
+**1. `@topictrend` "Topic & xu hướng" — không cắt, và mẫu số đang nói sai.** `themes.map()` (`TopicTrendBlock.tsx:130`) render **mọi** theme thành một dòng bảng: 14 dòng hôm nay. Taxonomy VoC là thứ nở nhanh nhất hệ thống — mỗi topic mới là một dòng, vĩnh viễn. Nó là **bảng** chứ không phải bar chart nên chịu được nhiều dòng hơn, nhưng "chịu được" không phải là "có chặn".
+
+Đi kèm một lỗi nói sai đã có sẵn: chip mẫu số ghi *"Đang hiện Top {rising} trên {themes.length} topic đang tăng theo hướng xấu"* — nhưng `tbody` vẽ **toàn bộ** `themes`, không phải `rising` cái. Tức mẫu số khai một tập con trong khi bảng liệt kê tất cả. Cùng loại với lỗi chip mẫu số của `@coverage` vừa sửa (nói về flow trong khi vẽ bước).
+
+**2. `@journeystate` "Trạng thái hành trình" — vừa sửa hôm nay, vẫn nở tới 32.** Gộp theo hành trình đã cắt 30 chip xuống 6 dòng, nhưng số dòng = số flow đã khai bước, nên map hết là **32 dòng**. Theo đúng tiêu chí owner vừa đặt cho `@coverage` (*"ko thể hiển thị cả chục bar"*), chỗ này chưa đạt — nó chỉ hoãn. Chưa sửa vì owner chưa yêu cầu; **hướng sửa đã rõ và giống hệt `@coverage`**: cắt top N hành trình đau nhất (vd 6), phần còn lại đếm ra chữ, bấm để mở danh sách đầy đủ tại chỗ.
+
+**Một chỗ không phải chart nhưng cùng bệnh:** hàng chip flow trong một phase của Atlas (`AtlasPage.tsx:270`) — phase "Giao dịch" có **16 flow** nên 16 chip. Nó là thanh điều hướng chứ không phải chart, và đang nằm trong phase khoá, nên chưa gây hại. Ghi để không quên.
+
+## Bấm vào chart độ phủ mở danh sách bước NGAY TẠI ĐÓ (06/08)
+
+Owner đo bằng cách dùng thật: bấm một dải mà nhảy sang bản đồ hành trình thì thấy nguyên một hành trình, **không thấy rõ bước nào đang thiếu dữ liệu**.
+
+Chẩn đoán: bản đồ hành trình trả lời *"khách rơi ở đâu"*, không trả lời *"ta mù ở đâu"*. Đẩy người ta sang đó là đẩy sang một câu hỏi khác rồi để họ tự dịch. Nên:
+
+- **Bấm một dải → mở ngay danh sách bước của dải đó**, tại chỗ, mỗi dòng có tên hành trình + mã bước + độ phủ. Bấm lại hoặc nút **Đóng** để thu.
+- **"Xem hết N bước dưới ngưỡng"** mở đủ toàn bộ phần dưới ngưỡng, không chỉ ba bước mù nhất.
+- **Dải rỗng vẫn phải trả lời** — người ta vừa bấm vào nó, không được im lặng không mở gì.
+- Danh sách **cuộn trong khung cao cố định** (`max-h-[220px]`): mở rộng theo yêu cầu thì được, đẩy card dài vô tận thì lại rơi đúng cái bẫy vừa thoát.
+- Đường sang bản đồ hành trình **vẫn còn** nhưng thành link phụ cuối khối, kèm một câu nói rõ mỗi màn trả lời câu gì.
+
+`tsc -b` sạch, **908 test xanh / 82 file**.
 
 ## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
 
