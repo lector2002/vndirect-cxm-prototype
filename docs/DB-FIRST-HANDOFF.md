@@ -6,7 +6,7 @@ _Cập nhật: 2026-08-05 (đợt 3 — pilot mở rộng). Đọc file này + `
 
 - `main` = **`c6767d6`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`) · tài liệu S3 (`725d24d`+`c6767d6`).
 - **Working tree KHÔNG sạch.** Pilot mở rộng (đợt 3, 05/08) + ba vòng sửa layout + đổi điểm đo liveness + mở chia màu Quantify + **bản đồ hành trình bù cho bằng prototype & khoá phase ngoài pilot** + **hồ sơ bước lên đủ ba tab** + **bộ máy tour** đã làm xong và tự kiểm nhưng **chưa commit**. Owner chưa yêu cầu commit.
-- `npx tsc -b` sạch. **893/893 test xanh (82 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → **893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
+- `npx tsc -b` sạch. **903/903 test xanh (82 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → 893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình) → **903/82 (độ phủ đổi sang phân bố theo dải)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
 - **Cả stream đã xong về code, kể cả việc treo cuối cùng (bộ máy tour).** Còn lại là việc của owner + việc chờ dữ liệu thật: xem "Còn hở" và "Việc còn lại của stream".
 - Tài liệu thiết kế owner đã duyệt: **`output/thiet-ke-chart-signal.html`** (6 vòng) + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** (bổ sung đợt 2, owner chốt 04/08/2026) — cả hai là nguồn sự thật cho stream này, đọc trước khi code. `output/thiet-ke-chieu-phan-tich.html` và `output/thiet-ke-db-first.html` là của stream trước, còn giá trị lịch sử.
 
@@ -447,9 +447,11 @@ Kèm theo, một câu hỏi phải trả lời bằng test chứ không bằng s
 
 `tsc -b` sạch, **883 test xanh / 82 file** (thêm 22 test / 2 file — 16 cho bộ máy tour, 6 cho ba lỗi vừa nêu).
 
-## Hai chỗ pilot mở rộng làm hỏng mà không ai nhìn lại — owner chỉ ra 05/08
+## Ba chỗ pilot mở rộng làm hỏng mà không ai nhìn lại — owner chỉ ra 05/08
 
-Cả hai cùng một gốc: **màn được thiết kế khi pilot có một flow / sáu bước, rồi pilot lên hai phase / 6 flow / 30 bước, và không ai quay lại xem thiết kế cũ còn đúng không.** Cùng họ với ba lỗi của bộ máy tour: thứ từng đúng, rồi mặt đất dịch đi.
+Cả ba cùng một gốc: **màn được thiết kế khi pilot có một flow / sáu bước, rồi pilot lên hai phase / 6 flow / 30 bước, và không ai quay lại xem thiết kế cũ còn đúng không.** Cùng họ với ba lỗi của bộ máy tour: thứ từng đúng, rồi mặt đất dịch đi.
+
+**Bài học chung, đáng ghim hơn ba lần sửa:** *"một hàng cho mỗi bước"* là thiết kế **phụ thuộc kích thước dữ liệu**. Nó không sai lúc port — nó chỉ có hạn dùng, và không ai ghi hạn đó ra. Chart nào còn dạng một-hàng-một-bản-ghi thì phải trả lời được: **khi map hết 32 flow / vài trăm bước, chart này ra bao nhiêu hàng?** Trả lời "nhiều" là chart đó đang chờ hỏng.
 
 ### 1. Bỏ hero + đoạn hướng dẫn đọc ở đầu bản đồ hành trình
 
@@ -478,7 +480,32 @@ Số đo trên seed 05/08: **30 bước — 2 cần xử lý ngay, 11 cần theo
 
 **Một chỗ dữ liệu chết, nêu chứ không xoá** (quy ước: không dọn code chết có sẵn khi chưa được yêu cầu): `seed.ts:853` còn câu *"Chỉ pilot Mở tài khoản có dữ liệu quan sát. 31 flow còn lại mới map cấu trúc, chưa đo."* — sai từ lúc pilot mở rộng (nay 6 flow đã đo, 26 chưa). **Không hiện lên màn**: trường `sub` của câu hỏi không được component nào render. Nên đây là rác trong fixture, không phải màn nói sai.
 
-`tsc -b` sạch, **893 test xanh / 82 file** (+10 test so với mốc trước).
+### 3. "Độ phủ đo lường" đổi sang phân bố theo dải, thôi một thanh mỗi bước
+
+Cùng bẫy, khối `@coverage`: một thanh cho mỗi bước → **30 thanh** hôm nay. Owner nói thẳng điều kiện nghiệm thu: *"ko thể hiển thị cả chục bar hay cả trăm bar sau khi đủ full hành trình"*.
+
+Điều đó **loại luôn phương án gộp theo hành trình** — dù nó đồng bộ đẹp với khối `@journeystate` vừa sửa, map hết vẫn ra 32 thanh, tức chỉ hoãn đúng vấn đề. Owner chốt **phân bố theo dải độ phủ**: số thanh **không phụ thuộc số bước** — 30 bước hay 300 bước vẫn đúng bốn dải.
+
+| Dải | Đếm (seed 05/08) |
+|---|---|
+| ≥ 90% · đủ để kết luận | 13 |
+| 70–89% · đạt ngưỡng | 11 |
+| 50–69% · dưới ngưỡng | 6 |
+| < 50% · gần như mù | 0 |
+
+Câu chốt trên đầu: *"24 trên 30 bước đạt ngưỡng phủ 70%"*. Độ phủ thật dao động **57%–99%**.
+
+**Mốc chia dải suy từ `cfg.step.covMin`, không ghim 70 vào code** — owner đổi ngưỡng thì nhãn dải và câu chốt đổi theo, nếu không màn khoe một ngưỡng không còn hiệu lực. Có test riêng: đặt `covMin=80` phải ra `80–89%` và **không** còn `70–89%`; ngưỡng trùng mốc có sẵn (50 hoặc 90) ra **ba** dải chứ không đẻ dải rỗng.
+
+**Dải phủ không tự chỉ được chỗ cần làm**, nên kèm danh sách **mù nhất — cắt cứng ở 3 bước**, phần còn lại đếm ra chữ (*"+3 bước nữa dưới ngưỡng"*). Mỗi dòng nêu **tên hành trình trước mã bước**, đúng lý do đã buộc phải làm thế ở khối trên: mã bước lặp giữa các flow.
+
+**Ba nghĩa của "trống" tách hẳn:** bước **đã khai mà chưa đo** không có độ phủ nên **không thuộc dải nào** — đếm riêng thành một Note, tuyệt đối không dồn vào dải thấp nhất. Seed hôm nay đo hết 30/30 nên ca này test bằng data rút gọn.
+
+**Sửa kèm một chỗ lệch có sẵn:** chip mẫu số cũ ghi *"Đang hiện Top 25 trên 32 **flow** có nguồn xác minh"* trong khi chart vẽ **bước** — mẫu số nói về một thứ, chart vẽ một thứ khác. Nay: *"30 bước đã đo trên 30 bước đã khai · 26 trên 32 flow chưa khai bước nào"*.
+
+**Giữ nguyên D1** (charter Phase 2, owner chốt 01/08 — prototype paint `fx(85)=476`): giá trị khối này không được nhân `fx()`. Nay `v` là **số bước** nên bẫy đổi dạng — `fx()` của một số đếm nhỏ vẫn ra con số trông hợp lý cho "số bước". Nên truyền thẳng `scaled={false}` thay vì chỉ vá ở `formatValue`, và có test canh đích danh.
+
+`tsc -b` sạch, **903 test xanh / 82 file** (+20 test so với mốc trước).
 
 ## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
 

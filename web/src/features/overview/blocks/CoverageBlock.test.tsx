@@ -1,41 +1,148 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { cfgDefault, seed } from "../../../data/fixtures/seed.ts";
-import { CoverageBlock } from "./CoverageBlock.tsx";
+import { CoverageBlock, coverageBuckets } from "./CoverageBlock.tsx";
 
 /* Số suy từ seed (obs.cov theo step, ngưỡng cfgDefault.step.covMin=70).
    Mở tài khoản: s1=96 s2=71 s3=64 s4=92 s5=58 s6=89 → s3 (03) và s5 (05) < 70.
    Pilot mở rộng 05/08 thêm 4 bước dưới ngưỡng: s-tra-1=63, s-tra-3=59 (tra soát nạp tiền),
    s-rut-3=61 (xác thực CCCD qua VNeID), s-rut-4=57 (chữ ký & hợp đồng rút tiền) — evidence mỏng ở
    đúng hai cổng nặng nhất của chuỗi rút là điểm nghiệp vụ, không phải số chưa điền.
-   → tổng 6 bước hiện trên thanh. Mọi giá trị cov dưới ngưỡng đều KHÁC NHAU (57·58·59·61·63·64) để
-   `getByText("64%")` chỉ trúng đúng một thanh; trùng số sẽ làm test này đỏ vì nhiều kết quả.
-   signals st∈{gap,designed}: sg9, sg-dvo-4, sg-tra-4 (designed) + sg-nap-4, sg-rut-5 (gap) = 5.
-   (`sg6` từng nằm trong danh sách này; bỏ 05/08 vì chiều Nền tảng trả lời sẵn câu nó định hỏi.
-   Không khẳng định nào ở dưới đếm số này — ghi để đọc trạng thái seed, không phải để test bám vào.) */
-describe("CoverageBlock", () => {
-  it("KHÔNG xuất hiện chuỗi số đã nhân fx() trên thanh — 64/58 hiện raw %, không phải fx(64)=358/fx(58)=325", () => {
-    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
-    expect(screen.getByText("64%")).toBeInTheDocument();
-    expect(screen.getByText("58%")).toBeInTheDocument();
-    expect(screen.queryByText("358")).not.toBeInTheDocument();
-    expect(screen.queryByText("358%")).not.toBeInTheDocument();
-    expect(screen.queryByText("325")).not.toBeInTheDocument();
-    expect(screen.queryByText("325%")).not.toBeInTheDocument();
+   → 6 bước dưới ngưỡng trên 30 bước đã đo. Phân bố dải: ≥90 = 13 · 70-89 = 11 · 50-69 = 6 · <50 = 0. */
+
+const covMin = cfgDefault.step.covMin;
+const covOf = (stepId: string) => seed.obs.find((o) => o.stepId === stepId)!.cov;
+const covs = seed.steps.map((s) => covOf(s.id));
+const belowCount = covs.filter((c) => c < covMin).length;
+
+describe("coverageBuckets — mốc chia dải suy từ ngưỡng, không ghim số", () => {
+  it("covMin mặc định (70) cho bốn dải liền nhau, không hở không chồng", () => {
+    const bs = coverageBuckets(70);
+    expect(bs.map((b) => b.label)).toEqual(["≥ 90%", "70–89%", "50–69%", "< 50%"]);
+    // Liền nhau: đáy dải trên = đỉnh dải dưới + 1.
+    for (let i = 0; i < bs.length - 1; i++) expect(bs[i]!.lo).toBe(bs[i + 1]!.hi! + 1);
   });
 
-  it("D1: tooltip của thanh cũng KHÔNG bị nhân fx() — title bước 03 nói '64%', không phải '358'", () => {
-    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
-    const row = screen.getByText(/03 Liveness & Face match/).closest("[title]");
-    expect(row).toHaveAttribute("title", expect.stringContaining("64%"));
-    expect(row?.getAttribute("title")).not.toContain("358");
+  /* Owner đổi ngưỡng thì NHÃN phải đổi theo. Nếu ai đó ghim "70–89%" vào chuỗi cứng, đây là chỗ đỏ —
+     màn khoe một ngưỡng không còn hiệu lực là đúng loại lỗi cả stream đang chữa. */
+  it("đổi covMin thì dải đổi theo — 80 cho ra '80–89%', không còn '70–89%'", () => {
+    const labels = coverageBuckets(80).map((b) => b.label);
+    expect(labels).toContain("80–89%");
+    expect(labels).not.toContain("70–89%");
   });
 
-  it("bấm một thanh gọi onGo('atlas')", () => {
+  it("ngưỡng trùng một mốc có sẵn thì ra BA dải, không đẻ dải rỗng", () => {
+    expect(coverageBuckets(90).map((b) => b.label)).toEqual(["≥ 90%", "50–89%", "< 50%"]);
+    expect(coverageBuckets(50).map((b) => b.label)).toEqual(["≥ 90%", "50–89%", "< 50%"]);
+  });
+});
+
+describe("CoverageBlock — phân bố theo dải, không một thanh mỗi bước", () => {
+  /* Lý do đổi thiết kế: 30 bước hôm nay, hàng trăm khi map hết. Test này là chỗ chặn nếu ai đó quay
+     lại lối cũ — số thanh phải KHÔNG phụ thuộc số bước. */
+  it("số thanh = số dải (4), không phải số bước (30)", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    const bars = screen.getByTestId("bars");
+    expect(bars.children).toHaveLength(coverageBuckets(covMin).length);
+    expect(bars.children.length).toBeLessThan(seed.steps.length);
+  });
+
+  it("mỗi dải đếm đúng số bước rơi vào nó, và tổng các dải = số bước đã đo", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    const bars = screen.getByTestId("bars");
+    let sum = 0;
+    for (const b of coverageBuckets(covMin)) {
+      const want = covs.filter((c) => c >= b.lo && (b.hi === null || c <= b.hi)).length;
+      const row = [...bars.children].find((el) => el.textContent?.startsWith(b.label));
+      expect(row).toBeDefined();
+      expect(row!.textContent).toContain(String(want));
+      sum += want;
+    }
+    expect(sum).toBe(seed.obs.length);
+  });
+
+  it("câu chốt đếm đúng bước đạt ngưỡng, và nêu chính ngưỡng đang dùng", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    expect(screen.getByTestId("cov-headline")).toHaveTextContent(
+      `${covs.length - belowCount} trên ${covs.length} bước đạt ngưỡng phủ ${covMin}%`,
+    );
+  });
+
+  /* Dải phủ trả lời "đo được bao nhiêu" nhưng không chỉ được CHỖ NÀO — nên phải có danh sách mù
+     nhất. Nó cắt cứng ở 3: danh sách này để chỉ chỗ, không để liệt kê hết. */
+  it("nêu đích danh 3 bước mù nhất, kèm tên hành trình vì mã bước lặp giữa các flow", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    const blind = within(screen.getByTestId("cov-blind"));
+    const worst = seed.steps
+      .map((s) => ({ s, cov: covOf(s.id) }))
+      .filter((x) => x.cov < covMin)
+      .sort((a, b) => a.cov - b.cov)
+      .slice(0, 3);
+    expect(blind.getAllByRole("listitem")).toHaveLength(3);
+    for (const w of worst) {
+      const flow = seed.flows.find((f) => f.id === w.s.flowId)!;
+      expect(blind.getByText(`${flow.name} · ${w.s.code} ${w.s.name}`)).toBeInTheDocument();
+    }
+  });
+
+  it("phần dưới ngưỡng không lọt vào danh sách thì ĐẾM RA CHỮ, không im lặng cắt", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    expect(belowCount).toBeGreaterThan(3); // tiền đề của test
+    expect(screen.getByTestId("cov-blind-more")).toHaveTextContent(
+      `+${belowCount - 3} bước nữa dưới ngưỡng`,
+    );
+  });
+
+  it("mọi bước đạt ngưỡng thì nói thẳng, không để chỗ trống cho người đọc tự đoán", () => {
+    const allPass = { ...seed, obs: seed.obs.map((o) => ({ ...o, cov: 95 })) };
+    render(<CoverageBlock data={allPass} cfg={cfgDefault} />);
+    expect(screen.getByTestId("cov-blind")).toHaveTextContent(
+      `Không bước nào đang dưới ngưỡng ${covMin}%`,
+    );
+    expect(screen.queryByTestId("cov-blind-more")).not.toBeInTheDocument();
+  });
+
+  /* Ba nghĩa của "trống" tách hẳn nhau: bước CHƯA ĐO không có độ phủ nên không thuộc dải nào, và
+     tuyệt đối không được dồn vào dải thấp nhất — "chưa đo" khác hẳn "đo rồi, phủ kém". */
+  it("bước đã khai mà chưa đo được đếm riêng, KHÔNG rơi vào dải '< 50%'", () => {
+    const dropped = seed.steps.slice(0, 3);
+    const partial = {
+      ...seed,
+      obs: seed.obs.filter((o) => !dropped.some((s) => s.id === o.stepId)),
+    };
+    render(<CoverageBlock data={partial} cfg={cfgDefault} />);
+    expect(screen.getByTestId("cov-unmeasured")).toHaveTextContent("3 bước đã khai nhưng chưa đo");
+
+    const bars = screen.getByTestId("bars");
+    const lowest = [...bars.children].find((el) => el.textContent?.startsWith("< 50%"))!;
+    const keptBelow50 = partial.obs.filter((o) => o.cov < 50).length;
+    expect(lowest.textContent).toContain(String(keptBelow50));
+  });
+
+  it("chip mẫu số nói về BƯỚC (thứ chart đang vẽ), không nói về flow như bản cũ", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    const flowsNoSteps = seed.flows.filter((f) => !seed.steps.some((s) => s.flowId === f.id)).length;
+    expect(screen.getByTestId("denom-strip")).toHaveTextContent(
+      `Đang hiện ${seed.obs.length} bước đã đo trên ${seed.steps.length} bước đã khai · ${flowsNoSteps} trên ${seed.flows.length} flow chưa khai bước nào`,
+    );
+  });
+
+  /* D1 (charter Phase 2): giá trị ở khối này KHÔNG được nhân fx(). Nay `v` là SỐ BƯỚC nên bẫy đổi
+     dạng — fx(13) ra một con số trông vẫn rất hợp lý cho "số bước", nên phải canh đích danh. */
+  it("D1: số bước trong dải KHÔNG bị nhân fx() — hiện đúng số đếm thô", () => {
+    render(<CoverageBlock data={seed} cfg={cfgDefault} />);
+    const top = [...screen.getByTestId("bars").children].find((el) =>
+      el.textContent?.startsWith("≥ 90%"),
+    )!;
+    const want = covs.filter((c) => c >= 90).length;
+    expect(top.textContent).toContain(String(want));
+    expect(top).toHaveAttribute("title", expect.stringContaining(String(want)));
+  });
+
+  it("bấm một dải gọi onGo('atlas')", () => {
     const onGo = vi.fn();
     render(<CoverageBlock data={seed} cfg={cfgDefault} onGo={onGo} />);
-    const bars = screen.getByTestId("bars");
-    fireEvent.click(bars.children[0]!);
+    fireEvent.click(screen.getByTestId("bars").children[0]!);
     expect(onGo).toHaveBeenCalledWith("atlas");
   });
 });
