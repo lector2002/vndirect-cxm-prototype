@@ -3,8 +3,9 @@ import type { Dim, SigCount, Signal, Touchpoint } from "../../data/schema/index.
 import { PF_LABEL, signalChart } from "../../domain/index.ts";
 import type { DimState, SigCol, SigGroup, SigSlice } from "../../domain/index.ts";
 import { Badge, Note, SignalColumns } from "../../design-system/index.ts";
-import type { BadgeState, SigColBar, SigColGroup, SigColSlice } from "../../design-system/index.ts";
+import type { SigColBar, SigColGroup, SigColSlice } from "../../design-system/index.ts";
 import { nf } from "../../design-system/format.ts";
+import { SIGNAL_STATUS } from "./signalStatus.ts";
 
 /* Bảng signal (chọn nhiều, checkbox) + chart điểm đo (SignalColumns, domain/signalChart.ts) + panel
    "gắn ở đâu" (Đ4) của MỘT bước — trước đây là khối tĩnh "Signal đang gắn vào bước này" trong
@@ -12,15 +13,6 @@ import { nf } from "../../design-system/format.ts";
    - output/thiet-ke-chart-signal.html §1 (ba việc người dùng làm), §9 (11 tiêu chí nghiệm thu).
    - output/thiet-ke-chart-signal-bo-sung-dot-2.html Đ3 (điểm đo một giá trị), Đ4 (panel gắn ở đâu +
      Bảng D). */
-
-/** Port 1-1 từ AtlasStepInspector.tsx (giữ ĐÚNG câu chữ, kể cả dấu phẩy ở 'designed') — di chuyển
-    cùng bảng signal vì đây là nơi DUY NHẤT còn dùng nó sau khi khối này rời AtlasStepInspector. */
-const SIGNAL_STATUS: Record<Signal["st"], { badge: BadgeState; label: string }> = {
-  live: { badge: "ok", label: "Đang đo" },
-  validating: { badge: "watch", label: "Đang validate" },
-  designed: { badge: "watch", label: "Đã có spec, chưa implement" },
-  gap: { badge: "unknown", label: "Chưa đo (gap)" },
-};
 
 const TABLE_HEADERS = ["Event", "Nguồn", "Platform", "Volume/ngày", "Lần thấy cuối", "Trạng thái"];
 
