@@ -28,6 +28,26 @@ jobs:
         run: |
           mkdir -p _site
           cp output/cxm-platform-prototype.html _site/index.html
+
+      # Bản React đi kèm ở nhánh con /app/ — LINK PROTOTYPE Ở GỐC KHÔNG ĐỔI.
+      # Dùng chung một site Pages vì mỗi repo chỉ có một site; đổi lại, React build
+      # hỏng là cả lượt deploy hỏng, kể cả phần prototype. Chấp nhận có ý thức:
+      # `npm run build` chạy `tsc -b` trước nên lỗi kiểu chặn ngay tại đây.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build bản React
+        working-directory: web
+        env:
+          APP_BASE: /vndirect-cxm-prototype/app/
+        run: |
+          npm ci
+          npm run build
+      - name: Đặt bản React vào /app
+        run: cp -r web/dist _site/app
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
