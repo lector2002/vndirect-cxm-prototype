@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yêu cầu dữ liệu — pilot mở rộng (mở TK · nạp · rút · chuyển tiền)</title>
+<style>
+  :root{
+    --ink:#16181d; --ink2:#5a6270; --ink3:#8b93a1; --line:#e3e6eb; --surface:#fff;
+    --bg:#f7f8fa; --accent:#d4501e; --accent-soft:#fdf2ec;
+    --warn:#8a5a00; --warn-bg:#fff8e6; --warn-line:#f0d79a;
+    --ok:#1d6b3f; --ok-bg:#eefaf1; --ask:#1d4ed8; --ask-bg:#eef2ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+  .wrap{max-width:1120px;margin:0 auto;padding:34px 22px 90px}
+  h1{font-size:25px;line-height:1.3;margin:0 0 6px}
+  .sub{color:var(--ink2);margin:0 0 26px;font-size:14px}
+  h2{font-size:18px;margin:38px 0 12px;padding-bottom:7px;border-bottom:2px solid var(--line)}
+  h3{font-size:15.5px;margin:24px 0 8px}
+  p{margin:0 0 12px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.8px;
+    background:#eef0f4;padding:1px 5px;border-radius:4px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:0 0 16px}
+  .box{border-radius:10px;padding:13px 16px;margin:0 0 16px;border:1px solid}
+  .box.warn{background:var(--warn-bg);border-color:var(--warn-line);color:#4a3400}
+  .box.ok{background:var(--ok-bg);border-color:#bfe3cb}
+  .box.ask{background:var(--ask-bg);border-color:#c9d4fb}
+  .box b{display:block;margin-bottom:4px}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 18px}
+  table{border-collapse:collapse;width:100%;min-width:660px;background:var(--surface);font-size:13.6px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f0f2f6;font-weight:600;font-size:12.8px;letter-spacing:.01em}
+  td.fill{background:#fffdf5;color:var(--ink3);font-style:italic;min-width:150px}
+  .vals{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.2px;line-height:1.55}
+  .tag{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:20px;border:1px solid;white-space:nowrap}
+  .tag.prop{background:var(--accent-soft);border-color:#f0c4ad;color:#8c3410}
+  .tag.new{background:var(--ask-bg);border-color:#c9d4fb;color:#1e40af}
+  .muted{color:var(--ink2);font-size:13.4px}
+  ol,ul{margin:0 0 12px;padding-left:22px}
+  li{margin-bottom:7px}
+  .lead{font-size:15.5px}
+  @media (prefers-color-scheme:dark){
+    :root{--ink:#e8eaee;--ink2:#a3abb8;--ink3:#7d8492;--line:#33383f;--surface:#1c1f24;--bg:#14161a;
+      --accent-soft:#3a2317;--warn-bg:#2e2510;--warn-line:#5c4a1e;--ok-bg:#14291c;--ask-bg:#1a2036}
+    th{background:#242830}
+    code{background:#2a2e36}
+    td.fill{background:#22201a}
+    .box.warn{color:#f0dfb4}
+    .box.ok{border-color:#2c5138}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Yêu cầu dữ liệu — pilot mở rộng</h1>
+<p class="sub">Mở tài khoản (thường + phái sinh) · Nạp tiền · Tra soát nạp · Rút tiền · Chuyển tiền nội bộ<br>
+Lập 05/08/2026 · Bổ sung cho bản yêu cầu đợt 1 (<code>thiet-ke-chart-signal.html</code> §11) và Bảng D đợt 2</p>
+
+<div class="box ask">
+  <b>Điều đã đổi về nguyên tắc so với đợt 1 — đọc chỗ này trước</b>
+  Đợt 1 hỏi bên dữ liệu <i>"điểm đo có những giá trị nào?"</i> và ghi nhận rằng câu trả lời
+  <b>nhiều khả năng chưa tồn tại ở đâu cả</b>. Owner đã chốt 05/08: <b>bên nghiệp vụ là bên đề xuất đo
+  những gì</b>. Nên từ bản này, danh sách giá trị <b>không còn là câu hỏi</b> — nó là <b>đề xuất của
+  chúng tôi</b> gửi sang. Việc của bên dữ liệu đổi thành: đối chiếu đề xuất với hệ thống thật và cho
+  biết cái nào <b>đã ghi sẵn</b>, cái nào <b>đang ghi nhưng tên/giá trị khác</b>, cái nào <b>phải bắt
+  đầu ghi mới</b>.
+</div>
+
+<h2>1 · Phạm vi pilot</h2>
+
+<p>Sáu luồng, ba mươi bước. Đây là toàn bộ mở tài khoản và toàn bộ dòng tiền, theo đúng phạm vi owner
+chốt — không phải một luồng thí điểm như trước.</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Luồng</th><th>Số bước</th><th>Mã trạm</th><th>Đề xuất đủ giá trị<br><span class="muted">→ trả lời "có / tên khác / ghi mới"</span></th><th>Cần dữ liệu thô trước<br><span class="muted">→ chưa đề xuất được giá trị</span></th></tr></thead>
+<tbody>
+<tr><td>Mở tài khoản thường</td><td>6</td><td><code>JS-MTK-01..06</code></td><td>10 <span class="muted">(đợt 1 — <b>có một thay đổi</b>, xem ngay dưới bảng)</span></td><td>—</td></tr>
+<tr><td>Mở tài khoản phái sinh</td><td>5</td><td><code>JS-MTKPS-01..05</code></td><td>3</td><td>1</td></tr>
+<tr><td>Nạp tiền (4 kênh)</td><td>4</td><td><code>JS-NAP-01..04</code></td><td>3</td><td>1</td></tr>
+<tr><td>Tra soát khoản nạp</td><td>4</td><td><code>JS-TRA-01..04</code></td><td>3</td><td>1</td></tr>
+<tr><td>Rút tiền về ngân hàng</td><td>7</td><td><code>JS-RUT-01..07</code></td><td>4</td><td>1</td></tr>
+<tr><td>Chuyển tiền nội bộ</td><td>4</td><td><code>JS-CTNB-01..04</code></td><td>3</td><td>—</td></tr>
+<tr><td colspan="3"><b>Tổng của pilot mở rộng</b> <span class="muted">(chưa tính 10 điểm đo đợt 1)</span></td><td><b>16</b></td><td><b>4</b></td></tr>
+</tbody>
+</table>
+</div>
+
+<p class="muted">Hai cột cuối là <b>hai loại việc khác nhau</b>, xin đừng cộng lại thành một số: 16 điểm đo
+đã có danh sách giá trị và chỉ cần đối chiếu; 4 điểm đo <b>chưa đề xuất được giá trị</b> vì phải xem
+phân bố thật trước (chia dải theo cảm tính là số vô nghĩa). Cả 20 đều nằm ở mục 2, có gắn nhãn phân biệt.</p>
+
+<div class="box">
+  <b>Đợt 1 có một thay đổi: bỏ một điểm đo, thêm một điểm đo (tổng vẫn là 10)</b>
+  <p><b>Bỏ — <code>ekyc_face_device_context</code></b> (bối cảnh thiết bị khi chụp khuôn mặt). Điểm đo này
+  sinh ra để trả lời "trượt liveness thì nghiêng về thiết bị nào, môi trường thế nào". Bản thiết kế nay
+  đã cắt sẵn <b>mọi</b> điểm đo theo chiều Nền tảng (iOS / Android / Web / hệ thống), nên vế thiết bị
+  được trả lời không cần thêm trường. <b>Xin đừng chuẩn bị dữ liệu cho trường này nữa.</b></p>
+  <p><b>Thêm — <code>ekyc_face_liveness_fail_reason</code></b> (lý do trượt liveness &amp; đối chiếu khuôn
+  mặt). Vế còn lại của câu hỏi cũ — "môi trường thế nào" — vẫn cần, và được giữ dưới dạng một lý do
+  trượt: <code>poor_lighting</code>. Đây là <b>điểm đo chỉ ghi khi trượt</b>, mỗi lần trượt đúng một
+  lý do. Năm giá trị đề xuất: <code>face_not_matched</code> · <code>poor_lighting</code> ·
+  <code>liveness_timeout</code> · <code>spoof_suspected</code> · <code>multiple_faces</code>.</p>
+  <p class="muted">Lưu ý về nguồn: sơ đồ quy trình mô tả liveness như <b>một cổng chặn duy nhất</b>,
+  không tách lý do. Năm giá trị trên là <b>đề xuất của bên nghiệp vụ</b>, không phải enum đang có. Nếu
+  hệ thống đang ghi lý do trượt dưới dạng mã lỗi hay chuỗi tự do, xin <b>giao nguyên trạng</b> — chúng
+  tôi tự gom nhóm. Tỉ lệ đạt/trượt của bước <b>không</b> lấy từ điểm đo này mà lấy từ Bảng E
+  (số vào bước / đi tiếp / trượt), để một con số chỉ có một nguồn.</p>
+</div>
+
+<div class="box warn">
+  <b>Số trên bản demo là số bịa, kể cả cột "trạng thái"</b>
+  Bản demo đang hiện <code>✓ Đang đo</code> kèm giờ "lần thấy cuối" cho 16 điểm đo — <b>không có điểm đo
+  nào trong danh sách này đang được đo thật</b>. Trạng thái và giờ là số demo, cần thiết để chạy thử đủ
+  bốn trạng thái trên màn. <b>Ai xem màn cũng sẽ đọc thành sự thật</b>, nên xin đừng dùng ảnh màn hình
+  làm căn cứ về độ phủ. Cột cuối của Bảng C dưới đây chính là chỗ ghi trạng thái thật.
+</div>
+
+<h2>2 · Bảng C (cập nhật) — danh mục điểm đo đề xuất</h2>
+
+<p>Một dòng = một điểm đo. Ba cột đầu là <b>đề xuất của bên nghiệp vụ</b>; cột cuối để bên dữ liệu điền.
+Tên event viết dạng <code>snake_case</code> chỉ để dễ nói chuyện — <b>không phải yêu cầu đặt tên</b>, hệ
+thống đang gọi tên gì thì ghi tên đó vào cột cuối.</p>
+
+<div class="box warn">
+  <b>Mọi danh sách giá trị dưới đây được dựng lại từ tài liệu quy trình, KHÔNG phải quan sát từ dữ liệu</b>
+  Chúng tôi đọc sơ đồ và mô tả quy trình rồi suy ra "điểm này nên có những giá trị nào". <b>Không có
+  danh sách nào ở đây được xác nhận là một enum đang tồn tại trong hệ thống.</b> Ví dụ rõ nhất là
+  <code>withdraw_gate_block_reason</code>: 7 giá trị của nó là <b>chuỗi cổng chặn mà chúng tôi ghép lại
+  từ quy trình rút tiền</b> — rất có thể hệ thống không hề có một trường nào gộp cả 7 khả năng đó, mà
+  mỗi cổng nằm rải ở một chỗ khác nhau.
+  <br><br>
+  Nên câu hỏi <i>"event này có tồn tại không"</i> xin được đọc thành: <b>các mảnh thông tin này hiện
+  nằm ở đâu, và có ghép được về một dòng cho mỗi lệnh không</b> — chứ không phải "tìm giúp cái enum tên
+  như thế này".
+</div>
+
+<div class="box ask">
+  <b>Vì sao nhiều điểm đo chỉ xin "lý do thất bại", không xin "kết quả" — không phải quên</b>
+  Năm điểm đo dưới đây có tên kết thúc bằng <code>_reason</code> và <b>cố ý không chứa giá trị thành
+  công</b>: <code>deriv_open_ineligible_reason</code> · <code>deriv_contract_otp_fail_reason</code> ·
+  <code>deposit_reconcile_fail_reason</code> · <code>withdraw_gate_block_reason</code> ·
+  <code>withdraw_vneid_fail_reason</code>.
+  <br><br>
+  Lý do rất thực dụng: khi thành công chiếm ~90%, cột "thành công" nén mọi lý do thất bại xuống mức mắt
+  không phân biệt được — <b>mất đúng câu hỏi mà điểm đo tồn tại để trả lời</b> (chặn vì lý do gì).
+  Số lượt thành công <b>đã có ở Bảng E</b> (số đi tiếp của bước đó), nên bỏ nó khỏi đây <b>không mất
+  thông tin nào</b>, chỉ bớt trùng.
+  <br><br>
+  Hệ quả với bên dữ liệu: nếu hệ thống đang ghi <b>một trường kết quả gộp cả thành công lẫn lý do</b>
+  (dạng <code>status = success | timeout | mismatch</code>) thì <b>cứ giao nguyên như thế</b> — ghi vào
+  cột cuối là "trường gộp", chúng tôi tự lọc. Đừng tạo trường mới chỉ để khớp tên ở đây.
+</div>
+
+<h3>Mở tài khoản phái sinh</h3>
+<div class="scroll">
+<table>
+<thead><tr><th style="min-width:200px">Điểm đo đề xuất</th><th>Đo ở bước nào</th><th>Giá trị đề xuất</th><th>Bên dữ liệu điền</th></tr></thead>
+<tbody>
+<tr><td><code>deriv_open_ineligible_reason</code><br><span class="muted">Lý do KHÔNG mở được phái sinh (tỉ lệ đủ điều kiện lấy từ Bảng E)</span></td>
+    <td>Kiểm tra điều kiện<br><code>JS-MTKPS-01</code></td>
+    <td class="vals">no_base_account · cccd_not_verified</td><td class="fill">…</td></tr>
+<tr><td><code>deriv_contract_otp_fail_reason</code><br><span class="muted">Lý do ký hợp đồng OTP không thành — bắn mỗi lần thử, nên nhiều hơn số ca trượt cuối cùng</span></td>
+    <td>Ký hợp đồng<br><code>JS-MTKPS-03</code></td>
+    <td class="vals">otp_expired · otp_not_received</td><td class="fill">…</td></tr>
+<tr><td><code>deriv_vsdc_approval_result</code><br><span class="muted">Kết quả VSDC duyệt hồ sơ</span></td>
+    <td>Chờ VSDC duyệt<br><code>JS-MTKPS-04</code></td>
+    <td class="vals">approved · rejected</td><td class="fill">…</td></tr>
+<tr><td><code>deriv_vsdc_wait_duration</code> <span class="tag prop">chưa có giá trị</span><br><span class="muted">Chờ VSDC bao lâu — cần thang thời gian, chưa đề xuất được khi chưa biết phân bố thật</span></td>
+    <td>Chờ VSDC duyệt<br><code>JS-MTKPS-04</code></td>
+    <td class="vals">— <span class="muted">xin phân bố thô để tự chia thang</span></td><td class="fill">…</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Nạp tiền</h3>
+<div class="scroll">
+<table>
+<thead><tr><th style="min-width:200px">Điểm đo đề xuất</th><th>Đo ở bước nào</th><th>Giá trị đề xuất</th><th>Bên dữ liệu điền</th></tr></thead>
+<tbody>
+<tr><td><code>deposit_credit_received</code><br><span class="muted">Tiền về TK chuyên dụng qua kênh nào</span></td>
+    <td>Tiền về TK chuyên dụng<br><code>JS-NAP-01</code></td>
+    <td class="vals">qr · bank_gateway · auto_debit_link · counter</td><td class="fill">…</td></tr>
+<tr><td><code>deposit_reconcile_fail_reason</code><br><span class="muted">Lý do KHÔNG ghép được khoản tiền với chủ tài khoản (số ghép được lấy từ Bảng E)</span></td>
+    <td>Đối soát chủ khoản<br><code>JS-NAP-02</code></td>
+    <td class="vals">holder_not_found · amount_mismatch</td><td class="fill">…</td></tr>
+<tr><td><code>deposit_credit_timing</code><br><span class="muted">Ghi có ngay hay chờ xử lý cuối ngày</span></td>
+    <td>Ghi có tiểu khoản<br><code>JS-NAP-03</code></td>
+    <td class="vals">immediate · end_of_day</td><td class="fill">…</td></tr>
+<tr><td><code>deposit_amount_band</code> <span class="tag prop">chưa có giá trị</span><br><span class="muted">Dải số tiền nạp — cần phân bố thật mới chia dải, chia sẵn theo cảm tính là số vô nghĩa</span></td>
+    <td>Tiền về TK chuyên dụng<br><code>JS-NAP-01</code></td>
+    <td class="vals">— <span class="muted">xin số tiền thô từng khoản</span></td><td class="fill">…</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Tra soát khoản nạp</h3>
+<div class="scroll">
+<table>
+<thead><tr><th style="min-width:200px">Điểm đo đề xuất</th><th>Đo ở bước nào</th><th>Giá trị đề xuất</th><th>Bên dữ liệu điền</th></tr></thead>
+<tbody>
+<tr><td><code>trace_request_created</code><br><span class="muted">Khách gửi yêu cầu tra soát</span></td>
+    <td>Form tạo yêu cầu<br><code>JS-TRA-01</code></td>
+    <td class="vals">created</td><td class="fill">…</td></tr>
+<tr><td><code>trace_attachment_count</code><br><span class="muted">Khách đính kèm mấy file chứng từ</span></td>
+    <td>Form tạo yêu cầu<br><code>JS-TRA-01</code></td>
+    <td class="vals">0 · 1 · 2 · 3 · 4 · 5</td><td class="fill">…</td></tr>
+<tr><td><code>trace_state_entered</code><br><span class="muted">Yêu cầu đi vào trạng thái nào — đúng 5 trạng thái của quy trình</span></td>
+    <td>Xử lý tại TTTT<br><code>JS-TRA-03</code></td>
+    <td class="vals">cho_tiep_nhan · dang_xu_ly_tttt · cho_ben_thu_ba · hoan_tat · tu_choi</td><td class="fill">…</td></tr>
+<tr><td><code>trace_sla_breach</code> <span class="tag prop">chưa có giá trị</span><br><span class="muted">Quá SLA hay không — cần biết SLA cam kết là bao nhiêu trước đã</span></td>
+    <td>Kết quả tra soát<br><code>JS-TRA-04</code></td>
+    <td class="vals">— <span class="muted">xin mốc SLA đang cam kết + thời điểm từng trạng thái</span></td><td class="fill">…</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Rút tiền về ngân hàng</h3>
+<div class="scroll">
+<table>
+<thead><tr><th style="min-width:200px">Điểm đo đề xuất</th><th>Đo ở bước nào</th><th>Giá trị đề xuất</th><th>Bên dữ liệu điền</th></tr></thead>
+<tbody>
+<tr><td><code>withdraw_request_submitted</code><br><span class="muted">Khách bấm gửi lệnh rút</span></td>
+    <td>Nhập số tiền rút<br><code>JS-RUT-01</code></td>
+    <td class="vals">submitted</td><td class="fill">…</td></tr>
+<tr><td><code>withdraw_gate_block_reason</code> <span class="tag new">quan trọng nhất</span><br><span class="muted">Cổng nào chặn lệnh rút — 7 lý do theo đúng chuỗi 7 cổng của quy trình (số lệnh qua hết cổng lấy từ Bảng E)</span></td>
+    <td>Cổng RTT<br><code>JS-RUT-02</code></td>
+    <td class="vals">insufficient_withdrawable · rtt_below_100 · cccd_not_verified · signature_missing · otp_failed · over_limit_after_16h · month_end_blackout</td><td class="fill">…</td></tr>
+<tr><td><code>withdraw_vneid_fail_reason</code><br><span class="muted">Lý do trượt xác thực CCCD qua VNeID — VNeID bắt buộc với TK mở sau 01/01/2026</span></td>
+    <td>Xác thực VNeID<br><code>JS-RUT-03</code></td>
+    <td class="vals">timeout · mismatch · app_not_installed</td><td class="fill">…</td></tr>
+<tr><td><code>withdraw_payout_result</code><br><span class="muted">Ngân hàng thụ hưởng nhận lệnh hay từ chối</span></td>
+    <td>Lệnh chuyển ra NH<br><code>JS-RUT-07</code></td>
+    <td class="vals">success · bank_reject</td><td class="fill">…</td></tr>
+<tr><td><code>withdraw_video_sign_result</code> <span class="tag prop">chưa có giá trị</span><br><span class="muted">Chữ ký video call — chưa biết quy trình này ghi lại kết quả dưới dạng gì</span></td>
+    <td>Chữ ký & hợp đồng<br><code>JS-RUT-04</code></td>
+    <td class="vals">— <span class="muted">xin biết hệ thống nào đang giữ kết quả video call</span></td><td class="fill">…</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3>Chuyển tiền nội bộ</h3>
+<div class="scroll">
+<table>
+<thead><tr><th style="min-width:200px">Điểm đo đề xuất</th><th>Đo ở bước nào</th><th>Giá trị đề xuất</th><th>Bên dữ liệu điền</th></tr></thead>
+<tbody>
+<tr><td><code>internal_transfer_submitted</code><br><span class="muted">Khách gửi lệnh chuyển giữa hai tiểu khoản</span></td>
+    <td>Chọn tiểu khoản<br><code>JS-CTNB-01</code></td>
+    <td class="vals">submitted</td><td class="fill">…</td></tr>
+<tr><td><code>internal_transfer_reject_reason</code><br><span class="muted">Lý do lệnh bị chặn</span></td>
+    <td>Kiểm tra số dư<br><code>JS-CTNB-02</code></td>
+    <td class="vals">wrong_subaccount_pair · insufficient_available · otp_failed</td><td class="fill">…</td></tr>
+<tr><td><code>internal_transfer_posted</code><br><span class="muted">Hạch toán xong hai tiểu khoản</span></td>
+    <td>Hạch toán<br><code>JS-CTNB-04</code></td>
+    <td class="vals">posted</td><td class="fill">…</td></tr>
+</tbody>
+</table>
+</div>
+
+<h2>3 · Bảng E (mới) — số phễu từng bước</h2>
+
+<p>Bảng A/B/C nói về <b>điểm đo</b>. Nhưng màn hành trình còn vẽ một thứ nữa: <b>phễu</b> — mỗi bước có
+bao nhiêu lượt vào, bao nhiêu xong, bao nhiêu trượt. Hiện toàn bộ ba mươi bước đang chạy bằng số demo,
+nên cần xin thật. Một dòng = một bước trong một kỳ.</p>
+
+<div class="scroll">
+<table>
+<thead><tr><th>Trường</th><th>Dùng để làm gì</th><th>Bên dữ liệu điền</th></tr></thead>
+<tbody>
+<tr><td>Mã bước</td><td>Nối với ba mươi bước ở mục 1 (dùng mã trạm <code>JS-…</code> nếu bên dữ liệu có, hoặc bất cứ mã nào ổn định)</td><td class="fill">…</td></tr>
+<tr><td>Số lượt vào bước</td><td>Bề dày dải nối trên sơ đồ hành trình</td><td class="fill">…</td></tr>
+<tr><td>Số lượt đi tiếp</td><td>Cùng với số trượt, dựng tỉ lệ rơi từng bước</td><td class="fill">…</td></tr>
+<tr><td>Số lượt trượt / dừng lại</td><td>Vạch đỏ và ngưỡng "cần xử lý ngay"</td><td class="fill">…</td></tr>
+<tr><td>Thời điểm</td><td>Xin thô, không xin gộp sẵn theo kỳ — mình tự gộp</td><td class="fill">…</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="box warn">
+  <b>Một chỗ dễ hiểu sai, xin đọc kỹ — cách chốt cohort</b>
+  Sơ đồ hành trình giả định <b>vào bước = đi tiếp + trượt</b> ở mọi bước. Điều đó chỉ đúng khi lấy
+  <b>một cohort đã tất toán</b>: mọi lượt trong kỳ đã ra kết quả cuối. Nếu cắt theo <b>thời điểm</b>
+  thay vì theo cohort, các lượt đang treo (đang chờ VSDC duyệt, đang chờ bên thứ ba trả lời) sẽ làm
+  <b>vào bước &gt; đi tiếp + trượt</b> và sơ đồ sẽ vẽ sai.
+  <br><br>
+  Xin <b>một trong hai</b>: (a) số của một cohort đã tất toán, hoặc (b) số theo thời điểm <b>kèm cột
+  "đang treo"</b> tách riêng. Cách nào cũng dùng được — nhưng phải nói rõ là cách nào, đừng để mình đoán.
+</div>
+
+<h2>4 · Bảng A · B · D — giữ nguyên như đã gửi</h2>
+
+<ul>
+  <li><b>Bảng A</b> (từng lần điểm đo bắn) và <b>Bảng B</b> (hồ sơ khách): <b>không đổi trường nào</b>.
+      Chỉ mở rộng phạm vi sang 20 điểm đo ở mục 2. Đặc tả gốc: <code>thiet-ke-chart-signal.html</code> §11.</li>
+  <li><b>Bảng D</b> (định danh element trên web/app: tên screen, route/deeplink, id element phát sinh
+      event): <b>vẫn chưa nhận được</b>, và vẫn cần. Đặc tả ở cuối
+      <code>thiet-ke-chart-signal-bo-sung-dot-2.html</code>. Panel "gắn ở đâu" trên màn hiện đang nói rõ
+      nó chỉ là mô tả nghiệp vụ, chưa phải vị trí kỹ thuật — đúng vì thiếu Bảng D.</li>
+</ul>
+
+<h2>5 · Yêu cầu về cách lấy</h2>
+
+<p>Ba yêu cầu của đợt 1 <b>vẫn nguyên giá trị</b> và xin nhắc lại vì chúng là chỗ hay mất dữ liệu nhất:</p>
+
+<ol>
+  <li><b>Nối bằng LEFT JOIN, không phải INNER JOIN.</b> Lần bắn không gắn được khách vẫn phải về. Khoá
+      khách rỗng là <b>giá trị hợp lệ</b>, không phải dòng lỗi.</li>
+  <li><b>Xin số thô, không xin nhãn nhóm.</b> Số đồng, ngày sinh — mình tự chia dải, vì ranh giới dải là
+      cấu hình đổi được trên màn.</li>
+  <li><b>Xin thời điểm thô, không gộp sẵn theo kỳ.</b></li>
+</ol>
+
+<p>Thêm hai điều riêng của nhóm dòng tiền:</p>
+
+<ol start="4">
+  <li><b>Nhóm dòng tiền đo ở phía server, không đo trên máy khách.</b> Đây là ràng buộc đã chốt trong
+      thiết kế, không phải sở thích: số tiền và kết quả giao dịch không nhận từ client. Nên với cả bốn
+      luồng nạp · tra soát · rút · chuyển nội bộ, xin <b>nguồn phía server</b>. Nếu một thông tin
+      <b>chỉ</b> tồn tại ở phía client, xin ghi rõ vào cột cuối là "chỉ có ở client" — đừng bỏ trống,
+      vì đó là thông tin có ích.</li>
+  <li><b>Kênh nạp là giá trị của một điểm đo, không phải bốn luồng riêng.</b> Bốn kênh (QR · cổng ngân
+      hàng · liên kết tự động · quầy) đi vào cùng một đường tiền, nên xin <b>một bảng có cột kênh</b>,
+      đừng tách thành bốn nguồn rời rồi mình phải ghép lại.</li>
+</ol>
+
+<div class="box ok">
+  <b>Không cần làm giúp phần tổng hợp</b>
+  Giao <b>raw</b> là tốt nhất. Chọn cột nào, cắt thế nào, gộp theo kỳ nào là việc bên nghiệp vụ tự làm.
+  Bản này <b>cố ý không</b> dựng hợp đồng từng cột hay đặc tả kiểu dữ liệu — xin đúng thứ cần, còn hình
+  thức giao thì theo cái gì sẵn nhất bên dữ liệu.
+</div>
+
+<h2>6 · Tra nghiệp vụ ↔ tên trong code</h2>
+<div class="scroll">
+<table>
+<thead><tr><th>Nói với người</th><th>Tên trong code</th></tr></thead>
+<tbody>
+<tr><td>Điểm đo</td><td><code>Signal</code></td></tr>
+<tr><td>Giá trị của điểm đo (cột của chart)</td><td><code>Signal.values</code></td></tr>
+<tr><td>Trạng thái điểm đo (đang đo / đang kiểm / mới thiết kế / còn thiếu)</td><td><code>Signal.st</code></td></tr>
+<tr><td>Đo ở phía nào</td><td><code>Signal.es</code> — bắt buộc <code>server</code> cho nhóm dòng tiền</td></tr>
+<tr><td>Điểm tiếp xúc</td><td><code>Touchpoint</code></td></tr>
+<tr><td>Bước trong hành trình · mã trạm</td><td><code>Step</code> · <code>Step.stationId</code></td></tr>
+<tr><td>Số phễu từng bước (Bảng E)</td><td><code>obs</code> — <code>entered</code> / <code>completed</code> / <code>failed</code></td></tr>
+<tr><td>Bảng đếm dựng chart</td><td><code>sigCounts</code></td></tr>
+</tbody>
+</table>
+</div>
+
+</div>
+</body>
+</html>

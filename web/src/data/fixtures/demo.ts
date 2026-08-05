@@ -584,6 +584,39 @@ function genEvidenceForTheme(
    dùng nó — không tự bịa khoá mới như generateCustomers làm với genUniqueKey (đó là khoá KHÁCH, đây
    là khoá NỐI tới khách đã tồn tại). Nhận cả Customer chứ không chỉ `key` vì THEME_SKEW lệch theo
    TRƯỜNG của khách (seg/nav/acq), không đọc được từ mảng khoá. */
+/* Sàn "mỗi bước có ít nhất MỘT bằng chứng". Đây là quyết định CHẤT LƯỢNG DEMO, KHÔNG phải phát biểu
+   rằng luồng nhỏ nhận nhiều phản hồi hơn thực tế: hồ sơ bước trên màn mà rỗng bằng chứng thì người xem
+   demo tưởng màn bị lỗi.
+   Vì sao cần: `EV_STEPS` rút bước theo trọng số `obs.entered`, nên khi pilot mở rộng 05/08 thêm luồng
+   NHỎ (tra soát nạp tiền 148 lượt/ngày, cạnh mở tài khoản 18.420) thì bước của luồng nhỏ có xác suất
+   được rút ~0,09% mỗi lần — gần như không bao giờ trúng, và bước đó không có bằng chứng nào.
+   Cách bù CỐ Ý là CHUYỂN ĐÍCH, không phải THÊM DÒNG: tổng số bằng chứng và số bằng chứng của TỪNG
+   theme không đổi một dòng nào, nên `idx` (mã EV-DEMO-*), pool `ck` và mọi test so tỷ trọng theo theme
+   (F2b) không bị xê dịch — chỉ trường `step` của đúng vài dòng đổi chỗ, lấy từ bước ĐÔNG NHẤT.
+   Ném lỗi thay vì bù thiếu lặng lẽ: nếu bước đông nhất không đủ dòng để nhường thì giả định "vài dòng"
+   đã sai và phải có người xem lại, không được để một bước vẫn rỗng mà test vẫn xanh. */
+function coverEveryStep(ev: readonly Evidence[]): Evidence[] {
+  const covered = new Set(ev.map((e) => e.step));
+  const uncovered = seed.steps.filter((s) => !covered.has(s.id)).map((s) => s.id);
+  if (uncovered.length === 0) return [...ev];
+
+  const donor = [...EV_STEPS].sort((a, b) => b[1] - a[1])[0]![0];
+  const donorIdx: number[] = [];
+  for (let i = ev.length - 1; i >= 0 && donorIdx.length < uncovered.length; i--) {
+    if (ev[i]!.step === donor) donorIdx.push(i);
+  }
+  if (donorIdx.length < uncovered.length) {
+    throw new Error(
+      `coverEveryStep: bước đông nhất (${donor}) chỉ có ${donorIdx.length} dòng để nhường, cần ${uncovered.length}`,
+    );
+  }
+  const moveTo = new Map(donorIdx.map((i, k) => [i, uncovered[k]!] as const));
+  return ev.map((e, i) => {
+    const to = moveTo.get(i);
+    return to === undefined ? e : { ...e, step: to };
+  });
+}
+
 export function generateEvidence(themes: readonly TaxNode[], cust: readonly Customer[]): Evidence[] {
   const rng = mulberry32(DEMO_EV_SEED);
   const out: Evidence[] = [];
@@ -592,7 +625,7 @@ export function generateEvidence(themes: readonly TaxNode[], cust: readonly Cust
     out.push(...genEvidenceForTheme(rng, theme, idx, ckPoolFor(theme, cust)));
     idx += evCountForTheme(theme);
   }
-  return out;
+  return coverEveryStep(out);
 }
 
 /* Ghép 7 khách THẬT của seed (giữ nguyên, không sửa) với 293 khách SINH — tổng vẫn đúng 300.
@@ -645,9 +678,128 @@ const SIG_NULL_RATE: Record<string, number> = {
   sg3: 0.45, // tp2/s2 — đang chụp giấy tờ, một phần đã đối chiếu được
   sg4: 0.31, // tp2/s2 — khớp đúng ví dụ minh hoạ trong thiết kế §1
   sg5: 0.22, // tp3/s3 — qua liveness, phần lớn đã có hồ sơ
+  sg11: 0.22, // tp3/s3 — cùng bước với sg5 nên cùng tỉ lệ, không có lý do gì lệch
   sg7: 0.15, // tp4/s4 — đã xác nhận thông tin
   sg8: 0.1, // tp5/s5 — sắp ký hợp đồng, gần như đã định danh
   sg10: 0.05, // tp6/s6 — tài khoản đã kích hoạt
+
+  /* Pilot mở rộng 05/08 — quy luật ở đây NGƯỢC với mở tài khoản, và đó là điểm nghiệp vụ đáng nhìn
+     nhất của cả nhóm này: muốn nạp · rút · chuyển tiền thì khách BUỘC phải đã đăng nhập và đã có tài
+     khoản, nên gần như mọi lần bắn đều gắn được khách — "chưa định danh" gần 0, không phải cao ở đầu
+     hành trình như mở TK.
+     NGOẠI LỆ DUY NHẤT là `sg-nap-1`: tiền về TK chuyên dụng TRƯỚC khi biết tiền của ai (chính vì thế
+     mới có bước đối soát, và mới có luồng tra soát). 0,40 là chỗ "chưa định danh" thật sự có nghĩa
+     trong nhóm này. `sg-nap-2` còn 0,12 vì đối soát chỉ giải quyết được phần lớn, chưa phải toàn bộ.
+     Vẫn LÀ số demo như 8 dòng trên, chọn theo quy luật vừa nêu chứ không phải số đo thật. */
+  'sg-dvo-1': 0.06, // đã có TK cơ sở nên biết khách là ai
+  'sg-dvo-2': 0.04,
+  'sg-dvo-3': 0.02, // VSDC trả kết quả theo hồ sơ đã định danh
+  'sg-nap-1': 0.4, // tiền tới trước khi biết của ai — khoảng mù thật của luồng nạp
+  'sg-nap-2': 0.12, // sau đối soát vẫn còn khoản chưa ghép được
+  'sg-nap-3': 0.03,
+  'sg-tra-1': 0.03, // khách chủ động gửi yêu cầu khi đã đăng nhập
+  'sg-tra-2': 0.03,
+  'sg-tra-3': 0.05,
+  'sg-rut-1': 0.02,
+  'sg-rut-2': 0.02,
+  'sg-rut-3': 0.04,
+  'sg-rut-4': 0.02,
+  'sg-ctn-1': 0.02,
+  'sg-ctn-2': 0.03,
+  'sg-ctn-3': 0.02,
+};
+
+/* Trọng số phân bố của MỘT signal — theo giá trị (`val`) và/hoặc theo nền tảng (`pf`). Thiếu khai thì
+   mặc định chia ĐỀU, đúng như trước khi có bảng này.
+
+   VÌ SAO CẦN: chia đều làm chart tự nói ngược spine. `sg-rut-2` lúc còn giá trị `pass` bị chia đều ra
+   ~12,9% cho `pass` — tức 87% lệnh rút bị chặn — trong khi spine ngay phía trên nói 2.351/3.180 = 74%
+   rút xong. Cùng một dân số, hai con số chửi nhau trên CÙNG một màn. Khai trọng số thì chart và spine
+   thành CÙNG một phép tính, không còn là hai lần bịa độc lập.
+
+   QUY TẮC THỨ HAI, owner chốt 05/08 sau khi xem màn — ĐIỂM ĐO KHÔNG GỘP "THÀNH CÔNG" VỚI "LÝ DO":
+   khai đúng trọng số vẫn chưa đủ. Một giá trị áp đảo (thành công ~90%) nén mọi lý do thất bại xuống
+   1–4px, mắt không phân biệt được 271 với 232 với 14 — chart mất đúng câu hỏi nó tồn tại để trả lời.
+   Nên điểm đo nào có giá trị áp đảo VÀ từ 3 giá trị trở lên thì BỎ giá trị thành công, chỉ giữ các lý
+   do; tỉ lệ thành/không đọc ở spine ngay phía trên nên không mất thông tin nào. Áp cho đúng 5 điểm đo
+   (`sg-dvo-1` `sg-dvo-2` `sg-nap-2` `sg-rut-2` `sg-rut-3`), và `vol` của chúng đổi thành ĐÚNG số
+   `failed` của bước tương ứng — nhờ vậy chart lại càng khớp spine chặt hơn trước.
+   Loại chỉ 2 giá trị (`sg-dvo-3` 903/39, `sg-rut-4` 2.351/13, `sg-nap-3`) CỐ Ý giữ nguyên: chỉ hai
+   cột thì hai con số đọc thẳng được, mà tách ra sẽ thành điểm đo một giá trị — vô nghĩa.
+
+   QUY TẮC KHAI (một quy tắc, hai căn cứ hợp lệ — không xét từng signal theo cảm tính):
+     (a) có một số `obs` trên cùng màn ràng buộc nó → khai theo đúng số đó;
+     (b) có một câu trong `note` của flow nói rõ thứ tự lớn nhỏ → khai theo thứ tự đó.
+   Không (a) cũng không (b) → ĐỂ CHIA ĐỀU và hiểu rằng đọc phân bố cột của signal đó là đọc sai.
+   Trường hợp duy nhất như vậy ở nhóm này là `sg-tra-2` (số file đính kèm 0–5): note chỉ nói "tối đa
+   5 file", không nói ai đính kèm mấy file — nên 6 cột bằng nhau là chỗ lấp, không phải phát hiện.
+
+   Mọi tổng trọng số dưới đây = `Signal.vol` của signal đó, nên tỉ lệ đọc được thẳng ra số lượt.
+
+   sg3 · sg5 · sg8 của mở tài khoản ĐÃ SỬA 05/08 (trước đó cố ý để nguyên vì ngoài phạm vi): cả ba là
+   `['success','fail']` chia đều = 50% thất bại, trong khi obs của bước tương ứng chỉ 6–17%. Owner yêu
+   cầu rà lại nhóm mở tài khoản nên sửa luôn — chấp nhận việc sigCounts của sg1..sg10 dịch và phải cập
+   nhật các số ghim trong test (cập nhật số, KHÔNG nới test). */
+const SIG_WEIGHT: Record<string, { val?: Record<string, number>; pf?: Record<string, number> }> = {
+  /* (a) sg4.vol = 410 = số lần chụp thất bại, mỗi lần trượt có ĐÚNG một lý do — nên `fail` của sg3 phải
+     bằng 410, không phải 460 do chia đều. Hai điểm đo cạnh nhau giờ khớp nhau bằng phép tính. */
+  sg3: { val: { success: 510, fail: 410 } },
+  /* (a) s3 obs 15840/13190/2650 → tỉ lệ trượt 16,7%. sg5 bắn 1.180 lần nên fail = 197 (16,7% của
+     1.180), và 197 chính là vol của sg11 — cùng khuôn sg3+sg4. */
+  sg5: { val: { success: 983, fail: 197 } },
+  /* (a) 197 lần trượt liveness tách theo năm lý do ĐỀ XUẤT (xem docblock ở seed.ts): cổng này tên là
+     "Liveness & Face match" nên không khớp mặt là lý do nặng nhất; `poor_lighting` kế thừa đúng ý của
+     `sg6` đã bỏ. Tổng 197 = vol. */
+  sg11: {
+    val: { face_not_matched: 88, poor_lighting: 46, liveness_timeout: 36, spoof_suspected: 15, multiple_faces: 12 },
+  },
+  // (a) s5 obs 12760/11990/770 → trượt 6,0%. sg8 bắn 430 lần → fail 26, không phải 215 do chia đều.
+  sg8: { val: { success: 404, fail: 26 } },
+  // (a) obs s-dvo-1 1240/1050/190 — vol 190 = đúng failed; tách hai lý do của note, CCCD nặng hơn.
+  'sg-dvo-1': { val: { no_base_account: 60, cccd_not_verified: 130 } },
+  // (a) s-dvo-3 1010/942/68 — vol 238 > 68 vì bắn mỗi lần khách nhập lại OTP, không phải số ca trượt.
+  'sg-dvo-2': { val: { otp_expired: 148, otp_not_received: 90 } },
+  // (a) s-dvo-4 942/903/39 — khớp tuyệt đối, không có chỗ nào phải đoán.
+  'sg-dvo-3': { val: { approved: 903, rejected: 39 } },
+  /* (b) note luồng nạp: QR "ghi có ngay" là kênh chính; cổng NH gồm 5 bank; liên kết tự động chỉ
+     BIDV·VPBank nên nhỏ nhất; quầy còn 4 TK tổng nhưng là kênh phụ.
+     pf: quầy và liên kết tự động KHÔNG có phía khách bấm → chúng chính là phần `server` (1.340/9.640
+     ≈ 14%). Chia đều 4 nền tảng sẽ nói "25% tiền nạp tại quầy" — một phát biểu không ai có ý nói. */
+  'sg-nap-1': {
+    val: { qr: 5400, bank_gateway: 2900, auto_debit_link: 640, counter: 700 },
+    pf: { ios: 3600, android: 3400, web: 1300, server: 1340 },
+  },
+  // (a) s-nap-2 9640/9510/130 — vol 130 = đúng failed; phần lớn là không tìm ra chủ khoản.
+  'sg-nap-2': { val: { holder_not_found: 104, amount_mismatch: 26 } },
+  // (b) note: "nộp 17h–20h có thể chờ xử lý cuối ngày" → cuối ngày là cửa sổ hẹp, không phải một nửa.
+  'sg-nap-3': { val: { immediate: 8600, end_of_day: 910 } },
+  /* (a) bốn trong năm trạng thái lấy thẳng từ obs tra soát: chờ tiếp nhận 148 = mọi yêu cầu tạo ra,
+     đang xử lý TTTT 136 = s-tra-3 entered, hoàn tất 113 = s-tra-4 completed, từ chối 8 = s-tra-4
+     failed. `cho_ben_thu_ba` 15 là phần dư để tổng bằng vol 420 — trạng thái này không có obs riêng
+     vì nó nằm BÊN TRONG bước xử lý (đúng quyết định gộp 6 trạng thái thành 4 bước đã ghi ở seed). */
+  'sg-tra-3': {
+    val: { cho_tiep_nhan: 148, dang_xu_ly_tttt: 136, cho_ben_thu_ba: 15, hoan_tat: 113, tu_choi: 8 },
+  },
+  /* (a) Bảy lý do chặn = đúng `failed` của sáu bước cổng (275·57·236·61·53·134). 134 của s-rut-6 tách
+     hai theo note — blackout chỉ xảy ra sau 16h NGÀY LÀM VIỆC CUỐI THÁNG nên rất nhỏ so với quá hạn
+     mức đêm. Tổng 816 = vol. */
+  'sg-rut-2': {
+    val: {
+      insufficient_withdrawable: 275,
+      rtt_below_100: 57,
+      cccd_not_verified: 236,
+      signature_missing: 61,
+      otp_failed: 53,
+      over_limit_after_16h: 120,
+      month_end_blackout: 14,
+    },
+  },
+  // (a) s-rut-3 2848/2612/236 — vol 236 = đúng failed, tách ba theo note; hết thời gian hay gặp nhất.
+  'sg-rut-3': { val: { timeout: 110, mismatch: 60, app_not_installed: 66 } },
+  // (a) s-rut-7 2364/2351/13 — khớp tuyệt đối.
+  'sg-rut-4': { val: { success: 2351, bank_reject: 13 } },
+  // (a) 219 = 42+136+41, đúng failed của ba cổng chuyển nội bộ; mỗi lý do về đúng cổng của nó.
+  'sg-ctn-2': { val: { wrong_subaccount_pair: 42, insufficient_available: 136, otp_failed: 41 } },
 };
 
 /* Sinh các lần bắn của MỘT signal. `vol===0` (gap/designed) luôn đi kèm `values:[]` (luật khai ở
@@ -657,8 +809,12 @@ function genFiresForSignal(rng: () => number, sig: Signal, custPool: readonly Cu
   if (sig.vol === 0 || sig.values.length === 0) return [];
   // Phòng khi một signal mới thêm quên khai tỉ lệ ở SIG_NULL_RATE — mặc định 0.5, không throw.
   const nullRate = SIG_NULL_RATE[sig.id] ?? 0.5;
-  const valWeights = sig.values.map((v) => [v, 1] as const);
-  const pfWeights = sig.pf.map((p) => [p, 1] as const);
+  /* Thiếu khai ở SIG_WEIGHT → trọng số 1 cho mọi mục, tức chia đều y như trước. Vẫn ĐÚNG MỘT lần
+     rng() mỗi lần rút bất kể trọng số (xem pickWeighted), nên thêm trọng số cho signal mới không
+     dịch một bit nào của sg1..sg10 — chúng đứng trước trong mảng và trọng số vẫn đều. */
+  const w = SIG_WEIGHT[sig.id];
+  const valWeights = sig.values.map((v) => [v, w?.val?.[v] ?? 1] as const);
+  const pfWeights = sig.pf.map((p) => [p, w?.pf?.[p] ?? 1] as const);
   const out: Fire[] = [];
   for (let i = 0; i < sig.vol; i++) {
     const val = pickWeighted(rng, valWeights);

@@ -1,11 +1,12 @@
 # Chart theo điểm đo (signal) — Handoff cho session mới
 
-_Cập nhật: 2026-08-05. Đọc file này + `AI-CONTEXT.md` + **`output/thiet-ke-chart-signal.html`** + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** trước khi làm._
+_Cập nhật: 2026-08-05 (đợt 3 — pilot mở rộng). Đọc file này + `AI-CONTEXT.md` + **`output/thiet-ke-chart-signal.html`** + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** + **`output/yeu-cau-du-lieu-pilot-mo-rong.html`** trước khi làm._
 
 ## Trạng thái
 
-- `main` = **`17b84ec`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`).
-- `npx tsc -b` sạch. **827/827 test xanh (79 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b). Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
+- `main` = **`c6767d6`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`) · tài liệu S3 (`725d24d`+`c6767d6`).
+- **Working tree KHÔNG sạch.** Pilot mở rộng (đợt 3, 05/08) + ba vòng sửa layout + đổi điểm đo liveness + mở chia màu Quantify đã làm xong và tự kiểm nhưng **chưa commit** — 15 file code/test sửa, file này sửa, 1 file tài liệu mới (`output/yeu-cau-du-lieu-pilot-mo-rong.html`, chưa track). Owner chưa yêu cầu commit.
+- `npx tsc -b` sạch. **828/828 test xanh (79 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → **828/79 (pilot mở rộng)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
 - **Cả stream đã xong về code.** Còn lại là việc của owner + việc chờ dữ liệu thật: xem "Còn hở" và "Việc còn lại của stream".
 - Tài liệu thiết kế owner đã duyệt: **`output/thiet-ke-chart-signal.html`** (6 vòng) + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** (bổ sung đợt 2, owner chốt 04/08/2026) — cả hai là nguồn sự thật cho stream này, đọc trước khi code. `output/thiet-ke-chieu-phan-tich.html` và `output/thiet-ke-db-first.html` là của stream trước, còn giá trị lịch sử.
 
@@ -79,7 +80,7 @@ Nguyên văn: *"note lại là cách nhận dữ liệu có thể là raw chứ 
 
 **Hệ quả với tiêu chí nghiệm thu #7 (MỚI phát hiện 05/08).** "Đổi ranh giới NAV trong cấu hình → lát chia lại ngay" **đúng ở mức hàm, SAI ở mức app đang chạy**: `demo.ts:691` cộng `sigCounts` một lần lúc nạp module theo `cfgDefault`; `mock-repository.ts:102` `getSnapshot()` chỉ chạy lại `projectCustomerBands` rồi trả `sigCounts` nguyên. `demoFires` và type `Fire` là module-local, `CxmData` không có trường `fires`. Sai **im lặng**: ba ràng buộc nhóm 22 vẫn đúng (đổi nhãn dải không đổi con số) nên validate không kêu một tiếng → hai chart cạnh nhau hiểu "<50tr" theo hai ranh giới khác nhau. Phép tính thì đúng — có test tại `projectSignalCounts.test.ts:102`, chỉ thiếu người gọi lại lúc chạy. **Đóng trong S3a**: đặt phép cộng + phép cắt nhóm ở tầng của mình, cộng lại khi ranh giới đổi (nhận raw thì cộng thẳng từ raw; nhận bảng cộng sẵn thì hỏi lại bên dữ liệu với ranh giới làm tham số — cùng một hình dạng).
 
-**Đã tự chốt, dữ liệu trả lời sẵn nên không hỏi owner.** (a) Cột "giá trị chưa khai" phủ **bằng test**, không nhét giá trị lạ vào demo: `validate.ts:680` đã cấm giá trị ngoài `Signal.values`, nhét vào thì cách duy nhất để demo qua kiểm là **nới luật cho vừa dữ liệu** — đúng bẫy đã trả giá hai lần; thêm nữa sẽ dịch thứ tự rút `rawRng` và mất mốc đối chiếu 588 dòng. Tiêu chí #11 viết dạng giả định ("cho pipeline bắn ra…"), không đòi demo phải đang ở trạng thái đó. (b) Điểm đo `st:'gap'`/`designed` (`sg6`, `sg9` — `vol:0`, `values:[]`) khi **chọn nhiều**: ra **một dòng ghi chú** nêu tên + "chưa instrument"; **không** sinh nhóm cột rỗng (đọc thành "đo rồi, bằng 0") và **không** biến mất im lặng (người chọn tưởng bấm trượt).
+**Đã tự chốt, dữ liệu trả lời sẵn nên không hỏi owner.** (a) Cột "giá trị chưa khai" phủ **bằng test**, không nhét giá trị lạ vào demo: `validate.ts:680` đã cấm giá trị ngoài `Signal.values`, nhét vào thì cách duy nhất để demo qua kiểm là **nới luật cho vừa dữ liệu** — đúng bẫy đã trả giá hai lần; thêm nữa sẽ dịch thứ tự rút `rawRng` và mất mốc đối chiếu 588 dòng. Tiêu chí #11 viết dạng giả định ("cho pipeline bắn ra…"), không đòi demo phải đang ở trạng thái đó. (b) Điểm đo `st:'gap'`/`designed` (viết lúc đó là `sg6`, `sg9`; **`sg6` nay đã bỏ** — xem vòng layout thứ ba — nên ca này còn `sg9`, `sg-nap-4`, `sg-rut-5`, `sg-dvo-4`, `sg-tra-4`; đều `vol:0`, `values:[]`) khi **chọn nhiều**: ra **một dòng ghi chú** nêu tên + "chưa instrument"; **không** sinh nhóm cột rỗng (đọc thành "đo rồi, bằng 0") và **không** biến mất im lặng (người chọn tưởng bấm trượt).
 
 **Ba hành vi có code + test nhưng KHÔNG bấm ra xem được trong demo** — nói trước với owner, đừng để lúc review đọc thành việc còn dở: cột "giá trị chưa khai" (đã đếm cả 588 dòng, **không dòng nào** mang giá trị lạ); và **cả hai** trạng thái nút chiều "ghi được một phần" + "khoá kèm lý do" (trong demo cả năm chiều đều ghi đủ ⇒ mọi nút ở trạng thái 1).
 
@@ -150,6 +151,147 @@ Hai điều mắt thấy, chưa sửa, để owner quyết:
 - **Thứ tự dải trong cột và trong chú giải xếp theo số lượng giảm dần, không theo thứ tự tự nhiên của nhóm.** Với chiều NAV nó ra `<50tr · 200tr-1tỷ · 50-200tr · >5tỷ · 1-5tỷ` — nhảy bậc, trong khi sketch §1 của thiết kế vẽ tăng dần (`<50tr · 50–200tr · 200tr–1tỷ`). Đổi được, nhưng **không phải sửa một dòng**: tầng trình bày chỉ nhận nhãn chữ, muốn xếp theo bậc thì phải dẫn thứ tự bậc từ cấu hình xuống. Cái giá của việc đổi: mất tính chất "lát lớn nhất luôn ở trên", nên hai cột cạnh nhau sẽ khó so bằng mắt hơn. Chiều `tier`/`acq`/`sigpf` không có bậc tự nhiên nên chỉ NAV và Độ tuổi bị ảnh hưởng.
 - **Dải "chưa định danh" vẽ vân rất nhạt** (khe trắng trên xám), nên một cột mà phần lớn là "chưa gắn được khách" trông gần như **rỗng** — đúng ký hiệu `░` của thiết kế và vẫn phân biệt được với hai loại xám đặc, nhưng với `sg1` (92% chưa định danh) thì hiệu ứng "cột trống" khá mạnh. Cần mắt owner phán, không phải lỗi.
 
+## Pilot mở rộng (đợt 3) — owner chốt 05/08/2026, ĐÃ XONG, tự kiểm, CHƯA commit
+
+Owner: *"trước khi có bản giá trị thật thì cứ làm demo đi, đã xác định được các điểm chạm r thì mình sẽ là người đề xuất đo những gì, hiện sẽ pilot tất cả của mở tk và nạp rút, chuyển tiền"*
+
+**Đọc kỹ câu này vì nó đổi một khung nhận thức, không chỉ mở rộng phạm vi:** trước đây `Signal.values` bị coi là **lỗ hổng A** — thứ phải chờ bên dữ liệu trả lời. Owner chốt ngược lại: **bên nghiệp vụ là bên đề xuất đo gì.** Nên `Signal.values` từ đây là **đề xuất của mình**, không phải chỗ trống chờ lấp. Lỗ hổng A **đóng lại bằng quyết định**, không phải bằng dữ liệu. Bản yêu cầu dữ liệu đổi theo: không hỏi "có giá trị nào", mà gửi đề xuất kèm cột để bên dữ liệu ghi *đã có / tên khác / phải ghi mới*.
+
+Phạm vi mở từ 1 luồng lên **6 luồng · 30 bước · 20 điểm đo đề xuất**: mở TK thường (cũ) + mở TK phái sinh, nạp tiền, tra soát nạp, rút tiền, chuyển nội bộ.
+
+**Ba quyết định mô hình, mỗi cái đều có tiền lệ hoặc lý do ghi tại chỗ trong `seed.ts`:**
+
+1. **4 kênh nạp KHÔNG tách thành 4 luồng** — theo đúng tiền lệ owner tự ghi ở `f-open-2026` ("AJ 2 là 4 phương thức xác thực dùng bên trong. Cố ý KHÔNG tách"). Các bước là đường tiền chung, kênh trở thành **giá trị** của `deposit_credit_received`. Giữ được danh mục luồng 1:1 với sơ đồ gốc, và giữ spine là một chuỗi thật.
+2. **6 trạng thái tra soát → 4 bước.** "Chờ bên thứ ba" là **giá trị trạng thái nằm trong** bước xử lý, không phải bước riêng; Hoàn tất/Từ chối là `completed`/`failed` của bước cuối.
+3. **8 cổng rút → 7 bước** (gộp video-signature + hợp đồng, gộp giờ + blackout). Bảy giá trị của `withdraw_gate_block_reason` giữ đủ lý do của cả 8 cổng (giờ và blackout tách lại thành hai lý do riêng), nên không mất thông tin nào.
+
+**Ba file "ngoài chart" phải sửa theo, đừng đọc thành sửa lạc đề** — mở từ 1 lên 6 flow quan sát thì ba chỗ đang đếm trên giả định "chỉ có 1 flow pilot" hoá sai:
+
+| File | Vì sao |
+|---|---|
+| `features/atlas/AtlasPage.tsx` | Chỉ sửa **chú thích**. `defaultFlow = flows.find(f => f.observed)` giữ nguyên, nhưng câu "flow pilot **duy nhất**" không còn đúng khi có 6 flow `observed`. Thứ tự mảng vẫn đưa `f-open-2026` lên trước nên **màn mặc định không đổi** — chỉ là chú thích không được nói dối người đọc sau. |
+| `features/overview/blocks/JourneyStateBlock.test.tsx` | Đếm thật đổi: bước `crit` 1 → **2** (thêm `s-dvo-1`, 190/1240 = 15,3%), `watch` 2 → **11**, `ok` 3 → **17**, tổng 6 → **30**. "Flow chưa đo" 31 → **26**. `worst` vẫn là `s3` (2.650) — không bước mới nào vượt (cao nhất 275). |
+| `features/overview/blocks/CoverageBlock.test.tsx` | Thêm 4 bước dưới ngưỡng `covMin=70`: `s-tra-1`=63, `s-tra-3`=59, `s-rut-3`=61, `s-rut-4`=57. **Sáu giá trị cov dưới ngưỡng đặt KHÁC NHAU hẳn nhau** (57·58·59·61·63·64) là **cố ý**: test dùng `getByText("64%")`, trùng số là nhiều kết quả và test đỏ vì lý do không liên quan gì đến lỗi thật. |
+
+**Ràng buộc đã đo, không suy diễn:** `validate.ts` check 7 buộc **mọi** signal thuộc nhóm `g-in`/`g-out` phải `es:'server'`. Hệ quả thật: **vòng này không đề xuất được điểm đo nào nằm trên màn tiền của khách.** Muốn đo hành vi client trên luồng tiền thì phải nới check 7 — **quyết định của owner**, đừng tự nới.
+
+### Hai lỗi chỉ lộ ra khi xem màn — đã sửa
+
+Test 827/827 xanh vẫn **không** thấy hai lỗi này. Ghi lại vì cả hai là bài học về loại lỗi mà test không bắt được:
+
+1. **Chart tự nói ngược spine.** Bộ sinh demo chia đều mọi giá trị, nên `withdraw_gate_result` 8 giá trị ra `pass` ≈ 12,9% — tức "87% lệnh rút bị chặn" — trong khi spine ngay phía trên nói 2.351/3.180 = 74% rút xong. **Cùng một dân số, hai con số chửi nhau trên cùng một màn.** Sửa bằng `SIG_WEIGHT` trong `demo.ts`: khai trọng số theo đúng `obs`, `pass` = 2.364 = `s-rut-7.entered`, sáu lý do chặn = `failed` của sáu bước cổng. Sau khi sửa: chart 74,7% vs spine 73,9% — cùng một phép tính, không còn là hai lần bịa độc lập. Quy tắc khai ghi ngay trong docblock: **chỉ** khai khi có (a) số `obs` ràng buộc hoặc (b) một câu trong `note` nói thứ tự lớn nhỏ; không có thì để chia đều và **hiểu rằng đọc phân bố cột đó là đọc sai**.
+2. **Nhãn 8 cột đè nhau thành vệt không đọc được.** Cột cố định `w-[46px]`, mà CSS **không** coi dấu `_` là chỗ ngắt dòng, nên `insufficient_withdrawable` tràn ra hai bên. Đã thêm test 8 nhãn dài — ca mà cả bộ S3 chưa từng chạy (trước chỉ có ≤6 nhãn ngắn kiểu `step_01`).
+
+### Vòng sửa layout thứ hai — owner xem màn rồi chỉ ra, 05/08
+
+Bản `break-all` ở trên **chữa được chỗ tràn nhưng gây ra lỗi nặng hơn**, và owner phát hiện trước khi nó kịp đi xa: *"do tên dài ngắn khác nhau nên điểm bắt đầu của bar đang ở các vị trí lệch"*.
+
+**Nguyên nhân:** `Group` canh các cột bằng `items-end`, mỗi cột là một flex dọc `[badge] → bar → nhãn → số`. Nên đáy bar = đáy cột − chiều cao số − **chiều cao nhãn**. Trước khi có `break-all`, mọi nhãn đều tràn trên MỘT dòng nên các bar tình cờ cùng đáy; sau khi ngắt dòng, nhãn 1–4 dòng đẩy bar lên mỗi cột một mức. **Bar chart mất đường đáy chung thì không so được chiều cao nữa** — đúng thứ nó tồn tại để làm. Bài học: sửa một lỗi trình bày mà không kiểm lại hình học của cả khối là cách tạo ra lỗi nặng hơn lỗi cũ.
+
+**Ba thứ đã sửa, đều đo được trên màn (không đo bằng test — jsdom không có layout):**
+
+1. **CSS Grid + `subgrid` thay cho flex.** Bốn hàng (badge · bar · nhãn · số) do grid của NHÓM định chiều cao, nên mọi cột dùng chung chiều cao hàng. Cột vẫn là **một** element nhờ `grid-rows-[subgrid]` + `row-span-4`, nên **DOM không đổi và 18 test của `SignalColumns` xanh nguyên**. Hàng bar cố định đúng `MAX_H` = vùng vẽ, thay `minHeight` cũ. Đo được: 7 bar cùng đáy `y=475`, 7 nhãn cùng mốc `y=479`. **Ô badge phải LUÔN vẽ dù rỗng** — subgrid xếp con theo thứ tự, thiếu một ô là bar rơi lên hàng badge và lệch lại.
+2. **Nới ngang + ngắt nhãn theo từ** (owner cho phép): cột `46px → 92px`, bar `30px → 44px`, và thay `break-all` bằng `<wbr>` sau mỗi dấu `_`. Nhãn xuống dòng thành `insufficient_` / `withdrawable` chứ không cắt giữa từ. `<wbr>` không thêm ký tự nào vào `textContent` nên tên đầy đủ còn nguyên. Nhóm 7 cột rộng 716px, khung 1241px → **không phải kéo ngang**.
+3. **Điểm đo không gộp "thành công" với "lý do"** — xem mục dưới.
+
+### Quy tắc điểm đo owner chốt 05/08 — không gộp thành công với lý do
+
+Khai đúng trọng số vẫn chưa đủ. Đo trên màn: một giá trị áp đảo nén mọi lý do thất bại xuống **1–4px**, mắt không phân biệt được 271 với 232 với 14.
+
+| Điểm đo | Bar nhỏ nhất trước | Đọc được? |
+|---|---|---|
+| `withdraw_payout_result` (2.351/13) | 0,8px | không |
+| `deposit_reconcile_result` (9.510/104/26) | 0,4px | không |
+| `withdraw_gate_result` (8 giá trị) | 1px | không |
+| `internal_transfer_reject_reason` (42/136/41) | 43px | **tốt** |
+
+Chỗ đọc tốt duy nhất là điểm đo **chỉ chứa lý do**. Nên quy tắc: **điểm đo có giá trị áp đảo VÀ từ 3 giá trị trở lên thì bỏ giá trị thành công, chỉ giữ các lý do**; tỉ lệ thành/không đọc ở spine ngay phía trên nên không mất thông tin. Áp cho đúng 5 điểm đo, và `vol` đổi thành **đúng số `failed`** của bước tương ứng — nhờ vậy chart càng khớp spine chặt hơn:
+
+| Cũ | Mới | `vol` |
+|---|---|---|
+| `deriv_open_eligibility_result` | `deriv_open_ineligible_reason` | 190 |
+| `deriv_contract_otp_result` | `deriv_contract_otp_fail_reason` | 238 |
+| `deposit_reconcile_result` | `deposit_reconcile_fail_reason` | 130 |
+| `withdraw_gate_result` | `withdraw_gate_block_reason` | 816 |
+| `withdraw_vneid_result` | `withdraw_vneid_fail_reason` | 236 |
+
+**Loại chỉ 2 giá trị CỐ Ý giữ nguyên** (`sg-dvo-3` 903/39 · `sg-rut-4` 2.351/13 · `sg-nap-3`): chỉ hai cột thì hai con số đọc thẳng được, mà tách ra sẽ thành điểm đo một giá trị — vô nghĩa. Sau khi sửa, `withdraw_gate_block_reason` ra `140·32·125·38·35·59·10 px` (trước `140·16·4·14·3·3·6·1`).
+
+**`sg3`/`sg5`/`sg8` — vòng này để lại, vòng sau ĐÃ VÁ.** Lúc viết mục này ba điểm đo đó vẫn `['success','fail']` chia đều = 50% thất bại trong khi `s2` obs chỉ 10,5%, và tôi hoãn lại vì sợ dịch `sigCounts` của sg1..sg10. **Nỗi sợ đó sai, đã kiểm bằng nguồn:** `pickWeighted` rút **đúng một** lần `rng()` bất kể trọng số, nên khai thêm trọng số không dịch dòng rút của điểm đo nào khác. Đã vá ở vòng layout thứ ba (mục ngay dưới) — `sg3 {510/410}`, `sg5 {983/197}`, `sg8 {404/26}`, tất cả neo vào `obs`.
+
+### Vòng layout thứ ba — chart xoay ngang, 05/08
+
+Owner: *"đổi dạng chart signal thành chart ngang hết để dễ nhìn hơn"*. Đây là **lời giải thật** cho bài toán nhãn dài, còn hai vòng trước chỉ là vá: bar dọc bắt nhãn nằm ngang dưới một cột hẹp, nên tên `insufficient_withdrawable` kiểu gì cũng phải ngắt dòng hoặc tràn. Bar ngang cho nhãn cả một dòng đầy — hết bài toán, không phải cân đối gì nữa.
+
+- `MAX_H = 140` (chiều cao vùng vẽ) → `MAX_W = 320` (chiều dài vùng vẽ). `SLICE_MIN_PX = 3` giữ nguyên.
+- `BarColumn` → `BarRow`, mỗi giá trị là **một hàng ba ô**: nhãn canh phải · vạch · số. Vẫn dùng `subgrid` như vòng trước nhưng đổi trục — `grid-cols-[subgrid]` + `col-span-3` thay cho `grid-rows-[subgrid]` + `row-span-4`. Wrapper vẫn là **một** element nên DOM và `data-testid` không đổi.
+- Cột nhãn để `auto`, nên **mọi vạch trong nhóm bắt đầu ở cùng một mốc** — đúng thứ owner chỉ ra ở vòng hai — và mốc đó tự giãn theo nhãn dài nhất, không phải chỉnh tay.
+- `<wbr>` sau mỗi `_` giữ nguyên: nhãn dài quá vẫn ngắt theo từ chứ không cắt giữa từ.
+- Câu chú thích thang đo sửa theo: *"Chiều **dài** vạch đọc trong từng nhóm — hai nhóm không so chiều dài với nhau."*
+- Test: ba khẳng định đổi từ chiều cao sang chiều dài (`320px`, `160px`, sàn lát `3px`), thêm một test nhãn dài (đếm số `<wbr>` = số `_`, và `textContent` phải bằng tên đầy đủ).
+
+### Bỏ `ekyc_face_device_context`, thêm `ekyc_face_liveness_fail_reason` — owner chốt 05/08
+
+Nguyên văn: *"bước liveness & face match phần ekyc_face_liveness_result đang chỉ show mỗi success và fail, cái tôi cần là tỉ lệ suceess/fail và tỷ lệ các lý do fail. ngoài ra … giờ đã show user các thông tin được tách theo các chiều sẵn bao gồm cả nền tảng nên ko cần ekyc_face_device_context nữa"*.
+
+- **Bỏ `sg6`.** Nó sinh ra để hỏi "trượt liveness thì nghiêng về thiết bị nào" — mà chiều **Nền tảng** nay cắt sẵn cho **mọi** điểm đo, nên câu hỏi đã có người trả lời. Giữ lại là đo trùng.
+- **Thêm `sg11 ekyc_face_liveness_fail_reason`** vào đúng chỗ `sg6` vừa rời: `tpId:'tp3'`, `st:'validating'`, `pf:['ios','android']`, `es:'client'`, `vol:197`, 5 giá trị `face_not_matched · poor_lighting · liveness_timeout · spoof_suspected · multiple_faces`. Vế "môi trường" của câu hỏi cũ sống tiếp dưới dạng `poor_lighting`.
+- **Đúng theo quy tắc "không gộp thành công với lý do"** ở mục trên: tỉ lệ đạt/trượt đọc ở spine, chart chỉ vẽ lý do.
+- `vol` là **197, không phải 2.650**: `sg5` chỉ bắn 1.180 lượt (không phải toàn bộ 15.840 lượt vào bước), nên số trượt tương ứng là 197 chứ không phải 2.650 của `obs`. Hai điểm đo lấy mẫu độc lập nên **màn có thể hiện 202 thay vì 197** — `desc` đã viết lại để không tự khẳng định con số khớp tuyệt đối.
+- **Năm lý do là ĐỀ XUẤT của mình, không phải enum đang có.** Sơ đồ quy trình mô tả liveness như một cổng chặn duy nhất. Đã ghi rõ trong docblock `seed.ts` và trong bản yêu cầu dữ liệu.
+- Hai test cũ ghim `sg6` đã **chuyển mốc chứ không xoá**: `signalChart.test.ts` trỏ sang `sg-nap-4`; `AtlasPage.test.tsx` thôi ghim `s3` mà tự tìm signal `st:'gap'` đầu tiên rồi lần ngược ra bước/flow/phase — khẳng định "signal `vol:0` vẫn phải hiện kèm trạng thái bằng chữ" giữ nguyên. `AtlasSignalPanel.test.tsx` chuyển sang cặp `tp-nap-1`/`s-nap-1`.
+
+### Một điều phải nói với owner, đừng để tự phát hiện
+
+Màn đang hiện `✓ Đang đo` kèm giờ "lần thấy cuối" cho **16 điểm đo, không có cái nào đang được đo thật**. `Signal.st` và `Signal.seen` là số demo — cần thiết để chạy đủ bốn trạng thái trên màn, nhưng **ai xem màn cũng đọc thành sự thật**. Đừng dùng ảnh màn hình làm căn cứ về độ phủ đo lường. Chỗ đóng lại chuyện này là cột cuối Bảng C của bản yêu cầu dữ liệu.
+
+### Bản yêu cầu dữ liệu — `output/yeu-cau-du-lieu-pilot-mo-rong.html`
+
+Gửi thẳng bên dữ liệu. Giữ **gọn theo đúng quyết định 2b** (không dựng hợp đồng từng cột). Nội dung: 20 điểm đo đề xuất kèm giá trị, **Bảng E mới** (số phễu từng bước — chưa bản nào xin, mà 30 bước đang chạy bằng số demo), và hai yêu cầu riêng của dòng tiền (nguồn phía server; kênh nạp là cột trong một bảng, không phải 4 nguồn rời).
+
+**Một cảnh báo trong đó đáng đọc lại:** spine giả định `vào bước = đi tiếp + trượt`. Chỉ đúng với **cohort đã tất toán**. Cắt theo **thời điểm** thì các lượt đang treo (chờ VSDC, chờ bên thứ ba) làm `vào > đi tiếp + trượt` và bất biến chuỗi toàn cục (`JourneySpine.test.tsx:130-148`) sẽ **đỏ đúng như nó được thiết kế để đỏ** — lúc đó cần người chốt luật đối chiếu, đừng sửa test cho xanh.
+
+## Quantify — mở chia màu cho trục bằng chứng, owner chốt 05/08 ("làm cả 3 đi")
+
+Owner hỏi: *"check phần quantify nhiều graph đang chưa có thanh chuyển giữa các cách cắt"*. Đo được: **17 chart, đúng 2 chart** có thanh (q17 `acq`, q18 `nav`). Cổng là `QuantifyWidget.tsx` — `if (dim?.base === "cust")`, cụm chia màu nằm **trong** nhánh đó nên 15 chart kia không với tới.
+
+**Chẩn đoán đầu của tôi SAI, owner bắt đúng.** Tôi báo là "việc lớn, phải nối bằng chứng ↔ khách". Owner phản biện: *"phần bằng chứng với khách đã phải có sẵn trên data nhận vào r chứ? mọi data đều cần ID của customer"*. Đúng — `Evidence.ck` là trường **bắt buộc**, `validate.ts` quy tắc 21 canh định dạng, và phép nối **đã có code chạy** ở `domain/themeSegments.ts`. Cái tôi dựa vào để nói "đắt" là một phép đo **đã hết hạn**.
+
+| Phép đo | 03/08 (chú thích cũ) | 05/08 (đo lại) |
+|---|---|---|
+| Dòng bằng chứng | 17 | **1.641** |
+| Nối được vào một khách | 7 | **1.501 (91,5%)** |
+| Ẩn danh (cố ý không có ID) | — | 133 (8,1%) |
+| Có ID nhưng tra không ra | — | **7 (0,4%)** |
+
+Bảy dòng hỏng đúng là bảy dòng viết tay từ đợt đầu, không phải vấn đề hệ thống.
+
+**Ranh giới thật không phải "khách vs không khách", mà là SỐ TRÊN THANH CÓ ĐẾM TỪ BẰNG CHỨNG KHÔNG:**
+
+| Nhóm | Chart | Chia màu |
+|---|---|---|
+| `cust` — `acq`, `nav` | q17, q18 | Đã chạy từ trước |
+| `ev` — `cat`, `sen`, `pf` | q3, q12, q13 | **MỞ 05/08.** Thanh đếm dòng `data.ev`, nối qua `ck` là đếm thật. |
+| `agg` — `theme`, `l1`, `l2`, `l3`, `sub`, `src` | q1, q2, q4, q9, q10, q11, q14 | **KHOÁ, kèm lý do thật.** Số trên thanh là tổng hợp sẵn (`TaxNode.n`/`Source.vol`); đo được theme "Thiết bị" ghi 412 mà có 8 dòng bằng chứng, `src-ga` ghi 41.200 mà có 2 — lệch ~50 lần. Tô thanh 412 bằng 8 dòng là bịa. |
+
+q5–q8, q15 là chart theo thời gian, chia màu không cùng dạng câu hỏi.
+
+**Ba thứ đã làm:**
+
+1. **`EV_ROW_KEY` — nguồn DUY NHẤT của phép "một dòng bằng chứng thuộc hàng nào".** `catRows`/`senRows`/`pfRows` và nhánh chia màu mới đều đọc bảng này. Trước đó phép suy khoá hàng nằm inline trong từng `rows()`, nên mở chia màu là phải chép ra chỗ thứ hai — đúng bẫy `custField()` đã cảnh báo. Lệch một bên thì **đoạn màu mô tả một tổng khác với chiều dài thanh, nhìn hình không thấy được**. Test đóng đúng seam đó: với mọi hàng của mọi trục ev, Σ đoạn phải bằng `v` do `qRun` trả (đường tính khác hẳn).
+2. **`evSplit()` trong `domain/quantify.ts`.** Mỗi dòng bằng chứng rơi vào **đúng một** trong bốn giỏ: giá trị thật · sentinel (`Không xác định`) · `Ẩn danh` · `Chưa đối chiếu được`. Phân hoạch kín ⇒ bất biến Σ = v giữ được không cần phép cộng bù. **Ba nghĩa "không nối được" KHÔNG gộp** — 8,1% ẩn danh là đúng thiết kế, 0,4% nối hỏng là defect; gộp là mất đúng thông tin người sửa pipeline cần. Đoạn `n=0` bị bỏ nên thanh nào không có nối hỏng thì không sinh lát mỏng vô nghĩa.
+3. **`buildSplitBundle()` trong `QuantifyWidget.tsx`** — cụm chia màu tách khỏi nhánh `cust`, dùng chung cho mọi trục. Trục `agg` **hiện thanh nhưng khoá**, và lý do hiện thành **chữ dưới chart** (`split-note`) chứ không chỉ tooltip: luật owner là "nói thẳng", mà tooltip phải rê chuột mới thấy. Mọi lý do **hỏi thẳng `qRunSplit`**, không viết lại ở tầng vẽ.
+
+**Một test bị ĐẢO kỳ vọng, cố ý:** `QuantifyWidget.splitToggle.test.tsx` trước canh *"trục theme → không có strip nào"*. Nay canh ngược: strip **hiện**, mọi chip khoá, và `split-note` phải nói *"TỔNG HỢP SẴN / không đếm từ bằng chứng"*, **không được** nói *"khoá khách"*. Ý định gốc (không vẽ đoạn màu trên trục này) giữ nguyên và mạnh hơn.
+
+**Ba chú thích hết hạn đã sửa** — cả ba đang nói dối người đọc sau bằng phép đo 7/15: `domain/quantify.ts` (docblock `qRunDrill` + docblock breakdown, chỗ còn ghi sai hẳn là *"trục agg/ev không có khoá khách trên Evidence"*), `data/schema/quantify.ts` (docblock field `split`), `design-system/QuantifyWidget.tsx` (chú thích drill trục khách).
+
+**Sửa sau khi xem bằng mắt (05/08):** bản đầu in nguyên câu từ chối dài dưới cả 7 chart trục tổng hợp — đo trên màn là 7 khối chữ **giống hệt nhau, cao 40–60px**, tức là nhiễu, mà nhiễu thì người ta thôi đọc, hỏng đúng cái luật "nói thẳng" định đạt. Nay cắt làm hai mảnh **ghép từ một nguồn** (`AGG_SPLIT_NOTE` + `AGG_SPLIT_EVIDENCE` trong `domain/quantify.ts`): câu khẳng định hiện thành chữ dưới chart (**20px, một dòng**), phần đo được (412 vs 8 dòng) nằm trong `reason` đầy đủ ở tooltip từng chip. Ghép chứ không chép — hai bản sao chắc chắn trôi lệch.
+
+**Đã xem trên màn, không chỉ qua test** (jsdom không có layout): ở bề rộng 1600px, cả 12 thanh chia màu **cao 35px = một hàng, không chip nào xuống dòng**; q3/q12/q13 chia được thành nhiều đoạn kèm đủ ba nhãn `Không xác định` / `Ẩn danh` / `Chưa đối chiếu được`; q14 (donut trên trục nguồn) hiện **lý do trục** chứ không phải "dùng chart thanh" — đúng thứ tự đã chốt, vì trên trục tổng hợp thì đổi mark cũng là đường cụt.
+
+**Chưa mở, và đừng vô tình mở:** `scaled = dim?.base === "agg"` nghĩa là chart agg vẽ số đã nhân `fx()`. Hôm nay agg luôn khoá chia màu nên **không bao giờ** có đoạn màu vẽ trên thanh đã scale. Ai mở chia màu cho agg sau này phải xem lại đúng dòng đó trước.
+
 ## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
 
 - **Trạng thái "ghi được một phần" của nút chiều không có đường kiểm bằng mắt trong demo — nhưng KHÔNG phải code chết.** Đã lần lại đủ đường: ràng buộc 1 (`data/validate.ts` ~683-694) buộc cả năm chiều cộng ra đúng `Signal.vol` (Map khởi tạo sẵn cả năm chiều bằng 0, nên một chiều vắng hẳn cũng bị bắt), nên **bộ dữ liệu đã qua kiểm không sinh nổi ca này** — đúng như bản kế hoạch S3 đã nói trước với owner (`output/ke-hoach-s3-chart-diem-do.html`, box "Một điều đi kèm, cần nói ra") và owner đã chốt **không nới ràng buộc 1** chỉ để bấm thử được trong demo. Điều bản kế hoạch chưa nói rõ, tôi kiểm bổ sung: `validate()` **không chặn render**, nó chỉ dựng banner đỏ toàn cục (`App.tsx:75`, `features/quantify/ValidateBanner.tsx`) — nên với **dữ liệu thật** thiếu dòng ở một chiều, app vẫn vẽ, nút chiều đó hiện `partial` kèm *"x% dữ liệu không gán được …"*, **cùng lúc** với banner đỏ nói bảng đếm lệch. Đó là hành vi đúng, không phải xung đột: banner nói với người vận hành pipeline, chữ trên nút nói với người đọc chart. **Đừng xoá nhánh `partial`, và đừng nới ràng buộc 1 để "test cho dễ".** Cái còn hở đúng là: nhánh này chưa từng được **mắt người** duyệt, chỉ được test chứng minh là **chạy đúng**.
@@ -185,7 +327,7 @@ Hai điều mắt thấy, chưa sửa, để owner quyết:
 
 Còn lại, không phải việc code:
 
-1. **Chờ dữ liệu thật:** `Signal.values` phần lớn còn là suy diễn (lỗ hổng A) và **Bảng D** (định danh element trên web/app) chưa xin được. Khi có, phần lớn cột của chart sẽ đổi — đó là chủ ý, không phải hồi quy.
+1. **Chờ dữ liệu thật.** ~~`Signal.values` phần lớn còn là suy diễn (lỗ hổng A)~~ — **câu này đã sai sau 05/08**, owner chốt bên nghiệp vụ là bên đề xuất đo gì, nên `values` là **đề xuất của mình**, không phải chỗ chờ lấp (xem mục "Pilot mở rộng"). Còn chờ thật: **Bảng D** (định danh element trên web/app) và **Bảng E** (số phễu từng bước — 30 bước đang chạy số demo). Cả hai đã đặc tả ở `output/yeu-cau-du-lieu-pilot-mo-rong.html`. Khi có, phần lớn cột của chart sẽ đổi — đó là chủ ý, không phải hồi quy.
 3. **Hai tab còn lại của hồ sơ bước** ("Chỉ số liên kết", "Độ phủ dữ liệu") và **tour `#/atlas`** — cố ý hoãn, xem bullet cuối mục "Còn hở". Sửa chữ tour **cùng lúc** hai tab kia lên, đừng gắn mốc tour trước.
 
 - **S2 (ĐÃ XONG) — chiều.** Rút `seg` và `tenure` khỏi danh sách chiều (đã đo: không chart nào dùng; nhớ gỡ **cả** `cfg.segment.band.tenure` cùng lúc — luật quanh `validate.ts:602` lặp trên chính `cfg` nên bỏ sót sẽ sinh lỗi mồ côi). Sửa chữ thường `android`/`ios`/`web` ở chart theme. **Sửa lại một câu sai của bản trước:** `server` **đã có** trong bảng tên đẹp nền tảng (`domain/quantify.ts:46` và `design-system/SrcMatrix.tsx:16`) — không thiếu, đừng thêm lần nữa.
@@ -206,15 +348,22 @@ Còn lại, không phải việc code:
 ## Prompt cho session mới
 
 ```
-Đọc docs/DB-FIRST-HANDOFF.md, AI-CONTEXT.md, output/thiet-ke-chart-signal.html và
-output/thiet-ke-chart-signal-bo-sung-dot-2.html.
+Đọc docs/DB-FIRST-HANDOFF.md, AI-CONTEXT.md, output/thiet-ke-chart-signal.html,
+output/thiet-ke-chart-signal-bo-sung-dot-2.html và
+output/yeu-cau-du-lieu-pilot-mo-rong.html.
 
-Stream "chart theo điểm đo (signal)" ĐÃ XONG về code, đã commit hết (main = 17b84ec,
-tsc sạch, 827/827 test xanh / 79 file). Working tree sạch — đừng bắt đầu bằng việc
-commit hay dọn gì.
+Stream "chart theo điểm đo (signal)" ĐÃ XONG về code (tsc sạch, 828/828 test xanh /
+79 file). main = c6767d6, NHƯNG working tree KHÔNG sạch: pilot mở rộng (6 luồng ·
+30 bước · 20 điểm đo) đã xong và tự kiểm, chưa commit — 7 file code/test + 1 tài
+liệu mới. Đừng tự commit, đừng dọn, đừng coi các sửa đó là rác.
 
-Việc còn lại của stream KHÔNG phải code — xem mục "Việc còn lại của stream": chờ dữ
-liệu thật (Signal.values + Bảng D), hai tab còn lại của hồ sơ bước, và tour #/atlas.
+Đọc mục "Pilot mở rộng" TRƯỚC: nó đổi một khung nhận thức, không chỉ mở phạm vi —
+Signal.values từ 05/08 là ĐỀ XUẤT của bên nghiệp vụ, không còn là lỗ hổng A chờ bên
+dữ liệu lấp. Trong đó cũng ghi hai lỗi mà 827 test xanh KHÔNG bắt được, chỉ lộ khi
+xem màn đã mount — nếu làm chart, đọc trước khi tin vào test.
+
+Việc còn lại của stream KHÔNG phải code — xem mục "Việc còn lại của stream": chờ
+Bảng D + Bảng E, hai tab còn lại của hồ sơ bước, và tour #/atlas.
 Nếu tôi nhờ làm việc khác, đọc mục "Còn hở" trước để đừng hứa những gì chưa phủ.
 
 Đừng tháo các bất biến ở mục "Bất biến KHÔNG được tháo" — đặc biệt số 7 và 8.

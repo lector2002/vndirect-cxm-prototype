@@ -432,6 +432,94 @@ describe("qRunSplit", () => {
   });
 });
 
+/* ---------- qRunSplit trên trục BẰNG CHỨNG (owner chốt 05/08: "làm cả 3 đi") ----------
+   Mở được vì `Evidence.ck` là trường BẮT BUỘC — mỗi dòng bằng chứng mang sẵn khoá khách, nên nối
+   sang `Customer` rồi đếm là phép đếm THẬT. Phép đo mở khoá quyết định này, trên demoData 05/08:
+   1.641 dòng bằng chứng · 1.501 nối được (91,5%) · 133 ẩn danh (8,1%) · 7 nối hỏng (0,4%).
+
+   Lý do chặn cũ ghi ở quantify.ts ("trục ev không có khoá khách") SAI, và bản trước đó chặn bằng một
+   phép đo đã hết hạn (17 dòng / 7 khoá khớp, đo 03/08 khi bằng chứng chưa được sinh thêm). */
+const EV_AXES = ["cat", "sen", "pf"] as const;
+
+describe("qRunSplit — trục hàng base:'ev'", () => {
+  const showOn = (axis: string, split: string): QuantifyShow => ({
+    id: `t-${axis}`, kind: "show", show: axis, split, metric: "count", chart: "rank",
+    name: `test ${axis} × ${split}`,
+  });
+
+  /* BÀI KIỂM CHÍNH — canh đúng chỗ hở mà việc mở nhánh này tạo ra. `EV_ROW_KEY` (cách suy hàng từ một
+     dòng bằng chứng) nay được DÙNG CHUNG bởi rows() và bởi chia màu. Nếu ai đó tách nó thành hai bảng
+     rồi để lệch, đoạn màu sẽ mô tả một tổng khác với chiều dài thanh — nhìn hình KHÔNG phát hiện
+     được, chỉ test này bắt. Đối chiếu qua qRun, một đường tính hoàn toàn khác. */
+  it.each(EV_AXES)("Σ đoạn màu của MỌI hàng = v của chính hàng đó do qRun trả (trục %s)", (axis) => {
+    const item = showOn(axis, "nav");
+    const rows = qRun(item, demoData, dims);
+    const sp = qRunSplit(item, demoData, dims);
+    expect(sp.kind).toBe("draw");
+    if (sp.kind !== "draw") throw new Error("unreachable");
+
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) {
+      const sum = (sp.byRow[r.id] ?? []).reduce((a, s) => a + s.n, 0);
+      // So chuỗi kèm id để lúc đỏ biết ngay HÀNG NÀO lệch, không phải chỉ "2 !== 3".
+      expect(`${r.id}=${sum}`).toBe(`${r.id}=${r.v}`);
+    }
+  });
+
+  it("mọi hàng dùng CHUNG một bộ nhãn/màu — không thì 'màu thứ ba' của hai hàng là hai thứ khác nhau", () => {
+    const sp = qRunSplit(showOn("pf", "nav"), demoData, dims);
+    if (sp.kind !== "draw") throw new Error("phải draw");
+    const legendLabels = sp.legend.map((l) => l.label);
+    for (const segs of Object.values(sp.byRow)) {
+      // Đoạn n=0 bị bỏ, nên mỗi hàng là TẬP CON của legend và giữ ĐÚNG thứ tự legend.
+      const idx = segs.map((s) => legendLabels.indexOf(s.label));
+      expect(idx.every((i) => i >= 0)).toBe(true);
+      expect([...idx].sort((a, b) => a - b)).toEqual(idx);
+    }
+  });
+
+  /* Ba nghĩa "không nối được sang khách" phải là BA đoạn riêng. Cộng dồn qua mọi hàng của một trục ev
+     = tổng toàn cục, nên hai con số dưới đây đối chiếu thẳng với phép đo 05/08 mà KHÔNG đi qua bộ đếm
+     nội bộ của hàm. Gộp chúng lại là mất đúng thông tin người sửa pipeline cần: 8,1% ẩn danh là đúng
+     thiết kế, 0,4% nối hỏng là defect. */
+  it("'Ẩn danh' và 'Chưa đối chiếu được' là hai đoạn TÁCH RIÊNG, số khớp phép đo trên demoData", () => {
+    const sp = qRunSplit(showOn("pf", "nav"), demoData, dims);
+    if (sp.kind !== "draw") throw new Error("phải draw");
+    const totalOf = (label: string) =>
+      Object.values(sp.byRow).reduce((a, segs) => a + (segs.find((s) => s.label === label)?.n ?? 0), 0);
+
+    expect(totalOf("Ẩn danh")).toBe(133);
+    expect(totalOf("Chưa đối chiếu được")).toBe(7);
+    expect(sp.legend.filter((l) => l.label === "Ẩn danh" || l.label === "Chưa đối chiếu được")).toHaveLength(2);
+  });
+
+  it("refuse: trục chia màu phải là thuộc tính khách (ev × ev không mở)", () => {
+    const res = qRunSplit(showOn("pf", "cat"), demoData, dims);
+    expect(res.kind).toBe("refuse");
+    if (res.kind !== "refuse") throw new Error("unreachable");
+    expect(res.reason).toMatch(/cat/);
+  });
+});
+
+/* Trục TỔNG HỢP vẫn khoá — nhưng lý do phải là lý do THẬT. Đây là điều owner chốt ở mục 2: màn phải
+   nói ra "số trên thanh là tổng hợp sẵn, không đếm từ bằng chứng", KHÔNG được nói "thiếu khoá khách"
+   (chẩn đoán sai đã sửa 05/08) và cũng không được ẩn im lặng. Tầng vẽ in NGUYÊN VĂN chuỗi này, nên
+   chính chuỗi này là deliverable chứ không phải một chi tiết nội bộ. */
+describe("qRunSplit — trục hàng base:'agg' khoá kèm LÝ DO ĐÚNG", () => {
+  it.each(["theme", "l1", "src"])("trục %s: từ chối vì số tổng hợp sẵn, KHÔNG vì thiếu khoá khách", (axis) => {
+    const res = qRunSplit(
+      { id: "t", kind: "show", show: axis, split: "nav", metric: "count", chart: "rank", name: "t" },
+      demoData,
+      dims,
+    );
+    expect(res.kind).toBe("refuse");
+    if (res.kind !== "refuse") throw new Error("unreachable");
+    expect(res.reason).toMatch(/TỔNG HỢP SẴN/);
+    expect(res.reason).toMatch(/không đếm từ bằng chứng/);
+    expect(res.reason).not.toMatch(/khoá khách/);
+  });
+});
+
 /* qRunDrill — bản ghi thật dưới một hàng. Bài kiểm CHÍNH ở đây không phải "có trả về dòng nào không"
    mà là `kind` có nói đúng QUAN HỆ với con số trên thanh hay không: 'sample' (số tổng hợp sẵn, lệch
    hàng chục lần) vs 'full' (số chính là số bản ghi). Lẫn hai cái là dựng một panel nói dối. */

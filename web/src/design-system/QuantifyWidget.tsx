@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { Cfg, CxmData, Dim, DimRow, QuantifyItem, QuantifyShow, QuantifyView } from "../data/schema/index.ts";
 import { BASE_FACTOR, fx } from "../domain/format.ts";
-import { qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, UNKNOWN_ROW_ID } from "../domain/quantify.ts";
+import { AGG_SPLIT_NOTE, qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, UNKNOWN_ROW_ID, type SplitChart } from "../domain/quantify.ts";
 // scopeTotal = định nghĩa DUY NHẤT của mẫu số "tín hiệu khách hàng" (VOC_SCOPE). Hàm thuần trên
 // CxmData nên sống ở domain/, KHÔNG ở features/ — design-system không được phụ thuộc vào features.
 // (S2.5 từng import ngược từ features/overview/sec.ts; Opus đã dời.)
@@ -271,6 +271,84 @@ function buildSegDescription(seg: { known: number; unknown: number; missing: num
   return text;
 }
 
+/* ---------- Cụm CHIA MÀU, dùng chung cho MỌI trục (05/08, owner: "làm cả 3 đi") ----------
+   Trước đổi này cụm chia màu nằm hẳn TRONG nhánh `dim.base === 'cust'`, nên hai chuyện bị buộc vào
+   nhau mà lẽ ra phải rời: "chart này chia màu được không" và "chart này có được HIỆN thanh chọn
+   không". Hệ quả đo được: 15/17 chart không hiện thanh nào, và người xem không có cách phân biệt lỗi
+   với giới hạn cố ý — đúng thứ luật owner chốt 05/08 cấm ("cột không có thì NÓI THẲNG là không có,
+   không giấu"). Cơ chế khoá-kèm-lý-do đã có sẵn, chỉ nằm sai chỗ.
+
+   Tách thành một hàm thay vì chép sang nhánh thứ hai: hai bản sao của luật này chắc chắn trôi lệch,
+   và đây đúng loại lệch không nhìn hình mà thấy được. Mọi LÝ DO đều HỎI `qRunSplit` bằng một lượt
+   thử, không tự viết lại — bản sao thứ hai của luật engine là bug `mdir` lặp lại. */
+type SplitBundle = {
+  options: SplitOption[];
+  effSplit: string | undefined;
+  effItem: QuantifyShow;
+  split: SplitChart;
+  /** Khoá CẢ CỤM (khác `disabledReason` của từng chip): lý do nằm ở chart, không ở chiều nào. */
+  lockedReason: string | undefined;
+  /** Riêng lý do thuộc về TRỤC (không phải view/mark). Tách ra vì nó phải hiện thành CHỮ dưới chart
+   *  chứ không chỉ tooltip: luật owner chốt 05/08 là "nói thẳng là không có", mà tooltip thì phải rê
+   *  chuột mới thấy. Lý do view/mark KHÔNG cần vậy — đổi view là tự khỏi, người dùng không mắc kẹt. */
+  axisLocked: string | undefined;
+  /** Bản NGẮN của `axisLocked` để in thành chữ. Xem AGG_SPLIT_NOTE: câu đầy đủ kèm phần đo được, hợp
+   *  cho tooltip (đọc một lần, khi cần), không hợp cho dòng chữ lặp trên 7 chart cùng trang. */
+  axisNote: string | undefined;
+};
+
+function buildSplitBundle(
+  item: QuantifyShow,
+  data: CxmData,
+  dims: Record<string, Dim>,
+  dim: Dim | undefined,
+  effectiveView: QuantifyView,
+  splitPick: { value: string | undefined } | null,
+  onSplitChange: ((next: string | undefined) => void) | undefined,
+): SplitBundle {
+  const effSplit = !onSplitChange && splitPick ? splitPick.value : item.split;
+  const effItem: QuantifyShow =
+    effSplit === item.split ? item : { ...item, split: effSplit, stack: effSplit ? item.stack : undefined };
+
+  const options: SplitOption[] = Object.entries(dims)
+    .filter(([, d]) => d.base === "cust")
+    .map(([k, d]) => {
+      const probe = qRunSplit({ ...item, split: k }, data, dims);
+      return { key: k, label: d.label, ...(probe.kind === "refuse" ? { disabledReason: probe.reason } : {}) };
+    });
+
+  /* Trục TỔNG HỢP: số trên thanh không đếm từ bằng chứng nên KHÔNG chiều nào chia màu được — lý do
+     thuộc về CHART chứ không thuộc chiều nào, nên khoá cả cụm thay vì 6 tooltip giống hệt nhau. */
+  const aggReason = (() => {
+    if (dim?.base !== "agg") return undefined;
+    const anyCust = Object.entries(dims).find(([, d]) => d.base === "cust")?.[0];
+    if (!anyCust) return undefined;
+    const probe = qRunSplit({ ...item, split: anyCust }, data, dims);
+    return probe.kind === "refuse" ? probe.reason : undefined;
+  })();
+
+  /* Thứ tự CÓ CHỦ Ý: lý do TRỤC đứng trước lý do VIEW/MARK. Với trục agg thì đổi view hay đổi mark
+     cũng không mở được, nên bảo "chuyển sang chart thanh đi" là chỉ một đường cụt (đúng ca q14:
+     donut TRÊN trục nguồn). Trục khách không bao giờ chạm nhánh agg nên hành vi cũ giữ nguyên. */
+  const lockedReason =
+    aggReason ??
+    (effectiveView === "table"
+      ? "View bảng không vẽ được đoạn màu — chuyển sang Chart để đổi chiều chia."
+      : item.chart === "donut"
+        ? "Donut không vẽ được đoạn màu — dùng chart thanh để đổi chiều chia."
+        : undefined);
+
+  return {
+    options,
+    effSplit,
+    effItem,
+    split: qRunSplit(effItem, data, dims),
+    lockedReason,
+    axisLocked: aggReason,
+    axisNote: aggReason ? AGG_SPLIT_NOTE : undefined,
+  };
+}
+
 /* Widget vạn năng render một QuantifyItem — orchestrator port tinh thần từ qWidget() (prototype
    dòng 2021). Nhận toàn bộ data/dims qua props (không đọc store) để component thuần theo props. */
 export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, onTitleClick, months, onSplitChange }: QuantifyWidgetProps) {
@@ -363,9 +441,8 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
        nên tắt chia màu là phải bỏ luôn `stack`, không để field mồ côi làm `segBottomLabel` nói về một
        cách xếp đoạn không còn tồn tại. Ngược lại, ĐỔI chiều mà vẫn chia thì GIỮ `stack`: cách xếp đoạn
        là lựa chọn về CÁCH ĐỌC (tuyệt đối / tỷ trọng), không thuộc riêng chiều nào. */
-    const effSplit = !onSplitChange && splitPick ? splitPick.value : item.split;
-    const effItem: QuantifyShow =
-      effSplit === item.split ? item : { ...item, split: effSplit, stack: effSplit ? item.stack : undefined };
+    const bundle = buildSplitBundle(item, data, dims, dim, effectiveView, splitPick, onSplitChange);
+    const { effSplit, effItem } = bundle;
 
     /* Danh sách chiều chia màu: LỌC theo `base === 'cust'`, KHÔNG liệt kê tay id — cùng luật builder
        dùng cho picker của nó (QuantifyBuilder splitOptions), và cùng lý do đã nêu ở qRunSegment.
@@ -377,27 +454,17 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
        của luật đó chắc chắn sẽ lệch với engine (đúng loại trùng lặp đã đẻ ra bug `mdir`), và tooltip
        nói một lý do mà engine không thực sự áp thì tệ hơn là không có tooltip. Giá: 6 lượt quét
        `data.cust` (300 dòng) mỗi lần render — rẻ hơn nhiều so với nguy cơ đó. */
-    const splitOptions: SplitOption[] = Object.entries(dims)
-      .filter(([, d]) => d.base === "cust")
-      .map(([k, d]) => {
-        const probe = qRunSplit({ ...item, split: k }, data, dims);
-        return { key: k, label: d.label, ...(probe.kind === "refuse" ? { disabledReason: probe.reason } : {}) };
-      });
+    const splitOptions = bundle.options;
 
     /* Bảng và donut KHÔNG có chỗ vẽ đoạn màu. Vẫn render strip nhưng khoá CẢ CỤM thay vì ẩn: ẩn đi thì
        control biến mất khi đổi view mà không ai nói vì sao — đúng cái lỗi mà "disable chứ không ẩn"
        ở trên đang tránh. Câu này nói về việc KHÔNG ĐỔI ĐƯỢC; `splitNote` bên dưới nói về việc chiều
        đang chọn KHÔNG VẼ ĐƯỢC — hai điều khác nhau nên cả hai đều đứng lại. */
-    const splitLocked =
-      effectiveView === "table"
-        ? "View bảng không vẽ được đoạn màu — chuyển sang Chart để đổi chiều chia."
-        : item.chart === "donut"
-          ? "Donut không vẽ được đoạn màu — dùng chart thanh để đổi chiều chia."
-          : undefined;
+    const splitLocked = bundle.lockedReason;
 
     /* Breakdown (Module D section 1, owner chốt 03/08): chia mỗi thanh thành đoạn màu theo chiều
        khách THỨ HAI. Số do domain đếm THẬT trên cùng một dòng Customer — xem qRunSplit. */
-    const split = qRunSplit(effItem, data, dims);
+    const split = bundle.split;
 
     const knownShown = item.chart === "donut" ? seg.rows : seg.rows.slice(0, limit ?? TOP_N);
     const paintedKnown = paintCategorical(knownShown);
@@ -447,9 +514,9 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
           ? `Chia màu theo "${dims[effItem.split ?? ""]?.label ?? effItem.split}" chỉ hiện được ở dạng thanh — chuyển sang view Chart để xem.`
           : null;
 
-    /* Trục khách: bản ghi dưới một hàng là KHÁCH, không phải verbatim — `Evidence` có khoá khách
-       (`ck`) nhưng đo 03/08 trên demoData chỉ 7/15 khoá khớp một dòng `data.cust`, nên đi qua join đó
-       thì gần như mọi hàng mở ra rỗng, còn danh sách khách là số thật và đếm đủ. Xem qRunDrill. */
+    /* Trục khách: bản ghi dưới một hàng là KHÁCH, không phải verbatim — `data.cust` đếm đủ nên đó
+       mới là danh sách đúng nghĩa của hàng. Lý do CŨ ghi ở đây ("chỉ 7/15 khoá `ck` khớp") là một
+       phép đo đã hết hạn từ 03/08; đo lại 05/08 join lành 1.501/1.641. Xem qRunDrill. */
     const segDrill: DrillContent | null = !drillRow
       ? null
       : drillRow.id === ROW_OTHER_ID
@@ -516,6 +583,12 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
     );
   }
 
+  /* ---- Trục KHÔNG phải khách: từ 05/08 cũng có cụm chia màu ----
+     `ev` (cat/sen/pf) chia màu THẬT: mỗi thanh đếm dòng `data.ev`, mà mỗi dòng mang sẵn khoá khách
+     `ck` nên nối sang `Customer` rồi đếm là phép đếm thật (đo 05/08: 1.641 dòng, 1.501 nối được).
+     `agg` (theme/keyword/nguồn) KHOÁ — nhưng hiện thanh kèm lý do thật, không ẩn. Cả hai đường do
+     `buildSplitBundle` quyết, cùng hàm mà nhánh trục khách dùng. */
+  const nc = buildSplitBundle(item, data, dims, dim, effectiveView, splitPick, onSplitChange);
   const allRows = qRun(item, data, dims);
   // Donut hiện tất cả lát; rank/bảng cắt theo limit từ filter số lượng (mặc định TOP_N).
   // paintCategorical NGAY SAU KHI CẮT — chart chưa có màu intent nào thì gán --cat-N xoay vòng theo
@@ -537,20 +610,57 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
       : qRunDrill(item, data, dims, drillRow.id);
   const drillKind: DrillRecordKind = drillRow?.id === ROW_OTHER_ID ? "group" : "ev";
 
+  /* Đấu nối chia màu — CÙNG luật với nhánh trục khách: chỉ chart dạng THANH vẽ được đoạn màu, và
+     không im lặng bỏ qua mà nói ra bằng `split-note`. `scaled` cố ý KHÔNG đụng tới: nó chỉ bật cho
+     `base:'agg'` (dòng ngay trên), mà agg thì luôn khoá chia màu ⇒ không bao giờ có đoạn màu vẽ trên
+     một thanh đã nhân fx(). Nếu sau này ai mở chia màu cho agg thì PHẢI xem lại đúng dòng đó. */
+  const ncDraw = nc.split.kind === "draw" ? nc.split : undefined;
+  const ncDrawn = !!ncDraw && effectiveView !== "table" && item.chart !== "donut";
+  const ncSegments = ncDraw && ncDrawn ? (r: DimRow) => ncDraw.byRow[r.id] ?? [] : undefined;
+  const ncPctStack = nc.effItem.stack === "pct";
+  const ncNote =
+    nc.split.kind === "refuse"
+      ? nc.split.reason
+      : nc.axisNote
+        ? nc.axisNote
+        : ncDraw && !ncDrawn
+        ? `Chia màu theo "${dims[nc.effItem.split ?? ""]?.label ?? nc.effItem.split}" chỉ hiện được ở dạng thanh — chuyển sang view Chart để xem.`
+        : null;
+  const ncBottomLabel =
+    ncPctStack && ncDrawn && dim
+      ? `Tỷ trọng trong từng ${dim.unit} (100%) — bề rộng KHÔNG mã hoá số lượng`
+      : bottomAxis;
+
   return (
     <Card title={item.name} subtitle={period} denomStrip={denomStrip} actions={actions} onTitleClick={onTitleClick}>
-      <VAxisLabel label={vAxis} bottomLabel={bottomAxis}>
+      <SplitToggle
+        options={nc.options}
+        value={nc.effSplit}
+        onChange={onSplitChange ?? ((next) => setSplitPick({ value: next }))}
+        lockedReason={nc.lockedReason}
+      />
+      <VAxisLabel label={vAxis} bottomLabel={ncBottomLabel}>
         {effectiveView === "table" ? (
           <DataTable rows={shownRows} labelHeader={dim?.label} scaled={scaled} />
         ) : item.chart === "donut" ? (
           <Donut rows={shownRows} centerLabel={dim ? BASE_NOUN[dim.base] : undefined} scaled={scaled} />
         ) : (
           <>
-            <Bars rows={shownRows} pctMode={item.metric === "pct"} scaled={scaled} onRowClick={setDrillRow} />
-            <ChartLegend items={buildLegend(shownRows, data)} />
+            <Bars
+              rows={shownRows}
+              pctMode={item.metric === "pct"}
+              scaled={scaled}
+              segments={ncSegments}
+              stackPct={ncPctStack}
+              onRowClick={setDrillRow}
+            />
+            <ChartLegend
+              items={ncDraw && ncDrawn ? ncDraw.legend : buildLegend(shownRows, data)}
+            />
           </>
         )}
       </VAxisLabel>
+      {ncNote ? <div data-testid="split-note" className="text-[11.5px] text-ink-3 mt-1">{ncNote}</div> : null}
       {drillRow && drill ? (
         <DrillPanel
           open

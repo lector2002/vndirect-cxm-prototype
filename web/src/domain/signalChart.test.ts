@@ -129,12 +129,14 @@ describe("signalChart — rule 3: KHÔNG merge cột cùng tên giữa các sign
 });
 
 describe("signalChart — rule 2: signal vol===0 ra note, KHÔNG ra nhóm rỗng", () => {
-  it("chọn riêng một signal gap (sg6): notes có, groups rỗng, dimStates rỗng", () => {
-    const chart = signalChart(demoData.sigCounts, demoData.signals, dims, ["sg6"], "nav");
+  // 05/08: `sg6` (gap) đã bỏ khỏi seed — chiều Nền tảng trả lời sẵn câu nó định hỏi. Đổi sang
+  // `sg-nap-4`, cũng gap vol 0; hành vi được kiểm không đổi một chút nào.
+  it("chọn riêng một signal gap (sg-nap-4): notes có, groups rỗng, dimStates rỗng", () => {
+    const chart = signalChart(demoData.sigCounts, demoData.signals, dims, ["sg-nap-4"], "nav");
     expect(chart.groups).toEqual([]);
     expect(chart.dimStates).toEqual([]);
     expect(chart.notes).toHaveLength(1);
-    expect(chart.notes[0].sigId).toBe("sg6");
+    expect(chart.notes[0].sigId).toBe("sg-nap-4");
     expect(chart.notes[0].reason).toContain("gap");
   });
 

@@ -46,8 +46,13 @@ export type QuantifyShow = {
      evidence" và nghĩa đó đã ăn vào qRunCross/CrossTable/validate rule 16 + hai guard builder — mượn
      nó là phá đúng ba chốt đó. Hai field LOẠI TRỪ NHAU (quy tắc Looker Studio: một chart không vừa
      ghép chéo vừa chia màu), validate rule 16 chặn.
-     Section 1 chỉ tính được khi CẢ `show` LẪN `split` là base:'cust' — hai field nằm trên cùng một
-     dòng `Customer` nên group-by hai chiều là phép đếm THẬT. Trục agg/ev là section 2. */
+     Điều kiện để chia màu là phép đếm THẬT (cập nhật 05/08 — bản trước ghi "chỉ base:'cust' × cust,
+     trục agg/ev là section 2", hẹp hơn thực tế):
+     - `cust` × `cust` — hai field trên cùng một dòng `Customer`, group-by hai chiều là đếm thuần.
+     - `ev`   × `cust` — thanh đếm dòng `Evidence`, mà `ck` (khoá khách) là trường BẮT BUỘC nên nối
+       sang `Customer` rồi đếm cũng là đếm thật. Đo 05/08: 1.501/1.641 dòng nối được.
+     - `agg`  × bất kỳ — KHÔNG, và lý do KHÔNG phải thiếu khoá khách: số trên thanh agg là tổng hợp
+       sẵn (`TaxNode.n`/`Source.vol`), không đếm từ bằng chứng, nên chia màu nó là bịa tỷ lệ. */
   split?: string;
   /** Chỉ có nghĩa khi có `split`. Vắng ⇒ 'abs'. Xem StackMode. */
   stack?: StackMode;

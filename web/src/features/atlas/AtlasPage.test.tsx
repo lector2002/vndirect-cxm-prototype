@@ -72,14 +72,22 @@ describe("AtlasPage — #/atlas", () => {
   });
 
   it("hồ sơ liệt kê touchpoint của bước và signal của các touchpoint đó, gồm signal 'gap' hiện đúng trạng thái bằng chữ", () => {
-    // s3 (Liveness & Face match) có tp3, và tp3 có sg5 (live) + sg6 (gap, vol:0) — sg6 PHẢI vẫn hiện.
-    const step = seed.steps.find((s) => s.id === "s3")!;
-    const tp = seed.touchpoints.find((t) => t.stepId === step.id)!;
-    const gapSignal = seed.signals.find((g) => g.tpId === tp.id && g.st === "gap")!;
+    /* 05/08: `sg6 ekyc_face_device_context` — signal gap DUY NHẤT của flow mở TK — đã bỏ, vì chiều
+       Nền tảng trả lời sẵn câu hỏi nó định hỏi. Nên test KHÔNG ghim `s3` nữa mà tự tìm signal gap đầu
+       tiên trong seed rồi lần ngược ra bước/flow/phase của nó. Khẳng định giữ NGUYÊN: signal vol 0
+       vẫn phải hiện trong hồ sơ, kèm trạng thái viết bằng chữ. */
+    const gapSignal = seed.signals.find((g) => g.st === "gap")!;
     expect(gapSignal).toBeDefined();
+    const tp = seed.touchpoints.find((t) => t.id === gapSignal.tpId)!;
+    const step = seed.steps.find((s) => s.id === tp.stepId)!;
+    const flow = seed.flows.find((f) => f.id === step.flowId)!;
+    const phase = seed.phases.find(
+      (p) => p.id === seed.groups.find((g) => g.id === flow.groupId)!.phaseId,
+    )!;
 
     render(<AtlasPage />);
-    fireEvent.click(screen.getByTestId(`atlas-flow-${pilotFlow.id}`));
+    fireEvent.click(screen.getByTestId(`atlas-phase-${phase.id}`));
+    fireEvent.click(screen.getByTestId(`atlas-flow-${flow.id}`));
     fireEvent.click(screen.getByTestId(`spine-step-${step.id}`));
 
     const inspector = screen.getByTestId("atlas-inspector");

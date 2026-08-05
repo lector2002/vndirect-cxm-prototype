@@ -60,16 +60,16 @@ const seedRaw: CxmData = {
 
     
     { id:'f-dep-4ch',   groupId:'g-in', name:'Nạp tiền — QR · cổng NH · liên kết · quầy', owner:'Payments', version:'v1.2',
-      src:'Money Journey · Sơ đồ 2', verified:true, observed:false,
+      src:'Money Journey · Sơ đồ 2', verified:true, observed:true,
       note:'4 kênh trong MỘT sơ đồ: quét QR (ghi có ngay, dưới 500tr/lần) · cổng nộp tiền CK (BIDV·VIB·VCB·VietinBank·VPBank) · liên kết NH chi hộ tự động (chỉ BIDV·VPBank, trùng CCCD) · nộp tại quầy (4 TK tổng ACB·BIDV·VCB·VietinBank). Tiền vào TK chuyên dụng 021C01 cơ sở / 021C02 phái sinh. Không hỗ trợ ATM và thẻ Visa. Nộp 17h–20h có thể chờ xử lý cuối ngày' },
     { id:'f-dep-trace', groupId:'g-in', name:'Tra soát nạp tiền', owner:'Payments', version:'v1.0',
-      src:'Money Journey · Sơ đồ 2', verified:true, observed:false,
+      src:'Money Journey · Sơ đồ 2', verified:true, observed:true,
       note:'Sub-flow phục hồi 6 trạng thái: Tạo yêu cầu (chứng từ tối đa 5 file) → Chờ tiếp nhận → Đang xử lý TTTT → Chờ bên thứ ba → Hoàn tất (ghi có / hoàn tiền) hoặc Từ chối. SLA 1 ngày làm việc' },
     { id:'f-wd',        groupId:'g-out', name:'Rút tiền về ngân hàng', owner:'Payments', version:'v1.1',
-      src:'Money Journey · Sơ đồ 5', verified:true, observed:false,
+      src:'Money Journey · Sơ đồ 5', verified:true, observed:true,
       note:'Chuỗi cổng: số dư ĐƯỢC PHÉP rút (= dư tiền − chờ T+2 − nợ margin và lãi − phong tỏa − ký quỹ PS) → RTT > 100% (dưới thì Smart Sell) → xác thực CCCD qua VNeID (bắt buộc TK mở sau 01/01/2026) → chữ ký video call (TK phái sinh) → hoàn thiện hợp đồng → OTP → giờ và hạn mức (08–16h không hạn mức; 16h–08h tối đa 499.999.999đ) → blackout sau 16h ngày làm việc cuối tháng' },
     { id:'f-tr-sub',    groupId:'g-out', name:'Chuyển tiền nội bộ giữa TK giao dịch', owner:'Payments', version:'v0.8',
-      src:'Money Journey · Sơ đồ 7', verified:true, observed:false,
+      src:'Money Journey · Sơ đồ 7', verified:true, observed:true,
       note:'Chỉ giữa các tài khoản của cùng một chủ tài khoản. Không đi ra ngân hàng nên không phải Nạp/Rút' },
 
     
@@ -101,7 +101,7 @@ const seedRaw: CxmData = {
       src:'Money Journey · Sơ đồ 4', verified:true, observed:false,
       note:'Bán theo phiên NAV, phí tùy quỹ theo thời gian nắm giữ. Khách CHỌN nơi nhận: về TK chứng khoán, hoặc về thẳng TK ngân hàng — nhánh sau là dòng tiền RA mà KHÔNG qua bước Rút' },
     { id:'f-deriv-open', groupId:'g-deriv', name:'Mở tài khoản phái sinh', owner:'Derivatives Squad', version:'v1.0',
-      src:'Account Journey · Sơ đồ 11', verified:true, observed:false,
+      src:'Account Journey · Sơ đồ 11', verified:true, observed:true,
       note:'Cần TK cơ sở + đã xác thực CCCD. Ký hợp đồng bằng OTP SMS. SLA ~1 ngày làm việc chờ VSDC duyệt. Chữ ký đầy đủ chỉ cần để KÍCH HOẠT RÚT TIỀN. TK phái sinh = tiểu khoản mã có chữ P' },
     { id:'f-deriv-pro', groupId:'g-deriv', name:'Đăng ký & dùng Phái sinh Pro', owner:'Derivatives Squad', version:'v0.8',
       src:'Account Journey · Sơ đồ 12', verified:true, observed:false,
@@ -154,6 +154,64 @@ const seedRaw: CxmData = {
     { id:'s4', flowId:'f-open-2026', code:'04', name:'Thông tin & NH thụ hưởng',  stationId:'JS-MTK-04', owner:'Product' },
     { id:'s5', flowId:'f-open-2026', code:'05', name:'Chọn số TK & ký hợp đồng',  stationId:'JS-MTK-05', owner:'Onboarding' },
     { id:'s6', flowId:'f-open-2026', code:'06', name:'Kích hoạt tài khoản',       stationId:'JS-MTK-06', owner:'Core Account' },
+
+    /* ---- Pilot mở rộng 05/08/2026: mở TK phái sinh + nạp · rút · chuyển tiền nội bộ ----
+       Owner chốt: "cứ làm demo đi … mình sẽ là người đề xuất đo những gì, hiện sẽ pilot tất cả của
+       mở tk và nạp rút, chuyển tiền". Bước dưới đây là ĐỀ XUẤT của mình, đọc từ chính `note` của flow
+       (sơ đồ nguồn AJ 11 · MJ 2 · MJ 5 · MJ 7), KHÔNG phải sơ đồ bước có sẵn.
+
+       Ba quyết định mô hình, ghi ra để người sau bắt lỗi được thay vì phải đoán:
+
+       1. `f-dep-4ch` — 4 kênh nạp KHÔNG tách thành 4 nhánh bước. Theo đúng tiền lệ owner đã chốt ở
+          `f-open-2026` ("AJ 2 là 4 phương thức xác thực dùng bên trong. Cố ý KHÔNG tách AJ 2 thành
+          flow riêng"). Bước ở đây là ĐƯỜNG TIỀN mà cả 4 kênh đều đi qua (về TK chuyên dụng → đối
+          soát → ghi có → khả dụng); KÊNH NÀO là một GIÁ TRỊ của điểm đo ở bước 01, không phải một
+          bước. Hệ quả cố ý: bước "khách bấm nạp trong app" không có ở đây vì kênh quầy không có nó —
+          dựng bước đó sẽ là dựng một bước mà 1/4 khách không hề đi qua.
+
+       2. `f-dep-trace` — 6 trạng thái nguồn gộp còn 4 bước. "Chờ bên thứ ba" là TRẠNG THÁI BÊN TRONG
+          bước xử lý (thành giá trị của điểm đo), không phải bước riêng; "Hoàn tất" và "Từ chối" là
+          HAI KẾT CỤC của bước cuối (`completed` / `failed`), không phải hai bước. Dựng 6 bước tuần tự
+          sẽ buộc phải bịa số cho `entered` của một bước mà nhiều yêu cầu không đi qua.
+
+       3. `f-wd` — chuỗi 8 cổng trong `note` gộp còn 7 bước: gộp "chữ ký video call PS" với "hoàn thiện
+          hợp đồng" (bước 04), gộp "giờ và hạn mức" với "blackout cuối tháng" (bước 06, cùng là cổng
+          thời gian). Bước 07 là tiền thật ra khỏi VNDIRECT — không phải cổng, mà là kết cục.
+
+       CÁCH ĐỌC `obs` (quan trọng, Đ5): mỗi flow đọc như MỘT nhóm khách đã đi hết trong ngày, nên
+       `entered === completed + failed` và `completed[n] === entered[n+1]` đúng tuyệt đối. Dữ liệu thật
+       đo theo THỜI ĐIỂM sẽ có yêu cầu còn treo giữa hai bước (rõ nhất: `f-dep-trace` đang chờ bên thứ
+       ba, `f-deriv-open` đang chờ VSDC duyệt) — lúc đó hai đẳng thức này VỠ, và phải có người khai
+       luật đối chiếu (tính khoản treo vào đâu), KHÔNG được để component tự chọn số cho êm. */
+
+    { id:'s-dvo-1', flowId:'f-deriv-open', code:'01', name:'Kiểm tra điều kiện mở PS',      stationId:'JS-MTKPS-01', owner:'Derivatives Squad' },
+    { id:'s-dvo-2', flowId:'f-deriv-open', code:'02', name:'Chọn tiểu khoản P & xác nhận',  stationId:'JS-MTKPS-02', owner:'Derivatives Squad' },
+    { id:'s-dvo-3', flowId:'f-deriv-open', code:'03', name:'Ký hợp đồng bằng OTP SMS',      stationId:'JS-MTKPS-03', owner:'Derivatives Squad' },
+    { id:'s-dvo-4', flowId:'f-deriv-open', code:'04', name:'Chờ VSDC duyệt',                stationId:'JS-MTKPS-04', owner:'Risk' },
+    { id:'s-dvo-5', flowId:'f-deriv-open', code:'05', name:'Kích hoạt tài khoản phái sinh', stationId:'JS-MTKPS-05', owner:'Core Account' },
+
+    { id:'s-nap-1', flowId:'f-dep-4ch', code:'01', name:'Tiền về TK chuyên dụng',        stationId:'JS-NAP-01', owner:'Payments' },
+    { id:'s-nap-2', flowId:'f-dep-4ch', code:'02', name:'Đối soát chủ khoản',           stationId:'JS-NAP-02', owner:'Payments' },
+    { id:'s-nap-3', flowId:'f-dep-4ch', code:'03', name:'Ghi có vào tiểu khoản',        stationId:'JS-NAP-03', owner:'Core Account' },
+    { id:'s-nap-4', flowId:'f-dep-4ch', code:'04', name:'Số dư khả dụng để giao dịch',  stationId:'JS-NAP-04', owner:'Core Account' },
+
+    { id:'s-tra-1', flowId:'f-dep-trace', code:'01', name:'Tạo yêu cầu tra soát',        stationId:'JS-TRA-01', owner:'CS Center' },
+    { id:'s-tra-2', flowId:'f-dep-trace', code:'02', name:'Tiếp nhận yêu cầu',           stationId:'JS-TRA-02', owner:'Payments' },
+    { id:'s-tra-3', flowId:'f-dep-trace', code:'03', name:'Xử lý tại TTTT',              stationId:'JS-TRA-03', owner:'Payments' },
+    { id:'s-tra-4', flowId:'f-dep-trace', code:'04', name:'Kết thúc — ghi có / hoàn tiền',stationId:'JS-TRA-04', owner:'Payments' },
+
+    { id:'s-rut-1', flowId:'f-wd', code:'01', name:'Số dư được phép rút',            stationId:'JS-RUT-01', owner:'Risk' },
+    { id:'s-rut-2', flowId:'f-wd', code:'02', name:'Cổng RTT > 100%',                stationId:'JS-RUT-02', owner:'Risk' },
+    { id:'s-rut-3', flowId:'f-wd', code:'03', name:'Xác thực CCCD qua VNeID',        stationId:'JS-RUT-03', owner:'Onboarding' },
+    { id:'s-rut-4', flowId:'f-wd', code:'04', name:'Chữ ký & hợp đồng rút tiền',     stationId:'JS-RUT-04', owner:'Payments' },
+    { id:'s-rut-5', flowId:'f-wd', code:'05', name:'Xác thực OTP',                   stationId:'JS-RUT-05', owner:'Security' },
+    { id:'s-rut-6', flowId:'f-wd', code:'06', name:'Cổng giờ, hạn mức & blackout',   stationId:'JS-RUT-06', owner:'Payments' },
+    { id:'s-rut-7', flowId:'f-wd', code:'07', name:'Chuyển tiền ra ngân hàng',       stationId:'JS-RUT-07', owner:'Payments' },
+
+    { id:'s-ctn-1', flowId:'f-tr-sub', code:'01', name:'Chọn tiểu khoản nguồn & đích', stationId:'JS-CTNB-01', owner:'Payments' },
+    { id:'s-ctn-2', flowId:'f-tr-sub', code:'02', name:'Kiểm tra số dư khả dụng',      stationId:'JS-CTNB-02', owner:'Risk' },
+    { id:'s-ctn-3', flowId:'f-tr-sub', code:'03', name:'Xác thực OTP',                 stationId:'JS-CTNB-03', owner:'Security' },
+    { id:'s-ctn-4', flowId:'f-tr-sub', code:'04', name:'Ghi giảm & ghi tăng hai tiểu khoản', stationId:'JS-CTNB-04', owner:'Core Account' },
   ],
   obs: [
 { stepId:'s1', entered:18420, completed:17690, failed:730,  effort:1.1, cov:96 },
@@ -162,6 +220,47 @@ const seedRaw: CxmData = {
     { stepId:'s4', entered:13190, completed:12760, failed:430,  effort:1.1, cov:92 },
     { stepId:'s5', entered:12760, completed:11990, failed:770,  effort:1.3, cov:58 },
     { stepId:'s6', entered:11990, completed:11840, failed:150,  effort:1.0, cov:89 },
+
+    /* Số của pilot mở rộng — SỐ DEMO do mình đề xuất (xem docblock ở `steps` phía trên), chọn theo
+       nghiệp vụ đã ghi trong `note` của từng flow: cổng nào sách vở nói là nặng thì cho `failed` cao
+       và `cov` thấp. Ba chỗ đáng nhìn: `s-rut-3` (VNeID — bắt buộc với TK mở sau 01/01/2026 nên chặn
+       nhiều nhất trong chuỗi rút), `s-nap-2` (đối soát chủ khoản — đây là nơi sinh ra tra soát), và
+       `s-nap-1` `failed:0` cố ý (tiền đã về TK chuyên dụng thì không có khoản nào "vào mà không vào"
+       — số 0 này là số ĐÚNG, không phải số chưa điền).
+       LƯU Ý cố ý KHÔNG nối: `failed` của `s-nap-2` (130) và `entered` của `f-dep-trace` (148) là HAI
+       nhóm khác nhau — tra soát hôm nay gồm cả khoản tồn từ hôm trước. Cho hai số bằng nhau thì biểu
+       đồ đẹp hơn nhưng đó là số bịa cho vừa mắt. */
+    { stepId:'s-dvo-1', entered:1240, completed:1050, failed:190, effort:1.2, cov:88 },
+    { stepId:'s-dvo-2', entered:1050, completed:1010, failed:40,  effort:1.1, cov:91 },
+    { stepId:'s-dvo-3', entered:1010, completed:942,  failed:68,  effort:1.5, cov:76 },
+    { stepId:'s-dvo-4', entered:942,  completed:903,  failed:39,  effort:1.0, cov:94 },
+    { stepId:'s-dvo-5', entered:903,  completed:898,  failed:5,   effort:1.0, cov:96 },
+
+    { stepId:'s-nap-1', entered:9640, completed:9640, failed:0,   effort:1.0, cov:99 },
+    { stepId:'s-nap-2', entered:9640, completed:9510, failed:130, effort:1.3, cov:82 },
+    { stepId:'s-nap-3', entered:9510, completed:9486, failed:24,  effort:1.0, cov:97 },
+    { stepId:'s-nap-4', entered:9486, completed:9481, failed:5,   effort:1.0, cov:98 },
+
+    /* `cov` của hai bước này CỐ Ý không lấy 64 và 58: hai số đó đã là `cov` của s3 và s5, và
+       CoverageBlock chỉ vẽ bước dưới ngưỡng 70 nên trùng số sẽ làm hai thanh khác nhau hiện cùng một
+       nhãn "64%" — người đọc không biết thanh nào là bước nào. Lệch 1 điểm, không đổi ý nghĩa. */
+    { stepId:'s-tra-1', entered:148, completed:141, failed:7,  effort:2.6, cov:63 },
+    { stepId:'s-tra-2', entered:141, completed:136, failed:5,  effort:1.2, cov:79 },
+    { stepId:'s-tra-3', entered:136, completed:121, failed:15, effort:1.8, cov:59 },
+    { stepId:'s-tra-4', entered:121, completed:113, failed:8,  effort:1.1, cov:86 },
+
+    { stepId:'s-rut-1', entered:3180, completed:2905, failed:275, effort:1.1, cov:95 },
+    { stepId:'s-rut-2', entered:2905, completed:2848, failed:57,  effort:1.2, cov:88 },
+    { stepId:'s-rut-3', entered:2848, completed:2612, failed:236, effort:2.2, cov:61 },
+    { stepId:'s-rut-4', entered:2612, completed:2551, failed:61,  effort:2.0, cov:57 },
+    { stepId:'s-rut-5', entered:2551, completed:2498, failed:53,  effort:1.3, cov:84 },
+    { stepId:'s-rut-6', entered:2498, completed:2364, failed:134, effort:1.1, cov:90 },
+    { stepId:'s-rut-7', entered:2364, completed:2351, failed:13,  effort:1.0, cov:96 },
+
+    { stepId:'s-ctn-1', entered:2140, completed:2098, failed:42,  effort:1.2, cov:86 },
+    { stepId:'s-ctn-2', entered:2098, completed:1962, failed:136, effort:1.1, cov:93 },
+    { stepId:'s-ctn-3', entered:1962, completed:1921, failed:41,  effort:1.3, cov:85 },
+    { stepId:'s-ctn-4', entered:1921, completed:1918, failed:3,   effort:1.0, cov:97 },
   ],
   touchpoints: [
 { id:'tp1', stepId:'s1', name:'Form khởi tạo hồ sơ', channel:'app', owner:'Growth',      users:18420, desc:'Màn nhập SĐT và thông tin cơ bản' },
@@ -170,6 +269,38 @@ const seedRaw: CxmData = {
     { id:'tp4', stepId:'s4', name:'Xác nhận thông tin',   channel:'app', owner:'Product',     users:13190, desc:'Sửa thông tin OCR, chọn NH thụ hưởng' },
     { id:'tp5', stepId:'s5', name:'Ký HĐ điện tử SmartCA',channel:'app', owner:'Onboarding',  users:12760, desc:'Chọn số TK và ký hợp đồng' },
     { id:'tp6', stepId:'s6', name:'Kích hoạt tại core',   channel:'backend', owner:'Core Account', users:11990, desc:'Đồng bộ tài khoản sang hệ thống lõi' },
+
+    /* Điểm tiếp xúc của pilot mở rộng — `users` lấy đúng `obs.entered` của bước tương ứng.
+       `channel:'app'` = nơi KHÁCH thao tác; `channel:'backend'` = nơi hệ thống xử lý, khách không
+       nhìn thấy. Một điểm tiếp xúc `app` vẫn có thể được đo ở phía server (xem docblock `signals`). */
+    { id:'tp-dvo-1', stepId:'s-dvo-1', name:'Màn kiểm tra điều kiện mở PS', channel:'app',     owner:'Derivatives Squad', users:1240, desc:'Báo khách còn thiếu TK cơ sở hay chưa xác thực CCCD' },
+    { id:'tp-dvo-2', stepId:'s-dvo-2', name:'Chọn tiểu khoản P',            channel:'app',     owner:'Derivatives Squad', users:1050, desc:'Xác nhận thông tin và chọn tiểu khoản mã có chữ P' },
+    { id:'tp-dvo-3', stepId:'s-dvo-3', name:'Ký hợp đồng bằng OTP SMS',     channel:'app',     owner:'Derivatives Squad', users:1010, desc:'Nhập OTP SMS để ký hợp đồng phái sinh' },
+    { id:'tp-dvo-4', stepId:'s-dvo-4', name:'Chờ VSDC duyệt',               channel:'backend', owner:'Risk',              users:942,  desc:'Gửi hồ sơ sang VSDC, SLA khoảng 1 ngày làm việc' },
+    { id:'tp-dvo-5', stepId:'s-dvo-5', name:'Kích hoạt tiểu khoản P',       channel:'backend', owner:'Core Account',      users:903,  desc:'Mở tiểu khoản phái sinh trên hệ thống lõi' },
+
+    { id:'tp-nap-1', stepId:'s-nap-1', name:'Tiền về TK chuyên dụng',   channel:'backend', owner:'Payments',     users:9640, desc:'Khoản tiền vào 021C01 cơ sở / 021C02 phái sinh từ một trong 4 kênh' },
+    { id:'tp-nap-2', stepId:'s-nap-2', name:'Đối soát chủ khoản',       channel:'backend', owner:'Payments',     users:9640, desc:'Ghép khoản tiền với chủ tài khoản; không ghép được thì phải tra soát' },
+    { id:'tp-nap-3', stepId:'s-nap-3', name:'Ghi có tiểu khoản',        channel:'backend', owner:'Core Account', users:9510, desc:'Hạch toán vào tiểu khoản của khách' },
+    { id:'tp-nap-4', stepId:'s-nap-4', name:'Số dư khả dụng',           channel:'backend', owner:'Core Account', users:9486, desc:'Tiền sẵn sàng để đặt lệnh' },
+
+    { id:'tp-tra-1', stepId:'s-tra-1', name:'Form tạo yêu cầu tra soát', channel:'app',     owner:'CS Center', users:148, desc:'Khách khai thông tin khoản nạp và đính kèm tối đa 5 file chứng từ' },
+    { id:'tp-tra-2', stepId:'s-tra-2', name:'Tiếp nhận yêu cầu',         channel:'backend', owner:'Payments',  users:141, desc:'Kiểm tra yêu cầu có đủ điều kiện xử lý' },
+    { id:'tp-tra-3', stepId:'s-tra-3', name:'Xử lý tại TTTT',            channel:'backend', owner:'Payments',  users:136, desc:'Đối chiếu với ngân hàng, có thể phải chờ bên thứ ba' },
+    { id:'tp-tra-4', stepId:'s-tra-4', name:'Kết quả tra soát',          channel:'backend', owner:'Payments',  users:121, desc:'Ghi có cho khách, hoàn tiền, hoặc từ chối' },
+
+    { id:'tp-rut-1', stepId:'s-rut-1', name:'Màn nhập số tiền rút',        channel:'app',     owner:'Payments',   users:3180, desc:'Hiện số dư ĐƯỢC PHÉP rút, đã trừ T+2, nợ margin, phong tỏa, ký quỹ PS' },
+    { id:'tp-rut-2', stepId:'s-rut-2', name:'Cổng RTT',                    channel:'backend', owner:'Risk',       users:2905, desc:'RTT dưới 100% thì chuyển hướng sang Smart Sell' },
+    { id:'tp-rut-3', stepId:'s-rut-3', name:'Xác thực CCCD qua VNeID',     channel:'app',     owner:'Onboarding', users:2848, desc:'Bắt buộc với tài khoản mở sau 01/01/2026' },
+    { id:'tp-rut-4', stepId:'s-rut-4', name:'Chữ ký video call & hợp đồng',channel:'app',     owner:'Payments',   users:2612, desc:'Chữ ký video call cho TK phái sinh, sau đó hoàn thiện hợp đồng' },
+    { id:'tp-rut-5', stepId:'s-rut-5', name:'Nhập OTP',                    channel:'app',     owner:'Security',   users:2551, desc:'Xác thực giao dịch rút tiền' },
+    { id:'tp-rut-6', stepId:'s-rut-6', name:'Cổng giờ & hạn mức',          channel:'backend', owner:'Payments',   users:2498, desc:'08–16h không hạn mức; 16h–08h tối đa 499.999.999đ; blackout sau 16h ngày làm việc cuối tháng' },
+    { id:'tp-rut-7', stepId:'s-rut-7', name:'Lệnh chuyển tiền ra NH',      channel:'backend', owner:'Payments',   users:2364, desc:'Đẩy lệnh sang ngân hàng thụ hưởng' },
+
+    { id:'tp-ctn-1', stepId:'s-ctn-1', name:'Chọn tiểu khoản nguồn & đích', channel:'app',     owner:'Payments',     users:2140, desc:'Chỉ cho phép giữa các tiểu khoản của cùng một chủ tài khoản' },
+    { id:'tp-ctn-2', stepId:'s-ctn-2', name:'Kiểm tra số dư khả dụng',      channel:'backend', owner:'Risk',         users:2098, desc:'Số dư khả dụng của tiểu khoản nguồn' },
+    { id:'tp-ctn-3', stepId:'s-ctn-3', name:'Nhập OTP',                     channel:'app',     owner:'Security',     users:1962, desc:'Xác thực lệnh chuyển nội bộ' },
+    { id:'tp-ctn-4', stepId:'s-ctn-4', name:'Hạch toán hai tiểu khoản',     channel:'backend', owner:'Core Account', users:1921, desc:'Ghi giảm tiểu khoản nguồn và ghi tăng tiểu khoản đích' },
   ],
   /* Signal.values — danh sách giá trị RỜI RẠC mà chính điểm đo bắn ra (thiết kế
      output/thiet-ke-chart-signal.html §2 lỗ hổng A, §7). Chỉ sg4 có danh sách VIẾT SẴN trong chính
@@ -186,11 +317,71 @@ const seedRaw: CxmData = {
     { id:'sg3', tpId:'tp2', name:'ekyc_document_capture_result',st:'live',       pf:['ios','android'],       es:'client', vol:920,  seen:'27/07 · 14:50', metrics:['m-ocr'], desc:'Kết quả mỗi lần chụp giấy tờ', values:['success','fail'] },
     { id:'sg4', tpId:'tp2', name:'ekyc_document_fail_reason',   st:'validating', pf:['ios','android'],       es:'client', vol:410,  seen:'27/07 · 13:20', metrics:['m-ocr'], desc:'Lý do thất bại: blur / glare / crop / expired', values:['blur','glare','crop','expired'] },
     { id:'sg5', tpId:'tp3', name:'ekyc_face_liveness_result',   st:'live',       pf:['ios','android'],       es:'client', vol:1180, seen:'27/07 · 14:48', metrics:['m-liveness'], desc:'Kết quả mỗi lần liveness', values:['success','fail'] },
-    { id:'sg6', tpId:'tp3', name:'ekyc_face_device_context',    st:'gap',        pf:['android'],             es:'client', vol:0,    seen:null, metrics:['m-liveness'], desc:'Model máy, mức sáng môi trường — CHƯA instrument', values:[] },
+    /* `sg6 ekyc_face_device_context` (gap, vol 0 — "model máy, mức sáng môi trường") ĐÃ BỎ, owner chốt
+       05/08: màn giờ cắt mọi điểm đo theo năm chiều, TRONG ĐÓ CÓ Nền tảng, nên một điểm đo riêng chỉ để
+       nói "máy nào" là hỏi lại câu chiều đã trả lời. Phần "mức sáng môi trường" KHÔNG mất — nó vốn là
+       một LÝ DO trượt liveness, nên đi vào `sg11` ngay dưới đây dưới tên `poor_lighting`.
+       `sg11` là cặp `fail_reason` của `sg5`, đúng khuôn sg3+sg4 đã có ở bước chụp giấy tờ: sg5 trả lời
+       "bao nhiêu phần trăm qua", sg11 trả lời "trượt thì vì sao" — owner cần CẢ HAI.
+       vol 197 = ĐÚNG số fail của sg5 (mỗi lần trượt có đúng một lý do), không phải 2.650 của s3: sg5
+       chỉ bắn 1.180 lần nên lý do không thể nhiều hơn thế — cho vol 2.650 là để hai signal cạnh nhau
+       tự nói ngược nhau.
+       NĂM LÝ DO LÀ ĐỀ XUẤT CỦA MÌNH, không đọc được từ sơ đồ: Account Journey chỉ vẽ liveness là MỘT
+       cổng (`face["Xác thực khuôn mặt (liveness)"]`), không liệt kê lý do trượt. Cùng loại quyết định
+       với `sg4` (blur/glare/crop/expired) vốn cũng là đề xuất. */
+    { id:'sg11',tpId:'tp3', name:'ekyc_face_liveness_fail_reason', st:'validating', pf:['ios','android'], es:'client', vol:197, seen:'27/07 · 14:48', metrics:['m-liveness'], desc:'Lý do trượt liveness — mỗi lần trượt có đúng một lý do; vol đặt theo tỉ lệ trượt 16,7% của bước', values:['face_not_matched','poor_lighting','liveness_timeout','spoof_suspected','multiple_faces'] },
     { id:'sg7', tpId:'tp4', name:'account_info_edited',         st:'live',       pf:['ios','android'],       es:'client', vol:520,  seen:'27/07 · 14:31', metrics:['m-ocr'], desc:'Khách sửa thông tin OCR đọc sai', values:['name','dob','id_number','address','bank'] },
     { id:'sg8', tpId:'tp5', name:'contract_sign_result',        st:'live',       pf:['ios','android'],       es:'client', vol:430,  seen:'27/07 · 14:40', metrics:['m-contract'], desc:'Kết quả ký hợp đồng điện tử', values:['success','fail'] },
     { id:'sg9', tpId:'tp5', name:'contract_session_abandoned',  st:'designed',   pf:['ios','android'],       es:'client', vol:0,    seen:null, metrics:['m-contract'], desc:'Phiên ký hết hạn — đã có spec, chưa implement', values:[] },
     { id:'sg10',tpId:'tp6', name:'account_activated',           st:'live',       pf:['server'],              es:'server', vol:395,  seen:'27/07 · 14:45', metrics:['m-completion'], desc:'Tài khoản sẵn sàng giao dịch', values:['activated'] },
+
+    /* ---- ĐỀ XUẤT ĐO của pilot mở rộng 05/08/2026 ----
+       Owner chốt: "đã xác định được các điểm chạm r thì MÌNH SẼ LÀ NGƯỜI ĐỀ XUẤT đo những gì". Nên
+       khác hẳn 10 signal trên (đọc từ event registry đã có): 20 signal dưới đây là ĐỀ XUẤT CỦA MÌNH
+       gửi đội dữ liệu, KHÔNG phải điểm đo đang chạy. `vol` và `seen` là số demo để màn có gì vẽ —
+       chúng KHÔNG phải số đo thật, và đây chính là chỗ dễ tái diễn lỗ hổng A nếu người sau đọc nhầm
+       thành "đã đo được". Mỗi giá trị trong `values` đều truy được về một câu trong `note` của flow
+       (sơ đồ nguồn AJ 11 · MJ 2 · MJ 5 · MJ 7); không có giá trị nào bịa thêm ngoài tài liệu.
+
+       `metrics: []` CỐ Ý rỗng cho cả 20 signal: điểm đo có TRƯỚC, chỉ số thì chưa — 6 chỉ số hiện có
+       đều thuộc hành trình mở tài khoản (m-completion tính "activated ÷ started application"), gán
+       bừa một chỉ số mở TK cho luồng nạp tiền sẽ là con số sai chứ không phải con số thiếu. Gắn điểm
+       đo vào chỉ số nào là quyết định tiếp theo của owner.
+
+       `es:'server'` cho TẤT CẢ signal của nạp · tra soát · rút · chuyển nội bộ — đây là RÀNG BUỘC
+       của hệ thống (validate.ts check 7: signal thuộc nhóm g-in/g-out bắt buộc `es:'server'`), không
+       phải lựa chọn. HỆ QUẢ phải nói thẳng: vòng này KHÔNG đề xuất được điểm đo phía client trên màn
+       tiền (ví dụ "khách mở màn rút rồi thoát mà chưa bấm gì"). Muốn đo loại đó thì phải nới check 7
+       — việc của owner, không tự nới. Riêng mở TK phái sinh thuộc g-deriv nên không bị ràng buộc này.
+
+       `pf` = nền tảng NƠI YÊU CẦU XUẤT PHÁT, vẫn đo ở phía server. Server biết request đến từ đâu nên
+       khai được ios/android/web; chỉ những sự kiện KHÔNG có phía khách (tiền ngân hàng chuyển tới,
+       VSDC trả kết quả, hạch toán nội bộ) mới khai `['server']`. `sg-nap-1` khai cả 4 vì nạp tại quầy
+       thật sự không có nền tảng khách nào. */
+    { id:'sg-dvo-1', tpId:'tp-dvo-1', name:'deriv_open_ineligible_reason',  st:'live',       pf:['ios','android','web'], es:'server', vol:190,  seen:'04/08 · 16:20', metrics:[], desc:'Lý do KHÔNG mở được TK phái sinh — 190 = đúng số failed của bước kiểm tra điều kiện', values:['no_base_account','cccd_not_verified'] },
+    { id:'sg-dvo-2', tpId:'tp-dvo-3', name:'deriv_contract_otp_fail_reason', st:'live',      pf:['ios','android','web'], es:'server', vol:238,  seen:'04/08 · 16:18', metrics:[], desc:'Lý do ký hợp đồng OTP không thành — bắn mỗi lần thử nên nhiều hơn số ca trượt cuối cùng', values:['otp_expired','otp_not_received'] },
+    { id:'sg-dvo-3', tpId:'tp-dvo-4', name:'deriv_vsdc_approval_result',    st:'live',       pf:['server'],              es:'server', vol:942,  seen:'04/08 · 09:40', metrics:[], desc:'Kết quả VSDC duyệt hồ sơ phái sinh', values:['approved','rejected'] },
+    { id:'sg-dvo-4', tpId:'tp-dvo-4', name:'deriv_vsdc_wait_duration',      st:'designed',   pf:['server'],              es:'server', vol:0,    seen:null,            metrics:[], desc:'Dải thời gian chờ VSDC duyệt — đã đề xuất, chưa implement', values:[] },
+
+    { id:'sg-nap-1', tpId:'tp-nap-1', name:'deposit_credit_received',   st:'live',       pf:['ios','android','web','server'], es:'server', vol:9640, seen:'04/08 · 17:02', metrics:[], desc:'Tiền về TK chuyên dụng — giá trị là KÊNH nạp (4 kênh của Sơ đồ 2)', values:['qr','bank_gateway','auto_debit_link','counter'] },
+    { id:'sg-nap-2', tpId:'tp-nap-2', name:'deposit_reconcile_fail_reason', st:'live',     pf:['server'],                       es:'server', vol:130,  seen:'04/08 · 17:02', metrics:[], desc:'Lý do không ghép được khoản tiền với chủ tài khoản — 130 = đúng số failed của bước đối soát', values:['holder_not_found','amount_mismatch'] },
+    { id:'sg-nap-3', tpId:'tp-nap-3', name:'deposit_credit_timing',      st:'validating', pf:['server'],                       es:'server', vol:9510, seen:'04/08 · 16:55', metrics:[], desc:'Ghi có ngay hay dồn xử lý cuối ngày (khoản nộp 17h–20h)', values:['immediate','end_of_day'] },
+    { id:'sg-nap-4', tpId:'tp-nap-1', name:'deposit_amount_band',        st:'gap',        pf:['server'],                       es:'server', vol:0,    seen:null,            metrics:[], desc:'Dải số tiền mỗi lần nạp theo kênh — CHƯA instrument', values:[] },
+
+    { id:'sg-tra-1', tpId:'tp-tra-1', name:'trace_request_created',   st:'live',     pf:['ios','android','web'], es:'server', vol:148, seen:'04/08 · 15:30', metrics:[], desc:'Khách gửi yêu cầu tra soát nạp tiền', values:['created'] },
+    { id:'sg-tra-2', tpId:'tp-tra-1', name:'trace_attachment_count',  st:'live',     pf:['ios','android','web'], es:'server', vol:148, seen:'04/08 · 15:30', metrics:[], desc:'Số file chứng từ khách đính kèm — tối đa 5 theo quy định', values:['0','1','2','3','4','5'] },
+    { id:'sg-tra-3', tpId:'tp-tra-3', name:'trace_state_entered',     st:'live',     pf:['server'],              es:'server', vol:420, seen:'04/08 · 16:10', metrics:[], desc:'Yêu cầu vào từng trạng thái, bắn lặp — 5 trạng thái sau khi tạo của Sơ đồ 2', values:['cho_tiep_nhan','dang_xu_ly_tttt','cho_ben_thu_ba','hoan_tat','tu_choi'] },
+    { id:'sg-tra-4', tpId:'tp-tra-4', name:'trace_sla_breach',        st:'designed', pf:['server'],              es:'server', vol:0,   seen:null,            metrics:[], desc:'Vượt SLA 1 ngày làm việc — đã đề xuất, chưa implement', values:[] },
+
+    { id:'sg-rut-1', tpId:'tp-rut-1', name:'withdraw_request_submitted',    st:'live',       pf:['ios','android','web'], es:'server', vol:3180, seen:'04/08 · 15:58', metrics:[], desc:'Khách gửi lệnh rút tiền về ngân hàng', values:['submitted'] },
+    { id:'sg-rut-2', tpId:'tp-rut-2', name:'withdraw_gate_block_reason',    st:'live',       pf:['ios','android','web'], es:'server', vol:816,  seen:'04/08 · 15:58', metrics:[], desc:'Cổng nào chặn lệnh rút — 7 lý do theo đúng chuỗi cổng của Sơ đồ 5. 816 = tổng failed của sáu bước cổng, không phải số rời', values:['insufficient_withdrawable','rtt_below_100','cccd_not_verified','signature_missing','otp_failed','over_limit_after_16h','month_end_blackout'] },
+    { id:'sg-rut-3', tpId:'tp-rut-3', name:'withdraw_vneid_fail_reason',    st:'validating', pf:['ios','android'],       es:'server', vol:236,  seen:'04/08 · 15:44', metrics:[], desc:'Lý do trượt xác thực CCCD qua VNeID — 236 = đúng số failed của bước VNeID', values:['timeout','mismatch','app_not_installed'] },
+    { id:'sg-rut-4', tpId:'tp-rut-7', name:'withdraw_payout_result',        st:'live',       pf:['server'],              es:'server', vol:2364, seen:'04/08 · 16:02', metrics:[], desc:'Kết quả đẩy lệnh sang ngân hàng thụ hưởng', values:['success','bank_reject'] },
+    { id:'sg-rut-5', tpId:'tp-rut-4', name:'withdraw_video_sign_result',    st:'gap',        pf:['ios','android'],       es:'server', vol:0,    seen:null,            metrics:[], desc:'Kết quả chữ ký video call cho TK phái sinh — CHƯA instrument', values:[] },
+
+    { id:'sg-ctn-1', tpId:'tp-ctn-1', name:'internal_transfer_submitted',     st:'live', pf:['ios','android','web'], es:'server', vol:2140, seen:'04/08 · 16:35', metrics:[], desc:'Khách gửi lệnh chuyển tiền giữa hai tiểu khoản của mình', values:['submitted'] },
+    { id:'sg-ctn-2', tpId:'tp-ctn-2', name:'internal_transfer_reject_reason',st:'live', pf:['ios','android','web'], es:'server', vol:219,  seen:'04/08 · 16:33', metrics:[], desc:'Lý do lệnh bị từ chối — 219 = tổng failed của ba cổng (42+136+41), không phải số rời', values:['wrong_subaccount_pair','insufficient_available','otp_failed'] },
+    { id:'sg-ctn-3', tpId:'tp-ctn-4', name:'internal_transfer_posted',       st:'live', pf:['server'],              es:'server', vol:1918, seen:'04/08 · 16:36', metrics:[], desc:'Hạch toán xong cả hai tiểu khoản', values:['posted'] },
   ],
   metrics: [
 { id:'m-completion', name:'Hoàn tất mở tài khoản', value:'64,3%', target:'≥ 72%', unit:'%',

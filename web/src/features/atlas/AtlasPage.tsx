@@ -38,8 +38,10 @@ export function AtlasPage() {
   // Cần cho AtlasSignalPanel (chart điểm đo, domain/signalChart.ts) — nhãn/unit của năm chiều cố định.
   const dims = useCxmStore((s) => s.dims);
 
-  /* Mặc định mở đúng flow đang có dữ liệu quan sát (hôm nay là f-open-2026, flow pilot duy nhất) —
-     tra bằng `observed` thay vì hardcode id fixture, để không gãy nếu seed đổi id. */
+  /* Mặc định mở flow ĐẦU TIÊN đang có dữ liệu quan sát — tra bằng `observed` thay vì hardcode id
+     fixture, để không gãy nếu seed đổi id. Từ pilot mở rộng 05/08 đã có 6 flow `observed` (mở TK, mở
+     TK phái sinh, nạp, tra soát nạp, rút, chuyển nội bộ) nên "flow pilot duy nhất" không còn đúng;
+     thứ tự mảng `flows` vẫn đưa f-open-2026 lên trước nên màn mặc định không đổi. */
   const defaultFlow = data.flows.find((f) => f.observed) ?? data.flows[0];
 
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>(() => phaseIdOfFlow(defaultFlow, data.groups));

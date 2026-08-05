@@ -15,17 +15,20 @@ import { AtlasPage } from "./AtlasPage.tsx";
 
 const tp1 = seed.touchpoints.find((t) => t.id === "tp1")!; // s1 — sg1 (vol 614), sg2 (vol 2840)
 const tp2 = seed.touchpoints.find((t) => t.id === "tp2")!; // s2 — sg3 (vol 920, success/fail), sg4 (vol 410)
-const tp3 = seed.touchpoints.find((t) => t.id === "tp3")!; // s3 — sg5 (vol 1180), sg6 (gap, vol 0)
+/* Ca "signal gap" 05/08 chuyển từ tp3 sang tp-nap-1: `sg6 ekyc_face_device_context` đã bỏ (chiều Nền
+   tảng trả lời sẵn câu nó định hỏi) nên tp3 không còn signal vol 0 nào. tp-nap-1 có ĐÚNG hình dạng cũ
+   — một signal live đứng cạnh một signal gap vol 0 — nên hành vi được kiểm vẫn y nguyên, chỉ đổi chỗ. */
+const tpNap = seed.touchpoints.find((t) => t.id === "tp-nap-1")!; // s-nap-1 — sg-nap-1 (live), sg-nap-4 (gap, vol 0)
 const s1 = seed.steps.find((s) => s.id === "s1")!;
 const s2 = seed.steps.find((s) => s.id === "s2")!;
-const s3 = seed.steps.find((s) => s.id === "s3")!;
+const sNap = seed.steps.find((s) => s.id === "s-nap-1")!;
 
 const tp1Signals = seed.signals.filter((g) => g.tpId === tp1.id);
 const tp2Signals = seed.signals.filter((g) => g.tpId === tp2.id);
-const tp3Signals = seed.signals.filter((g) => g.tpId === tp3.id);
+const tpNapSignals = seed.signals.filter((g) => g.tpId === tpNap.id);
 const [sg1, sg2] = tp1Signals;
 const [sg3] = tp2Signals;
-const [sg5, sg6] = tp3Signals;
+const [sgNapLive, sgNapGap] = tpNapSignals;
 
 describe("AtlasSignalPanel — bảng signal (checkbox) + chart điểm đo + panel gắn ở đâu", () => {
   it("a) mở ra đã có chart của signal vol>0 ĐẦU TIÊN theo thứ tự khai", () => {
@@ -59,12 +62,12 @@ describe("AtlasSignalPanel — bảng signal (checkbox) + chart điểm đo + pa
   });
 
   it("d) tick riêng một signal gap (vol=0) → hiện ĐÚNG câu notes[].reason, không có nhóm cột nào", () => {
-    render(<AtlasSignalPanel signals={tp3Signals} touchpoints={[tp3]} rows={demoData.sigCounts} dims={dims} stationId={s3.stationId} />);
+    render(<AtlasSignalPanel signals={tpNapSignals} touchpoints={[tpNap]} rows={demoData.sigCounts} dims={dims} stationId={sNap.stationId} />);
 
-    fireEvent.click(screen.getByTestId(`atlas-sigpick-${sg5.id}`)); // bỏ sg5 (đang chọn mặc định)
-    fireEvent.click(screen.getByTestId(`atlas-sigpick-${sg6.id}`)); // chọn sg6 (gap)
+    fireEvent.click(screen.getByTestId(`atlas-sigpick-${sgNapLive.id}`)); // bỏ signal live (đang chọn mặc định)
+    fireEvent.click(screen.getByTestId(`atlas-sigpick-${sgNapGap.id}`)); // chọn signal gap
 
-    const expectedReason = signalChart(demoData.sigCounts, tp3Signals, dims, [sg6.id], "nav").notes[0].reason;
+    const expectedReason = signalChart(demoData.sigCounts, tpNapSignals, dims, [sgNapGap.id], "nav").notes[0].reason;
     expect(screen.getByText(expectedReason)).toBeInTheDocument();
     expect(screen.queryByTestId("signal-columns")).not.toBeInTheDocument();
   });

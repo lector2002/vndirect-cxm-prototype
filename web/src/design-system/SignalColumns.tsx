@@ -11,7 +11,7 @@ import { nf, pv } from "./format.ts";
    Bất biến nặng nhất (Đ1 đoạn cuối + Đ2, rule 6 của contract): KHÔNG figure nào ở đây được cộng/chia
    xuyên hai điểm đo — mỗi nhóm cột có chân đế RIÊNG (tổng + % chưa gắn được khách của CHÍNH nó), không
    có dòng tổng chung. Rule 4 (sửa lại): thang chiều cao là CỦA RIÊNG từng nhóm — cột cao nhất của
-   CHÍNH nhóm đó mới là 100% MAX_H, không có mẫu số nào dùng chung giữa các nhóm nữa. Vì vậy rule 6
+   CHÍNH nhóm đó mới là 100% MAX_W, không có mẫu số nào dùng chung giữa các nhóm nữa. Vì vậy rule 6
    giờ đúng TUYỆT ĐỐI, không còn ngoại lệ "hình học" nào cả — và vì hai nhóm không còn cùng thang, phải
    nói rõ bằng chữ rằng chiều cao không so được giữa hai nhóm (xem dòng ngay dưới header). */
 
@@ -80,12 +80,15 @@ const UNKNOWN_STYLE: Record<SigColUnknown, string> = {
     phải luôn ở cùng một chỗ để mắt người xem học được, không nhảy vị trí theo dữ liệu. */
 const UNKNOWN_ORDER: readonly SigColUnknown[] = ["unknown-yet", "missing", "not-identified"];
 
-/** Tham chiếu 100% chiều cao cho cột cao nhất CỦA TỪNG NHÓM (rule 4, sửa lại) — mỗi nhóm tự có mẫu
-    số riêng (`groupMaxTotal`, tính trong Group), KHÔNG dùng chung giữa các nhóm. Lý do: sg2 (2840)
-    đứng cạnh sg4 (bốn cột ~100) mà dùng một thang chung thì bốn cột của sg4 bị nén sát sàn, cao gần
-    bằng nhau — mất hẳn phần "giá trị nào nhiều hơn giá trị nào" trong CHÍNH điểm đo đó, đúng công dụng
-    chart này tồn tại để trả lời. */
-const MAX_H = 140;
+/** Tham chiếu 100% chiều DÀI cho vạch dài nhất CỦA TỪNG NHÓM (rule 4) — mỗi nhóm tự có mẫu số riêng
+    (`groupMaxTotal`, tính trong Group), KHÔNG dùng chung giữa các nhóm. Lý do: sg2 (2840) đứng cạnh
+    sg4 (bốn giá trị ~100) mà dùng một thang chung thì bốn vạch của sg4 bị nén cụt gần bằng nhau — mất
+    hẳn phần "giá trị nào nhiều hơn giá trị nào" trong CHÍNH điểm đo đó, đúng công dụng chart này tồn
+    tại để trả lời.
+    05/08 owner chốt đổi sang bar NGANG nên hằng này từ chiều cao thành chiều dài. Bar ngang giải quyết
+    tận gốc chuyện nhãn: tên giá trị nằm bên trái trên một dòng thay vì nhồi vào cột hẹp rồi ngắt dòng,
+    và mọi vạch tự cùng một mốc bắt đầu nên không còn chuyện lệch đáy như bản dọc. */
+const MAX_W = 320;
 
 /** Sàn hiển thị (px) cho một lát có n>0 — idiom Math.max(...) như JourneySpine.tsx dòng 113-114, để
     lát mỏng vẫn còn thấy được (rule 5). */
@@ -136,7 +139,7 @@ function colorOfSlice(s: SigColSlice, colorByLabel: Map<string, string>): string
   return s.unknown === null ? colorByLabel.get(s.label)! : UNKNOWN_STYLE[s.unknown];
 }
 
-function BarColumn({
+function BarRow({
   sigId,
   bar,
   colorByLabel,
@@ -151,42 +154,65 @@ function BarColumn({
   namedCount: number;
   groupMaxTotal: number;
 }) {
-  // Rule 3: thứ tự xếp lát = thứ tự cấp toàn chart (rankOfSlice), giống nhau ở MỌI cột — không tự sắp
-  // theo độ lớn riêng của cột này. Rule 14: filter() đã tạo mảng mới, sort() không mutate bar.slices.
+  // Rule 3: thứ tự xếp lát = thứ tự cấp toàn chart (rankOfSlice), giống nhau ở MỌI vạch — không tự sắp
+  // theo độ lớn riêng của vạch này. Rule 14: filter() đã tạo mảng mới, sort() không mutate bar.slices.
   const ordered = [...bar.slices]
     .filter((s) => s.n > 0)
     .sort((a, b) => rankOfSlice(a, labelRank, namedCount) - rankOfSlice(b, labelRank, namedCount));
   const sliceSum = ordered.reduce((a, s) => a + s.n, 0);
-  // Rule 4 (sửa lại): chiều cao cột ∝ bar.total/groupMaxTotal — mẫu số riêng của CHÍNH nhóm này, không
-  // còn dùng chung với nhóm khác (xem MAX_H).
-  const columnH = (bar.total / groupMaxTotal) * MAX_H;
+  // Rule 4: chiều DÀI vạch ∝ bar.total/groupMaxTotal — mẫu số riêng của CHÍNH nhóm này (xem MAX_W).
+  const barW = (bar.total / groupMaxTotal) * MAX_W;
 
+  /* `grid-cols-[subgrid]` + `col-span-3`: mỗi giá trị vẫn là MỘT element, nhưng ba ô con của nó rơi vào
+     ba CỘT của grid nhóm (nhãn · vạch · số) nên mọi hàng thẳng cột với nhau — xem docblock ở Group. */
   return (
-    <div data-testid={`sigcol-bar-${sigId}-${bar.val}`} className="flex flex-col items-center gap-1 flex-none w-[46px]">
-      {/* Rule 9 (nửa 1/2): tag hiện trên cột khi giá trị chưa có trong danh sách đã khai. */}
-      {!bar.declared ? <Badge state="watch" text="giá trị chưa khai" /> : null}
-      {/* Rule 3: unknown luôn ở CUỐI mảng đã xếp hạng. Sketch Đ1 (▓ ở trên, ░ ở đáy ngay trên dòng
-          "tổng ... lượt/ngày") vẽ lát unknown nằm SÁT ĐÁY cột — dùng flex-col (không reverse) để
-          phần tử cuối mảng (unknown) rơi xuống đáy khối, đúng hình đã duyệt. */}
+    <div
+      data-testid={`sigcol-bar-${sigId}-${bar.val}`}
+      className="grid grid-cols-[subgrid] col-span-3 items-center"
+    >
+      {/* Nhãn nằm BÊN TRÁI trên một dòng — đây là cái lợi chính của bar ngang: tên giá trị thật
+          (`insufficient_withdrawable`) không còn phải nhồi vào một cột hẹp rồi ngắt dòng. `<wbr>` sau
+          mỗi dấu _ vẫn giữ làm lưới an toàn cho tên dài bất thường: CSS không coi _ là chỗ được ngắt,
+          thiếu nó thì một tên quá dài đẩy toang cột nhãn thay vì xuống dòng. `<wbr>` không thêm ký tự
+          nào vào textContent nên tên đầy đủ còn nguyên.
+          Rule 9 (nửa 1/2): tag "giá trị chưa khai" đứng ngay cạnh nhãn của chính giá trị đó. */}
+      <div className="text-[12.5px] text-ink-2 leading-tight text-right pr-2" title={bar.val}>
+        {bar.val.split("_").map((phan, i, all) => (
+          <span key={i}>
+            {phan}
+            {i < all.length - 1 ? <>_<wbr /></> : null}
+          </span>
+        ))}
+        {!bar.declared ? (
+          <span className="ml-1 inline-block align-middle">
+            <Badge state="watch" text="giá trị chưa khai" />
+          </span>
+        ) : null}
+      </div>
+      {/* Rule 3: unknown luôn ở CUỐI mảng đã xếp hạng. Bản dọc vẽ lát unknown sát ĐÁY cột; bản ngang giữ
+          đúng ý đó ở đầu kia của vạch — flex-row (không reverse) nên phần tử cuối mảng rơi về mút PHẢI.
+          Testid vẫn là `sigcol-column-*`: tên có từ thời chart còn dọc, giữ nguyên để không phá hợp
+          đồng với test — nó định danh khối chứa các lát, không nói gì về hướng vẽ. */}
       <div
         data-testid={`sigcol-column-${sigId}-${bar.val}`}
-        className="flex flex-col w-[30px]"
-        style={{ height: `${columnH}px` }}
+        className="flex flex-row h-[20px] rounded-[3px] overflow-hidden"
+        style={{ width: `${barW}px` }}
       >
         {ordered.map((s) => {
-          const h = sliceSum > 0 ? Math.max(SLICE_MIN_PX, (s.n / sliceSum) * columnH) : 0;
+          const w = sliceSum > 0 ? Math.max(SLICE_MIN_PX, (s.n / sliceSum) * barW) : 0;
           return (
             <div
               key={s.label}
               data-testid={`sigcol-slice-${sigId}-${bar.val}-${s.label}`}
               title={`${s.label}: ${nf(s.n)}`}
-              style={{ height: `${h}px`, background: colorOfSlice(s, colorByLabel) }}
+              style={{ width: `${w}px`, background: colorOfSlice(s, colorByLabel) }}
             />
           );
         })}
       </div>
-      <div className="text-[12px] text-ink-2 text-center leading-tight">{bar.val}</div>
-      <div className="text-[12.5px] font-bold tabular-nums">{nf(bar.total)}</div>
+      {/* Ô thứ ba: số của chính vạch này, thẳng cột với mọi hàng khác nhờ subgrid. `tabular-nums` giữ
+          các chữ số cùng bề rộng nên hàng đơn vị xếp thẳng, đọc so được nhanh hơn. */}
+      <div className="text-[12.5px] font-bold tabular-nums pl-2">{nf(bar.total)}</div>
     </div>
   );
 }
@@ -207,15 +233,27 @@ function Group({
   const mismatch = sumBars !== group.vol;
   const undeclared = group.bars.filter((b) => !b.declared);
   // Rule 4 (sửa lại): mẫu số thang chiều cao là CỦA RIÊNG nhóm này — cột cao nhất của CHÍNH nhóm này
-  // là 100% MAX_H, không đọc chartMaxTotal từ nhóm khác (rule 6 không còn ngoại lệ "hình học" nào).
+  // là 100% MAX_W, không đọc chartMaxTotal từ nhóm khác (rule 6 không còn ngoại lệ "hình học" nào).
   const groupMaxTotal = Math.max(...group.bars.map((b) => b.total), 1);
 
   return (
     <div data-testid={`sigcol-group-${group.sigId}`} className="flex-none min-w-[170px] rounded-[11px] border border-line bg-surface p-3">
       <div className="text-[13px] font-semibold mb-2">{group.title}</div>
-      <div className="flex items-end gap-3" style={{ minHeight: `${MAX_H}px` }}>
+      {/* Grid BA CỘT — nhãn · vạch · số — và mỗi giá trị là một hàng dùng `grid-cols-[subgrid]`, nên ba
+          ô của mọi hàng thẳng cột với nhau: nhãn cùng lề phải, mọi vạch cùng MỘT mốc bắt đầu, số cùng
+          một cột. Cột nhãn để `auto` nên nó tự rộng bằng nhãn dài nhất CỦA CHÍNH nhóm này, không phải
+          một con số đoán trước; cột vạch cố định `MAX_W` = vùng vẽ.
+          Vì sao không còn là bar dọc: bản dọc canh các cột bằng `items-end` nên đáy vạch = đáy cột trừ
+          đi chiều cao nhãn, mà nhãn dài ngắn khác nhau thì mỗi vạch bắt đầu một chỗ — bar chart mất
+          đường đáy chung thì không so được nữa. Bar ngang không có bệnh đó: mốc bắt đầu là lề trái,
+          nhãn nằm ngoài vùng vẽ nên dài bao nhiêu cũng không xê dịch vạch. */}
+      <div
+        data-testid={`sigcol-plot-${group.sigId}`}
+        className="grid gap-x-0 gap-y-1.5"
+        style={{ gridTemplateColumns: `auto ${MAX_W}px auto` }}
+      >
         {group.bars.map((bar) => (
-          <BarColumn
+          <BarRow
             key={bar.val}
             sigId={group.sigId}
             bar={bar}
@@ -298,7 +336,7 @@ export function SignalColumns({ groups, dimLabel }: SignalColumnsProps): JSX.Ele
           45%… hai nhóm đứng cạnh nhau để so, không để chia") — giờ thang riêng từng nhóm nên NGAY CẢ
           chiều cao cũng không so được giữa hai nhóm nữa, phải nói thẳng bằng chữ. */}
       <div data-testid="sigcol-scale-note" className="text-[12px] text-ink-3 mb-2">
-        Chiều cao cột đọc trong từng nhóm — hai nhóm không so chiều cao với nhau.
+        Chiều dài vạch đọc trong từng nhóm — hai nhóm không so chiều dài với nhau.
       </div>
       {colorOverflow > 0 ? (
         <div data-testid="sigcol-color-overflow" className="mb-2">

@@ -9,6 +9,9 @@ import type {
   TaxNode,
 } from "../data/schema/index.ts";
 import { isSegUnknown, MISSING, UNKNOWN_YET } from "../data/segment.ts";
+/* Sentinel khoá khách "cố ý không có id". Import từ nơi khai DUY NHẤT (data/validate.ts:30) thay vì
+   so literal — cùng đường mà themeSegments.ts:2 đã đi. */
+import { ANON_CK } from "../data/validate.ts";
 import { CUST_CAT } from "../data/rawFields.ts";
 /* Palette phân loại phía domain — dùng CHUNG với themeSegments.ts (đã export ở đó 03/08) thay vì
    khai bản sao thứ ba; xem ghi chú layer tại themeSegments.ts:10-14. */
@@ -75,12 +78,28 @@ function srcRows(data: CxmData): DimRow[] {
   return data.sources.map((s) => ({ id: s.id, l: s.name, v: s.vol }));
 }
 
+/* NGUỒN DUY NHẤT của phép "một dòng bằng chứng thuộc hàng nào" trên trục base:'ev'.
+   Ba hàm rows() ngay dưới VÀ nhánh chia màu trục ev trong qRunSplit đều đọc bảng này, cố ý: trước
+   đó phép suy khoá hàng nằm inline trong từng rows(), nên mở chia màu là phải chép nó ra chỗ thứ
+   hai — đúng bẫy "phải khớp TAY với bảng kia, thiếu một bên thì chart trả RỖNG mà không báo lỗi gì"
+   mà chú thích custField() ở trên đã cảnh báo. Lệch một bên thì đoạn màu mô tả một tổng KHÁC với
+   chiều dài thanh, và nhìn hình không phát hiện được. Test đóng đúng seam này: với MỌI hàng của MỌI
+   trục ev, Σ đoạn phải bằng `v` của chính hàng đó do qRun trả. */
+const EV_ROW_KEY: Record<string, (e: Evidence) => string> = {
+  cat: (e) => e.cat,
+  sen: (e) => senBucket(e.sen),
+  pf: (e) => e.pf,
+};
+
+const countEv = (data: CxmData, axis: string, id: string): number =>
+  data.ev.filter((e) => EV_ROW_KEY[axis]!(e) === id).length;
+
 function catRows(data: CxmData): DimRow[] {
   return CAT_ORDER.map((id) => ({
     id,
     l: data.cats[id]?.label ?? id,
     c: data.cats[id]?.color,
-    v: data.ev.filter((e) => e.cat === id).length,
+    v: countEv(data, "cat", id),
   }));
 }
 
@@ -89,12 +108,12 @@ function senRows(data: CxmData): DimRow[] {
     id,
     l: SEN_LABEL[id],
     c: SEN_COLOR[id],
-    v: data.ev.filter((e) => senBucket(e.sen) === id).length,
+    v: countEv(data, "sen", id),
   }));
 }
 
 function pfRows(data: CxmData): DimRow[] {
-  return PF_ORDER.map((id) => ({ id, l: PF_LABEL[id], v: data.ev.filter((e) => e.pf === id).length }));
+  return PF_ORDER.map((id) => ({ id, l: PF_LABEL[id], v: countEv(data, "pf", id) }));
 }
 
 /* Port từ [...new Set(DATA.cust.map(...))] (~dòng 1449-1453): Map bảo toàn insertion order giống
@@ -271,11 +290,20 @@ export function qRunSegment(
    mô hình chung của 4 nền tảng đã tham khảo: dataset · metric · chiều chính · CHIỀU CHIA MÀU · kiểu
    chart · stacking · top-N + "Other".
 
-   MỌI SỐ Ở ĐÂY LÀ SỐ THẬT, ĐẾM TỪ DÒNG `data.cust` — không một hằng số tỷ lệ bịa nào (khác
-   groupSegments() ở themeSegments.ts, nơi tỷ trọng sinh từ hạt char-code nên cắm data thật vào vẫn
-   bịa). Điều kiện để làm được: CẢ trục hàng LẪN trục chia màu đều base:'cust', tức hai giá trị nằm
-   trên CÙNG MỘT DÒNG khách ⇒ group-by hai chiều là phép đếm thuần. Trục agg/ev (theme/keyword) không
-   có khoá khách trên `Evidence` nên KHÔNG đi qua đây (xem docs/REBUILD-STATUS.md, Module D section 2). */
+   MỌI SỐ Ở ĐÂY LÀ SỐ THẬT — không một hằng số tỷ lệ bịa nào (khác groupSegments() ở
+   themeSegments.ts, nơi tỷ trọng sinh từ hạt char-code nên cắm data thật vào vẫn bịa).
+
+   HAI đường tính thật, tách theo `base` của TRỤC HÀNG (trục chia màu luôn phải là base:'cust'):
+   - `cust` × `cust` — hai giá trị nằm trên CÙNG MỘT DÒNG khách ⇒ group-by hai chiều là phép đếm
+     thuần. Đây là đường có từ section 1.
+   - `ev`   × `cust` — mỗi thanh đếm từ `data.ev`, mà mỗi dòng `Evidence` mang sẵn khoá khách `ck`
+     (trường BẮT BUỘC, validate quy tắc 21 canh định dạng) ⇒ nối sang `Customer` rồi đếm cũng là
+     phép đếm thật. Xem evSplit().
+
+   SỬA MỘT KHẲNG ĐỊNH SAI ở bản trước (05/08): chỗ này từng ghi "trục agg/ev không có khoá khách trên
+   `Evidence`". KHÔNG ĐÚNG — `Evidence.ck` luôn có. Điều đúng là chuyện KHÁC hẳn và chỉ áp cho `agg`:
+   số trên thanh agg là TỔNG HỢP SẴN (`TaxNode.n`/`Source.vol`), không đếm từ bằng chứng, nên chia màu
+   nó là bịa tỷ lệ bất kể khoá khách tốt đến đâu. Đừng gộp hai lý do đó lại lần nữa. */
 
 /** Trần số nhãn có màu riêng; phần còn lại gộp một đoạn "Khác" (owner chốt 03/08: top 6 — khớp số
     thanh q17/q18 đang vẽ). Vượt trần là nhiều màu hơn mắt phân biệt được, không phải nhiều tin hơn. */
@@ -285,6 +313,130 @@ const SPLIT_OTHER_ID = "__split_other__";
 /* Id RIÊNG, KHÔNG dùng lại "__unknown__" của tầng hiển thị (QuantifyWidget ghim thanh đó cuối bằng
    đúng chuỗi ấy): một là id ĐOẠN trong thanh, một là id HÀNG — trùng chuỗi là mời nhầm về sau. */
 const SPLIT_UNKNOWN_ID = "__split_unknown__";
+/* Hai nghĩa "không nối được sang khách", KHÔNG gộp với nhau và KHÔNG gộp vào SPLIT_UNKNOWN_ID:
+   - `Ẩn danh` — bằng chứng CỐ Ý không có id khách (khảo sát ẩn danh, review store). Đúng thiết kế.
+   - `Chưa đối chiếu được` — có id nhưng tra không ra khách nào. LÀ một defect dữ liệu.
+   Cùng cách phân biệt mà themeSegments.ts đã dựng, và cùng bộ token màu (`--unk-anon`/`--unk-join`)
+   nên hai màn nói cùng một ngôn ngữ. Đo trên demoData 05/08: 133 ẩn danh (8,1%) vs 7 chưa đối chiếu
+   (0,4%) — hai con số khác hẳn nhau về bậc, gộp là mất đúng thông tin cần cho người sửa pipeline. */
+const SPLIT_ANON_ID = "__split_anon__";
+const SPLIT_UNJOINED_ID = "__split_unjoined__";
+
+/* Lý do khoá của trục TỔNG HỢP, cắt làm hai mảnh và GHÉP LẠI thành `reason` — một nguồn chữ, hai độ
+   dài, nên không có bản sao nào trôi lệch:
+   - `AGG_SPLIT_NOTE` là câu hiện thành CHỮ dưới chart. Đo trên màn 05/08: trang Quantify có 7 chart
+     trục tổng hợp, in nguyên đoạn dài dưới cả 7 thì thành 7 khối 2–3 dòng giống hệt nhau — người xem
+     thôi đọc, tức là mất đúng cái luật "nói thẳng" định đạt được.
+   - `AGG_SPLIT_EVIDENCE` là phần ĐO ĐƯỢC, đi kèm trong `reason` đầy đủ (tooltip từng chip) cho ai cần
+     kiểm chứng con số. Không bỏ đi: nó là bằng chứng cho lời khẳng định ở câu trên. */
+export const AGG_SPLIT_NOTE =
+  "Số trên thanh là số TỔNG HỢP SẴN, không đếm từ bằng chứng — chia màu theo thuộc tính khách sẽ là tỷ lệ bịa, nên khoá.";
+const AGG_SPLIT_EVIDENCE =
+  "Tập bằng chứng dưới mỗi thanh chỉ là mẫu: đo trên dữ liệu demo có thanh ghi 412 mà chỉ 8 dòng bằng chứng, lệch ~50 lần.";
+
+/* Chia màu cho trục HÀNG là base:'ev' (cat/sen/pf). Mỗi thanh đếm dòng `data.ev`, nên đoạn màu cũng
+   phải đếm đúng tập dòng đó — khoá hàng lấy từ EV_ROW_KEY, CÙNG bảng mà rows() dùng, để Σ đoạn không
+   bao giờ lệch chiều dài thanh.
+
+   Mỗi dòng bằng chứng rơi vào ĐÚNG MỘT trong bốn giỏ: giá trị thật của khách · sentinel của chiều
+   khách (`Không xác định`) · `Ẩn danh` · `Chưa đối chiếu được`. Phân hoạch kín ⇒ bất biến Σ = v giữ
+   được mà không cần phép cộng bù nào. */
+function evSplit(
+  item: QuantifyShow,
+  data: CxmData,
+  dims: Record<string, Dim>,
+  splitDim: Dim,
+): SplitChart {
+  const rowKey = EV_ROW_KEY[item.show];
+  if (!rowKey) {
+    return {
+      kind: "refuse",
+      reason: `Trục "${item.show}" khai base:'ev' nhưng chưa khai cách suy hàng từ một dòng bằng chứng (EV_ROW_KEY), nên không có tập dòng nào để chia.`,
+    };
+  }
+  const splitGetter = custFieldPresent(dims, item.split ?? "", data);
+  if (!splitGetter) {
+    return {
+      kind: "refuse",
+      reason: `Chiều chia màu "${item.split}" khai base:'cust' nhưng chưa đọc được nhãn nhóm (thiếu khai báo cách chia, hoặc snapshot chưa chiếu nhóm).`,
+    };
+  }
+  if (data.ev.length === 0) {
+    return { kind: "refuse", reason: `Chưa có dòng bằng chứng nào để chia màu.` };
+  }
+
+  const custByKey = new Map(data.cust.map((c) => [c.key, c] as const));
+  /* Giỏ của MỘT dòng bằng chứng. Thứ tự kiểm là thứ tự nghĩa, không đảo được: ẩn danh là chuyện của
+     dòng bằng chứng (không có id để mà tra), nối hỏng là chuyện của phép tra, sentinel là chuyện của
+     ô dữ kiện trên dòng khách đã tra ra. */
+  const rawBucketOf = (e: Evidence): string => {
+    if (e.ck === ANON_CK) return SPLIT_ANON_ID;
+    const cust = custByKey.get(e.ck);
+    if (!cust) return SPLIT_UNJOINED_ID;
+    const v = splitGetter(cust);
+    return isSegUnknown(v) ? SPLIT_UNKNOWN_ID : v;
+  };
+
+  /* Xếp hạng TOÀN CỤC trên toàn bộ `data.ev` (không theo từng hàng) — cùng lý do đã nêu ở nhánh
+     cust: mọi hàng phải dùng chung bộ nhãn/màu, nếu không thì "màu thứ ba" của hai hàng là hai thứ
+     khác nhau. Chỉ giá trị THẬT tham gia xếp hạng; ba giỏ "không biết" ghim cuối, không tiêu suất. */
+  const totals = new Map<string, number>();
+  let unkTotal = 0;
+  let anonTotal = 0;
+  let unjoinedTotal = 0;
+  for (const e of data.ev) {
+    const b = rawBucketOf(e);
+    if (b === SPLIT_UNKNOWN_ID) unkTotal += 1;
+    else if (b === SPLIT_ANON_ID) anonTotal += 1;
+    else if (b === SPLIT_UNJOINED_ID) unjoinedTotal += 1;
+    else totals.set(b, (totals.get(b) ?? 0) + 1);
+  }
+
+  const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  const top = ranked.slice(0, SPLIT_TOP_N);
+  const topSet = new Set(top);
+  const collapsed = ranked.length - top.length;
+
+  const order: { id: string; label: string; c: string }[] = [
+    ...top.map((id, i) => ({ id, label: id, c: CAT_CYCLE[i % CAT_CYCLE.length] })),
+    ...(collapsed > 0
+      ? [{ id: SPLIT_OTHER_ID, label: `Khác (${collapsed} ${splitDim.unit})`, c: "var(--ink3)" }]
+      : []),
+    ...(unkTotal > 0 ? [{ id: SPLIT_UNKNOWN_ID, label: "Không xác định", c: "var(--unk)" }] : []),
+    ...(anonTotal > 0 ? [{ id: SPLIT_ANON_ID, label: "Ẩn danh", c: "var(--unk-anon)" }] : []),
+    ...(unjoinedTotal > 0
+      ? [{ id: SPLIT_UNJOINED_ID, label: "Chưa đối chiếu được", c: "var(--unk-join)" }]
+      : []),
+  ];
+
+  const bucketOf = (e: Evidence): string => {
+    const raw = rawBucketOf(e);
+    if (raw === SPLIT_UNKNOWN_ID || raw === SPLIT_ANON_ID || raw === SPLIT_UNJOINED_ID) return raw;
+    return topSet.has(raw) ? raw : SPLIT_OTHER_ID;
+  };
+
+  const counts = new Map<string, Map<string, number>>();
+  for (const e of data.ev) {
+    const rid = rowKey(e);
+    const b = bucketOf(e);
+    let m = counts.get(rid);
+    if (!m) {
+      m = new Map();
+      counts.set(rid, m);
+    }
+    m.set(b, (m.get(b) ?? 0) + 1);
+  }
+
+  const byRow: Record<string, SplitSegment[]> = {};
+  for (const [rid, m] of counts) {
+    // Bỏ đoạn n=0 — cùng lý do nhánh cust: width 0 không hover được, tooltip "X: 0" không nói gì.
+    byRow[rid] = order
+      .filter((o) => (m.get(o.id) ?? 0) > 0)
+      .map((o) => ({ id: o.id, label: o.label, n: m.get(o.id) ?? 0, c: o.c }));
+  }
+
+  return { kind: "draw", byRow, legend: order.map((o) => ({ label: o.label, color: o.c })) };
+}
 
 export type SplitSegment = { id: string; label: string; n: number; c: string };
 
@@ -323,11 +475,31 @@ export function qRunSplit(
     };
   }
   /* Suy từ `base`, KHÔNG hardcode danh sách id — cùng lý do đã nêu ở qRunSegment/custAxisUnsupported. */
-  if (rowDim?.base !== "cust" || splitDim.base !== "cust") {
-    const culprit = rowDim?.base !== "cust" ? item.show : item.split;
+  if (splitDim.base !== "cust") {
     return {
       kind: "refuse",
-      reason: `Chia màu chỉ tính thật được khi CẢ hai chiều là thuộc tính khách (base:'cust') — khi đó hai giá trị nằm trên cùng một dòng khách nên đếm được. Trục "${culprit}" không phải, nên không có đường tính nào mà không phải bịa tỷ lệ.`,
+      reason: `Chia màu phải theo một thuộc tính khách (base:'cust') — "${item.split}" không phải, nên không có đường tính nào mà không phải bịa tỷ lệ.`,
+    };
+  }
+  /* Trục BẰNG CHỨNG: mở được vì mỗi dòng `Evidence` mang sẵn khoá khách `ck` (trường BẮT BUỘC,
+     validate quy tắc 21 canh định dạng), nên nối sang `Customer` là phép đếm THẬT chứ không phải
+     phân bổ tỷ lệ. Xem evSplit(). */
+  if (rowDim?.base === "ev") return evSplit(item, data, dims, splitDim);
+  if (rowDim?.base === "agg") {
+    /* KHÔNG mở, và lý do KHÁC HẲN trục ev — không phải "thiếu khoá khách" mà là "số trên thanh không
+       đếm từ bằng chứng". `TaxNode.n`/`Source.vol` là số TỔNG HỢP SẴN; tập bằng chứng dưới nó chỉ là
+       mẫu. Đã đo trên demoData: theme "Thiết bị" ghi 412 mà có 8 dòng bằng chứng, nguồn `src-ga` ghi
+       41.200 mà có 2 dòng — lệch ~50 lần (cùng phép đo mà qRunDrill dựa vào để trả kind:'sample').
+       Tô một thanh 412 bằng 8 dòng là bịa tỷ lệ. Nói ĐÚNG lý do này ra là mục đích của nhánh. */
+    /* Tên trục đứng ĐẦU câu đầy đủ: `reason` còn dùng ở tooltip từng chip và ở test, nơi phải biết
+       lời từ chối nói về trục nào. Dòng chữ dưới chart bỏ được tiền tố này vì nó nằm ngay trong
+       chart đó. */
+    return { kind: "refuse", reason: `Trục "${item.show}": ${AGG_SPLIT_NOTE} ${AGG_SPLIT_EVIDENCE}` };
+  }
+  if (rowDim?.base !== "cust") {
+    return {
+      kind: "refuse",
+      reason: `Trục "${item.show}" không có đường đếm nào ghép được với thuộc tính khách.`,
     };
   }
   const rowGetter = custFieldPresent(dims, item.show, data);
@@ -428,11 +600,15 @@ export function qRunSplit(
    - trục ev (cat/sen/pf): số trên thanh CHÍNH LÀ số bản ghi đếm được ⇒ kind:'full', liệt kê đủ.
    - trục cust: bản ghi là KHÁCH, không phải verbatim ⇒ kind:'full' trên `data.cust`.
 
-   Vì sao trục cust KHÔNG mở verbatim, dù `Evidence.ck` có khoá khách: đo 03/08 trên demoData —
-   `data.ev` có 17 bản ghi / 15 khoá `ck` khác nhau cho 300 khách, và chỉ **7** khoá khớp một dòng
-   `data.cust`. Đi qua join đó thì gần như mọi hàng trục khách mở ra RỖNG, trong khi danh sách khách
-   là số thật và đếm đủ. Muốn verbatim cho trục khách thì phải YÊU CẦU DATA (mật độ evidence tương
-   đương cohort + `ck` toàn vẹn) — xem docs/REBUILD-STATUS.md, danh sách "yêu cầu data". */
+   Vì sao trục cust vẫn liệt kê KHÁCH chứ không phải verbatim: bản ghi dưới một hàng trục khách LÀ
+   khách — `data.cust` đếm đủ và là số thật, nên đó mới là danh sách đúng nghĩa của hàng.
+
+   CẢNH BÁO CHO NGƯỜI SỬA SAU: chỗ này từng biện minh bằng một phép đo, nay đã HẾT HẠN — "17 bản ghi
+   / 15 khoá `ck`, chỉ 7 khoá khớp" (đo 03/08, khi bằng chứng demo chưa được sinh thêm). Đo lại
+   05/08: **1.641 dòng bằng chứng, 1.501 nối được (91,5%), 133 ẩn danh, 7 nối hỏng**. Join qua `ck`
+   nay LÀNH, và chính phép đo mới này đã mở chia màu cho trục ev (xem evSplit). Nếu sau này muốn cho
+   hàng trục khách mở ra verbatim thay vì danh sách khách, thì đó là một quyết định về Ý NGHĨA của
+   hàng — KHÔNG còn bị chặn bởi chất lượng join nữa, đừng viện lại con số 7/15. */
 
 /** Id hàng "Không xác định" mà tầng hiển thị ghim cuối mọi chart trục khách. Khai Ở ĐÂY vì NGHĨA của
     nó (gộp hai sentinel `chưa-biết` + `thiếu`) là chuyện của domain; `QuantifyWidget` import về dùng

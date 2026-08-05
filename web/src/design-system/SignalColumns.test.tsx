@@ -111,9 +111,9 @@ describe("SignalColumns", () => {
     ]);
   });
 
-  it("rule 4 (sửa lại): thang chiều cao là CỦA RIÊNG từng nhóm — cột cao nhất của nhóm 'nhỏ' (total=100) phải CAO BẰNG cột cao nhất của nhóm 'lớn' (total=2840), không bị nén theo mẫu số chung", () => {
+  it("rule 4: thang chiều DÀI là CỦA RIÊNG từng nhóm — vạch dài nhất của nhóm 'nhỏ' (total=100) phải DÀI BẰNG vạch dài nhất của nhóm 'lớn' (total=2840), không bị nén theo mẫu số chung", () => {
     // sg2 (2840) đứng cạnh sg4 (100) — đúng ca thật nêu trong yêu cầu sửa. Nếu component còn dùng một
-    // chartMaxTotal chung, cột của nhóm "nhỏ" sẽ chỉ cao ~4,9px (100/2840*140) — test này phải đỏ.
+    // chartMaxTotal chung, vạch của nhóm "nhỏ" sẽ chỉ dài ~11px (100/2840*320) — test này phải đỏ.
     const groups: SigColGroup[] = [
       {
         sigId: "big", title: "Nhóm cột lớn", vol: 2840,
@@ -129,11 +129,11 @@ describe("SignalColumns", () => {
     render(<SignalColumns groups={groups} dimLabel="Phân khúc NAV" />);
     const bigCol = screen.getByTestId("sigcol-column-big-v1");
     const smallCol = screen.getByTestId("sigcol-column-small-v1");
-    expect(bigCol).toHaveStyle({ height: "140px" });
-    expect(smallCol).toHaveStyle({ height: "140px" });
+    expect(bigCol).toHaveStyle({ width: "320px" });
+    expect(smallCol).toHaveStyle({ width: "320px" });
   });
 
-  it("rule 4 (sửa lại): TRONG CÙNG một nhóm, cột total gấp đôi cột khác thì cao gấp đôi — cách đọc chính của chart", () => {
+  it("rule 4: TRONG CÙNG một nhóm, giá trị total gấp đôi thì vạch DÀI gấp đôi — cách đọc chính của chart", () => {
     const groups: SigColGroup[] = [
       {
         sigId: "s", title: "Lý do chụp lỗi", vol: 300,
@@ -145,9 +145,9 @@ describe("SignalColumns", () => {
       },
     ];
     render(<SignalColumns groups={groups} dimLabel="Phân khúc NAV" />);
-    // blur (total 200, lớn nhất trong nhóm) = 100% MAX_H; glare (total 100, bằng nửa) = nửa MAX_H.
-    expect(screen.getByTestId("sigcol-column-s-blur")).toHaveStyle({ height: "140px" });
-    expect(screen.getByTestId("sigcol-column-s-glare")).toHaveStyle({ height: "70px" });
+    // blur (total 200, lớn nhất trong nhóm) = 100% MAX_W; glare (total 100, bằng nửa) = nửa MAX_W.
+    expect(screen.getByTestId("sigcol-column-s-blur")).toHaveStyle({ width: "320px" });
+    expect(screen.getByTestId("sigcol-column-s-glare")).toHaveStyle({ width: "160px" });
   });
 
   it("rule 4 (sửa lại): câu chống đọc nhầm 'không so chiều cao giữa hai nhóm' luôn có mặt", () => {
@@ -160,7 +160,7 @@ describe("SignalColumns", () => {
     ];
     render(<SignalColumns groups={groups} dimLabel="Phân khúc NAV" />);
     expect(screen.getByTestId("sigcol-scale-note").textContent).toContain(
-      "Chiều cao cột đọc trong từng nhóm — hai nhóm không so chiều cao với nhau.",
+      "Chiều dài vạch đọc trong từng nhóm — hai nhóm không so chiều dài với nhau.",
     );
   });
 
@@ -177,8 +177,8 @@ describe("SignalColumns", () => {
       },
     ];
     render(<SignalColumns groups={groups} dimLabel="Phân khúc NAV" />);
-    // (1/10000)*140 = 0.014px — nếu KHÔNG có sàn Math.max(3, ...) thì test này phải đỏ.
-    expect(screen.getByTestId("sigcol-slice-s-v1-nhỏ")).toHaveStyle({ height: "3px" });
+    // (1/10000)*320 = 0.032px — nếu KHÔNG có sàn Math.max(3, ...) thì test này phải đỏ.
+    expect(screen.getByTestId("sigcol-slice-s-v1-nhỏ")).toHaveStyle({ width: "3px" });
     expect(screen.queryByTestId("sigcol-slice-s-v1-rỗng")).not.toBeInTheDocument();
   });
 
@@ -360,5 +360,42 @@ describe("SignalColumns", () => {
     ];
     render(<SignalColumns groups={groups} dimLabel="Phân khúc NAV" />);
     expect(screen.queryByTestId("sigcol-color-overflow")).not.toBeInTheDocument();
+  });
+
+  /* Ca mà cả bộ test S3 chưa từng chạy: 8 giá trị với tên snake_case DÀI (tên thật của cổng rút tiền),
+     thay vì 6 nhãn ngắn kiểu `step_01`. CSS KHÔNG coi dấu _ là chỗ được ngắt dòng, nên không có điểm
+     ngắt là chữ tràn khỏi cột ra hai bên và các nhãn đè nhau thành vệt không đọc được.
+     jsdom không có layout nên không đo được chồng lấn — chốt hai thứ đo được: có `<wbr>` sau MỖI dấu _
+     (điểm cho phép ngắt), và `textContent` vẫn ĐÚNG tên đầy đủ, tức việc chèn `<wbr>` không làm hỏng
+     tên. Cộng `title` để tên đầy đủ luôn đọc lại được khi nhãn xuống nhiều dòng. */
+  it("nhãn giá trị dài có <wbr> ở mỗi dấu _ để ngắt theo từ, và không hỏng tên đầy đủ", () => {
+    const vals = [
+      "pass",
+      "insufficient_withdrawable",
+      "rtt_below_100",
+      "cccd_not_verified",
+      "signature_missing",
+      "otp_failed",
+      "over_limit_after_16h",
+      "month_end_blackout",
+    ];
+    const groups: SigColGroup[] = [
+      {
+        sigId: "rut", title: "Cổng rút tiền", vol: 800,
+        bars: vals.map((val) => ({
+          val, declared: true, total: 100,
+          slices: [{ label: "<50tr", n: 100, unknown: null }],
+        })),
+        notIdentified: 0, notIdentifiedPct: 0,
+      },
+    ];
+    render(<SignalColumns groups={groups} dimLabel="Phân khúc NAV" />);
+    for (const val of vals) {
+      const label = screen.getByTitle(val);
+      // Tên đầy đủ phải còn nguyên: <wbr> không đóng góp ký tự nào vào textContent.
+      expect(label.textContent).toBe(val);
+      // Số điểm cho phép ngắt = số dấu _ trong tên. `pass` không có _ nên không cần <wbr> nào.
+      expect(label.querySelectorAll("wbr")).toHaveLength(val.split("_").length - 1);
+    }
   });
 });
