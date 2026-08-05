@@ -6,7 +6,7 @@ _Cập nhật: 2026-08-05 (đợt 3 — pilot mở rộng). Đọc file này + `
 
 - `main` = **`c6767d6`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`) · tài liệu S3 (`725d24d`+`c6767d6`).
 - **Working tree KHÔNG sạch.** Pilot mở rộng (đợt 3, 05/08) + ba vòng sửa layout + đổi điểm đo liveness + mở chia màu Quantify + **bản đồ hành trình bù cho bằng prototype & khoá phase ngoài pilot** + **hồ sơ bước lên đủ ba tab** + **bộ máy tour** đã làm xong và tự kiểm nhưng **chưa commit**. Owner chưa yêu cầu commit.
-- `npx tsc -b` sạch. **883/883 test xanh (82 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → **883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
+- `npx tsc -b` sạch. **893/893 test xanh (82 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → **893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
 - **Cả stream đã xong về code, kể cả việc treo cuối cùng (bộ máy tour).** Còn lại là việc của owner + việc chờ dữ liệu thật: xem "Còn hở" và "Việc còn lại của stream".
 - Tài liệu thiết kế owner đã duyệt: **`output/thiet-ke-chart-signal.html`** (6 vòng) + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** (bổ sung đợt 2, owner chốt 04/08/2026) — cả hai là nguồn sự thật cho stream này, đọc trước khi code. `output/thiet-ke-chieu-phan-tich.html` và `output/thiet-ke-db-first.html` là của stream trước, còn giá trị lịch sử.
 
@@ -446,6 +446,39 @@ Kèm theo, một câu hỏi phải trả lời bằng test chứ không bằng s
 **CÒN HỞ, nói trước: vị trí popover và khung sáng chưa được mắt người duyệt.** jsdom không có layout nên `getBoundingClientRect()` trả toàn số 0 — test chứng được tour **đi đúng chỗ và nói đúng chữ**, KHÔNG chứng được popover nằm đẹp hay khung sáng ôm đúng component. Hàm `placePop()` port nguyên từ prototype (dòng 4768) nên rủi ro thấp, nhưng đây là phần duy nhất của tính năng chỉ có test đỡ. Lần chạy này extension trình duyệt không kết nối được nên chưa soi được; **việc cần làm khi mở lại demo: bấm "▶ Chạy bản giới thiệu" và đi hết 9 chặng bằng mắt**, chú ý chặng `atlas-spine` (component rộng, dễ đẩy popover ra ngoài viewport) và chặng cuối `topic-detail` (thân màn cao, khung sáng ôm cả màn).
 
 `tsc -b` sạch, **883 test xanh / 82 file** (thêm 22 test / 2 file — 16 cho bộ máy tour, 6 cho ba lỗi vừa nêu).
+
+## Hai chỗ pilot mở rộng làm hỏng mà không ai nhìn lại — owner chỉ ra 05/08
+
+Cả hai cùng một gốc: **màn được thiết kế khi pilot có một flow / sáu bước, rồi pilot lên hai phase / 6 flow / 30 bước, và không ai quay lại xem thiết kế cũ còn đúng không.** Cùng họ với ba lỗi của bộ máy tour: thứ từng đúng, rồi mặt đất dịch đi.
+
+### 1. Bỏ hero + đoạn hướng dẫn đọc ở đầu bản đồ hành trình
+
+Owner yêu cầu bỏ hẳn hai đoạn mở màn (`AtlasPage.tsx`, port prototype dòng 3374-3375):
+
+- Dòng đếm *"32 flow trên 6 phase, 25 flow có nguồn xác minh, 6 flow đang có dữ liệu quan sát."*
+- Đoạn *"Chọn phase ở hàng trên… Bề dày dải nối cho biết… 4 phase đang khoá…"*
+
+Lý do giữ lại trong code: ba con số đếm không trả lời câu hỏi nào người dùng đang có, còn đoạn hướng dẫn thì dạy cách đọc một thứ nằm ngay bên dưới và tự nói được.
+
+**Hai nội dung thật trong đoạn cũ KHÔNG mất theo**, và đây là chỗ dễ hỏng nếu ai đó bỏ ẩu: lý do bốn phase bị khoá vẫn in ra chữ khi **bấm vào phase mờ** (`lockedNote`) — đã có test riêng canh đúng đường đó; đường sang VoC theo hành trình vẫn nằm ở điều hướng trái. Có một test ghim *"KHÔNG còn dòng hero"* để không ai "port cho đủ so với prototype" rồi đưa chúng về — **đây là quyết định, không phải chỗ còn thiếu.**
+
+### 2. Khối "Hành trình đang gãy ở đâu?" gộp theo hành trình, thôi một chip mỗi bước
+
+Khối `@journeystate` render `data.steps` — **toàn bộ, không lọc**. Sáu chip hồi pilot một flow; **30 chip** sau khi mở pilot. Owner gọi tên: rối mắt.
+
+**Nhưng lỗi nặng hơn thẩm mỹ, và chính nó quyết định cách sửa: mã bước lặp giữa các flow.** Mã `01` xuất hiện **6 lần** với 6 nghĩa — *Khởi tạo hồ sơ* (mở TK), *Số dư được phép rút* (rút tiền), *Tạo yêu cầu tra soát* (tra soát)… mà chip cũ không nói nó thuộc hành trình nào. Nặng nhất là cặp *"02 Xác thực CCCD · VNeID/NFC"* (mở TK) và *"03 Xác thực CCCD qua VNeID"* (rút tiền): đọc lướt tưởng dữ liệu bị trùng. Tức khối cũ không chỉ nhiều — **nó để người đọc hiểu sai bước nào thuộc hành trình nào.**
+
+Owner chốt phương án **gộp theo hành trình**: mỗi flow một dòng, nêu bước ngoài ngưỡng tệ nhất của nó, kèm *"+N bước nữa ngoài ngưỡng"*. Xếp đau nhất lên đầu. Sáu dòng thay ba mươi chip, hết mập mờ (tên flow đứng ngay đó), và **không phình khi pilot mở rộng tiếp** — thêm flow là thêm một dòng, không phải thêm bảy chip.
+
+Số đo trên seed 05/08: **30 bước — 2 cần xử lý ngay, 11 cần theo dõi, 17 trong ngưỡng.** Tức 17 chip cũ đang chiếm chỗ để nói "không có gì".
+
+**17 bước đó không bị giấu:** ô "Đang kiểm soát" vẫn đếm chúng, và chip mẫu số nói rõ *"Đang hiện 6 hành trình đã khai bước trên 32 flow đã map · 13 trên 30 bước ngoài ngưỡng"*. Ba nghĩa của "không có gì để báo" tách hẳn nhau đúng luật đã áp cho signal chart và ba tab hồ sơ bước: **"flow chưa đo bước nào" ≠ "đã đo, mọi bước trong ngưỡng" ≠ "đã đo, có bước gãy"** — gộp hai cái đầu là để một flow mù trông y hệt một flow khỏe. Seed hôm nay đo hết 30/30 nên ca "chưa đo" được test bằng data rút gọn.
+
+**Còn hở, nói trước:** bấm một dòng vẫn chỉ gọi `onGo("atlas")` — mở bản đồ hành trình ở **flow mặc định**, không nhảy tới đúng flow vừa bấm. Vì flow của `AtlasPage` là state cục bộ chứ không nằm trên URL (`AtlasPage.tsx:84-87`), deep-link đòi đổi Atlas sang route có tham số — ngoài phạm vi lần sửa này. Chữ trên màn chỉ hứa "mở bản đồ hành trình", không hứa hơn.
+
+**Một chỗ dữ liệu chết, nêu chứ không xoá** (quy ước: không dọn code chết có sẵn khi chưa được yêu cầu): `seed.ts:853` còn câu *"Chỉ pilot Mở tài khoản có dữ liệu quan sát. 31 flow còn lại mới map cấu trúc, chưa đo."* — sai từ lúc pilot mở rộng (nay 6 flow đã đo, 26 chưa). **Không hiện lên màn**: trường `sub` của câu hỏi không được component nào render. Nên đây là rác trong fixture, không phải màn nói sai.
+
+`tsc -b` sạch, **893 test xanh / 82 file** (+10 test so với mốc trước).
 
 ## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
 

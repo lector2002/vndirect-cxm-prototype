@@ -137,17 +137,10 @@ describe("AtlasPage — #/atlas", () => {
     expect(seed.phases.filter((p) => PILOT_CODES.includes(p.code))).toHaveLength(PILOT_CODES.length);
   });
 
-  /* Ba chỗ bản React trước đây thiếu so với prototype V.atlas (dòng 3374/3390/3410) — port 05/08. */
-  it("hero đếm flow/phase và hai card có chip mẫu số, tất cả suy từ dữ liệu", () => {
+  /* Hai card có chip mẫu số — port prototype V.atlas (dòng 3390/3410). Dòng hero và đoạn hướng dẫn
+     đọc (dòng 3374-3375) từng port cùng lượt, nay owner đã bỏ; test canh chúng thay bằng test dưới. */
+  it("hai card có chip mẫu số, tất cả suy từ dữ liệu", () => {
     render(<AtlasPage />);
-    const verified = seed.flows.filter((f) => f.verified).length;
-    const observed = seed.flows.filter((f) => f.observed).length;
-    expect(
-      screen.getByText(
-        `${seed.flows.length} flow trên ${seed.phases.length} phase, ${verified} flow có nguồn xác minh, ${observed} flow đang có dữ liệu quan sát.`,
-      ),
-    ).toBeInTheDocument();
-
     const strips = screen.getAllByTestId("denom-strip");
     const flowsInPilotPhase = seed.flows.filter((f) => phaseIdOfFlow(f) === pilotPhase.id).length;
     expect(strips[0]).toHaveTextContent(
@@ -156,6 +149,24 @@ describe("AtlasPage — #/atlas", () => {
     expect(strips[1]).toHaveTextContent(
       `Đang hiện Top ${pilotSteps.length} trên ${pilotSteps.length} bước có dữ liệu quan sát`,
     );
+  });
+
+  /* Owner bỏ hero + đoạn hướng dẫn đọc (05/08). Ghim lại để không ai "port cho đủ so với prototype"
+     rồi đưa chúng về — đây là quyết định, không phải chỗ còn thiếu. */
+  it("KHÔNG còn dòng hero đếm flow lẫn đoạn hướng dẫn đọc ở đầu màn", () => {
+    render(<AtlasPage />);
+    expect(screen.queryByText(/flow có nguồn xác minh/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Chọn phase ở hàng trên/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Bề dày dải nối/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/phase đang khoá vì nằm ngoài phạm vi pilot/)).not.toBeInTheDocument();
+  });
+
+  /* Nhưng lý do khoá KHÔNG được mất theo: đoạn dẫn cũ là chỗ duy nhất nói trước vì sao rail có ô mờ,
+     bỏ nó đi thì đường còn lại là bấm vào ô mờ — đường đó phải còn chạy. */
+  it("bỏ đoạn dẫn rồi thì bấm vào phase khoá vẫn in ra lý do", () => {
+    render(<AtlasPage />);
+    fireEvent.click(screen.getByTestId(`atlas-phase-${lockedPhase.id}`));
+    expect(screen.getByText(/tạm khoá vì chưa nằm trong phạm vi pilot đang trình bày/)).toBeInTheDocument();
   });
 
   it("flow chưa vào pilot không có chip mẫu số bước — '0 trên 0 bước' chỉ gây nhiễu", () => {

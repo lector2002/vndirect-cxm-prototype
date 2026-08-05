@@ -106,11 +106,6 @@ export function AtlasPage() {
     setLockedNote(null);
   }
 
-  // Ba số của hero + số phase đang khoá cho đoạn dẫn — đếm từ dữ liệu, không ghim hằng.
-  const verifiedCount = data.flows.filter((f) => f.verified).length;
-  const observedCount = data.flows.filter((f) => f.observed).length;
-  const lockedPhaseCount = data.phases.filter((p) => !PILOT_PHASE_CODES.has(p.code)).length;
-
   const currentPhase = data.phases.find((p) => p.id === selectedPhaseId);
   const currentFlow = data.flows.find((f) => f.id === selectedFlowId);
   const groupsInPhase = data.groups.filter((g) => g.phaseId === selectedPhaseId);
@@ -166,27 +161,16 @@ export function AtlasPage() {
 
   return (
     <div className="p-8">
-      {/* 0. Hero + đoạn dẫn — port prototype dòng 3374-3375. Số đếm suy từ dữ liệu, không viết tay. */}
-      <h1 className="t-hero max-w-[38ch] mb-2">
-        {`${data.flows.length} flow trên ${data.phases.length} phase, ${verifiedCount} flow có nguồn xác minh, ${observedCount} flow đang có dữ liệu quan sát.`}
-      </h1>
-      <p className="t-meta max-w-[92ch] mb-4">
-        Chọn phase ở hàng trên, chọn nhóm sản phẩm và flow ở hàng dưới, rồi đọc chuỗi bước theo chiều
-        ngang. Bề dày dải nối cho biết <b>còn bao nhiêu khách đi tiếp</b>; vạch đỏ cho biết{" "}
-        <b>rơi bao nhiêu ở bước trước đó</b>. Màn này đo <b>hành vi</b>; tiếng nói của khách tại cùng
-        những điểm chạm này nằm ở <a href="#/vocjourney">VoC theo hành trình</a>.
-        {lockedPhaseCount > 0 ? (
-          /* Nói ngay ở đoạn dẫn vì sao rail có ô mờ — nếu không, ô mờ trông như lỗi hiển thị chứ
-             không như một quyết định phạm vi. */
-          <>
-            {" "}
-            {/* KHÔNG viết "chưa có flow nào được đo": trong bốn phase khoá có Giao dịch, đã đo 1/16.
-                Câu chung phải đúng cho cả bốn, chi tiết từng phase để dành cho lý do khi bấm. */}
-            {`${lockedPhaseCount} phase đang khoá vì nằm ngoài phạm vi pilot đang trình bày`} — bấm
-            vào một phase khoá để xem lý do.
-          </>
-        ) : null}
-      </p>
+      {/* 0. KHÔNG có hero, KHÔNG có đoạn dẫn — owner bỏ 05/08.
+
+          Prototype mở màn bằng một dòng đếm ("32 flow trên 6 phase…") và một đoạn hướng dẫn đọc
+          ("Chọn phase ở hàng trên…", "bề dày dải nối cho biết…"). Cả hai đã bỏ theo yêu cầu owner:
+          ba con số đếm không trả lời câu hỏi nào người dùng đang có, còn đoạn hướng dẫn thì dạy cách
+          đọc một thứ nằm ngay bên dưới và tự nói được — đọc xong vẫn phải nhìn xuống.
+
+          Hai thứ trong đoạn cũ có nội dung thật, và cả hai đều KHÔNG mất theo: lý do bốn phase bị
+          khoá vẫn hiện thành chữ khi bấm vào phase mờ (`lockedNote`, xem rail bên dưới), và đường
+          sang VoC theo hành trình vẫn nằm ở điều hướng trái. */}
 
       {/* 1. Phase rail — một nút mỗi phase, chấm theo flow, đếm flow. Lưới CHIA ĐỀU (port .prail,
           prototype dòng 271): prototype ghim repeat(7,...) cho 7 phase thời đó, ở đây suy theo số
