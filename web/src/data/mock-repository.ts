@@ -138,6 +138,12 @@ export class MockRepository implements CxmRepository {
     return structuredClone(this.boards);
   }
 
+  /** Chặng của bản giới thiệu có dẫn. Cùng lối `getDims()`/`getCfg()`: là cấu hình chứ không phải
+      dữ liệu, và trả bản sao để không ai sửa được bảng gốc từ bên ngoài. */
+  getTour(): TourStop[] {
+    return structuredClone(this.tour);
+  }
+
   validate(): string[] {
     return validateFixture(this.projectedValidationSnapshot(this.cfg), this.dims, this.nav, this.tour, this.cfg);
   }

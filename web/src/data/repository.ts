@@ -1,4 +1,4 @@
-import type { Action, Cfg, CxmData, DashSet, Dim, Issue, IssueSev, QuantifyItem, QuantifyShow } from "./schema/index.ts";
+import type { Action, Cfg, CxmData, DashSet, Dim, Issue, IssueSev, QuantifyItem, QuantifyShow, TourStop } from "./schema/index.ts";
 
 /* Field builder gửi lên khi tạo điểm gãy mới — port createForm()/createIssue() (prototype
    ~dòng 3015 / 4641). Chuỗi rỗng ("") là quy ước "để mặc định" cho owner/acc/due/plain — khớp
@@ -35,6 +35,9 @@ export interface CxmRepository {
   /** Overlay tùy chỉnh set dashboard: setId -> mảng-theo-câu-hỏi các block.
       Chỉ có mặt cho set đã bị sửa (lazy) — set chưa sửa dùng thẳng qs[].b gốc. */
   getBoards(): Record<string, string[][]>;
+  /** Chặng của bản giới thiệu có dẫn (coach-mark). Cấu hình chứ không phải dữ liệu — đứng cạnh
+      getCfg()/getDims(), không đi theo fixture. */
+  getTour(): TourStop[];
   /** validateFixture trên state hiện tại, đã hợp nhất overlay boards vào dash để
       kiểm cả set đã tùy chỉnh (không chỉ set mặc định). Rỗng = hợp lệ. */
   validate(): string[];

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { HashRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { OverviewPage } from './features/overview/OverviewPage.tsx'
 import { GlobalToolbar } from './features/overview/GlobalToolbar.tsx'
@@ -8,6 +8,7 @@ import { WorkPage } from './features/work/WorkPage.tsx'
 import { AtlasPage } from './features/atlas/AtlasPage.tsx'
 import { ThemeDetailPage } from './features/topic/ThemeDetailPage.tsx'
 import { SettingsPage } from './features/settings/SettingsPage.tsx'
+import { TourOverlay } from './features/tour/TourOverlay.tsx'
 import { DemoBanner } from './features/settings/DemoBanner.tsx'
 import { useCxmStore } from './store/store.ts'
 
@@ -18,7 +19,7 @@ import { useCxmStore } from './store/store.ts'
    timeframe phía trên một Placeholder không chart nào cả (vi phạm quy tắc "ẩn trên Placeholder"). */
 const TIMEFRAME_ROUTES = new Set(['cxm', 'voc', 'quantify', 'work'])
 
-/** IA 13 view / 4 nhóm (giữ từ prototype). Chi tiết shell + tour dựng ở bước sau. */
+/** IA 13 view / 4 nhóm (giữ từ prototype). Tour đã dựng — xem features/tour/. */
 const NAV_GROUPS: { g: string; items: { r: string; l: string }[] }[] = [
   {
     g: 'CXM · Quản trị trải nghiệm',
@@ -92,6 +93,12 @@ function FilterToolbarContainer() {
 }
 
 function Shell() {
+  /* Tour là state của SHELL, không vào store: store cố ý không giữ UI-selection (docblock store.ts
+     dòng 10-11) và "đang xem chặng nào" đúng là loại đó. Prototype để ở ST.tour toàn cục vì nó
+     không có chỗ nào khác để cất. */
+  const [tourOpen, setTourOpen] = useState(false)
+  const tour = useCxmStore((s) => s.tour)
+
   return (
     <div className="flex h-screen overflow-hidden">
       <aside className="w-[246px] flex-none bg-surface border-r border-line flex flex-col">
@@ -126,6 +133,17 @@ function Shell() {
             </div>
           ))}
         </nav>
+        {/* Nút mở bản giới thiệu — cùng chỗ prototype đặt (cuối sidebar, dòng 450). */}
+        <div className="p-2 border-t border-line">
+          <button
+            type="button"
+            data-testid="tour-start"
+            onClick={() => setTourOpen(true)}
+            className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] font-semibold text-ink-2 hover:border-primary-line hover:bg-primary-soft hover:text-ink"
+          >
+            ▶ Chạy bản giới thiệu
+          </button>
+        </div>
       </aside>
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <DemoBannerContainer />
@@ -166,6 +184,7 @@ function Shell() {
           </Routes>
         </main>
       </div>
+      {tourOpen ? <TourOverlay stops={tour} onClose={() => setTourOpen(false)} /> : null}
     </div>
   )
 }

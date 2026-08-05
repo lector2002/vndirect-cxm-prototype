@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Action, Cfg, CxmData, DashSet, Dim, Issue, QuantifyItem, QuantifyShow } from "../data/schema/index.ts";
+import type { Action, Cfg, CxmData, DashSet, Dim, Issue, QuantifyItem, QuantifyShow, TourStop } from "../data/schema/index.ts";
 import type { ConfirmFields, CreateIssueFields, CxmRepository } from "../data/repository.ts";
 import { MockRepository } from "../data/mock-repository.ts";
 import { demoData, recountDemoSignals } from "../data/fixtures/demo.ts";
@@ -17,6 +17,9 @@ export type CxmStore = {
   boards: Record<string, string[][]>;
   owners: string[];
   approvers: string[];
+  /** Chặng của bản giới thiệu có dẫn — CHƯA lọc. Quyết chặng nào đi được là việc của
+      features/tour/tourStops.ts, không phải của store. */
+  tour: TourStop[];
   /** true = đang hiện dữ liệu demo (mặc định). false = "chưa kết nối DB thật" — data rỗng. */
   demoMode: boolean;
   /** Bật/tắt Demo Mode — atomic-swap data giữa snapshot demo thật và EMPTY_DATA. */
@@ -66,6 +69,7 @@ function readSnapshot(repo: CxmRepository) {
     boards: repo.getBoards(),
     owners: repo.getOwners(),
     approvers: repo.getApprovers(),
+    tour: repo.getTour(),
   };
 }
 

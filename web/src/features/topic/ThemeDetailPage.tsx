@@ -27,7 +27,10 @@ function ThemeDetailSections({ theme, data, parentNote }: { theme: TaxNode; data
   const color = (theme.cat && data.cats[theme.cat]?.color) || "var(--ink3)";
 
   return (
-    <div className="flex flex-col gap-4">
+    /* data-tour: mốc "topic-detail" của bản giới thiệu (seed.ts:943). Neo vào cả thân màn chứ không
+       riêng header — lời dẫn là "Màn chi tiết riêng của một topic", nên chỗ tô sáng phải là chính
+       cái màn đó. */
+    <div className="flex flex-col gap-4" data-tour="topic-detail">
       {parentNote ? <Note>{parentNote}</Note> : null}
       {/* 1. Header: tên + tổng n + mini-trend + why. */}
       <Card title={theme.name} subtitle={theme.why}>
