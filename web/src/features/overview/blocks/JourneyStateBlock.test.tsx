@@ -144,9 +144,50 @@ describe("JourneyStateBlock — gộp theo hành trình", () => {
     const off = seed.steps.filter((s) =>
       ["crit", "watch"].includes(stepState(obsOf(s.id), cfgDefault)),
     ).length;
+    const shown = Math.min(flowsWithSteps.length, 6);
     expect(screen.getByTestId("denom-strip")).toHaveTextContent(
-      `Đang hiện ${flowsWithSteps.length} hành trình đã khai bước trên ${seed.flows.length} flow đã map · ${off} trên ${seed.steps.length} bước ngoài ngưỡng`,
+      `Đang hiện ${shown} trên ${flowsWithSteps.length} hành trình đã khai bước (${seed.flows.length} flow đã map) · ${off} trên ${seed.steps.length} bước ngoài ngưỡng`,
     );
+  });
+
+  /* Vòng hai (06/08): gộp theo hành trình mới chỉ HOÃN — số dòng = số flow, nên map hết 32 flow là
+     32 dòng, vẫn rơi vào đúng điều kiện owner đặt cho @coverage. Cắt nốt ở TOP_N=6.
+     Seed hôm nay có đúng 6 flow đã khai bước nên nút "Xem hết" chưa cần hiện — test dựng thêm flow
+     giả để chứng cái CHẶN có thật, thay vì kết luận từ một seed vừa vặn. */
+  it("số dòng KHÔNG vượt TOP_N dù có bao nhiêu hành trình; phần cắt được đếm ra chữ", () => {
+    const extraFlows = Array.from({ length: 4 }, (_, i) => ({
+      ...seed.flows.find((f) => f.id === flowsWithSteps[0])!,
+      id: `f-extra-${i}`,
+      name: `Hành trình thêm ${i}`,
+    }));
+    const extraSteps = extraFlows.map((f, i) => ({
+      ...seed.steps.find((s) => s.flowId === flowsWithSteps[0])!,
+      id: `s-extra-${i}`,
+      flowId: f.id,
+    }));
+    const extraObs = extraSteps.map((s) => ({ ...obsOf(seed.steps[0]!.id), stepId: s.id }));
+    const big = {
+      ...seed,
+      flows: [...seed.flows, ...extraFlows],
+      steps: [...seed.steps, ...extraSteps],
+      obs: [...seed.obs, ...extraObs],
+    };
+
+    render(<JourneyStateBlock data={big} cfg={cfgDefault} />);
+    const rowCount = () => screen.getByTestId("journey-flow-rows").querySelectorAll("button").length;
+    expect(rowCount()).toBe(6);
+    expect(screen.getByTestId("journey-more")).toHaveTextContent("Xem hết 10 hành trình (+4 nữa)");
+
+    fireEvent.click(screen.getByTestId("journey-more"));
+    expect(rowCount()).toBe(10);
+    fireEvent.click(screen.getByTestId("journey-more"));
+    expect(rowCount()).toBe(6);
+  });
+
+  it("ít hành trình hơn TOP_N thì không dựng nút thừa", () => {
+    render(<JourneyStateBlock data={seed} cfg={cfgDefault} />);
+    expect(flowsWithSteps.length).toBeLessThanOrEqual(6); // tiền đề trên seed hôm nay
+    expect(screen.queryByTestId("journey-more")).not.toBeInTheDocument();
   });
 
   it("bấm một dòng hành trình gọi onGo('atlas')", () => {

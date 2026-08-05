@@ -1,7 +1,14 @@
+import { useState } from "react";
 import type { Action, Cfg, CxmData, TaxNode } from "../../../data/schema/index.ts";
 import { fx } from "../../../domain/index.ts";
 import { AxisLabel, Badge, Card, CatChip, Sparkline } from "../../../design-system/index.ts";
 import { nf } from "../../../design-system/format.ts";
+
+/* Số topic hiện sẵn. Bảng này là chỗ NỞ NHANH NHẤT hệ thống: mỗi topic mới của taxonomy VoC là một
+   dòng, vĩnh viễn — 14 dòng ở seed hôm nay, và không có trần nào. Bảng chịu được nhiều dòng hơn bar
+   chart, nhưng "chịu được" không phải "có chặn" (quét toàn bộ chart 06/08). Cắt ở 8 như
+   ThemeStackBlock, phần còn lại đếm ra chữ và mở được tại chỗ. */
+const TOP_N = 8;
 
 /* @topictrend — port 1-1 "Topic nào đang lớn nhất?" (prototype dòng 2256-2281 + hằng D_DRIFT
    dòng 3764 + themeStep/themeFixes dòng 3794-3795). Biểu đồ đường 6 kỳ thật thuộc Phase 5
@@ -107,12 +114,21 @@ export function TopicTrendBlock({ data, onGo, selectedLines = [], onToggleLine, 
      nói đúng số điểm thật, không khẳng định một kỳ chart không vẽ. */
   const shownMonths = themes.reduce((m, t) => Math.max(m, ptsFor(t, months).length), 0);
 
+  const [expanded, setExpanded] = useState(false);
+  const shownThemes = expanded ? themes : themes.slice(0, TOP_N);
+  const hidden = themes.length - shownThemes.length;
+
   return (
     <Card
       title="Topic & xu hướng"
-      denomStrip={`Đang hiện Top ${rising} trên ${themes.length} topic đang tăng theo hướng xấu`}
+      /* Mẫu số cũ ghi "Đang hiện Top {rising} trên {themes.length} topic đang tăng theo hướng xấu"
+         trong khi `tbody` vẽ TOÀN BỘ themes — khai một tập con mà liệt kê tất cả. Cùng lỗi với chip
+         mẫu số của @coverage (nói về flow trong khi vẽ bước), sửa cùng lượt 06/08: vế đầu nói ĐÚNG
+         số đang hiện, còn `rising` giữ lại thành một vế riêng vì nó là thông tin thật, chỉ không
+         phải mẫu số. */
+      denomStrip={`Đang hiện ${shownThemes.length} trên ${themes.length} topic · ${rising} đang tăng theo hướng xấu`}
     >
-      <div className="overflow-x-auto">
+      <div className={expanded ? "overflow-x-auto max-h-[420px] overflow-y-auto" : "overflow-x-auto"}>
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr>
@@ -127,7 +143,7 @@ export function TopicTrendBlock({ data, onGo, selectedLines = [], onToggleLine, 
             </tr>
           </thead>
           <tbody>
-            {themes.map((t) => {
+            {shownThemes.map((t) => {
               const pts = ptsFor(t, months);
               const d = trendOf(pts);
               const bad = t.cat !== "praise" ? d > 0 : d < 0;
@@ -212,6 +228,18 @@ export function TopicTrendBlock({ data, onGo, selectedLines = [], onToggleLine, 
           </tbody>
         </table>
       </div>
+      {/* Phần bị cắt phải ĐẾM RA CHỮ và mở được tại chỗ — cắt im lặng thì người đọc tưởng taxonomy
+          chỉ có 8 topic. Mở ra thì bảng cuộn trong khung cao cố định, không đẩy card dài vô tận. */}
+      {themes.length > TOP_N ? (
+        <button
+          type="button"
+          data-testid="topic-more"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-2 text-[12px] font-semibold text-primary hover:underline"
+        >
+          {expanded ? "Thu gọn" : `Xem hết ${themes.length} topic (+${hidden} nữa)`}
+        </button>
+      ) : null}
       <AxisLabel>Volume · xu hướng theo kỳ</AxisLabel>
     </Card>
   );

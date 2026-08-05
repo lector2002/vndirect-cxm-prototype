@@ -21,16 +21,32 @@ import { TopicTrendBlock } from "./TopicTrendBlock.tsx";
    nhiều nhất) → act released chạm s2 = CXA-013 (iss CXI-013 step s2) → 1 fix.
    themeStep(slow)=null (không ev nào tax chứa x-th-slow) → 0 fix, không hiện dòng "đã phát hành". */
 describe("TopicTrendBlock", () => {
-  it("mọi theme có đúng 1 hàng (14/14)", () => {
+  /* 06/08: bảng này là chỗ nở nhanh nhất hệ thống (mỗi topic mới của taxonomy VoC là một dòng, vĩnh
+     viễn) nên cắt ở TOP_N=8, phần còn lại đếm ra chữ và mở được tại chỗ. */
+  it("mặc định chỉ hiện 8 topic đầu, KHÔNG đổ hết 14 dòng", () => {
     render(<TopicTrendBlock data={seed} cfg={cfgDefault} />);
-    const rows = seed.tax.filter((t) => t.lv === "theme").map((t) => screen.getByTestId(`topic-row-${t.id}`));
-    expect(rows).toHaveLength(14);
+    expect(screen.getAllByTestId(/^topic-row-/)).toHaveLength(8);
+    expect(screen.getByTestId("topic-more")).toHaveTextContent("Xem hết 14 topic (+6 nữa)");
   });
 
-  it("wHead: 9 theme đang tăng theo hướng xấu trên tổng 14 theme", () => {
+  it("mở hết thì mọi theme có đúng 1 hàng (14/14), thu gọn lại về 8", () => {
     render(<TopicTrendBlock data={seed} cfg={cfgDefault} />);
-    expect(screen.getByText(/Đang hiện Top 9/)).toBeInTheDocument();
-    expect(screen.getByText(/trên 14 topic đang tăng theo hướng xấu/)).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("topic-more"));
+    const rows = seed.tax.filter((t) => t.lv === "theme").map((t) => screen.getByTestId(`topic-row-${t.id}`));
+    expect(rows).toHaveLength(14);
+    expect(screen.getByTestId("topic-more")).toHaveTextContent("Thu gọn");
+
+    fireEvent.click(screen.getByTestId("topic-more"));
+    expect(screen.getAllByTestId(/^topic-row-/)).toHaveLength(8);
+  });
+
+  /* Mẫu số cũ ghi "Đang hiện Top 9 trên 14 topic đang tăng theo hướng xấu" trong khi bảng vẽ CẢ 14 —
+     khai một tập con mà liệt kê tất cả. Nay vế đầu nói đúng số đang hiện, `rising` thành vế riêng. */
+  it("mẫu số nói đúng số dòng ĐANG HIỆN, và tách riêng số topic đang tăng xấu", () => {
+    render(<TopicTrendBlock data={seed} cfg={cfgDefault} />);
+    expect(screen.getByText("Đang hiện 8 trên 14 topic · 9 đang tăng theo hướng xấu")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("topic-more"));
+    expect(screen.getByText("Đang hiện 14 trên 14 topic · 9 đang tăng theo hướng xấu")).toBeInTheDocument();
   });
 
   it("Thay đổi đúng dấu +222 cho x-th-device (tăng) và -70 cho x-th-guide (giảm)", () => {
@@ -69,6 +85,7 @@ describe("TopicTrendBlock", () => {
 
   it("badge 'Dữ liệu demo' xuất hiện ĐÚNG 8 theme có demo:true, không xuất hiện ở theme không demo", () => {
     render(<TopicTrendBlock data={seed} cfg={cfgDefault} />);
+    fireEvent.click(screen.getByTestId("topic-more")); // theme demo nằm rải cả ngoài top 8
     const demoIds = ["x-th-fee", "x-th-slow", "x-th-start", "x-th-branch", "x-th-notify", "x-th-nfc", "x-th-cs", "x-th-fast"];
     demoIds.forEach((id) => {
       expect(within(screen.getByTestId(`topic-row-${id}`)).getByText(/Dữ liệu demo/)).toBeInTheDocument();

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Cfg, CxmData, Flow, Obs, Step } from "../../../data/schema/index.ts";
 import { BASE_FACTOR, stepState, stepWhy } from "../../../domain/index.ts";
 import type { DerivedState } from "../../../domain/index.ts";
@@ -22,7 +23,16 @@ import { pv } from "../../../design-system/format.ts";
    phải thêm bảy chip.
 
    17 bước đang trong ngưỡng không còn chiếm chỗ để nói "không có gì" — nhưng KHÔNG bị giấu: ô
-   "Đang kiểm soát" ở trên vẫn đếm chúng, và chip mẫu số nói rõ đang hiện bao nhiêu trên bao nhiêu. */
+   "Đang kiểm soát" ở trên vẫn đếm chúng, và chip mẫu số nói rõ đang hiện bao nhiêu trên bao nhiêu.
+
+   VÒNG HAI (06/08). Gộp theo hành trình mới chỉ HOÃN vấn đề: số dòng = số flow đã khai bước, nên
+   map hết 32 flow là 32 dòng — vẫn rơi vào đúng điều kiện owner đặt cho @coverage ("không được cả
+   chục bar"). Quét toàn bộ chart chỉ ra chỗ này, nên cắt nốt ở TOP_N hành trình đau nhất, phần còn
+   lại đếm ra chữ và mở được tại chỗ. Cùng khuôn với @coverage và @topictrend — ba khối nay nói cùng
+   một thứ tiếng: hiện phần đáng nhìn, đếm phần còn lại, mở đủ khi được yêu cầu. */
+
+/** Số hành trình hiện sẵn. Cắt để số dòng thôi bám theo số flow — xem đoạn "VÒNG HAI" ở trên. */
+const TOP_N = 6;
 export type JourneyStateBlockProps = {
   data: CxmData;
   cfg: Cfg;
@@ -89,6 +99,7 @@ function buildRows(data: CxmData, cfg: Cfg): FlowRow[] {
 }
 
 export function JourneyStateBlock({ data, cfg, onGo }: JourneyStateBlockProps) {
+  const [expanded, setExpanded] = useState(false);
   const obsOf = (stepId: string): Obs | undefined => data.obs.find((o) => o.stepId === stepId);
 
   const cnt = (s: DerivedState) => data.steps.filter((x) => stepState(obsOf(x.id), cfg) === s).length;
@@ -97,12 +108,14 @@ export function JourneyStateBlock({ data, cfg, onGo }: JourneyStateBlockProps) {
 
   const rows = buildRows(data, cfg);
   const offTotal = rows.reduce((a, r) => a + r.offCount, 0);
+  const shown = expanded ? rows : rows.slice(0, TOP_N);
+  const hidden = rows.length - shown.length;
 
   return (
     <Card
       title="Trạng thái hành trình"
       subtitle={`Ảnh chụp · ${periodLabel(data)}`}
-      denomStrip={`Đang hiện ${rows.length} hành trình đã khai bước trên ${data.flows.length} flow đã map · ${offTotal} trên ${data.steps.length} bước ngoài ngưỡng`}
+      denomStrip={`Đang hiện ${shown.length} trên ${rows.length} hành trình đã khai bước (${data.flows.length} flow đã map) · ${offTotal} trên ${data.steps.length} bước ngoài ngưỡng`}
     >
       <div className="grid grid-cols-4 gap-3 mb-3.5">
         <Stat
@@ -129,8 +142,11 @@ export function JourneyStateBlock({ data, cfg, onGo }: JourneyStateBlockProps) {
         />
       </div>
 
-      <div className="flex flex-col gap-1.5 mb-3" data-testid="journey-flow-rows">
-        {rows.map((r) => {
+      <div
+        className={`flex flex-col gap-1.5 mb-3${expanded ? " max-h-[320px] overflow-y-auto" : ""}`}
+        data-testid="journey-flow-rows"
+      >
+        {shown.map((r) => {
           const col = r.worst ? STATE_COLOR[r.worst.state] : "var(--line)";
           return (
             <button
@@ -171,6 +187,17 @@ export function JourneyStateBlock({ data, cfg, onGo }: JourneyStateBlockProps) {
           );
         })}
       </div>
+      {/* Phần bị cắt phải ĐẾM RA CHỮ, không cắt im lặng — cùng khuôn với @coverage và @topictrend. */}
+      {rows.length > TOP_N ? (
+        <button
+          type="button"
+          data-testid="journey-more"
+          onClick={() => setExpanded((v) => !v)}
+          className="mb-3 text-[12px] font-semibold text-primary hover:underline"
+        >
+          {expanded ? "Thu gọn" : `Xem hết ${rows.length} hành trình (+${hidden} nữa)`}
+        </button>
+      ) : null}
       <AxisLabel>Tỷ lệ thất bại của bước tệ nhất mỗi hành trình</AxisLabel>
     </Card>
   );
