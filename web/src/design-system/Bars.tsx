@@ -45,24 +45,41 @@ export type BarsProps = {
       GIỮ NGUYÊN, vẫn ∝ r.v/max) chia thành nhiều đoạn màu ngang, rộng mỗi đoạn ∝ seg.n/Σseg.n
       (chuẩn hoá TRONG PHẠM VI FILL — caller tự đảm bảo Σseg.n = r.v, Bars không tự bịa phần
       "chưa gán"). Mỗi đoạn có tooltip `title` = "label: nf(n)". Vắng/rỗng cho một row → fill row
-      đó giữ nguyên 1 màu (r.c ?? DEFAULT_BAR_COLOR) như cũ. */
-  segments?: (row: DimRow) => { label: string; n: number; c: string }[];
+      đó giữ nguyên 1 màu (r.c ?? DEFAULT_BAR_COLOR) như cũ.
+
+      `parts` (tuỳ chọn): đoạn này là MỘT KHỐI GỘP từ nhiều nhóm nhỏ ⇒ tooltip xuống dòng, liệt kê
+      từng nhóm kèm số. Owner chốt 05/08 sau khi xem trên màn: các đoạn "không biết" đứng cạnh nhau ở
+      đuôi thanh đọc gần như một màu, nên gộp phần NHÌN mà KHÔNG gộp SỐ — số tách ra ở đây. Đoạn
+      KHÔNG có `parts` giữ nguyên tooltip một dòng (bất biến: mọi test đang ghim chuỗi "label: n"
+      đều thuộc loại đó). */
+  segments?: (row: DimRow) => { label: string; n: number; c: string; parts?: { label: string; n: number }[] }[];
   /** Stacking 100% (Module D section 1): mọi thanh CÓ ĐOẠN dài bằng nhau, đoạn màu thành tỷ trọng
    *  trong hàng ⇒ dễ so HÌNH DẠNG giữa các hàng, nhưng ĐÁNH MẤT so sánh độ lớn. Cố ý chỉ áp cho hàng
    *  thực sự có `segments`: thanh full-width mà không chia đoạn sẽ nói dối rằng mọi nhóm bằng nhau.
    *  Caller PHẢI đổi nhãn trục để nói rõ bề rộng không còn mã hoá giá trị (xem QuantifyWidget). */
   stackPct?: boolean;
   /** Chú giải màu NGAY DƯỚI TỪNG THANH (owner chốt 03/08: "cần cho thêm phần legend note các màu
-   *  phân chia là nhóm nào"). Chỉ dành cho caller mà màu đoạn gán THEO HÀNG, không toàn cục —
-   *  `themeSegments()` gán `CAT_CYCLE[i]` theo thứ hạng TRONG một theme và mỗi theme có bộ
-   *  sub-theme/nhóm khách RIÊNG, nên cùng một màu ở hai thanh là hai thứ khác nhau. Một dải legend
-   *  toàn cục ở đó sẽ nói điều KHÔNG ĐÚNG (và cũng không đủ màu: ~12 nhãn khác nhau trên 8 theme mà
-   *  CAT_CYCLE chỉ có 5). Ngược lại `QuantifyWidget` dùng `ChartLegend` một dải chung được, vì
-   *  `qRunSplit` gán màu MỘT LẦN từ mảng `order` dùng chung cho mọi hàng — ĐỪNG gộp hai chỗ này lại.
+   *  phân chia là nhóm nào"). Chỉ dành cho caller mà màu đoạn gán THEO HÀNG, không toàn cục.
+   *  Hôm nay còn ĐÚNG MỘT caller như vậy: `ThemeStackBlock` ở trục `subtheme` — sub-theme thuộc về
+   *  đúng một theme cha nên không tồn tại bảng màu chung nào để chú giải một lần.
+   *  SỬA MỘT KHẲNG ĐỊNH NAY ĐÃ SAI (05/08): chỗ này từng ghi `themeSegments()` gán `CAT_CYCLE[i]`
+   *  theo thứ hạng TRONG một theme nên "cùng một màu ở hai thanh là hai thứ khác nhau". Đó là mô tả
+   *  một LỖI chứ không phải một ràng buộc, và lỗi đó đã sửa: mọi trục CHIỀU nay lấy màu từ bảng toàn
+   *  cục (`axisPalette` trong domain/themeSegments.ts) và dùng `ChartLegend` một dải chung, y như
+   *  `QuantifyWidget` vẫn làm với mảng `order` của `qRunSplit`.
    *  Cố ý KHÔNG in `n`: legend trả lời "màu này là nhóm nào", còn số đã có ở bề rộng đoạn + tooltip;
    *  in thêm số sẽ trưng tỷ trọng DEMO của trục "Nhóm khách" ra như thể là phép đo. */
   segmentLegend?: boolean;
 };
+
+/* Tooltip một đoạn. Có `parts` ⇒ khối gộp: dòng đầu là tổng, các dòng sau thụt vào cho từng nhóm
+   nhỏ. Xuống dòng bằng "\n" — thuộc tính `title` của trình duyệt hiển thị đúng nhiều dòng, không cần
+   tooltip tự dựng. Không có `parts` ⇒ TRẢ ĐÚNG chuỗi cũ, không thêm bớt ký tự nào. */
+function segTitle(s: { label: string; n: number; parts?: { label: string; n: number }[] }): string {
+  const head = `${s.label}: ${nf(s.n)}`;
+  if (!s.parts?.length) return head;
+  return [head, ...s.parts.map((p) => `    ${p.label}: ${nf(p.n)}`)].join("\n");
+}
 
 /* S2.6a (spec 2026-08-01-card-enterpret-spec.md, R4): grid đổi từ `label | value | bar` sang
    `label | bar | value` (giá trị sang phải, đúng anatomy Enterpret) — cột value giữ 56px, cột bar
@@ -143,7 +160,7 @@ export function Bars({ rows, pctMode, total, onRowClick, kids, formatValue, scal
                 {rowSegments.map((s, i) => (
                   <div
                     key={i}
-                    title={`${s.label}: ${nf(s.n)}`}
+                    title={segTitle(s)}
                     style={{ width: `${segTotal ? (s.n / segTotal) * 100 : 0}%`, background: s.c }}
                   />
                 ))}

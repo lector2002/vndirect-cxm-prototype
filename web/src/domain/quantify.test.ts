@@ -5,7 +5,7 @@ import { demoData } from "../data/fixtures/demo.ts";
 import { cfgDefault, dims, seed } from "../data/fixtures/seed.ts";
 import { projectCustomer } from "../data/projectBands.ts";
 import type { Cfg, Customer, CxmData, Dim, QuantifyShow } from "../data/schema/index.ts";
-import { qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, rowBuilder, UNKNOWN_ROW_ID } from "./quantify.ts";
+import { NOCUST_LABEL, qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, rowBuilder, UNKNOWN_ROW_ID } from "./quantify.ts";
 
 function findShow(id: string): QuantifyShow {
   const q = seed.qt.find((x) => x.id === id);
@@ -478,19 +478,31 @@ describe("qRunSplit — trục hàng base:'ev'", () => {
     }
   });
 
-  /* Ba nghĩa "không nối được sang khách" phải là BA đoạn riêng. Cộng dồn qua mọi hàng của một trục ev
-     = tổng toàn cục, nên hai con số dưới đây đối chiếu thẳng với phép đo 05/08 mà KHÔNG đi qua bộ đếm
-     nội bộ của hàm. Gộp chúng lại là mất đúng thông tin người sửa pipeline cần: 8,1% ẩn danh là đúng
-     thiết kế, 0,4% nối hỏng là defect. */
-  it("'Ẩn danh' và 'Chưa đối chiếu được' là hai đoạn TÁCH RIÊNG, số khớp phép đo trên demoData", () => {
+  /* Ba nghĩa "không nối được sang khách" VẼ chung một khối (owner chốt 05/08 — ba sắc xám cạnh nhau
+     đọc gần như một màu) nhưng SỐ thì không được gộp: 8,1% ẩn danh là đúng thiết kế, 0,4% nối hỏng là
+     defect, người sửa pipeline cần đúng hai số đó tách nhau. Cộng dồn qua mọi hàng của một trục ev =
+     tổng toàn cục, nên hai số dưới đối chiếu thẳng với phép đo 05/08, KHÔNG đi qua bộ đếm nội bộ.
+     Đây là test chặn "gộp cho gọn": ai cộng ba giỏ lại thành một số thì nó đỏ. */
+  it("'Ẩn danh' và 'Chưa đối chiếu được' là hai SỐ TÁCH RIÊNG trong khối gộp, khớp phép đo demoData", () => {
     const sp = qRunSplit(showOn("pf", "nav"), demoData, dims);
     if (sp.kind !== "draw") throw new Error("phải draw");
     const totalOf = (label: string) =>
-      Object.values(sp.byRow).reduce((a, segs) => a + (segs.find((s) => s.label === label)?.n ?? 0), 0);
+      Object.values(sp.byRow).reduce(
+        (a, segs) => a + segs.reduce((b, s) => b + (s.parts?.find((p) => p.label === label)?.n ?? 0), 0),
+        0,
+      );
 
     expect(totalOf("Ẩn danh")).toBe(133);
     expect(totalOf("Chưa đối chiếu được")).toBe(7);
-    expect(sp.legend.filter((l) => l.label === "Ẩn danh" || l.label === "Chưa đối chiếu được")).toHaveLength(2);
+    // Trên MÀN chỉ còn một nhãn xám — đúng điều owner chốt; legend không được lòi ba nhãn cũ ra.
+    expect(sp.legend.filter((l) => l.label === NOCUST_LABEL)).toHaveLength(1);
+    expect(sp.legend.some((l) => l.label === "Ẩn danh" || l.label === "Chưa đối chiếu được")).toBe(false);
+    // Mỗi khối gộp mang ĐÚNG tổng các phần của nó — không số nào rơi ra ngoài lúc gộp.
+    for (const segs of Object.values(sp.byRow)) {
+      for (const s of segs.filter((x) => x.parts)) {
+        expect(s.parts!.reduce((a, p) => a + p.n, 0)).toBe(s.n);
+      }
+    }
   });
 
   it("refuse: trục chia màu phải là thuộc tính khách (ev × ev không mở)", () => {

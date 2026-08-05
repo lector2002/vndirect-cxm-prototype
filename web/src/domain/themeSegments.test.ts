@@ -4,8 +4,15 @@ import { demoData } from "../data/fixtures/demo.ts";
 import { dims } from "../data/fixtures/seed.ts";
 import type { Dim } from "../data/schema/index.ts";
 import { ANON_CK } from "../data/validate.ts";
-import { custField, PF_LABEL } from "./quantify.ts";
-import { CAT_CYCLE, SUBTHEME_AXIS, themeAxisOptions, themeSegments } from "./themeSegments.ts";
+import { custField, NOCUST_LABEL, PF_LABEL } from "./quantify.ts";
+import { CAT_CYCLE, SUBTHEME_AXIS, themeAxisOptions, themeSegments, type ThemeSegment } from "./themeSegments.ts";
+
+/* 05/08 — bốn nghĩa "không biết" nay VẼ thành một khối "Chưa xếp được nhóm", số tách ở `parts`
+   (owner chốt sau khi xem trên màn: bốn sắc xám cạnh nhau đọc gần như một màu). Các phép khẳng định
+   dưới CHUYỂN CHỖ ĐỌC chứ không nới lỏng: vẫn đúng từng nhãn, đúng từng số, vẫn cấm gộp SỐ. */
+const nocustOf = (segs: ThemeSegment[]): ThemeSegment | undefined => segs.find((s) => s.label === NOCUST_LABEL);
+const partOf = (segs: ThemeSegment[], label: string): { label: string; n: number } | undefined =>
+  nocustOf(segs)?.parts?.find((p) => p.label === label);
 
 /* Oracle subtheme 03/08 (đọc trực tiếp seed.ts) — GIỮ NGUYÊN, trục subtheme không đổi ở F1:
    - x-th-device (n=412): subs = x-sub-android(238) + x-sub-glare(174) = 412 → Σsub === theme.n → rem=0.
@@ -103,7 +110,7 @@ describe("themeSegments — trục đếm được từ dims (demoData)", () => 
      giá trị của đúng một chiều — không tồn tại kết quả nào chứa cùng lúc 'Android' và 'Khách 50+'."
      Đây là test chặn tái diễn lỗi trục "Nhóm khách" DEMO cũ (nhãn tự bịa, không thuộc domain nào). */
   it("MỖI trục: nhãn đoạn THƯỜNG chỉ thuộc tập giá trị của ĐÚNG trục đó, không lẫn trục khác", () => {
-    const unknownLabels = new Set(["chưa-biết", "thiếu", "Ẩn danh", "Chưa đối chiếu được", "Chưa có bằng chứng gán"]);
+    const unknownLabels = new Set([NOCUST_LABEL, "Chưa có bằng chứng gán"]);
     const domainOf = (axis: string): Set<string> =>
       // S2c (04/08): nhãn pf hiện tên đẹp qua PF_LABEL (xem themeSegments.ts) — tập giá trị đúng
       // phải là tập nhãn ĐÃ đổi tên, không phải giá trị thô 'android'/'ios'/'web' nữa.
@@ -136,7 +143,7 @@ describe("themeSegments — trục đếm được từ dims (demoData)", () => 
     expect(Object.fromEntries(handCount)).toEqual({ android: 175, ios: 82, web: 39 });
 
     const segs = themeSegments(demoData, "x-th-device", "pf", dims);
-    const known = new Set(["chưa-biết", "thiếu", "Ẩn danh", "Chưa đối chiếu được"]);
+    const known = new Set([NOCUST_LABEL]);
     const normalSum = segs.filter((s) => !known.has(s.label) && s.label !== "Chưa có bằng chứng gán").reduce((a, s) => a + s.n, 0);
     const unknownSum = segs.filter((s) => known.has(s.label)).reduce((a, s) => a + s.n, 0);
     // pf đọc thẳng từ Evidence (base:'ev'), không qua join ck → không có đoạn "không biết" nào.
@@ -145,53 +152,55 @@ describe("themeSegments — trục đếm được từ dims (demoData)", () => 
     expect(rows.length).toBe(296);
   });
 
-  it("'chưa-biết' và 'thiếu' KHÔNG BAO GIỜ ra cùng một đoạn (trục 'acq' của x-th-device: cả hai n>0)", () => {
+  /* Gộp phần VẼ không được phép gộp SỐ — đây là chỗ canh điều đó. Hai nghĩa vẫn là hai dòng riêng
+     trong tooltip, mỗi dòng số của mình; nếu ai đó cộng chúng lại "cho gọn" thì test này đỏ. */
+  it("'chưa-biết' và 'thiếu' vẫn là HAI SỐ RIÊNG trong khối gộp (trục 'acq' của x-th-device: cả hai n>0)", () => {
     const segs = themeSegments(demoData, "x-th-device", "acq", dims);
-    const unk = segs.find((s) => s.label === "chưa-biết");
-    const missing = segs.find((s) => s.label === "thiếu");
+    const unk = partOf(segs, "chưa-biết");
+    const missing = partOf(segs, "thiếu");
     expect(unk).toBeDefined();
     expect(missing).toBeDefined();
     expect(unk!.n).toBeGreaterThan(0);
     expect(missing!.n).toBeGreaterThan(0);
-    expect(unk!.label).not.toBe(missing!.label);
-    expect(unk!.c).not.toBe(missing!.c);
-    expect(unk!.c).toBe("var(--unk)");
-    expect(missing!.c).toBe("var(--unk-gap)");
+    // Khối gộp mang đúng tổng của các phần — không có số nào rơi ra ngoài lúc gộp.
+    const block = nocustOf(segs)!;
+    expect(block.parts!.reduce((a, p) => a + p.n, 0)).toBe(block.n);
+    expect(block.c).toBe("var(--unk-nocust)");
   });
 
-  it("đoạn 'Ẩn danh' có mặt ở MỌI theme (trục 'age', kể cả khi n=0)", () => {
+  it("dòng 'Ẩn danh' có mặt ở MỌI theme (trục 'age', kể cả khi n=0)", () => {
     for (const theme of themes) {
       const segs = themeSegments(demoData, theme.id, "age", dims);
-      const anon = segs.find((s) => s.label === "Ẩn danh");
+      const anon = partOf(segs, "Ẩn danh");
       expect(anon).toBeDefined();
       expect(anon!.n).toBeGreaterThanOrEqual(0);
-      expect(anon!.c).toBe("var(--unk-anon)");
     }
   });
 
   /* Test trên KHÔNG tự đi qua nhánh n=0 (demoData có Ẩn danh >0 ở mọi theme) — dựng lát cắt bỏ hết
      dòng Ẩn danh của x-th-device để khoá riêng nhánh "LUÔN có mặt kể cả n=0" (module-f-charter.md:
-     "Đoạn này LUÔN có mặt kể cả n === 0"). */
-  it("đoạn 'Ẩn danh' vẫn có mặt với n=0 khi lát dữ liệu không còn dòng Ẩn danh nào", () => {
+     "Đoạn này LUÔN có mặt kể cả n === 0").
+     05/08 — ý định GIỮ NGUYÊN, chỗ đọc đổi: "có kiểm, bằng không" giờ là một DÒNG trong tooltip chứ
+     không còn là một đoạn rộng 0px. Đây là chỗ TỐT HƠN cho chính lời khẳng định đó: đoạn 0px không
+     rê chuột vào được, nên nơi cũ chưa bao giờ nói được số 0 ấy cho ai. */
+  it("dòng 'Ẩn danh' vẫn có mặt với n=0 khi lát dữ liệu không còn dòng Ẩn danh nào", () => {
     const theme = demoData.tax.find((t) => t.id === "x-th-device")!;
     const sliced = { ...demoData, ev: demoData.ev.filter((e) => !(e.tax.includes(theme.id) && e.ck === ANON_CK)) };
     const segs = themeSegments(sliced, "x-th-device", "age", dims);
-    const anon = segs.find((s) => s.label === "Ẩn danh");
-    expect(anon).toEqual({ label: "Ẩn danh", n: 0, c: "var(--unk-anon)" });
+    expect(partOf(segs, "Ẩn danh")).toEqual({ label: "Ẩn danh", n: 0 });
     // Σ vẫn === theme.n (rem hấp thụ đúng số dòng Ẩn danh đã bị lọc bỏ).
     expect(segs.reduce((a, s) => a + s.n, 0)).toBe(theme.n);
   });
 
-  it("đoạn 'Chưa đối chiếu được' xuất hiện khi ck không tra ra khách nào (x-th-device, trục 'age')", () => {
+  it("dòng 'Chưa đối chiếu được' xuất hiện khi ck không tra ra khách nào (x-th-device, trục 'age')", () => {
     const segs = themeSegments(demoData, "x-th-device", "age", dims);
-    const unjoined = segs.find((s) => s.label === "Chưa đối chiếu được");
+    const unjoined = partOf(segs, "Chưa đối chiếu được");
     expect(unjoined).toBeDefined();
     expect(unjoined!.n).toBe(1);
-    expect(unjoined!.c).toBe("var(--unk-join)");
   });
 
   it("Không đoạn nào của nhóm 'không biết'/'chưa gán' mang màu CAT_CYCLE", () => {
-    const unknownLabels = new Set(["chưa-biết", "thiếu", "Ẩn danh", "Chưa đối chiếu được", "Chưa có bằng chứng gán"]);
+    const unknownLabels = new Set([NOCUST_LABEL, "Chưa có bằng chứng gán"]);
     for (const theme of themes) {
       for (const axis of ["pf", "age", "acq"]) {
         const segs = themeSegments(demoData, theme.id, axis, dims);
@@ -221,13 +230,26 @@ describe("themeSegments — trục đếm được từ dims (demoData)", () => 
     expect(themeSegments(demoData, "khong-ton-tai", "pf", dims)).toEqual([]);
   });
 
-  it("giá trị THƯỜNG sắp giảm dần theo n, màu CAT_CYCLE theo thứ hạng (trục 'pf' của x-th-device)", () => {
-    const segs = themeSegments(demoData, "x-th-device", "pf", dims);
+  /* 05/08 — NEO LẠI phép khẳng định màu, số giữ nguyên. Bản trước canh "màu CAT_CYCLE theo thứ hạng
+     TRONG theme". Trên demoData thứ hạng trong x-th-device (175 > 82 > 39) TRÙNG thứ hạng toàn cục
+     (android 762 > ios 519 > web 360), nên sau khi đổi sang bảng màu toàn cục nó vẫn xanh — tức là
+     nó xanh do trùng hợp, không do canh được điều gì. Điều PHẢI canh nay là: một màu là một nền tảng
+     ở MỌI theme. Kiểm bằng hai theme khác nhau, đúng chỗ bản cũ sai. */
+  it("giá trị THƯỜNG sắp giảm dần theo n; MỘT màu = MỘT nền tảng ở mọi theme (không phải thứ hạng trong theme)", () => {
+    const pfOnly = (ss: ThemeSegment[]) => ss.filter((s) => ["Android", "iOS", "Web"].includes(s.label));
     // S2c (04/08): nhãn pf là tên đẹp (PF_LABEL) — 'android'→'Android' v.v., số n và thứ tự không đổi.
-    const normal = segs.filter((s) => s.label === "Android" || s.label === "iOS" || s.label === "Web");
+    const normal = pfOnly(themeSegments(demoData, "x-th-device", "pf", dims));
     expect(normal.map((s) => s.label)).toEqual(["Android", "iOS", "Web"]);
     expect(normal.map((s) => s.n)).toEqual([175, 82, 39]);
     expect(normal.map((s) => s.c)).toEqual([CAT_CYCLE[0], CAT_CYCLE[1], CAT_CYCLE[2]]);
+
+    /* Theme thứ hai, bộ n khác hẳn. Bản cũ gán màu theo thứ hạng trong theme nên chỉ cần thứ hạng ở
+       đây khác là màu của cùng một nền tảng đổi — đó chính là lỗi. Nay phải trùng khít. */
+    const other = demoData.tax.find((t) => t.lv === "theme" && t.id !== "x-th-device");
+    if (!other) throw new Error("demoData phải có ít nhất hai theme");
+    const segs2 = pfOnly(themeSegments(demoData, other.id, "pf", dims));
+    expect(segs2.length).toBeGreaterThan(0);
+    for (const s of segs2) expect(s.c).toBe(normal.find((n) => n.label === s.label)?.c);
   });
 
   it("đoạn 'Chưa có bằng chứng gán' = theme.n - m, màu var(--rem), chỉ thêm khi rem>0", () => {

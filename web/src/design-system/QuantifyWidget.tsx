@@ -310,8 +310,12 @@ function buildSplitBundle(
   const effItem: QuantifyShow =
     effSplit === item.split ? item : { ...item, split: effSplit, stack: effSplit ? item.stack : undefined };
 
+  /* Đọc CỜ KHAI `Dim.slice` (sửa 05/08). Bản trước lọc `d.base === "cust"` nên thanh chỉ ra 4 chip —
+     rụng mất "Nền tảng" vì nó là thuộc tính của DÒNG BẰNG CHỨNG, không phải của khách. Lọc bằng cờ
+     thì danh sách chip = đúng năm cách cắt owner đã chốt, giống nhau ở MỌI chart; chart nào không cắt
+     được theo chiều nào thì chip đó KHOÁ kèm lý do engine trả về, không biến mất khỏi thanh. */
   const options: SplitOption[] = Object.entries(dims)
-    .filter(([, d]) => d.base === "cust")
+    .filter(([, d]) => d.slice)
     .map(([k, d]) => {
       const probe = qRunSplit({ ...item, split: k }, data, dims);
       return { key: k, label: d.label, ...(probe.kind === "refuse" ? { disabledReason: probe.reason } : {}) };
@@ -321,9 +325,9 @@ function buildSplitBundle(
      thuộc về CHART chứ không thuộc chiều nào, nên khoá cả cụm thay vì 6 tooltip giống hệt nhau. */
   const aggReason = (() => {
     if (dim?.base !== "agg") return undefined;
-    const anyCust = Object.entries(dims).find(([, d]) => d.base === "cust")?.[0];
-    if (!anyCust) return undefined;
-    const probe = qRunSplit({ ...item, split: anyCust }, data, dims);
+    const anySlice = Object.entries(dims).find(([, d]) => d.slice)?.[0];
+    if (!anySlice) return undefined;
+    const probe = qRunSplit({ ...item, split: anySlice }, data, dims);
     return probe.kind === "refuse" ? probe.reason : undefined;
   })();
 
@@ -358,6 +362,12 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
      đúng cái owner lo khi loại phương án (b) ("chart theme click được, chart khác không → mặt UI
      không nhất quán"). Hook phải gọi TRƯỚC mọi nhánh return bên dưới (series/cross-tab). */
   const [drillRow, setDrillRow] = useState<DimRow | null>(null);
+  /* Lý do khoá mà NGƯỜI XEM vừa bấm để hỏi — in thành chữ dưới chart, xem SplitToggle.onLockedClick.
+     Đặt ở đây (một state cho cả hai nhánh render của widget) chứ không trong SplitToggle: strip là
+     component thuần props, còn dòng chữ thuộc về chart, phải nằm cùng chỗ với các note khác để không
+     bao giờ có hai dòng chồng nhau. Xoá ngay khi người xem đổi sang một chiều bấm được — lúc đó câu
+     hỏi đã hết, để câu trả lời cũ nằm lại là nói về một chart không còn trên màn. */
+  const [askedReason, setAskedReason] = useState<string | null>(null);
   /* Chiều chia màu do NGƯỜI XEM chọn tại chỗ (owner chốt 03/08, lát 1) — ghi đè `item.split` ghim cứng
      trong fixture. Mặc định state sống Ở ĐÂY, cùng lý do như drillRow: Library/Detail/Overview có
      toggle mà không phải nối gì. Hook phải gọi TRƯỚC mọi nhánh return bên dưới.
@@ -507,12 +517,15 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
        (đúng chỗ: đây là phát biểu về trục), không nhồi thêm một dòng chữ dưới card. */
     const segBottomLabel =
       isPctStack && splitDrawn ? `Tỷ trọng trong từng ${dim.unit} (100%) — bề rộng KHÔNG mã hoá số lượng` : segBottomAxis;
+    /* `askedReason` đứng TRƯỚC mọi note khác: nó là câu trả lời cho một câu hỏi người xem vừa đặt
+       bằng cú bấm, còn các note kia là chú thích nền. Hai dòng cùng lúc thì dòng vừa xin bị lẫn. */
     const splitNote =
-      split.kind === "refuse"
+      askedReason ??
+      (split.kind === "refuse"
         ? split.reason
         : split.kind === "draw" && !splitDrawn
           ? `Chia màu theo "${dims[effItem.split ?? ""]?.label ?? effItem.split}" chỉ hiện được ở dạng thanh — chuyển sang view Chart để xem.`
-          : null;
+          : null);
 
     /* Trục khách: bản ghi dưới một hàng là KHÁCH, không phải verbatim — `data.cust` đếm đủ nên đó
        mới là danh sách đúng nghĩa của hàng. Lý do CŨ ghi ở đây ("chỉ 7/15 khoá `ck` khớp") là một
@@ -539,8 +552,12 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
         <SplitToggle
           options={splitOptions}
           value={effSplit}
-          onChange={onSplitChange ?? ((next) => setSplitPick({ value: next }))}
+          onChange={(next) => {
+            setAskedReason(null);
+            (onSplitChange ?? ((v: string | undefined) => setSplitPick({ value: v })))(next);
+          }}
           lockedReason={splitLocked}
+          onLockedClick={setAskedReason}
         />
         <VAxisLabel label={segVAxis} bottomLabel={segBottomLabel}>
           {effectiveView === "table" ? (
@@ -567,7 +584,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
             định) đã bỏ khỏi mọi card theo owner chốt 03/08 "card nên clean nhất có thể"; note giờ chỉ
             hiện ở màn chi tiết (QuantifyDetail). */}
         <div className="text-[11.5px] text-ink-3 mt-2">{segDescription}</div>
-        {splitNote ? <div data-testid="split-note" className="text-[11.5px] text-ink-3 mt-1">{splitNote}</div> : null}
+        {splitNote ? <div data-testid="split-note" aria-live="polite" className="text-[11.5px] text-ink-3 mt-1">{splitNote}</div> : null}
         {/* Đặt TRONG Card cho gần chỗ sinh ra nó; Modal tự portal ra body nên không bị overflow của
             card cắt. Render có điều kiện (không chỉ `open`) để không dựng panel khi chưa bấm gì. */}
         {drillRow && segDrill ? (
@@ -618,14 +635,16 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
   const ncDrawn = !!ncDraw && effectiveView !== "table" && item.chart !== "donut";
   const ncSegments = ncDraw && ncDrawn ? (r: DimRow) => ncDraw.byRow[r.id] ?? [] : undefined;
   const ncPctStack = nc.effItem.stack === "pct";
+  // `askedReason` ưu tiên cao nhất — xem ghi chú ở `splitNote`.
   const ncNote =
-    nc.split.kind === "refuse"
+    askedReason ??
+    (nc.split.kind === "refuse"
       ? nc.split.reason
       : nc.axisNote
         ? nc.axisNote
         : ncDraw && !ncDrawn
         ? `Chia màu theo "${dims[nc.effItem.split ?? ""]?.label ?? nc.effItem.split}" chỉ hiện được ở dạng thanh — chuyển sang view Chart để xem.`
-        : null;
+        : null);
   const ncBottomLabel =
     ncPctStack && ncDrawn && dim
       ? `Tỷ trọng trong từng ${dim.unit} (100%) — bề rộng KHÔNG mã hoá số lượng`
@@ -636,8 +655,12 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
       <SplitToggle
         options={nc.options}
         value={nc.effSplit}
-        onChange={onSplitChange ?? ((next) => setSplitPick({ value: next }))}
+        onChange={(next) => {
+          setAskedReason(null);
+          (onSplitChange ?? ((v: string | undefined) => setSplitPick({ value: v })))(next);
+        }}
         lockedReason={nc.lockedReason}
+        onLockedClick={setAskedReason}
       />
       <VAxisLabel label={vAxis} bottomLabel={ncBottomLabel}>
         {effectiveView === "table" ? (
@@ -660,7 +683,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
           </>
         )}
       </VAxisLabel>
-      {ncNote ? <div data-testid="split-note" className="text-[11.5px] text-ink-3 mt-1">{ncNote}</div> : null}
+      {ncNote ? <div data-testid="split-note" aria-live="polite" className="text-[11.5px] text-ink-3 mt-1">{ncNote}</div> : null}
       {drillRow && drill ? (
         <DrillPanel
           open

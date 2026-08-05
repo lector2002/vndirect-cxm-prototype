@@ -11,5 +11,5 @@ export { signalChart } from "./signalChart.ts";
 export type { SignalChart, SigGroup, SigCol, SigSlice, SigUnknown, DimState, SigNote } from "./signalChart.ts";
 export { buildSearchIndex, queryIndex } from "./search.ts";
 export type { SearchKind, SearchEntry } from "./search.ts";
-export { themeSegments, themeAxisOptions, SUBTHEME_AXIS } from "./themeSegments.ts";
+export { themeSegments, themeAxisOptions, themeLegend, SUBTHEME_AXIS } from "./themeSegments.ts";
 export type { ThemeAxis, ThemeSegment, ThemeAxisOption } from "./themeSegments.ts";

@@ -38,6 +38,15 @@
   --unk-gap: #6b655e;
   --unk-anon: #a9a39c;
   --unk-join: #c5bfb7;
+  /* Owner chốt 05/08 sau khi xem trên màn: ở ĐUÔI THANH của chart chia màu, các sắc xám trên đứng
+     cạnh nhau đọc gần như một màu. Nên ở đó chúng GỘP LÀM MỘT KHỐI mang token này (nhãn "Chưa xếp
+     được nhóm"), từng số tách ra ở tooltip. Token RIÊNG chứ không mượn `--unk-anon`: ở kia nghĩa là
+     "Ẩn danh", ở đây nghĩa là "không xếp được vào nhóm nào, gồm mọi lý do" — hôm nay trùng mã màu
+     nhưng KHÁC NGHĨA, đổi cái này không được kéo cái kia.
+     Áp cho: chart chia màu ở Quantify + chart theme (Tổng quan CXM). KHÔNG áp cho chart điểm đo
+     (SignalColumns) — owner chốt riêng 05/08: ở đó việc tách ba nghĩa CHÍNH LÀ nội dung của chart,
+     nó là danh sách việc phải đi đòi bên data, gộp là xoá mất danh sách đó. */
+  --unk-nocust: #a9a39c;
   --rem: #ded9d2;
   --good: #3f6212;
   --good-bg: #f8faf1;
@@ -66,6 +75,21 @@
   /* Nhóm "Khác (+N)" — chủ ý nhạt để lùi về sau. CHỈ làm nền thanh/lát, KHÔNG dùng cho chữ
      (contrast ~2,2:1, không đạt AA). */
   --cat-other: #b8b2ac;
+
+  /* Thang TUẦN TỰ — dùng cho chiều CÓ THỨ TỰ (độ tuổi, phân khúc NAV: Dim.cut.kind === 'band'),
+     thay cho --cat-* ở đúng những chiều đó. Lý do: --cat-* là năm màu KHÔNG hơn kém nhau, đúng cho
+     nhóm rời rạc (nền tảng, kênh mở TK) nhưng sai cho dải: "18-24" và "50+" có thứ tự thật, tô hai
+     hue không liên quan thì phải tra chú giải mới biết đoạn nào là nhóm cao hơn, và không đọc được
+     xu hướng nào từ hình. Một hue, năm mức sáng: nhạt = dải thấp, đậm = dải cao, nên nhìn thanh là
+     thấy ngay nghiêng về phía nào.
+     Hue xanh dương tách khỏi cả bốn màu ngữ nghĩa (primary cam / crit đỏ / watch hổ phách / good
+     ô-liu) — cùng lý do đã chốt cho --cat-*: thang này không được đọc nhầm thành mức báo động.
+     CHỈ làm nền thanh/lát: --seq-1 và --seq-2 quá nhạt để làm chữ (contrast < 3:1). */
+  --seq-1: #bcd6f2;
+  --seq-2: #8ab3e3;
+  --seq-3: #5a8ecd;
+  --seq-4: #356ab0;
+  --seq-5: #1c4780;
 
   --radius: 12px;
   --shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.05);

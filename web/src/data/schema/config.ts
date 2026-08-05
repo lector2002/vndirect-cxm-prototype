@@ -111,6 +111,21 @@ export type Dim = {
       Trục `base:'agg'`/`'ev'` đếm theo cấu trúc (taxonomy, thuộc tính bằng chứng) chứ không theo một
       dữ kiện của khách, nên không khai `cut` — xem ROW_BUILDERS ở domain/quantify.ts. */
   cut?: DimCut;
+  /** Chiều này dùng để CẮT chart khác (thanh "Chia màu theo" ở Quantify, picker trục của chart
+      theme). Owner chốt 05/08 đúng NĂM chiều: bốn chiều khách + "Nền tảng" (thiết kế
+      output/thiet-ke-chart-signal.html §4).
+
+      Vì sao cần cờ này thay vì suy từ `base`: trước 05/08 hai màn tự đoán, và đoán KHÁC NHAU —
+      Quantify lọc `base==='cust'` nên rụng mất "Nền tảng" (nó là `base:'ev'`, thuộc tính của chính
+      dòng bằng chứng chứ không phải của khách), còn chart theme thì đóng cứng hai nút viết tay. Suy
+      từ `base` cũng không cứu được: `base:'ev'` còn có `cat`/`sen` — hai chiều đó là ĐỀ TÀI của
+      chart (trục hàng), không phải cách cắt. "Cắt được theo chiều nào" là một quyết định thiết kế,
+      không suy ra được từ chỗ đọc dữ liệu, nên phải khai ra.
+
+      Khai cờ này KHÔNG hứa mọi chart cắt được theo nó: có cắt được hay không vẫn do engine trả lời
+      từng ca (`qRunSplit`, `themeAxisOptions`); chart nào không cắt được thì hiện chip KHOÁ kèm lý
+      do, đúng luật "nói thẳng" của owner. */
+  slice?: true;
 };
 
 // ----- Metric kind (for type-safe references) -----

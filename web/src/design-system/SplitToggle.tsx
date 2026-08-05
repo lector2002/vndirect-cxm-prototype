@@ -29,6 +29,14 @@ export type SplitToggleProps = {
   /** Có mặt ⇒ khoá TOÀN BỘ strip (view/kiểu chart không có chỗ vẽ đoạn màu). Vẫn render thay vì ẩn,
    *  cùng lý do như `disabledReason`: một control biến mất khi đổi view thì không ai nói vì sao. */
   lockedReason?: string;
+  /** Bấm vào chip ĐANG KHOÁ → đẩy lý do lên caller để in thành CHỮ, không chỉ nằm trong tooltip.
+   *
+   *  Thêm 05/08 vì có bằng chứng thật: owner nhìn màn rồi HỎI "tại sao chart khách theo phân khúc NAV
+   *  không bấm được vào chia theo nền tảng?" — lý do đã có sẵn, đúng chữ, ngay trên `title` của chính
+   *  chip đó, mà vẫn phải hỏi. Tooltip chỉ tới được người đã đoán ra là nên rê chuột và chịu đợi; ai
+   *  bấm (phản xạ tự nhiên khi một nút không phản hồi), ai dùng bàn phím, ai dùng cảm ứng thì không
+   *  bao giờ thấy. Bấm là hành vi người ta LÀM khi thắc mắc, nên đó là chỗ phải trả lời. */
+  onLockedClick?: (reason: string) => void;
 };
 
 const chip = "text-[12px] px-2 py-1 rounded-sm font-semibold transition-colors";
@@ -41,7 +49,7 @@ const chipDim = "bg-transparent text-ink-3 opacity-40 cursor-not-allowed";
 const OFF_KEY = "";
 const OFF_LABEL = "Không chia";
 
-export function SplitToggle({ options, value, onChange, lockedReason }: SplitToggleProps) {
+export function SplitToggle({ options, value, onChange, lockedReason, onLockedClick }: SplitToggleProps) {
   const items: SplitOption[] = [{ key: OFF_KEY, label: OFF_LABEL }, ...options];
   return (
     /* stopPropagation ở GỐC strip, không ở từng chip: handler của chip chạy trước (trên đường nổi lên)
@@ -54,7 +62,11 @@ export function SplitToggle({ options, value, onChange, lockedReason }: SplitTog
       className="flex flex-wrap items-center gap-1.5 mb-2.5"
       onClick={(e) => e.stopPropagation()}
     >
-      <span className="text-[11.5px] text-ink-3">Chia màu theo</span>
+      {/* "Chia màu theo" → "Chia màu" (05/08). Đo trên màn sau khi thêm chip thứ năm: thanh rộng
+          595px, nhãn cũ chiếm 84px, sáu chip cần ~515px — thiếu đúng ~12px nên CẢ 12 thanh xuống hai
+          hàng. Rút nhãn trả lại ~29px, vừa đủ. Chọn sửa nhãn chứ không bóp padding chip: padding là
+          hình dáng dùng CHUNG với ThemeStackBlock/TimeframeBar, bóp ở đây là ba chỗ lệch nhau. */}
+      <span className="text-[11.5px] text-ink-3">Chia màu</span>
       <div
         role="group"
         aria-label="Chiều chia màu trong thanh"
@@ -73,7 +85,14 @@ export function SplitToggle({ options, value, onChange, lockedReason }: SplitTog
               aria-disabled={reason ? true : undefined}
               title={reason}
               className={`${chip} ${reason && !on ? chipDim : on ? chipOn : chipOff}`}
-              onClick={reason ? undefined : () => onChange(opt.key === OFF_KEY ? undefined : opt.key)}
+              /* Chip khoá vẫn KHÔNG đổi chiều chia — nó chỉ nói ra lý do. Giữ nguyên `aria-disabled`
+                 (không phải `disabled` thật) nên nút vẫn nhận được focus và phím Enter/Space, tức là
+                 đường bàn phím cũng tới được lý do y như đường chuột. */
+              onClick={
+                reason
+                  ? () => onLockedClick?.(reason)
+                  : () => onChange(opt.key === OFF_KEY ? undefined : opt.key)
+              }
             >
               {opt.label}
             </button>

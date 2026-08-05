@@ -1,7 +1,8 @@
 import type { CxmData, Customer, Dim, Evidence, TaxNode } from "../data/schema/index.ts";
 import { ANON_CK } from "../data/validate.ts";
 import { isSegUnknown, MISSING, UNKNOWN_YET } from "../data/segment.ts";
-import { custField, PF_LABEL } from "./quantify.ts";
+import { custField, NOCUST_COLOR, NOCUST_LABEL, PF_LABEL } from "./quantify.ts";
+import { bandOrderKey, isOrdinal, SEQ_RAMP, sortByBand } from "./splitOrder.ts";
 
 /* VOC-STACKED-SPEC §2 — chia n của một theme thành các đoạn cho Bars.segments.
    `subtheme` = trục THẬT (n thật của subtheme con, GIỮ NGUYÊN từ bản trước).
@@ -18,7 +19,13 @@ export type ThemeAxis = string;
 
 /** BỎ field `demo` (bản trước): mọi đoạn giờ là số ĐẾM được từ `data.ev`, không còn đoạn nào bịa
     tỷ trọng. */
-export type ThemeSegment = { label: string; n: number; c: string };
+export type ThemeSegment = {
+  label: string;
+  n: number;
+  c: string;
+  /** Chỉ khối GỘP mới có. `n` = Σ parts. Xem NOCUST_LABEL (domain/quantify.ts) cho lý do gộp. */
+  parts?: { label: string; n: number }[];
+};
 
 export type ThemeAxisOption = { key: ThemeAxis; label: string; disabledReason?: string };
 
@@ -104,6 +111,99 @@ export function themeAxisOptions(dims: Record<string, Dim>): ThemeAxisOption[] {
   return opts;
 }
 
+/** Bảng màu + thứ tự đoạn của MỘT TRỤC, tính trên TOÀN BỘ bằng chứng gắn theme — không phải theo
+    từng thanh.
+
+    Đây là chỗ chart này đang sai chuẩn nặng nhất (đo 05/08, sửa cùng ngày). Trước đó màu gán theo
+    THỨ HẠNG TRONG một theme: thanh nào cũng bắt đầu bằng --cat-1, nên ở theme A màu đầu là Android
+    còn ở theme B lại là iOS. Cùng một chart, cùng một màu, hai nghĩa khác nhau — người xem không so
+    ngang được hai thanh, và mỗi thanh phải kéo theo một chú giải riêng (tám chú giải cho tám thanh).
+    Chính dự án đã chốt điều ngược lại ở chart điểm đo: "hạng 1 toàn chart → cat-1, kể cả khi ở nhóm A
+    nó không phải hạng 1" (design-system/SignalColumns.test.tsx:7-9). Luật roll-out nói quyết định đó
+    áp cho MỌI chart, nên chart này phải theo.
+
+    Xếp hạng TOÀN CỤC ⇒ một màu = một nhóm ở mọi thanh ⇒ MỘT chú giải cho cả chart.
+
+    Bảng tính trên mọi theme (kể cả theme nằm ngoài top hiển thị): nếu tính theo tập theme đang hiện
+    thì màu sẽ NHẢY mỗi lần đổi số thanh hoặc đổi kỳ. Đổi lại có thể dư một mục chú giải không xuất
+    hiện trong thanh nào đang hiện — dư một dòng đọc được vẫn hơn một bảng màu trôi. */
+type AxisPalette = {
+  /** Khoá THÔ (chưa qua EV_LABEL) theo đúng thứ tự vẽ. */
+  order: string[];
+  color: Map<string, string>;
+  /** Có thanh nào sinh khối "Chưa xếp được nhóm" / "Chưa có bằng chứng gán" không — để chú giải
+      chung liệt kê đúng những gì thật sự vẽ ra, không thừa không thiếu. */
+  hasNocust: boolean;
+  hasRem: boolean;
+};
+
+function axisPalette(data: CxmData, axis: string, dim: Dim, dims: Record<string, Dim>): AxisPalette {
+  const themeById = new Map(data.tax.filter((t) => t.lv === "theme").map((t) => [t.id, t] as const));
+  const totals = new Map<string, number>();
+  const perTheme = new Map<string, number>();
+  let nocust = 0;
+
+  const getterEv = dim.base === "ev" ? EV_FIELD[axis] : undefined;
+  const getterCust = dim.base === "cust" ? custField(dims, axis) : undefined;
+  const custByKey = getterCust ? new Map(data.cust.map((c) => [c.key, c] as const)) : undefined;
+
+  for (const e of data.ev) {
+    const hit = e.tax.filter((t) => themeById.has(t));
+    if (hit.length === 0) continue;
+    for (const t of hit) perTheme.set(t, (perTheme.get(t) ?? 0) + 1);
+    if (getterEv) {
+      const v = getterEv(e);
+      totals.set(v, (totals.get(v) ?? 0) + 1);
+      continue;
+    }
+    if (!getterCust) continue;
+    const cust = e.ck === ANON_CK ? undefined : custByKey?.get(e.ck);
+    if (!cust) {
+      nocust += 1;
+      continue;
+    }
+    const v = getterCust(cust);
+    if (isSegUnknown(v)) {
+      nocust += 1;
+      continue;
+    }
+    totals.set(v, (totals.get(v) ?? 0) + 1);
+  }
+
+  const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  const order = sortByBand(ranked, bandOrderKey(data, dims, axis));
+  const cycle = isOrdinal(dim) ? SEQ_RAMP : CAT_CYCLE;
+  let hasRem = false;
+  for (const [id, t] of themeById) {
+    if (t.n > (perTheme.get(id) ?? 0)) hasRem = true;
+  }
+  return {
+    order,
+    color: new Map(order.map((id, i) => [id, cycle[i % cycle.length]])),
+    hasNocust: nocust > 0,
+    hasRem,
+  };
+}
+
+/** Chú giải CHUNG cho cả chart — đi cùng bảng màu toàn cục ở trên. Rỗng với trục `subtheme`: ở đó
+    mỗi theme có bộ sub-theme RIÊNG (sub-theme thuộc về đúng một theme cha), nên không tồn tại bảng
+    màu chung nào để chú giải, và chú giải theo từng thanh vẫn là cách đúng duy nhất. */
+export function themeLegend(
+  data: CxmData,
+  axis: ThemeAxis,
+  dims: Record<string, Dim>,
+): { label: string; c: string }[] {
+  if (axis === SUBTHEME_AXIS) return [];
+  const dim = dims[axis];
+  if (!dim || axisDisabledReason(dim, axis)) return [];
+  const p = axisPalette(data, axis, dim, dims);
+  return [
+    ...p.order.map((raw) => ({ label: EV_LABEL[axis]?.()[raw] ?? raw, c: p.color.get(raw) as string })),
+    ...(p.hasNocust ? [{ label: NOCUST_LABEL, c: NOCUST_COLOR }] : []),
+    ...(p.hasRem ? [{ label: "Chưa có bằng chứng gán", c: "var(--rem)" }] : []),
+  ];
+}
+
 /** Trục đếm được (base:'ev' có EV_FIELD, hoặc base:'cust'): chia `rows = data.ev` của theme theo
    giá trị THẬT của chiều, ghép thêm các đoạn "không biết"/"chưa gán" để Σ luôn bằng `theme.n`.
 
@@ -165,19 +265,40 @@ function countedSegments(
     }
   }
 
-  const segs: ThemeSegment[] = [...counts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    /* `raw` là khoá đếm thật (giữ nguyên, không đổi) — `label` chỉ đổi tên đẹp lúc DỰNG segment,
-       qua EV_LABEL nếu trục có bảng đó (hôm nay chỉ `pf`); trục không có (mọi trục base:'cust') giữ
-       nguyên như cũ. */
-    .map(([raw, n], i) => ({ label: EV_LABEL[axis]?.()[raw] ?? raw, n, c: CAT_CYCLE[i % CAT_CYCLE.length] }));
+  /* Thứ tự VÀ màu lấy từ bảng toàn cục (axisPalette) chứ không xếp lại trong từng thanh: cùng một
+     nhóm phải nằm cùng một chỗ và mang cùng một màu ở MỌI thanh, nếu không thì hai thanh không so
+     ngang được. `raw` vẫn là khoá đếm thật (giữ nguyên) — `label` chỉ đổi tên đẹp lúc DỰNG segment,
+     qua EV_LABEL nếu trục có bảng đó (hôm nay chỉ `pf`); trục không có giữ nguyên như cũ. */
+  const palette = axisPalette(data, axis, dim, dims);
+  const nameOf = (raw: string) => EV_LABEL[axis]?.()[raw] ?? raw;
+  const segs: ThemeSegment[] = palette.order
+    .filter((raw) => (counts.get(raw) ?? 0) > 0)
+    .map((raw) => ({ label: nameOf(raw), n: counts.get(raw) as number, c: palette.color.get(raw) as string }));
 
-  // Ghim cuối, KHÔNG tiêu slot CAT_CYCLE nào — bốn nghĩa "không biết", bốn đoạn, không gộp.
-  if (unk > 0) segs.push({ label: "chưa-biết", n: unk, c: "var(--unk)" });
-  if (missing > 0) segs.push({ label: "thiếu", n: missing, c: "var(--unk-gap)" });
-  // "Ẩn danh" LUÔN có mặt (kể cả n=0) khi trục có khái niệm join qua ck — chỉ base:'cust'.
-  if (dim.base === "cust") segs.push({ label: "Ẩn danh", n: anon, c: "var(--unk-anon)" });
-  if (unjoined > 0) segs.push({ label: "Chưa đối chiếu được", n: unjoined, c: "var(--unk-join)" });
+  /* Lưới an toàn cho bất biến Σ đoạn = theme.n. Bảng màu quét TẬP CHA (mọi bằng chứng gắn theme) của
+     tập đang đếm ở đây, nên về lý không thể sót khoá nào. Nhưng nếu một ngày hai phép quét lệch nhau
+     thì hậu quả là một đoạn LẶNG LẼ biến mất khỏi thanh — sai số không ai thấy. Rơi vào đây là đã có
+     lỗi, chỉ là lỗi hiện ra dưới dạng một đoạn màu trung tính chứ không phải một con số hụt. */
+  for (const [raw, n] of counts) {
+    if (!palette.color.has(raw) && n > 0) segs.push({ label: nameOf(raw), n, c: "var(--cat-other)" });
+  }
+
+  /* Ghim cuối, KHÔNG tiêu slot CAT_CYCLE nào. Bốn nghĩa "không biết" vẫn ĐẾM RIÊNG (không gộp số),
+     nhưng VẼ thành MỘT khối — owner chốt 05/08 sau khi xem trên màn: bốn sắc xám cạnh nhau ở đuôi
+     thanh đọc gần như một màu. Bốn số nằm ở tooltip qua `parts`. Nhãn/màu lấy từ quantify.ts để
+     chart này và chart chia màu ở Quantify nói CÙNG một thứ tiếng (luật roll-out).
+
+     "Ẩn danh" trước đây luôn có mặt KỂ CẢ n=0 (để nói "có kiểm, bằng không"). Nay chỉ vào tooltip
+     khi trục có khái niệm join (`base:'cust'`), kể cả bằng 0 — ý định giữ nguyên, nhưng đặt ở chỗ
+     ĐỌC ĐƯỢC: một đoạn rộng 0px thì không rê chuột vào được, nên chỗ cũ chưa bao giờ nói được gì. */
+  const nocustParts: { label: string; n: number }[] = [
+    ...(unk > 0 ? [{ label: "chưa-biết", n: unk }] : []),
+    ...(missing > 0 ? [{ label: "thiếu", n: missing }] : []),
+    ...(dim.base === "cust" ? [{ label: "Ẩn danh", n: anon }] : []),
+    ...(unjoined > 0 ? [{ label: "Chưa đối chiếu được", n: unjoined }] : []),
+  ];
+  const nocustN = nocustParts.reduce((a, p) => a + p.n, 0);
+  if (nocustN > 0) segs.push({ label: NOCUST_LABEL, n: nocustN, c: NOCUST_COLOR, parts: nocustParts });
 
   const rem = theme.n - m;
   if (rem > 0) segs.push({ label: "Chưa có bằng chứng gán", n: rem, c: "var(--rem)" });

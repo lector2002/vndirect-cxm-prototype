@@ -79,22 +79,34 @@ describe("ThemeStackBlock", () => {
   });
 
   /* Owner chốt 03/08: "chart có chia nhỏ bar theo nhóm khách/sub-theme thì cần cho thêm phần legend
-     note các màu phân chia là nhóm nào". Legend ở đây phải THEO HÀNG: themeSegments() gán CAT_CYCLE[i]
-     theo thứ hạng TRONG một theme, mỗi theme lại có bộ n riêng cho từng giá trị, nên một dải chung sẽ
-     không đủ màu (5 màu CAT_CYCLE cho nhiều nhãn hơn qua nhiều theme). Hai test dưới khoá đúng điều đó
-     cho CẢ hai trục. */
-  it("trục 'Nền tảng' (mặc định) → thanh x-th-device có legend đúng 2 giá trị pf đếm được", () => {
+     note các màu phân chia là nhóm nào". CHỖ ĐẶT chú giải đổi 05/08 và hai test dưới khoá đúng chỗ đó
+     cho hai trục, vì hai trục có lý do khác nhau:
+     - Trục CHIỀU (Nền tảng, Độ tuổi…): MỘT chú giải cho cả chart. Màu nay gán theo bảng toàn cục
+       (axisPalette), một màu là một nhóm ở mọi thanh, nên chú giải theo hàng vừa thừa vừa che mất
+       điều quan trọng hơn: hai thanh so ngang được.
+     - Trục SUB-THEME: vẫn theo hàng, và đó vẫn là cách đúng duy nhất — sub-theme thuộc về đúng một
+       theme cha nên không tồn tại bảng màu chung nào để chú giải một lần. */
+  it("trục 'Nền tảng' (mặc định) → MỘT chú giải chung cho cả chart, không phải chú giải theo từng thanh", () => {
     render(<ThemeStackBlock data={seed} cfg={cfgDefault} dims={dims} />);
-    const legend = screen.getByTestId("bars-seglegend-x-th-device");
+    const legend = screen.getByTestId("chart-legend");
     // 7 dòng ev pf='android', 1 dòng pf='ios' — xem oracle đầu file.
     // S2c (04/08): nhãn pf hiện tên đẹp (PF_LABEL) — 'android'→'Android', 'ios'→'iOS'.
     expect(legend).toHaveTextContent("Android");
     expect(legend).toHaveTextContent("iOS");
+    // Không còn chú giải riêng dưới từng thanh ⇒ không thanh nào mang testid đó nữa.
+    expect(screen.queryByTestId("bars-seglegend-x-th-device")).not.toBeInTheDocument();
+    /* Cùng một màu phải là cùng một nền tảng ở MỌI thanh — đây là điều bản trước làm sai và là lý do
+       duy nhất để gom chú giải. Kiểm bằng mọi đoạn 'Android' trên toàn chart. */
+    const titles = [...screen.getByTestId("bars").querySelectorAll<HTMLElement>("[title^='Android: ']")];
+    expect(titles.length).toBeGreaterThan(1);
+    expect(new Set(titles.map((t) => t.style.background)).size).toBe(1);
   });
 
-  it("trục 'Sub-theme' → theme có subtheme thì có legend; theme không có subtheme (1 đoạn) thì không", () => {
+  it("trục 'Sub-theme' → theme có subtheme thì có legend theo hàng; theme không có subtheme (1 đoạn) thì không", () => {
     render(<ThemeStackBlock data={seed} cfg={cfgDefault} dims={dims} />);
     fireEvent.click(screen.getByRole("button", { name: "Sub-theme" }));
+    // Trục này KHÔNG có bảng màu chung ⇒ không được dựng chú giải chung nào.
+    expect(screen.queryByTestId("chart-legend")).not.toBeInTheDocument();
     const legend = screen.getByTestId("bars-seglegend-x-th-device");
     expect(legend).toHaveTextContent("Android tầm trung, ánh sáng yếu");
     expect(legend).toHaveTextContent("Giấy tờ bị chói hoặc mờ");

@@ -122,7 +122,12 @@ describe("QuantifyWidget — chia màu (split) dùng legend của thang màu ĐA
     expect(screen.queryByTestId("split-note")).not.toBeInTheDocument();
   });
 
-  it("split trỏ vào trục KHÔNG phải base:'cust' → hiện split-note nêu lý do, chart vẫn vẽ được", () => {
+  /* 05/08 — kỳ vọng ĐỔI CHỮ, có chủ ý. Test này trước canh câu *"phải là thuộc tính khách"*. Câu đó
+     mã hoá một chẩn đoán nay đã SAI: "Nền tảng" cũng không phải thuộc tính khách mà vẫn cắt được, và
+     còn chắc hơn (đọc thẳng trên dòng bằng chứng, không phải tra hồ sơ khách). Lý do thật của `theme`
+     là nó CHƯA ĐƯỢC KHAI làm chiều để cắt. Ý định gốc giữ nguyên: chọn sai chiều thì phải NÓI RA lý
+     do, không vẽ im lặng. */
+  it("split trỏ vào chiều CHƯA KHAI là chiều cắt → hiện split-note nêu lý do, chart vẫn vẽ được", () => {
     // Dựng tay: validate rule 16 chặn tổ hợp này nên nó KHÔNG có (và không được có) trong seed —
     // cùng lối đã dùng cho guard `unsupported` của CrossTable.
     const bad: QuantifyShow = {
@@ -136,7 +141,9 @@ describe("QuantifyWidget — chia màu (split) dùng legend của thang màu ĐA
     };
     render(<QuantifyWidget item={bad} data={seed} dims={dims} />);
     expect(screen.getByTestId("bars")).toBeInTheDocument();
-    expect(screen.getByTestId("split-note")).toHaveTextContent(/thuộc tính khách/);
+    expect(screen.getByTestId("split-note")).toHaveTextContent(/chưa khai là chiều để cắt/);
+    // Lý do phải nêu ĐÍCH DANH chiều bị từ chối — "chiều nào đó sai" thì người đọc không sửa được gì.
+    expect(screen.getByTestId("split-note")).toHaveTextContent(/theme/);
   });
 });
 

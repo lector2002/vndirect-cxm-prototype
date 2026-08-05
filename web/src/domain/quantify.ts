@@ -16,6 +16,7 @@ import { CUST_CAT } from "../data/rawFields.ts";
 /* Palette phân loại phía domain — dùng CHUNG với themeSegments.ts (đã export ở đó 03/08) thay vì
    khai bản sao thứ ba; xem ghi chú layer tại themeSegments.ts:10-14. */
 import { CAT_CYCLE } from "./themeSegments.ts";
+import { bandOrderKey, isOrdinal, SEQ_RAMP, sortByBand } from "./splitOrder.ts";
 
 /* Quantify ENGINE — port 1-1 từ prototype (output/cxm-platform-prototype.html): DIMS (~dòng 1425),
    qRun() (~dòng 1477), evTaxLv() (~dòng 1420), qRunCross() (~dòng 1931). Không side-effect, không
@@ -279,9 +280,17 @@ export function qRunSegment(
     };
   }
 
-  const rows = [...counts.entries()]
-    .map(([id, v]) => ({ id, l: id, v }))
-    .sort((a, b) => b.v - a.v);
+  /* Trục HÀNG là dải thì hàng cũng xếp theo dải, không theo số lượng — cùng lý do đã áp cho đoạn màu
+     (splitOrder.ts). Bỏ sót chỗ này thì cùng một chiều đọc ra hai thứ tự ở hai chart: q18 chia màu
+     theo NAV cho ra <50tr → >5tỷ, còn q19 lấy chính NAV làm trục hàng lại cho ra thứ tự theo số
+     lượng. `seed.qt` CÓ chart như vậy (`show:'nav'`), nên đây là đường đi tới được, không phải phòng
+     xa. MÀU hàng không đụng: hàng có NHÃN chữ ngay bên cạnh nên không mã hoá thứ tự bằng màu. */
+  const byCount = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
+  const rows = sortByBand(byCount, bandOrderKey(data, dims, item.show)).map((id) => ({
+    id,
+    l: id,
+    v: counts.get(id) as number,
+  }));
   return { kind: "draw", rows, known, unknown, missing };
 }
 
@@ -322,6 +331,18 @@ const SPLIT_UNKNOWN_ID = "__split_unknown__";
 const SPLIT_ANON_ID = "__split_anon__";
 const SPLIT_UNJOINED_ID = "__split_unjoined__";
 
+/* Owner chốt 05/08 sau khi xem trên màn: các giỏ trên ĐỨNG CẠNH NHAU ở đuôi thanh, ba sắc xám cách
+   nhau ~10% độ sáng nên đọc gần như một màu. Chốt: gộp phần NHÌN thành một khối, KHÔNG gộp SỐ — từng
+   số tách ra ở tooltip (`SplitSegment.parts`). Các giỏ vẫn đếm riêng như cũ, chỉ khác lúc dựng đoạn.
+   Nhãn KHÔNG phải "Chưa gắn được khách": với `chưa-biết`/`thiếu` thì khách VẪN tra ra được, chỉ là ô
+   dữ kiện trống — nhãn đó chỉ người đọc đi đòi nhầm thứ. "Chưa xếp được nhóm" đúng cho mọi lý do, và
+   đúng với điều khối này thật sự nói: dòng bằng chứng này không đặt được vào nhóm nào của chiều đang
+   chia. Dùng CHUNG nhãn + token với chart theme (themeSegments.ts) theo luật roll-out: một quyết định
+   thiết kế áp cho MỌI chart, không riêng chart owner đang nhìn lúc đó. */
+const SPLIT_NOCUST_ID = "__split_nocust__";
+export const NOCUST_LABEL = "Chưa xếp được nhóm";
+export const NOCUST_COLOR = "var(--unk-nocust)";
+
 /* Lý do khoá của trục TỔNG HỢP, cắt làm hai mảnh và GHÉP LẠI thành `reason` — một nguồn chữ, hai độ
    dài, nên không có bản sao nào trôi lệch:
    - `AGG_SPLIT_NOTE` là câu hiện thành CHỮ dưới chart. Đo trên màn 05/08: trang Quantify có 7 chart
@@ -354,8 +375,21 @@ function evSplit(
       reason: `Trục "${item.show}" khai base:'ev' nhưng chưa khai cách suy hàng từ một dòng bằng chứng (EV_ROW_KEY), nên không có tập dòng nào để chia.`,
     };
   }
-  const splitGetter = custFieldPresent(dims, item.split ?? "", data);
-  if (!splitGetter) {
+  /* HAI kiểu chiều chia màu, khác nhau ở CHỖ ĐỌC — và vì thế khác nhau ở chỗ có sinh phần "không xếp
+     được nhóm" hay không:
+     - `base:'ev'` (Nền tảng): giá trị nằm SẴN trên chính dòng bằng chứng. Không tra hồ sơ khách nên
+       không có ẩn danh, không có nối hỏng, không có sentinel — mọi dòng đều xếp được nhóm. Đây là
+       phép đếm CHẮC HƠN nhánh dưới, không phải kém hơn.
+     - `base:'cust'`: phải tra sang `Customer` qua `ck`, nên mới sinh ba giỏ "không xếp được nhóm". */
+  const evKey = splitDim.base === "ev" ? EV_ROW_KEY[item.split ?? ""] : undefined;
+  const splitGetter = splitDim.base === "cust" ? custFieldPresent(dims, item.split ?? "", data) : undefined;
+  if (splitDim.base === "ev" && !evKey) {
+    return {
+      kind: "refuse",
+      reason: `Chiều chia màu "${item.split}" khai base:'ev' nhưng chưa khai cách đọc từ một dòng bằng chứng (EV_ROW_KEY), nên không đếm được.`,
+    };
+  }
+  if (splitDim.base === "cust" && !splitGetter) {
     return {
       kind: "refuse",
       reason: `Chiều chia màu "${item.split}" khai base:'cust' nhưng chưa đọc được nhãn nhóm (thiếu khai báo cách chia, hoặc snapshot chưa chiếu nhóm).`,
@@ -366,14 +400,15 @@ function evSplit(
   }
 
   const custByKey = new Map(data.cust.map((c) => [c.key, c] as const));
-  /* Giỏ của MỘT dòng bằng chứng. Thứ tự kiểm là thứ tự nghĩa, không đảo được: ẩn danh là chuyện của
-     dòng bằng chứng (không có id để mà tra), nối hỏng là chuyện của phép tra, sentinel là chuyện của
-     ô dữ kiện trên dòng khách đã tra ra. */
+  /* Giỏ của MỘT dòng bằng chứng. Với nhánh cust, thứ tự kiểm là thứ tự NGHĨA, không đảo được: ẩn danh
+     là chuyện của dòng bằng chứng (không có id để mà tra), nối hỏng là chuyện của phép tra, sentinel
+     là chuyện của ô dữ kiện trên dòng khách đã tra ra. */
   const rawBucketOf = (e: Evidence): string => {
+    if (evKey) return evKey(e);
     if (e.ck === ANON_CK) return SPLIT_ANON_ID;
     const cust = custByKey.get(e.ck);
     if (!cust) return SPLIT_UNJOINED_ID;
-    const v = splitGetter(cust);
+    const v = splitGetter!(cust);
     return isSegUnknown(v) ? SPLIT_UNKNOWN_ID : v;
   };
 
@@ -393,19 +428,28 @@ function evSplit(
   }
 
   const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
-  const top = ranked.slice(0, SPLIT_TOP_N);
+  /* Cắt theo SỐ LƯỢNG rồi mới xếp lại theo DẢI — xem sortByBand (splitOrder.ts) cho lý do không đảo
+     hai bước này. Chiều rời rạc (Nền tảng ở nhánh này) trả về nguyên vẹn thứ tự theo số lượng. */
+  const top = sortByBand(ranked.slice(0, SPLIT_TOP_N), bandOrderKey(data, dims, item.split ?? ""));
   const topSet = new Set(top);
   const collapsed = ranked.length - top.length;
+  const cycle = isOrdinal(splitDim) ? SEQ_RAMP : CAT_CYCLE;
+
+  /* Nhãn đoạn = TÊN ĐẸP của giá trị, không phải khoá thô. Chỉ `pf` có bảng tên đẹp (PF_LABEL) — cùng
+     bảng mà hàng của chart pf đang dùng (pfRows), nên legend đọc "Android" chứ không phải "android",
+     và hai chỗ không lệch chữ. Chiều khác giữ nguyên khoá làm nhãn như trước. */
+  const labelOf = (id: string): string => (evKey ? PF_LABEL[id] ?? id : id);
 
   const order: { id: string; label: string; c: string }[] = [
-    ...top.map((id, i) => ({ id, label: id, c: CAT_CYCLE[i % CAT_CYCLE.length] })),
+    ...top.map((id, i) => ({ id, label: labelOf(id), c: cycle[i % cycle.length] })),
     ...(collapsed > 0
       ? [{ id: SPLIT_OTHER_ID, label: `Khác (${collapsed} ${splitDim.unit})`, c: "var(--ink3)" }]
       : []),
-    ...(unkTotal > 0 ? [{ id: SPLIT_UNKNOWN_ID, label: "Không xác định", c: "var(--unk)" }] : []),
-    ...(anonTotal > 0 ? [{ id: SPLIT_ANON_ID, label: "Ẩn danh", c: "var(--unk-anon)" }] : []),
-    ...(unjoinedTotal > 0
-      ? [{ id: SPLIT_UNJOINED_ID, label: "Chưa đối chiếu được", c: "var(--unk-join)" }]
+    /* MỘT khối cho cả ba giỏ (owner chốt 05/08 — xem NOCUST_LABEL). Chỉ hiện khi có ít nhất một
+       dòng: đoạn n=0 rộng 0px không rê chuột được, nên tooltip mang số cũng không ai đọc tới.
+       Nhánh `base:'ev'` không bao giờ vào đây — ba tổng đó luôn 0, xem rawBucketOf(). */
+    ...(unkTotal + anonTotal + unjoinedTotal > 0
+      ? [{ id: SPLIT_NOCUST_ID, label: NOCUST_LABEL, c: NOCUST_COLOR }]
       : []),
   ];
 
@@ -427,18 +471,46 @@ function evSplit(
     m.set(b, (m.get(b) ?? 0) + 1);
   }
 
+  /* Thứ tự các dòng trong tooltip khối gộp — cố định, đi từ "có khách, thiếu dữ kiện" tới "lỗi đối
+     chiếu", tức từ nhẹ tới nặng. Cùng thứ tự với chart theme để hai màn đọc như nhau. */
+  const NOCUST_PARTS: { id: string; label: string }[] = [
+    { id: SPLIT_UNKNOWN_ID, label: "Không xác định" },
+    { id: SPLIT_ANON_ID, label: "Ẩn danh" },
+    { id: SPLIT_UNJOINED_ID, label: "Chưa đối chiếu được" },
+  ];
+
   const byRow: Record<string, SplitSegment[]> = {};
   for (const [rid, m] of counts) {
-    // Bỏ đoạn n=0 — cùng lý do nhánh cust: width 0 không hover được, tooltip "X: 0" không nói gì.
-    byRow[rid] = order
-      .filter((o) => (m.get(o.id) ?? 0) > 0)
-      .map((o) => ({ id: o.id, label: o.label, n: m.get(o.id) ?? 0, c: o.c }));
+    const segs: SplitSegment[] = [];
+    for (const o of order) {
+      if (o.id === SPLIT_NOCUST_ID) {
+        const parts = NOCUST_PARTS.filter((p) => (m.get(p.id) ?? 0) > 0).map((p) => ({
+          label: p.label,
+          n: m.get(p.id) ?? 0,
+        }));
+        const n = parts.reduce((a, p) => a + p.n, 0);
+        if (n > 0) segs.push({ id: o.id, label: o.label, n, c: o.c, parts });
+        continue;
+      }
+      // Bỏ đoạn n=0 — cùng lý do nhánh cust: width 0 không hover được, tooltip "X: 0" không nói gì.
+      const n = m.get(o.id) ?? 0;
+      if (n > 0) segs.push({ id: o.id, label: o.label, n, c: o.c });
+    }
+    byRow[rid] = segs;
   }
 
   return { kind: "draw", byRow, legend: order.map((o) => ({ label: o.label, color: o.c })) };
 }
 
-export type SplitSegment = { id: string; label: string; n: number; c: string };
+export type SplitSegment = {
+  id: string;
+  label: string;
+  n: number;
+  c: string;
+  /** Chỉ khối GỘP mới có. `n` = Σ parts (bất biến, đừng để hai số rời nhau). Tầng vẽ (Bars) dựng
+   *  tooltip nhiều dòng từ đây — xem NOCUST_LABEL cho lý do gộp. */
+  parts?: { label: string; n: number }[];
+};
 
 export type SplitChart =
   /** `item.split` vắng — chart không có breakdown. Không phải lỗi. */
@@ -474,16 +546,20 @@ export function qRunSplit(
       reason: `Chia màu theo đúng chiều đang xếp hàng ("${item.show}") thì mỗi thanh chỉ có một đoạn — không thêm thông tin nào.`,
     };
   }
-  /* Suy từ `base`, KHÔNG hardcode danh sách id — cùng lý do đã nêu ở qRunSegment/custAxisUnsupported. */
-  if (splitDim.base !== "cust") {
+  /* Đọc CỜ KHAI (`Dim.slice`), không suy từ `base` nữa — sửa 05/08 sau khi owner hỏi "sao chỉ có 4/5
+     chiều". Bản trước lọc `base==='cust'`, tức tự đặt luật "cắt được ⇔ là thuộc tính khách". Luật đó
+     SAI: "Nền tảng" (`base:'ev'`) cắt được, và còn chắc hơn — nó nằm sẵn trên dòng bằng chứng, không
+     phải tra sang hồ sơ khách. Suy từ `base` cũng không cứu được vì `base:'ev'` còn có `cat`/`sen`,
+     hai chiều ĐỀ TÀI chứ không phải cách cắt. Nên "cắt được theo chiều nào" phải khai ra. */
+  if (!splitDim.slice) {
     return {
       kind: "refuse",
-      reason: `Chia màu phải theo một thuộc tính khách (base:'cust') — "${item.split}" không phải, nên không có đường tính nào mà không phải bịa tỷ lệ.`,
+      reason: `Chiều "${item.split}" chưa khai là chiều để cắt chart (Dim.slice) — chưa có đường tính nào cho nó mà không phải bịa tỷ lệ.`,
     };
   }
-  /* Trục BẰNG CHỨNG: mở được vì mỗi dòng `Evidence` mang sẵn khoá khách `ck` (trường BẮT BUỘC,
-     validate quy tắc 21 canh định dạng), nên nối sang `Customer` là phép đếm THẬT chứ không phải
-     phân bổ tỷ lệ. Xem evSplit(). */
+  /* Trục BẰNG CHỨNG: mở cho CẢ HAI kiểu chiều chia màu. Với chiều khách, mỗi dòng `Evidence` mang sẵn
+     khoá khách `ck` (trường BẮT BUỘC, validate quy tắc 21 canh định dạng) nên nối sang `Customer` là
+     đếm THẬT; với chiều bằng chứng thì đọc thẳng khỏi tra. Xem evSplit(). */
   if (rowDim?.base === "ev") return evSplit(item, data, dims, splitDim);
   if (rowDim?.base === "agg") {
     /* KHÔNG mở, và lý do KHÁC HẲN trục ev — không phải "thiếu khoá khách" mà là "số trên thanh không
@@ -500,6 +576,17 @@ export function qRunSplit(
     return {
       kind: "refuse",
       reason: `Trục "${item.show}" không có đường đếm nào ghép được với thuộc tính khách.`,
+    };
+  }
+  /* Trục hàng là KHÁCH (mỗi thanh đếm người), chiều chia màu lại là thuộc tính của BẰNG CHỨNG — không
+     có phép tính nào. Một khách không thuộc một nền tảng: họ mở app trên điện thoại hôm nay, vào web
+     hôm sau. Muốn tô một thanh "62 khách" theo nền tảng thì phải chọn hộ họ một nền tảng, tức bịa.
+     Chiều ngược lại (trục bằng chứng × chiều khách) thì có thật, vì mỗi DÒNG bằng chứng chỉ xảy ra
+     trên đúng một nền tảng và thuộc đúng một khách. */
+  if (splitDim.base !== "cust") {
+    return {
+      kind: "refuse",
+      reason: `Mỗi thanh của trục "${item.show}" đếm KHÁCH, mà "${splitDim.label}" là thuộc tính của từng lần khách để lại dấu vết, không phải của con người đó — một khách dùng nhiều nền tảng ở nhiều thời điểm. Muốn chia màu theo chiều này thì xem chart có trục là bằng chứng (Category, Sentiment).`,
     };
   }
   const rowGetter = custFieldPresent(dims, item.show, data);
@@ -544,12 +631,15 @@ export function qRunSplit(
   }
 
   const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id);
-  const top = ranked.slice(0, SPLIT_TOP_N);
+  /* Như evSplit: cắt theo số lượng, xếp theo dải. Nhánh này là chỗ hai chiều DẢI (Độ tuổi, Phân khúc
+     NAV) hay được dùng nhất, nên cũng là chỗ thứ tự sai đọc ra khó chịu nhất. */
+  const top = sortByBand(ranked.slice(0, SPLIT_TOP_N), bandOrderKey(data, dims, item.split));
   const topSet = new Set(top);
   const collapsed = ranked.length - top.length;
+  const cycle = isOrdinal(splitDim) ? SEQ_RAMP : CAT_CYCLE;
 
   const order: { id: string; label: string; c: string }[] = [
-    ...top.map((id, i) => ({ id, label: id, c: CAT_CYCLE[i % CAT_CYCLE.length] })),
+    ...top.map((id, i) => ({ id, label: id, c: cycle[i % cycle.length] })),
     /* Nhãn "Khác" NÓI RÕ đang gộp bao nhiêu giá trị — "Khác" trần không cho biết nó che 2 nhóm hay 40. */
     ...(collapsed > 0
       ? [{ id: SPLIT_OTHER_ID, label: `Khác (${collapsed} ${splitDim.unit})`, c: "var(--ink3)" }]

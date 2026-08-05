@@ -1016,17 +1016,23 @@ export const dims: Record<string, Dim> = {
   src: { label: "Nguồn", unit: "nguồn", base: "agg" },
   cat: { label: "Category · intent", unit: "category", base: "ev", evAttr: true },
   sen: { label: "User Sentiment", unit: "sentiment", base: "ev", evAttr: true },
-  pf: { label: "Nền tảng", unit: "nền tảng", base: "ev", evAttr: true },
+  /* `slice: true` — chiều thứ NĂM để cắt chart (owner chốt 05/08). Khác bốn chiều khách ở CHỖ ĐỌC:
+     nền tảng nằm sẵn trên chính dòng bằng chứng (`e.pf`), không phải tra sang hồ sơ khách qua `ck`.
+     Nên cắt theo nó còn CHẮC hơn cắt theo chiều khách — không dính phần ẩn danh lẫn phần nối hỏng.
+     Đổi lại: chart nào có trục hàng là KHÁCH thì cắt theo nền tảng vô nghĩa (một khách không thuộc
+     một nền tảng) — `qRunSplit` khoá đúng ca đó kèm lý do, không im lặng giấu chip đi. */
+  pf: { label: "Nền tảng", unit: "nền tảng", base: "ev", evAttr: true, slice: true },
   /* `seg` (Segment khách) và `tenure` (Thâm niên giao dịch) đã RÚT khỏi danh sách chiều (S2, owner
      chốt 04/08, thiết kế output/thiet-ke-chart-signal.html §4: đúng 4 chiều khách + sigpf). Đo được
      trước khi rút: không chart nào dùng hai chiều này để cắt. RÚT CHIỀU, KHÔNG đụng dữ kiện khách —
      `Customer.seg`/`Customer.tenureMonths`, `CUST_CAT.seg`/`CUST_NUM.tenureMonths` và các entry
      `RAW_LABEL` tương ứng (data/rawFields.ts) vẫn giữ nguyên; hệ thống vẫn biết segment/thâm niên
      từng khách, chỉ không còn cắt chart theo chúng. */
-  tier: { label: "Value tier", unit: "tier", base: "cust", cut: { kind: "values", source: "tier" } },
-  age: { label: "Độ tuổi", unit: "nhóm tuổi", base: "cust", cut: { kind: "band", source: "ageYears" } },
-  nav: { label: "Phân khúc NAV", unit: "phân khúc", base: "cust", cut: { kind: "band", source: "navVnd" } },
-  acq: { label: "Kênh mở TK", unit: "kênh", base: "cust", cut: { kind: "values", source: "acq" } },
+  /* Bốn chiều khách — `slice: true` cùng với `pf` ở trên tạo đúng NĂM cách cắt owner đã chốt. */
+  tier: { label: "Value tier", unit: "tier", base: "cust", slice: true, cut: { kind: "values", source: "tier" } },
+  age: { label: "Độ tuổi", unit: "nhóm tuổi", base: "cust", slice: true, cut: { kind: "band", source: "ageYears" } },
+  nav: { label: "Phân khúc NAV", unit: "phân khúc", base: "cust", slice: true, cut: { kind: "band", source: "navVnd" } },
+  acq: { label: "Kênh mở TK", unit: "kênh", base: "cust", slice: true, cut: { kind: "values", source: "acq" } },
   /* Chiều thứ năm của chart điểm đo (thiết kế §4) — thuộc tính CỦA CHÍNH LẦN BẮN (nền tảng nó xảy
      ra), không phải của khách: `base:'fire'`, KHÔNG dùng lại `base:'ev'` như `pf` ở trên. `source`
      vẫn trỏ "pf" trong `cut` để tự tài liệu hoá "đọc field pf" nhưng phép cộng (projectSignalCounts)

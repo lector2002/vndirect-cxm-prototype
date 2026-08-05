@@ -51,9 +51,12 @@ describe("QuantifyWidget — toggle chiều chia màu: luật disable của owne
       "title",
       'Chia màu theo đúng chiều đang xếp hàng ("nav") thì mỗi thanh chỉ có một đoạn — không thêm thông tin nào.',
     );
-    /* Owner chốt DISABLE chứ không ẩn: ẩn thì strip đổi bề rộng theo từng chart. Bốn chiều khách (sau
-       khi S2 rút seg/tenure khỏi dims) + chip "Không chia" = 5 chip, kể cả chip bị khoá. */
-    expect(screen.getByRole("group", { name: "Chiều chia màu trong thanh" }).children).toHaveLength(5);
+    /* Owner chốt DISABLE chứ không ẩn: ẩn thì strip đổi bề rộng theo từng chart.
+       05/08 — 5 chip thành 6: thanh giờ lọc theo cờ khai `Dim.slice` chứ không theo `base==='cust'`,
+       nên "Nền tảng" (base:'ev', thuộc tính của dòng bằng chứng) vào đủ. Năm cách cắt owner đã chốt
+       + chip "Không chia" = 6, kể cả chip bị khoá. Chính con số này là thứ owner đếm trên màn khi hỏi
+       "sao chỉ hiển thị có 4 slice/5" — nên GHIM nó, đừng nới thành `toBeGreaterThan`. */
+    expect(screen.getByRole("group", { name: "Chiều chia màu trong thanh" }).children).toHaveLength(6);
     /* KHÔNG dùng attribute `disabled` thật: nút disabled rơi khỏi tab order và screen reader bỏ qua,
        nên tooltip mang lý do thành không tới được đúng với người cần nó nhất. */
     expect(navChip).not.toBeDisabled();
@@ -94,12 +97,15 @@ describe("QuantifyWidget — toggle chiều chia màu: lựa chọn tới đư�
 
     expect(chip("Độ tuổi")).toHaveAttribute("aria-pressed", "true");
     expect(chip("Phân khúc NAV")).toHaveAttribute("aria-pressed", "false");
-    // Số MỚI, đếm thật trên cùng 62 khách đó: 19+6+14+9+14 = 62. Đây là chỗ bug "nhãn mới, số cũ" lộ ra.
+    /* Số MỚI, đếm thật trên cùng 62 khách đó: 14+19+9+6+14 = 62. Đây là chỗ bug "nhãn mới, số cũ" lộ ra.
+       THỨ TỰ đổi (05/08), số KHÔNG đổi: trước đây các đoạn xếp theo số lượng (25-34 · 50+ · 18-24 ·
+       35-49), nay xếp theo DẢI vì "Độ tuổi" khai `cut.kind:'band'` — dải có thứ tự thật thì thứ tự đọc
+       phải là thứ tự dải, xem domain/splitOrder.ts. Giữ nguyên phép khẳng định trên cả 5 con số. */
     expect(rowSegTitles(0)).toEqual([
-      "25-34: 19",
-      "50+: 6",
       "18-24: 14",
+      "25-34: 19",
       "35-49: 9",
+      "50+: 6",
       "Không xác định: 14",
     ]);
     // Legend phải giải mã thang màu ĐANG vẽ — bậc NAV không được còn sót lại.
@@ -164,6 +170,37 @@ describe("QuantifyWidget — toggle chiều chia màu: nơi không vẽ được
     expect(note).not.toHaveTextContent(/khoá khách/);
   });
 
+  /* Chiều cắt thứ NĂM (owner hỏi 05/08: "chỉ hiển thị có 4 slice/5, thiếu mất Nền tảng"). Khác bốn
+     chiều kia ở chỗ đọc — nền tảng nằm sẵn trên dòng bằng chứng, không tra hồ sơ khách — nên nó cắt
+     được ở chart trục bằng chứng và KHÔNG cắt được ở chart trục khách. Hai test dưới ghim cả hai vế:
+     mở đúng chỗ mở được, khoá đúng chỗ không, và khoá thì phải nói ra vì sao. */
+  it("q3 (Category, trục bằng chứng) chia màu theo Nền tảng → đếm thật, nhãn là tên đẹp", () => {
+    render(<QuantifyWidget item={findItem("q3")} data={demoData} dims={dims} />);
+    const pfChip = chip("Nền tảng");
+    expect(pfChip).not.toHaveAttribute("aria-disabled");
+
+    fireEvent.click(pfChip);
+    expect(pfChip).toHaveAttribute("aria-pressed", "true");
+
+    /* Nhãn phải là "Android" chứ không phải khoá thô "android" — cùng bảng tên đẹp mà hàng của chart
+       Nền tảng đang dùng, nếu không thì hai chỗ trong cùng một màn viết khác nhau. */
+    const titles = rowSegTitles(0);
+    expect(titles.some((t) => t.startsWith("Android: "))).toBe(true);
+    expect(titles.some((t) => t.startsWith("android: "))).toBe(false);
+    /* KHÔNG có khối "Chưa xếp được nhóm": chiều này đọc thẳng trên dòng bằng chứng nên không có ẩn
+       danh, không có nối hỏng, không có sentinel — mọi dòng đều xếp được. Đây là điểm khác biệt thật
+       so với chia theo chiều khách, không phải chi tiết vặt. */
+    expect(titles.some((t) => t.startsWith("Chưa xếp được nhóm"))).toBe(false);
+  });
+
+  it("q18 (trục KHÁCH) chia màu theo Nền tảng → khoá, lý do nói đúng vì sao chứ không nói chung chung", () => {
+    render(<QuantifyWidget item={findItem("q18")} data={demoData} dims={dims} />);
+    const pfChip = chip("Nền tảng");
+    expect(pfChip).toHaveAttribute("aria-disabled", "true");
+    // Lý do phải nói ra điều THẬT: một khách không thuộc một nền tảng.
+    expect(pfChip.getAttribute("title")).toMatch(/một khách dùng nhiều nền tảng/);
+  });
+
   /* Trục BẰNG CHỨNG: chart mới mở 05/08. Khác trục tổng hợp ở chỗ nó chia màu ĐƯỢC — mỗi thanh đếm
      dòng bằng chứng, mà mỗi dòng mang sẵn khoá khách. Khẳng định ở đây là mức màn: bấm một chiều thì
      thanh THẬT SỰ có nhiều đoạn. Phép kiểm số nằm ở domain (quantify.test.ts: Σ đoạn = v). */
@@ -175,5 +212,23 @@ describe("QuantifyWidget — toggle chiều chia màu: nơi không vẽ được
     fireEvent.click(navChip);
     expect(navChip).toHaveAttribute("aria-pressed", "true");
     expect(rowSegTitles(0).length).toBeGreaterThan(1);
+  });
+
+  /* Bằng chứng thật cho test này: owner nhìn màn rồi HỎI "tại sao chart khách theo phân khúc NAV
+     không bấm được vào chia theo nền tảng?" — lý do đã có sẵn, đúng chữ, trên `title` của chính chip
+     đó, mà vẫn phải hỏi. Tooltip chỉ tới được người đã đoán ra là nên rê chuột; ai BẤM (phản xạ tự
+     nhiên khi nút không phản hồi), ai dùng bàn phím, ai dùng cảm ứng thì không bao giờ thấy. */
+  it("bấm chip đang khoá → lý do hiện thành CHỮ dưới chart, không chỉ nằm trong tooltip", () => {
+    render(<QuantifyWidget item={findItem("q18")} data={demoData} dims={dims} />);
+    expect(screen.queryByTestId("split-note")).not.toBeInTheDocument();
+
+    fireEvent.click(chip("Nền tảng"));
+    expect(screen.getByTestId("split-note")).toHaveTextContent(/một khách dùng nhiều nền tảng/);
+    // Bấm chip khoá KHÔNG được đổi chiều chia màu — nó chỉ trả lời.
+    expect(chip("Nền tảng")).toHaveAttribute("aria-pressed", "false");
+
+    // Đổi sang một chiều bấm được ⇒ câu hỏi đã hết, câu trả lời cũ phải biến mất cùng nó.
+    fireEvent.click(chip("Độ tuổi"));
+    expect(screen.queryByTestId("split-note")).not.toBeInTheDocument();
   });
 });
