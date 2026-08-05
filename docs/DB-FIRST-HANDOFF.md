@@ -5,9 +5,9 @@ _Cập nhật: 2026-08-05 (đợt 3 — pilot mở rộng). Đọc file này + `
 ## Trạng thái
 
 - `main` = **`c6767d6`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`) · tài liệu S3 (`725d24d`+`c6767d6`).
-- **Working tree KHÔNG sạch.** Pilot mở rộng (đợt 3, 05/08) + ba vòng sửa layout + đổi điểm đo liveness + mở chia màu Quantify đã làm xong và tự kiểm nhưng **chưa commit** — 15 file code/test sửa, file này sửa, 1 file tài liệu mới (`output/yeu-cau-du-lieu-pilot-mo-rong.html`, chưa track). Owner chưa yêu cầu commit.
-- `npx tsc -b` sạch. **828/828 test xanh (79 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → **828/79 (pilot mở rộng)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
-- **Cả stream đã xong về code.** Còn lại là việc của owner + việc chờ dữ liệu thật: xem "Còn hở" và "Việc còn lại của stream".
+- **Working tree KHÔNG sạch.** Pilot mở rộng (đợt 3, 05/08) + ba vòng sửa layout + đổi điểm đo liveness + mở chia màu Quantify + **bản đồ hành trình bù cho bằng prototype & khoá phase ngoài pilot** + **hồ sơ bước lên đủ ba tab** + **bộ máy tour** đã làm xong và tự kiểm nhưng **chưa commit**. Owner chưa yêu cầu commit.
+- `npx tsc -b` sạch. **883/883 test xanh (82 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → **883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
+- **Cả stream đã xong về code, kể cả việc treo cuối cùng (bộ máy tour).** Còn lại là việc của owner + việc chờ dữ liệu thật: xem "Còn hở" và "Việc còn lại của stream".
 - Tài liệu thiết kế owner đã duyệt: **`output/thiet-ke-chart-signal.html`** (6 vòng) + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** (bổ sung đợt 2, owner chốt 04/08/2026) — cả hai là nguồn sự thật cho stream này, đọc trước khi code. `output/thiet-ke-chieu-phan-tich.html` và `output/thiet-ke-db-first.html` là của stream trước, còn giá trị lịch sử.
 
 ## Stream này làm gì
@@ -290,13 +290,169 @@ q5–q8, q15 là chart theo thời gian, chia màu không cùng dạng câu hỏ
 
 **Đã xem trên màn, không chỉ qua test** (jsdom không có layout): ở bề rộng 1600px, cả 12 thanh chia màu **cao 35px = một hàng, không chip nào xuống dòng**; q3/q12/q13 chia được thành nhiều đoạn kèm đủ ba nhãn `Không xác định` / `Ẩn danh` / `Chưa đối chiếu được`; q14 (donut trên trục nguồn) hiện **lý do trục** chứ không phải "dùng chart thanh" — đúng thứ tự đã chốt, vì trên trục tổng hợp thì đổi mark cũng là đường cụt.
 
+### Đuôi xám: gộp NHÌN, không gộp SỐ (owner chốt 05/08, áp cho mọi chart)
+
+Owner xem trên màn rồi nói: *"cần chỉnh sửa lại tone màu của 3 cái unknown đó, nếu có thể thì gộp lại để dễ nhìn hơn"*. Đo được: `--unk` `#8c8681` → `--unk-anon` `#a9a39c` → `--unk-join` `#c5bfb7`, ba bậc cách nhau ~10% độ sáng, ở đoạn thanh mỏng đọc gần như một màu.
+
+**Gộp SỐ thì không** — `Ẩn danh` (133 dòng, đúng thiết kế) và `Chưa đối chiếu được` (7 dòng, lỗi dữ liệu) là hai thứ khác nhau, gộp là mất đúng con số dùng để đi sửa pipeline. **Gộp NHÌN thì được**: một khối xám `--unk-nocust`, từng số tách ra ở tooltip qua `Bars.segments[].parts` (tooltip nhiều dòng).
+
+**Nhãn: "Chưa xếp được nhóm".** Nhãn tôi đưa trong preview lúc hỏi (*"Chưa gắn được khách"*) **sai** với hai trong bốn lý do — với `chưa-biết`/`thiếu` thì khách VẪN tra ra được, chỉ là ô dữ kiện trống. Owner chốt đổi sang nhãn đúng cho cả bốn.
+
+| Chart | Trước | Sau | Trạng thái |
+|---|---|---|---|
+| Chia màu ở Quantify (`evSplit`, q3/q12/q13) | 3 đoạn xám | 1 khối + 3 số ở tooltip | **Đã xem trên màn** — legend 7 → 6 nhãn |
+| Theme (`themeSegments`, khối `@themestack`) | 4 đoạn xám | 1 khối + 4 số ở tooltip | **Engine xong + test canh, CHƯA nhìn thấy được trên màn** — xem cảnh báo dưới |
+| Chart điểm đo (`SignalColumns`) | 3 cột tách | **giữ nguyên** | Owner chốt riêng: ở đó tách ba nghĩa CHÍNH LÀ nội dung chart, nó là danh sách việc đi đòi bên data |
+
+**Cảnh báo về chart theme:** picker của `ThemeStackBlock` hôm nay **chỉ có 2 trục** (`subtheme` + `pf`), cả hai đều không sinh đoạn "không xếp được nhóm" — `pf` là `base:'ev'`, đọc thẳng từ Evidence, không cần join. Nên phần gộp ở đó **đúng và có test, nhưng chưa có đường nào bấm tới trên màn**. Khi F3 mở chip strip đầy đủ (mọi trục của `dims`), khối gộp mới hiện ra — **lúc đó phải xem lại bằng mắt**, đừng coi là đã duyệt.
+
+**Một bất biến đổi chỗ, có chủ ý:** đoạn `Ẩn danh` trước đây luôn có mặt **kể cả n=0** (để nói "có kiểm, bằng không"). Nay nó là một **dòng trong tooltip**, vẫn hiện khi bằng 0. Ý định giữ nguyên, chỗ đặt tốt hơn: đoạn rộng 0px không rê chuột vào được, nên chỗ cũ chưa bao giờ nói được số 0 ấy cho ai đọc.
+
+**Owner đã cân nhắc và chấp nhận:** 7 dòng lỗi đối chiếu **không còn nhìn thấy trên màn**, phải rê chuột mới biết. Đây là chủ ý, không phải sót.
+
+### Năm cách cắt, khai bằng `Dim.slice` — hết chuyện mỗi màn tự đoán (owner hỏi 05/08)
+
+Owner đếm trên màn: *"chỉ hiển thị có 4 slice/5, thiếu mất nền tảng"*, và *"phần khách đang nói gì không chia được theo 5 slice đã nói"*. Hai chỗ, hai nguyên nhân:
+
+| Chỗ | Nguyên nhân | Sửa |
+|---|---|---|
+| Thanh chip ở Quantify chỉ 4 chiều | lọc `d.base === "cust"` — tự đặt luật *"cắt được ⇔ là thuộc tính khách"*. Luật đó SAI: "Nền tảng" là `base:'ev'` nhưng cắt được, và **chắc hơn** (đọc thẳng `e.pf` trên dòng bằng chứng, không tra hồ sơ khách nên không dính ẩn danh / nối hỏng) | lọc theo cờ khai `Dim.slice` |
+| Chart theme chỉ 2 trục | picker là mảng **viết tay** 2 nút, trong khi `themeAxisOptions()` đã tính sẵn cả danh sách lẫn lý do khoá từ lâu — chưa ai nối lên | sinh từ `themeAxisOptions(dims)`, lọc cùng cờ `slice` |
+
+**Vì sao phải khai cờ, không suy từ `base`:** `base` nói CHỖ ĐỌC dữ liệu, không nói VAI TRÒ. `base:'ev'` gồm cả `cat`/`sen` — hai chiều đó là **đề tài** của chart (trục hàng), không phải cách cắt; lọc theo `base:'ev'` sẽ ra 7 chip chứ không phải 5. "Cắt được theo chiều nào" là quyết định thiết kế, phải khai ra. `Dim.slice` khai ở `data/schema/config.ts`, bật trên đúng năm chiều trong `seed.ts`.
+
+**Ba lý do từ chối, mỗi lý do nói đúng việc của nó** (không còn một câu chung *"phải là thuộc tính khách"*):
+- chiều chưa khai `slice` → *"chưa khai là chiều để cắt chart"*
+- trục hàng là **khách** × chiều chia là **bằng chứng** → *"mỗi thanh đếm KHÁCH, mà Nền tảng là thuộc tính của từng lần để lại dấu vết — một khách dùng nhiều nền tảng ở nhiều thời điểm"*
+- trục hàng `agg` → lý do tổng hợp sẵn, như cũ
+
+**Hệ quả có ích:** khối gộp "Chưa xếp được nhóm" ở chart theme **giờ mới bấm tới được** — trước đó picker không có trục khách nào nên phần gộp đúng mà không ai nhìn thấy. Đã xem: chọn "Độ tuổi" ra tooltip `Chưa xếp được nhóm: 88 / chưa-biết: 68 / Ẩn danh: 19 / Chưa đối chiếu được: 1`, còn `Chưa có bằng chứng gán: 116` vẫn tách riêng (khác nghĩa hẳn).
+
+**Một hồi quy layout đã bắt và sửa:** thêm chip thứ năm làm **cả 12 thanh xuống hai hàng** (35px → 61px). Đo ra: thanh rộng 595px, nhãn *"Chia màu theo"* chiếm 84px, sáu chip cần ~515px — thiếu đúng ~12px. Rút nhãn thành *"Chia màu"* trả lại ~29px. Không bóp padding chip vì đó là hình dáng dùng chung với `ThemeStackBlock`/`TimeframeBar`.
+
+**Giới hạn còn lại, nói thẳng:** thanh cần **570px** mới nằm một hàng. Ở cửa sổ 1615px, cột rộng 601px ⇒ dư 31px, một hàng. Dưới khoảng **1555px** thì cột hẹp hơn 570 và thanh **xuống hai hàng** — kể cả ở mức 1280px mà app tuyên bố là tối thiểu. Không hỏng, chỉ cao thêm 26px. Muốn vừa ở 1280 phải cắt thêm ~120px, tức bỏ hẳn nhãn và rút tên chip — chưa làm, chờ owner quyết nếu thấy vướng.
+
 **Chưa mở, và đừng vô tình mở:** `scaled = dim?.base === "agg"` nghĩa là chart agg vẽ số đã nhân `fx()`. Hôm nay agg luôn khoá chia màu nên **không bao giờ** có đoạn màu vẽ trên thanh đã scale. Ai mở chia màu cho agg sau này phải xem lại đúng dòng đó trước.
+
+### Hai lỗi chuẩn của chart chia màu — tự tìm ra sau khi owner nói "tự chỉnh cho đúng chuẩn UI/UX" (05/08)
+
+Owner giao *"tự chỉnh sửa sao cho chart hợp lý và đúng chuẩn ui-ux nhất"*. Đọc lại phần màu và thứ tự thì lòi ra hai lỗi thật, khác nhau, và **cả hai đều là lỗi đọc chart chứ không phải lỗi thẩm mỹ**.
+
+**Lỗi 1 — chart theme: cùng một màu, hai thanh hai nghĩa.** `themeSegments()` gán màu theo **thứ hạng TRONG một theme**, nên thanh nào cũng bắt đầu bằng `--cat-1`: ở theme A màu đầu là Android, ở theme B lại là iOS. Hệ quả là **không so ngang được hai thanh** — mà so ngang chính là lý do tồn tại của một chart thanh xếp hạng — và mỗi thanh phải kéo theo một chú giải riêng (tám chú giải cho tám thanh). Chính dự án đã chốt điều ngược lại ở chart điểm đo: *"hạng 1 toàn chart → cat-1, kể cả khi ở nhóm A nó không phải hạng 1"* (`design-system/SignalColumns.test.tsx:7-9`). Chart chia màu ở Quantify cũng đã đúng từ đầu (xếp hạng toàn cục). **Chart theme là chỗ duy nhất còn lệch.**
+
+Sửa: thêm `axisPalette()` trong `domain/themeSegments.ts` — tính bảng màu + thứ tự **một lần trên toàn bộ bằng chứng gắn theme**, mọi thanh tra cùng bảng đó. Kéo theo: tám chú giải theo hàng rút về **một chú giải chung** (`themeLegend()` + `ChartLegend`). Trục `subtheme` **giữ nguyên chú giải theo hàng** — ở đó nó là cách đúng duy nhất, vì sub-theme thuộc về đúng một theme cha nên không tồn tại bảng màu chung nào.
+
+Bảng tính trên **mọi** theme, không chỉ top 8 đang hiện: tính theo tập đang hiện thì màu sẽ nhảy mỗi lần đổi số thanh hoặc đổi kỳ. Giá phải trả: có thể dư một mục chú giải không xuất hiện trong thanh nào — chấp nhận, dư một dòng đọc được vẫn hơn một bảng màu trôi.
+
+**Lỗi 2 — dải có thứ tự bị tô như nhóm rời rạc, ở CẢ HAI chart.** `age` và `nav` khai `cut.kind: 'band'`, tức **dải có thứ tự**, nhưng vẫn nhận năm màu `--cat-*` không hơn kém nhau và vẫn xếp theo **số lượng**. Đo trên `demoData`: độ tuổi ra thứ tự `25-34 · 50+ · 18-24 · 35-49` — nhìn thanh không đọc được "trẻ hơn nằm bên nào", mà đó là điều duy nhất một chiều tuổi để nói. (Phân khúc NAV **tình cờ** trùng thứ tự dải khi xếp theo số lượng — chính vì tình cờ nên nó không canh được gì.)
+
+Sửa: `domain/splitOrder.ts` (module **riêng**, vì `quantify.ts` và `themeSegments.ts` đã import chéo nhau và cả hai đều cần bộ này). Chiều `cut.kind === 'band'` → xếp theo **dải**, tô bằng thang tuần tự `--seq-1..5` (một hue, nhạt = dải thấp, đậm = dải cao). Chiều `values` và chiều không khai `cut` (Nền tảng, Value tier, Kênh mở TK) → **giữ nguyên** `--cat-*` + xếp theo số lượng. **Không thêm cờ khai báo mới** — `Dim.cut.kind` đã phân biệt đúng hai ca này từ lâu, chỉ là chưa ai dùng nó để quyết định cách vẽ.
+
+Thứ tự dải **suy từ dữ liệu** (giá trị thô nhỏ nhất trong mỗi dải), không đọc ranh giới cấu hình: tầng domain không được biết tới `cfg`, và `QuantifyWidget` khai `cfg` là prop **tuỳ chọn** nên có đường gọi hợp lệ không có nó. Cách còn lại — đọc chữ trong nhãn (`"<50tr"`, `"1-5tỷ"`) — là phân tích chuỗi hiển thị, hỏng ngay lần đầu owner đổi cách viết nhãn.
+
+Cắt `SPLIT_TOP_N` vẫn theo **số lượng**, xếp lại theo dải **sau** khi cắt. Đảo hai bước là rụng mất các dải cao — đúng phần đuôi mà người xem một chiều tài sản/tuổi quan tâm nhất.
+
+**Áp cho cả TRỤC HÀNG, không riêng đoạn màu.** Bản sửa đầu chỉ đụng đoạn màu, và như thế là để hở đúng một nửa: `seed.qt` **có** chart lấy dải làm trục hàng (`show:'nav'`), nên cùng một chiều sẽ đọc ra hai thứ tự ở hai chart — chia màu theo NAV cho ra `<50tr → >5tỷ`, còn lấy NAV làm hàng lại cho ra thứ tự theo số lượng. Đúng loại lệch mà owner đã chỉ ra một lần ở chuyện 4/5 slice. `qRunSegment()` nay dùng cùng `sortByBand`. **Màu hàng không đụng** — hàng có nhãn chữ ngay bên cạnh nên không mã hoá thứ tự bằng màu, chỉ thứ tự mới cần sửa.
+
+Test canh chỗ này dùng **Độ tuổi**, không dùng NAV: trên `demoData` thứ tự-theo-số-lượng của NAV **tình cờ trùng** thứ tự dải, nên canh bằng NAV sẽ xanh cả khi code sai.
+
+**Đã xem trên màn (1615px, `#/voc` + `#/quantify`):** chart theme ra một chú giải `18-24 · 25-34 · 35-49 · 50+ · Chưa xếp được nhóm · Chưa có bằng chứng gán`, tám thanh cùng thứ tự đoạn, tám đoạn "Android" cùng đúng một màu; chart Quantify ra cùng thứ tự dải với thang `--seq-*`. Test: 846 xanh (thêm `domain/splitOrder.test.ts`). Hai test cũ đổi **kỳ vọng**, không đổi **số**: thứ tự đoạn độ tuổi, và chỗ đặt chú giải của chart theme.
+
+**Theo luật roll-out:** lỗi 2 áp cho cả hai chart cùng lúc. `SignalColumns` không đụng — nó không chia theo dải nào.
+
+## Bản đồ hành trình — bù cho bằng prototype + khoá phase ngoài pilot (owner chốt 05/08)
+
+Owner: *"làm lại phần bản đồ hành trình để hiển thị giống với cách prototype đang làm nhưng tạm thời lock các stage ko pilot lại để ko bấm được nữa"*, rồi ngay sau đó thu hẹp: *"hide cả phần giao dịch đi, chỉ lấy dòng tiền và mở tk thôi"*.
+
+**Bù ba chỗ bản React thiếu so với `V.atlas`.** Hero đếm flow/phase (prototype dòng 3374) — nay `#/atlas` là màn duy nhất từng không có hero; đoạn dẫn đọc cách xem dải nối + link sang VoC theo hành trình (3375); chip mẫu số trên hai card (`chead`, 3390/3410) qua `denomStrip`. Rail đổi từ cuộn ngang sang **lưới chia đều** như `.prail` (271). Chip flow đang chọn tô **đặc** màu chính, chữ trắng (`.fchips button.on`, 285) — bản cũ chỉ đổi viền nên trong một hàng chục chip rất khó thấy đang đứng ở đâu.
+
+**Đã soát lại xem chip đặc đó có phá luật "một nghĩa, một cách vẽ" không — KHÔNG.** Grep toàn `web/src`: repo đang có **hai họ, tách theo loại control chứ không phải tuỳ hứng**. (a) Chip đứng rời trên nền màn — `SetChips`, `CountFilter`, `QuantifyFilterBar`, `QuantifyBuilder` — chọn thì **tô đặc màu chính, chữ trắng**. (b) Nút phân đoạn nằm **trong một rãnh xám** (`bg-surface-2 rounded-lg p-0.5`) — `SplitToggle:43`, `TimeframeBar:28`, `ThemeStackBlock:25` — chọn thì **nền trắng, chữ màu chính**, vì tô đặc trong rãnh xám sẽ chọi với chính cái rãnh. Chip flow của Atlas là loại (a) và nay vẽ đúng như 4 chỗ cùng loại. Ghi ra đây vì nhìn hai màu ngược nhau rất dễ tưởng là lệch chuẩn.
+
+**Hai chỗ cố ý KHÔNG chép y prototype, vì chép là chép cả lỗi.** (1) `.prail` ghim `repeat(7,…)` cho 7 phase thời đó; seed nay 6 phase nên số cột suy theo dữ liệu. (2) Prototype tự chọn sẵn bước đầu (`steps[0].id`, dòng 3368); React giữ **rule 4** — chưa chọn bước nào khi mới vào màn. Đó là quyết định cũ đã chốt, không lặng lẽ lật.
+
+**Một lỗi layout tự lộ ra khi bù rail.** `.pd` của prototype để chấm một hàng vì phase đông nhất hồi đó chỉ vài flow; seed nay có phase **16 flow** — 16 chấm trong cột rộng ~186px ép chữ "16 flow" vỡ hai dòng, ô đó cao hơn năm ô kia. Cho **chấm quấn dòng**, số flow `whitespace-nowrap`. Không cắt bớt chấm: hàng chấm chính là chỗ đọc ra phase đo tới đâu, cắt là giấu mất flow. Đo lại sau khi sửa: sáu ô đều 110px, sáu nhãn số đều một dòng.
+
+**Phạm vi pilot là QUYẾT ĐỊNH, không suy được từ dữ liệu.** Ban đầu tôi suy phase pilot bằng cờ `observed` — ra 3 phase (02, 03, 04). Owner chốt lại còn **hai**: `PILOT_PHASE_CODES = {"02","03"}`. Giao dịch **đã có 1/16 flow được đo** mà vẫn để ngoài lượt trình bày, nên nếu cứ suy bằng `observed` thì nó tự mở khoá trở lại và không ai biết vì sao. Ghim tường minh theo `code` của phase.
+
+**"hide" đọc thành KHOÁ MỜ, không gỡ khỏi rail** — nói ra để owner bác nếu tôi hiểu sai. Ba lý do: cả dự án đang theo một luật hiển thị (`SplitToggle.tsx:4-8`) là thứ ngoài phạm vi phải **hiện mờ kèm lý do**, không biến mất; bản đồ hành trình thiếu hẳn một giai đoạn là bản đồ sai; và ba phase ngoài pilot còn lại đang hiện mờ, gỡ riêng một phase là hai luật trong cùng một hàng.
+
+**Khoá tử tế = ba điều cùng đúng**, theo đúng bài học 05/08 từ chip chia màu (lý do nằm sẵn trong `title` mà owner vẫn phải hỏi): nút không mất khỏi màn; `aria-disabled` chứ **không** `disabled` thật, để nút còn trong tab order; và **bấm là in lý do thành CHỮ** ở vùng `aria-live` ngay dưới rail. Vùng live luôn có mặt trong DOM, chỉ nội dung đổi — vùng vừa gắn vào cùng lúc với chữ thì screen reader thường không đọc.
+
+**Lý do khoá nói đúng tình trạng đo của từng phase**, không gộp một câu: `"… (mới 1 trên 16 flow có dữ liệu quan sát)"` cho Giao dịch, `"… (chưa flow nào trong 2 flow …)"` cho phase chưa đo. Gộp một câu "chưa có dữ liệu" là màn nói sai về chính dữ liệu của nó. Câu ở tooltip và câu in ra là **một chuỗi duy nhất** — test canh bằng `title === note.textContent`.
+
+**Chip flow ngoài pilot CỐ Ý vẫn bấm được**: chúng dẫn tới ghi chú "chưa nằm trong pilot" — nội dung có chủ ý, prototype cũng vậy. Nếu owner muốn khoá luôn cấp flow thì nói, đó là việc khác.
+
+**Đã xem trên màn (1615px, `#/atlas`)** + `tsc -b` sạch + **854 test xanh** (thêm 7). Một test cũ đổi kỳ vọng chứ không đổi khẳng định: nó bấm `phases[0]` để đổi phase, mà `phases[0]` chính là "01 Tìm hiểu & Tiếp cận" — nay đang khoá; đổi sang một phase pilot khác.
+
+## Hồ sơ bước lên đủ ba tab + gắn mốc tour (05/08, sau khi owner nói "làm tiếp đi")
+
+Đây là việc code **cuối cùng** còn treo của stream (mục "Việc còn lại" số 3). Hai tab lùi từ S3c nay lên cùng lượt với mốc tour, đúng ràng buộc đã ghi: mốc `atlas-inspector` khai *"Hồ sơ bước — 3 tab"*, gắn khi màn mới có 1 tab là để tour nói một câu sai.
+
+**Tab "Chỉ số liên kết"** (`AtlasMetricsTab.tsx`, port nhánh `met` dòng 3519-3529). Chỉ số **không khai trực tiếp trên bước** — đi qua điểm đo (`Signal.metrics`), nên tab lấy đúng những chỉ số mà điểm đo của bước có nhắc tới. Ngưỡng đọc thẳng từ `cfg.metric`, không khai lại; trạng thái dùng `metricState()` — hàm này tồn tại từ lâu mà **đến nay mới có consumer UI đầu tiên**.
+
+**Trạng thái trống là đường chạy THƯỜNG GẶP, không phải ca hiếm.** Đo trên seed: chỉ **6 trên 30** bước pilot có chỉ số (toàn bộ thuộc flow mở tài khoản); 24 bước còn lại chưa khai gì. Nên tab nói thẳng *"chưa gắn chỉ số nào … đây là chỗ còn thiếu khai báo, không phải chỉ số bằng 0"* thay vì để trắng.
+
+**Và "trống" có HAI nghĩa, tách hẳn ra sau một lượt soát lại.** Bản đầu gộp chúng làm một và **màn nói sai về chính nó** ở những bước **chưa khai điểm đo nào** — có thật trong pilot (vd bước 04 của flow nạp tiền, phase 03 Dòng tiền), không phải ca giả định. Ở đó tab chỉ số in *"điểm đo của bước đã có, nhưng chưa nuôi chỉ số"* trong khi **không có điểm đo nào**, còn tab độ phủ khen *"Đủ signal"* cho một bước hoàn toàn chưa được instrument — vì "không có cái nào chưa hoạt động" bị đọc thành "có và đều ổn". Cùng hạng lỗi với chart điểm đo từng gộp ba nghĩa "không biết". Nay mỗi tab có nhánh thứ ba riêng: tab chỉ số nói việc cần làm **nằm trước một bậc** (instrument signal đã, rồi mới khai chỉ số); tab độ phủ để ô "Signal chưa hoạt động" là **`—`** chứ không phải `0`, kèm cảnh báo rằng **chưa kiểm được con số độ phủ lấy từ đâu ra**. Hai test mới canh đúng ca `signals.length === 0`, và oracle của test "đạt ngưỡng" được siết thêm `sigs.length > 0` — `every()` trên mảng rỗng luôn đúng, nên nó có thể canh nhầm sang đúng ca vừa tách.
+
+**Tab "Độ phủ dữ liệu"** (`AtlasCoverageTab.tsx`, port nhánh `cov` dòng 3530-3548). Nói bằng **phần bù**: *"Còn 42% trường hợp thất bại chưa biết lý do"* — con số 58% tự nó không nói cho ai biết đang thiếu gì. Kèm danh sách signal `gap`/`designed` và câu chốt của prototype về việc độ phủ thuộc về **bước**.
+
+**Một hằng bị tách ra dùng chung.** `SIGNAL_STATUS` đang private trong `AtlasSignalPanel.tsx` kèm ghi chú "nơi DUY NHẤT còn dùng nó" — nay tab độ phủ cũng phải nói đúng những chữ đó về cùng một điểm đo, nên dời sang `signalStatus.ts`. Chép sang file thứ hai là mở đường cho **hai tab của cùng một hồ sơ bước** nói hai kiểu về cùng một trạng thái.
+
+**Tab KHÔNG reset khi đổi bước** — giữ đúng hành vi prototype (`ST.sub.atlasTab` là state toàn cục). Đang so độ phủ giữa các bước mà bị ném về tab đầu là hỏng đúng việc người ta đang làm. `role="tablist"` + `aria-selected` để ba nút này nghe ra là **một** lựa chọn.
+
+**Hai chỗ nói trước, không giấu.** (1) Ô *"Evidence coverage"* xuất hiện **hai lần** — hàng 4 số của header và đầu tab độ phủ; prototype cũng vậy, bản trong tab thêm nguồn (*Mobile SDK event registry*). Giữ theo prototype; owner muốn bỏ ô ở tab thì nói. (2) Nhánh *"chỉ số không được theo dõi"* (`cfg.metric[id].on === false`) **không có đường kiểm bằng mắt trong demo**: cả 6 chỉ số trong seed đều đang bật. Cùng loại với nhánh `partial` đã ghi ở mục "Còn hở" — code đúng, test canh, nhưng chưa từng được mắt người duyệt.
+
+**Hai oracle tôi chọn sai lúc viết test, sửa rồi, ghi lại vì cả hai đều là bẫy sẽ lặp:** bước "chưa khai chỉ số" đầu tiên tìm được nằm trong **phase đang khoá** nên không bấm tới được; và bước dưới ngưỡng độ phủ **không trùng** bước có signal thiếu (bước 03 cov 64 nhưng đủ signal, bước 05 cov 58 và thiếu 1) — lấy bước đầu tiên dưới ngưỡng là canh nhầm bước.
+
+**Đã xem trên màn (1615px, `#/atlas`, bước JS-MTK-05)** + `tsc -b` sạch + **861 test xanh / 80 file** (thêm 7). Một test cũ bị thay chứ không nới: nó canh đúng trạng thái *"chỉ 1 tab, không dựng nút cho 2 tab bị lùi"* — khẳng định về một quyết định TẠM, nay hết hiệu lực.
+
+## Bản giới thiệu có dẫn — bộ máy tour đã chạy, và nó đi 9 trên 18 chặng (05/08)
+
+Việc code cuối cùng còn treo của stream. `seedTour` khai **18 chặng** từ thời prototype; bản React đi được **9**, và con số đó là kết luận của một phép đối chiếu chứ không phải chỗ làm dở.
+
+**Vì sao không đi cả 18.** Tour là thứ nói với người mới *"màn này là gì"*. Dẫn người ta tới màn chưa dựng, hoặc đọc lời dẫn tả một bố cục đã bị thay, thì nó không phải "chưa hoàn thiện" mà là **đang nói sai**. Nên chỗ nào chưa đúng thì giữ lại và **nêu tên**, không đi bừa qua:
+
+| Nhóm | Số chặng | Vì sao |
+|---|---|---|
+| `cxm`, `atlas`, `voc`, `topic` | **9 — đi được** | Màn có thật, mốc `data-tour` có thật |
+| `sources`, `topics`, `vocjourney` | 6 — giữ lại | Màn còn là `Placeholder` |
+| `work` | 3 — giữ lại | **Lời dẫn nói sai**, xem dưới |
+
+**Ba chặng `work` là ca đáng chú ý nhất, và nó không phải lỗi kỹ thuật.** `#/work` có thật, đầy đủ dữ liệu. Nhưng `seedTour` tả *"Bốn làn công việc"*, *"Làn Chờ duyệt"*, *"Làn verify"* — trong khi owner **đã chốt bỏ board 4 làn**, đổi sang một danh sách thanh ngang (quyết định ghi ở `WorkPage.tsx:19-22`). Tức bảng chặng đang mô tả một bố cục không còn tồn tại. **Tôi không tự viết lại ba câu đó**: lời dẫn là chữ nói với người dùng, thuộc quyền owner, không phải chi tiết cài đặt để lập trình viên tiện tay sửa. Cần owner cấp bản chữ mới, rồi bỏ `"work"` khỏi `STALE_COPY` (`features/tour/tourStops.ts`) là ba chặng vào lại ngay.
+
+**Bộ lọc tự co lại, không phải sửa tay mỗi lần.** Khi `#/sources`/`#/topics`/`#/vocjourney` lên thật, chỉ cần thêm route vào `SCREEN_BUILT` — không đụng gì trong bộ máy tour.
+
+**Nói ra phần chưa đi được, ngay trên màn.** Chặng cuối in một dòng: *"Bản giới thiệu này còn 9 chặng chưa đi được: 6 chặng màn chưa dựng ở bản React; 3 chặng lời dẫn còn tả bố cục cũ."* Người xem demo không phải đoán vì sao tour ngắn.
+
+**Chặng không tô sáng được thì nói ra, không giả vờ bình thường.** Prototype gặp selector không thấy element thì lặng lẽ đưa popover ra giữa màn (dòng 4761-4765). Ở đây có thêm một dòng chữ, vì ca này **có thật và đúng chủ ý**: chặng *"Hồ sơ bước — 3 tab"* mời người ta **tự chọn một bước** (rule 4: mới vào màn chưa chọn bước nào), nên không có gì để tô sáng. Im lặng thì người xem tưởng mình nhìn sót.
+
+**Hai lỗi tự bắt được sau khi bộ máy đã chạy, cùng một họ với những lỗi cả stream đang chữa — màn nói sai về chính nó:**
+
+1. **Nền tối vừa che vừa đóng tour.** Bản đầu gắn `onClick={onClose}` lên lớp nền. Cộng với dòng chữ *"làm theo câu trên rồi quay lại"* ở chặng hồ sơ bước, thành ra màn **bảo người ta làm một việc mà chính nó chặn**: bấm vào đâu — kể cả vào đúng chỗ được mời bấm — cũng chỉ làm tour tắt. Prototype làm ngược lại (dòng 412-416: nền **nuốt** click để không bấm nhầm ra ngoài tour); tôi port ngược rồi viết chữ dựa trên bản gốc. Đã theo prototype: nền nuốt click, hai lối ra giữ nguyên (nút **Thoát** và phím **Esc**).
+2. **Một câu giải thích duy nhất cho mọi lý do vắng mốc.** Dòng cũ khẳng định chắc nịch *"nó chỉ hiện sau khi bạn thao tác trên màn"* — đúng cho đúng một chặng. Bất kỳ mốc nào khác vắng vì lý do khác đều nhận được lời giải thích sai, mà **một lý do sai tệ hơn không có lý do**. Nay lý do tra theo từng mốc (`absentReason`, `tourStops.ts`): `atlas-inspector` có câu riêng, `atlas-spine` có câu riêng, mốc chưa lường trước rơi vào *"Chưa rõ vì sao — có thể màn đang ở một trạng thái khác…"*.
+
+3. **Lời khuyên nghe hữu ích mà làm không được — lỗi tự gây ra khi sửa lỗi 1.** Câu thay thế đầu tiên là *"thoát tour, chọn một bước, rồi mở lại"*. Nghe hợp lý, nhưng đi thử thì hỏng: mở lại là tour bắt đầu từ chặng `#/cxm`, tour rời khỏi `#/atlas` rồi quay lại, AtlasPage remount, bước vừa chọn mất (`selectedStepId` về `null`, `AtlasPage.tsx:87`) — **đúng cái remount vừa dùng để chứng `atlas-spine` an toàn**, quay lại cắn chính lời khuyên của mình. Nay câu chữ chỉ **mô tả** vì sao chưa tô sáng được, không hứa cách khắc phục. Đường đi hỏng đó đã thành một test riêng, để không ai thấy câu chữ hơi cụt mà viết lại thành lời khuyên.
+
+Kèm theo, một câu hỏi phải trả lời bằng test chứ không bằng suy đoán: flow của Atlas là state cục bộ, vậy người dùng **mở sẵn một flow ngoài pilot rồi bấm chạy tour** thì chặng xương sống có vắng mốc không? **Không** — và vì lý do cấu trúc chứ không phải may: ba chặng atlas đứng sau ba chặng `#/cxm`, nên tour luôn rời `#/atlas` rồi quay lại, AtlasPage remount, flow về mặc định. Đã ghim thành test; xếp một chặng atlas lên đầu danh sách là chỗ đó đỏ trước khi kịp lên demo.
+
+**Không port `tourPrep()`.** Prototype phải đặt tay state trước mỗi chặng (dòng 4723) để component đích chắc chắn tồn tại. Bản React không cần: `#/cxm` và `#/voc` tự mở set `def:true` (đúng hai set prototype đặt tay), `#/atlas` tự chọn flow đang có dữ liệu quan sát, `#/topic/x-th-device` là route có tham số. Chỗ duy nhất prototype đặt tay mà ta cố ý không đặt là bước của hồ sơ — xem trên.
+
+**Chỗ cất state.** Chặng đang xem là UI-selection, mà store cố ý không giữ loại đó (`store.ts:10-11`) — nên nó nằm ở `Shell()`. Ngược lại **bảng chặng** là cấu hình, nên đi qua repository như `getCfg()`/`getDims()`: thêm `getTour()` (`data/repository.ts`, `data/mock-repository.ts`) và `tour` trong store. Thuần cộng thêm, không caller nào phải sửa.
+
+**Một chỗ vá ở môi trường test, cố ý không vá trong code chạy thật.** jsdom không cài `Element.scrollIntoView`. Stub đặt ở `src/test/setup.ts`; bọc lời gọi bằng `typeof … === 'function'` trong component chỉ để test xanh là để lỗ hổng của môi trường test viết lại code chạy thật.
+
+**Phép kiểm đắt nhất:** `TourOverlay.test.tsx` render `<App/>` rồi **đi hết 9 chặng**, mỗi chặng đòi mốc `data-tour` phải có thật trong DOM, và ghim đích danh **đúng một** mốc được phép vắng (`atlas-inspector`). Đổi tên một mốc mà quên `seedTour` — hoặc ngược lại — là đỏ ngay.
+
+**CÒN HỞ, nói trước: vị trí popover và khung sáng chưa được mắt người duyệt.** jsdom không có layout nên `getBoundingClientRect()` trả toàn số 0 — test chứng được tour **đi đúng chỗ và nói đúng chữ**, KHÔNG chứng được popover nằm đẹp hay khung sáng ôm đúng component. Hàm `placePop()` port nguyên từ prototype (dòng 4768) nên rủi ro thấp, nhưng đây là phần duy nhất của tính năng chỉ có test đỡ. Lần chạy này extension trình duyệt không kết nối được nên chưa soi được; **việc cần làm khi mở lại demo: bấm "▶ Chạy bản giới thiệu" và đi hết 9 chặng bằng mắt**, chú ý chặng `atlas-spine` (component rộng, dễ đẩy popover ra ngoài viewport) và chặng cuối `topic-detail` (thân màn cao, khung sáng ôm cả màn).
+
+`tsc -b` sạch, **883 test xanh / 82 file** (thêm 22 test / 2 file — 16 cho bộ máy tour, 6 cho ba lỗi vừa nêu).
 
 ## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
 
 - **Trạng thái "ghi được một phần" của nút chiều không có đường kiểm bằng mắt trong demo — nhưng KHÔNG phải code chết.** Đã lần lại đủ đường: ràng buộc 1 (`data/validate.ts` ~683-694) buộc cả năm chiều cộng ra đúng `Signal.vol` (Map khởi tạo sẵn cả năm chiều bằng 0, nên một chiều vắng hẳn cũng bị bắt), nên **bộ dữ liệu đã qua kiểm không sinh nổi ca này** — đúng như bản kế hoạch S3 đã nói trước với owner (`output/ke-hoach-s3-chart-diem-do.html`, box "Một điều đi kèm, cần nói ra") và owner đã chốt **không nới ràng buộc 1** chỉ để bấm thử được trong demo. Điều bản kế hoạch chưa nói rõ, tôi kiểm bổ sung: `validate()` **không chặn render**, nó chỉ dựng banner đỏ toàn cục (`App.tsx:75`, `features/quantify/ValidateBanner.tsx`) — nên với **dữ liệu thật** thiếu dòng ở một chiều, app vẫn vẽ, nút chiều đó hiện `partial` kèm *"x% dữ liệu không gán được …"*, **cùng lúc** với banner đỏ nói bảng đếm lệch. Đó là hành vi đúng, không phải xung đột: banner nói với người vận hành pipeline, chữ trên nút nói với người đọc chart. **Đừng xoá nhánh `partial`, và đừng nới ràng buộc 1 để "test cho dễ".** Cái còn hở đúng là: nhánh này chưa từng được **mắt người** duyệt, chỉ được test chứng minh là **chạy đúng**.
 - **Trạng thái "khoá" thì CÓ ca thật và đã đo.** Khi `sigCounts` rỗng (Demo Mode TẮT — trạng thái trống trung thực, ghi ở `data/schema/index.ts:52`), chọn `sg1` cho ra **cả năm chiều `locked`** cùng lúc, cột tổng 0, "chưa gắn được khách" = không biết. Đây là đường duy nhất tới `locked` hiện nay, và nó không phải "chiều này không ghi X" mà là "chưa có bảng đếm cho điểm đo này". Panel phải nói đúng nguyên nhân đó (xem S3c-2b).
-- **Tour của `#/atlas` chưa nối.** `seed.ts:743-745` khai ba mốc tour (`atlas-prail`, `atlas-spine`, `atlas-inspector`) và mô tả "Hồ sơ bước — 3 tab", nhưng màn ship **1 tab** và tour chưa được dựng ở React (`App.tsx:21` ghi "dựng ở bước sau"). Không phải hồi quy — trước đó `#/atlas` là `Placeholder`. **Đừng gắn mốc tour bây giờ**: gắn vào là tour khẳng định "3 tab", một câu sai. Sửa chữ tour cùng lúc hai tab kia lên.
+- ~~**Tour của `#/atlas` chưa nối.**~~ ~~**Bộ máy tour chưa dựng ở React.**~~ — **ĐÃ ĐÓNG HẲN 05/08**, xem mục "Bản giới thiệu có dẫn" bên dưới. Cả ba mốc đã gắn và bộ máy đã chạy qua chúng.
+- ~~**Hai trong ba mốc tour chỉ tồn tại CÓ ĐIỀU KIỆN.**~~ **ĐÃ XỬ, nhưng giữ lại vì luật vẫn còn hiệu lực:** `atlas-prail` luôn có; `atlas-spine` chỉ có khi flow đang chọn **có bước**; `atlas-inspector` chỉ có khi **đã chọn một bước**, mà rule 4 nói mới vào màn thì chưa chọn bước nào. `TourOverlay` xử bằng cách **nói ra** khi không tô sáng được, KHÔNG tự chọn sẵn bước cho tour đẹp — chọn hộ là lật rule 4 sau lưng owner.
 
 ## S2 + S4 — ĐÃ XONG, đã tự kiểm (04/08, đã commit `13199fd` + `27fd4f6`)
 
@@ -323,12 +479,13 @@ q5–q8, q15 là chart theo thời gian, chia màu không cùng dạng câu hỏ
 
 ## Việc còn lại của stream
 
-**Cập nhật 05/08/2026 (cuối phiên):** **toàn bộ stream đã xong về code và đã commit** — S1, S2, S4, S3a-1, S3a-2, S3b, S3c-1, S3c-2a, S3c-2b (xem các mục ở trên). Các bullet dưới đây **giữ lại làm hồ sơ cái giá đã trả**, không phải việc còn phải làm.
+**Cập nhật 05/08/2026 (cuối phiên):** **toàn bộ stream đã xong về code** — S1, S2, S4, S3a-1, S3a-2, S3b, S3c-1, S3c-2a, S3c-2b đã commit; ba đợt cuối (Atlas + khoá phase, ba tab hồ sơ bước, bộ máy tour) đã xong và tự kiểm nhưng **chưa commit**. Các bullet S1-S4 dưới đây **giữ lại làm hồ sơ cái giá đã trả**, không phải việc còn phải làm.
 
 Còn lại, không phải việc code:
 
 1. **Chờ dữ liệu thật.** ~~`Signal.values` phần lớn còn là suy diễn (lỗ hổng A)~~ — **câu này đã sai sau 05/08**, owner chốt bên nghiệp vụ là bên đề xuất đo gì, nên `values` là **đề xuất của mình**, không phải chỗ chờ lấp (xem mục "Pilot mở rộng"). Còn chờ thật: **Bảng D** (định danh element trên web/app) và **Bảng E** (số phễu từng bước — 30 bước đang chạy số demo). Cả hai đã đặc tả ở `output/yeu-cau-du-lieu-pilot-mo-rong.html`. Khi có, phần lớn cột của chart sẽ đổi — đó là chủ ý, không phải hồi quy.
-3. **Hai tab còn lại của hồ sơ bước** ("Chỉ số liên kết", "Độ phủ dữ liệu") và **tour `#/atlas`** — cố ý hoãn, xem bullet cuối mục "Còn hở". Sửa chữ tour **cùng lúc** hai tab kia lên, đừng gắn mốc tour trước.
+2. **Ba chặng tour của `#/work` chờ owner cấp lời dẫn mới.** `seedTour` (dòng 946-948) tả *"Bốn làn công việc"* / *"Làn Chờ duyệt"* / *"Làn verify"*, nhưng owner đã bỏ board 4 làn. Bộ máy tour đang **giữ ba chặng đó lại và nêu tên** thay vì đọc chữ sai. Có bản chữ mới thì bỏ `"work"` khỏi `STALE_COPY` (`features/tour/tourStops.ts`) là chúng vào lại. Đây là việc **viết chữ**, thuộc owner — không phải việc code.
+3. ~~**Hai tab còn lại của hồ sơ bước** và **tour `#/atlas`**~~ ~~**bộ máy tour**~~ — **ĐÃ XONG HẲN 05/08**, xem mục "Hồ sơ bước lên đủ ba tab" và "Bản giới thiệu có dẫn".
 
 - **S2 (ĐÃ XONG) — chiều.** Rút `seg` và `tenure` khỏi danh sách chiều (đã đo: không chart nào dùng; nhớ gỡ **cả** `cfg.segment.band.tenure` cùng lúc — luật quanh `validate.ts:602` lặp trên chính `cfg` nên bỏ sót sẽ sinh lỗi mồ côi). Sửa chữ thường `android`/`ios`/`web` ở chart theme. **Sửa lại một câu sai của bản trước:** `server` **đã có** trong bảng tên đẹp nền tảng (`domain/quantify.ts:46` và `design-system/SrcMatrix.tsx:16`) — không thiếu, đừng thêm lần nữa.
   - **Cái giá đã biết và owner đã đồng ý:** rút `seg` làm **đổi chữ trên dòng drill**. Commit `56128e3` tồn tại đúng để giữ chữ đó ("drill theo seg phải in 'Phân khúc NAV'"). Tài liệu thiết kế §4 nói việc rút này "miễn phí vì không chart nào dùng" — đúng với chart, **sai với panel drill**. Owner đã chấp nhận đổi chữ.
@@ -341,6 +498,9 @@ Còn lại, không phải việc code:
 
 - Trả lời owner bằng **tiếng Việt có dấu**, thuật ngữ kỹ thuật giữ English.
 - **Mô tả thiết kế bằng ngôn ngữ nghiệp vụ**, đừng lấy tên biến làm đơn vị giải thích. Mỗi tài liệu có bảng tra *nghiệp vụ ↔ tên code*.
+- **Một quyết định thiết kế áp cho MỌI chart, không riêng chart đang bàn** (owner chốt 05/08). Khi owner duyệt một cách vẽ — tông màu, cách gộp/tách đoạn, cách xếp legend, chỗ đặt dòng chú, cách nói khi không có dữ liệu — thì đó là luật của **cả hệ**, kể cả những chart owner không nhắc tên vì lúc ấy không nhìn thấy chúng trên màn. **Đừng khoanh phạm vi về đúng cái chart vừa xem rồi báo "xong"**: làm vậy là để hệ trôi thành nhiều phương ngữ, người dùng gặp hai cách vẽ cho cùng một ý nghĩa.
+  - Việc phải làm mỗi lần: **quét hết chỗ dùng** (grep theo token màu / theo nhãn / theo hàm dựng đoạn), liệt kê ra, sửa cùng một lượt.
+  - Nếu có chart mà luật mới **làm hỏng chính mục đích của nó**, đó không phải cớ để lặng lẽ chừa ra — **nói với owner trước**, nêu rõ chart nào hỏng chỗ nào, để owner quyết. Chừa mà không nói là vi phạm đúng luật này.
 - Worker: **chỉ dùng Sonnet**. Không SOL/DeepSeek/Terra cho dự án này.
 - Kiểm chứng: `cd web && npx tsc -b` (**không** `--noEmit`) rồi `npx vitest run --maxWorkers=2 --testTimeout=30000`. **Tự chạy, đừng tin số worker báo** — worker phiên này hai lần dừng trước khi nộp kết quả test.
 - **Không commit khi chưa được yêu cầu.**
