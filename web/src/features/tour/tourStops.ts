@@ -15,7 +15,7 @@ import type { TourStop } from "../../data/schema/index.ts";
 /** Route (segment đầu của `TourStop.r`) đã có thân màn thật trong `src/`. Đối chiếu trực tiếp với
     bảng route ở App.tsx: mọi route ngoài danh sách này rơi vào `<Placeholder>`. */
 const SCREEN_BUILT = new Set([
-  "cxm", "voc", "atlas", "topic", "work", "quantify", "settings", "vocjourney", "sources",
+  "cxm", "voc", "atlas", "topic", "work", "quantify", "settings", "vocjourney", "sources", "topics",
 ]);
 
 /* Ba chặng `work` là ca RIÊNG, không phải "màn chưa dựng": `#/work` có thật và đầy đủ dữ liệu.

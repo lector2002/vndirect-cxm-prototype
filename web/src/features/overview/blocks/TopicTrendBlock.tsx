@@ -1,6 +1,10 @@
 import { useState } from "react";
 import type { Action, Cfg, CxmData, TaxNode } from "../../../data/schema/index.ts";
-import { fx } from "../../../domain/index.ts";
+/* `ptsFor`/`trendOf` trước nằm private ngay trong file này. Chuyển xuống `domain/topics.ts` ngày
+   06/08 khi màn #/topics ra đời: chart đường ở màn đó và sparkline ở bảng này vẽ CÙNG một chuỗi,
+   nên hai chỗ phải cắt kỳ bằng đúng một hàm — tách ra là cùng một topic hiện hai hình dạng khác
+   nhau trên cùng một màn. */
+import { fx, ptsFor, trendOf } from "../../../domain/index.ts";
 import { AxisLabel, Badge, Card, CatChip, Sparkline } from "../../../design-system/index.ts";
 import { nf } from "../../../design-system/format.ts";
 
@@ -39,18 +43,6 @@ const D_DRIFT: Record<string, string> = {
   duplicate: "Có thể trùng nghĩa",
   shifting: "Ngữ nghĩa đang lệch",
 };
-
-/** Chuỗi điểm thật của theme, đã áp range nếu có — port tinh thần `monthly(t).slice(-months)`
- *  (prototype 3828) nhưng KHÔNG nội suy: `.slice(-months)` trên chuỗi ít điểm hơn N tự nhiên trả
- *  về nguyên chuỗi đang có (không độn thêm điểm giả như `monthly()` gốc). */
-function ptsFor(t: TaxNode, months?: number): number[] {
-  if (!t.pts) return [];
-  return months ? t.pts.slice(-months) : t.pts;
-}
-
-function trendOf(pts: number[]): number {
-  return pts.length > 1 ? pts[pts.length - 1]! - pts[0]! : 0;
-}
 
 /* Bước mà theme tập trung nhiều bằng chứng nhất — port themeStep() (prototype dòng 3794): đếm
    evidence có tax chứa theme này theo từng step, lấy step có count lớn nhất. */

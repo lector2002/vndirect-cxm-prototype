@@ -6,7 +6,7 @@ _Cập nhật: 2026-08-05 (đợt 3 — pilot mở rộng). Đọc file này + `
 
 - `main` = **`c6767d6`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`) · tài liệu S3 (`725d24d`+`c6767d6`).
 - **Working tree KHÔNG sạch.** Pilot mở rộng (đợt 3, 05/08) + ba vòng sửa layout + đổi điểm đo liveness + mở chia màu Quantify + **bản đồ hành trình bù cho bằng prototype & khoá phase ngoài pilot** + **hồ sơ bước lên đủ ba tab** + **bộ máy tour** đã làm xong và tự kiểm nhưng **chưa commit**. Owner chưa yêu cầu commit.
-- `npx tsc -b` sạch. **999/999 test xanh (86 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → 893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình) → 903/82 (độ phủ đổi sang phân bố theo dải) → 908/82 (bấm dải mở danh sách bước tại chỗ) → 911/82 (cắt @topictrend + @journeystate) → 951/84 (màn VoC theo hành trình + ghim phase mặc định không rơi vào phase khoá) → 995/86 (màn Nguồn dữ liệu) → **999/86 (`lagText` về `domain/` + ghim tiền đề fixture)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
+- `npx tsc -b` sạch. **1036/1036 test xanh (88 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → 893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình) → 903/82 (độ phủ đổi sang phân bố theo dải) → 908/82 (bấm dải mở danh sách bước tại chỗ) → 911/82 (cắt @topictrend + @journeystate) → 951/84 (màn VoC theo hành trình + ghim phase mặc định không rơi vào phase khoá) → 995/86 (màn Nguồn dữ liệu) → 999/86 (`lagText` về `domain/` + ghim tiền đề fixture) → **1036/88 (màn Topic & xu hướng — tour hết chặng bị giữ vì màn chưa dựng)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
 - **Cả stream đã xong về code, kể cả việc treo cuối cùng (bộ máy tour).** Còn lại là việc của owner + việc chờ dữ liệu thật: xem "Còn hở" và "Việc còn lại của stream".
 - Tài liệu thiết kế owner đã duyệt: **`output/thiet-ke-chart-signal.html`** (6 vòng) + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** (bổ sung đợt 2, owner chốt 04/08/2026) — cả hai là nguồn sự thật cho stream này, đọc trước khi code. `output/thiet-ke-chieu-phan-tich.html` và `output/thiet-ke-db-first.html` là của stream trước, còn giá trị lịch sử.
 
@@ -683,7 +683,46 @@ Nói cách khác: **thân màn là tạm, `domain/sources.ts` thì không.** D�
 
 `lagText` — hàm quy `Source.lagH` thành chữ ("trễ 8 ngày") — ban đầu nằm trong `SourceProfile.tsx` và bị `SourcesPage.tsx` import ngược sang. Nó thuần chuỗi, không React, nên đã chuyển xuống `domain/sources.ts` **cạnh `brokenImpacts`** — hai chỗ này cùng quy giờ ra ngày, để tách nhau ra là bảng nói "trễ 7 ngày" còn câu cảnh báo bên dưới nói "8 ngày". Có test riêng cho ba nhánh (dưới 24 giờ, tròn ngày, lẻ giờ) **và** một test đối chiếu thẳng với `brokenImpacts().days`.
 
-`tsc -b` sạch, **999 test xanh / 86 file**.
+`tsc -b` sạch, **999 test xanh / 86 file** tại thời điểm màn Nguồn dữ liệu xong.
+
+# Màn "Topic & xu hướng" `#/topics` — dựng mới 06/08
+
+Màn thứ mười có thân thật, và là màn **cuối cùng** mà tour còn giữ chặng vì "màn chưa dựng". Port `V.topics` (prototype dòng 3853-3891) + `topicLineChart` (3824-3850).
+
+Câu hỏi riêng của màn này là **trục thời gian**: cái gì đang nổi lên, cái gì đã lắng xuống, cái gì mới xuất hiện. `#/sources` hỏi "dữ liệu có về không", `#/vocjourney` hỏi "khách nói ở điểm chạm nào" — không màn nào trả lời được câu này.
+
+## Chỗ quan trọng nhất: KHÔNG port `monthly()`
+
+Prototype vẽ biểu đồ đường **không** trên `pts`, mà trên chuỗi do `monthly()` (dòng 3807-3814) sinh ra: nhận 6 kỳ thật rồi **bịa thêm 6 điểm đầu** bằng ngoại suy tuyến tính ngược, sau đó dán nhãn tháng thật (`MONTHS12`) lên cả 12. Ở mốc "1 năm", một nửa đường là số do công thức đẻ ra, đứng dưới nhãn "08/25 … 01/26" như thể đã đo. Lời chú trong chính prototype cũng nói nó ngoại suy.
+
+Bản React **không cần** hàm đó: fixture ở đây đã có **12 điểm thật** cho cả 14 theme (đo 06/08). Nên chart đọc thẳng `pts`, cắt kỳ bằng `.slice(-months)` — chuỗi ngắn hơn thì trả đúng phần đang có. Có test ghim rằng trục ngang **không viết tên tháng nào**.
+
+Đây là lần thứ ba cùng một loại lỗi bị chặn ở stream này (sau `TaxNode.n` ở `#/vocjourney` và `Source.vol` ở `#/sources`): **một con số được in ra dưới một nhãn mà nó không thuộc về**.
+
+## Không dựng range toggle riêng cho chart
+
+Prototype cho mỗi chart một cụm 3m/6m/1y. App này đã có `TimeframeBar` **chung**, và thanh đó tự chặn ở số kỳ thật rồi nói thẳng *"không nội suy thêm"*. Dựng thêm một cụm nữa là hai chỗ điều khiển cùng một thứ và chúng sẽ lệch nhau — nên `topics` được thêm vào `TIMEFRAME_ROUTES` (`App.tsx`), đúng như lời chú sẵn có ở đó đã dặn từ trước.
+
+Hệ quả cần biết: đổi bộ lọc thời gian **không** ném đi các đường người dùng đã tự chọn (`useState` lazy-init một lần) — có test riêng.
+
+## Luật cắt của chart đường
+
+Chart mở sẵn tối đa **sáu đường**: 3 tăng mạnh nhất + 2 giảm + 1 mới trồi lên, khử trùng. Taxonomy nở bao nhiêu topic thì vẫn sáu, và dải mẫu số **đếm ra chữ** phần không vẽ ("Đang vẽ 6 trên 14 topic"). Số này sinh từ dữ liệu chứ không ghim tay: rút cửa sổ còn 3 kỳ thì nhóm "mới" rỗng và chart mở **5** đường — có test.
+
+Bảng bên dưới **dùng lại nguyên** `TopicTrendBlock` của Tổng quan VoC, vì block đó vốn được thiết kế để trang sở hữu lựa chọn ★ (xem docblock `selectedLines` của nó). Dựng bảng thứ hai là hai bảng cùng nói một chuyện rồi trôi khỏi nhau.
+
+## Hai chỗ dọn tầng
+
+- `ptsFor`/`trendOf` trước nằm private trong `TopicTrendBlock.tsx`, nay ở `domain/topics.ts`. Chart đường và sparkline trong bảng vẽ **cùng một chuỗi** — tách ra là cùng một topic hiện hai hình dạng khác nhau trên cùng một màn.
+- Chart đường là component **riêng** (`design-system/TopicLineChart.tsx`), không mở rộng `LineChart` có sẵn: file đó khai đúng hai màu theo hợp đồng cohort của `QuantifyWidget`, sáu đường qua nó thành bốn đường xám giống hệt nhau.
+
+Một lựa chọn thiết kế cố ý khác `signalChart`: chart này dùng **một thang dọc chung** cho mọi đường. Ở chart cột theo điểm đo, câu hỏi là "hình dạng từng nhóm ra sao" nên mỗi nhóm một thang; ở đây câu hỏi là "topic nào to hơn và đang chạy về đâu", cho mỗi topic một thang riêng thì topic 40 và topic 900 trông cao bằng nhau.
+
+## Tour: hai chặng cuối cùng mở ra
+
+`topics` vào `SCREEN_BUILT` → tour đi **14 trên 18 chặng**, và **không còn chặng nào bị giữ vì màn chưa dựng**. Bốn chặng còn lại đều chờ **owner viết lời dẫn mới** (3 chặng `#/work` tả board 4 làn đã bỏ, 1 chặng `voc-inspector` nói hồ sơ mở sẵn ở tab Verbatim). Nhánh "màn chưa dựng" vẫn còn trong code và vẫn có test — dùng một route không tồn tại để chứng minh nó còn sống, vì xoá đi thì màn dựng sau sẽ lặng lẽ vào tour với mốc chưa có.
+
+`tsc -b` sạch, **1036 test xanh / 88 file**.
 
 ## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
 

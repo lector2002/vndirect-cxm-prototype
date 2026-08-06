@@ -16,6 +16,8 @@ export { CrossTable } from "./CrossTable.tsx";
 export type { CrossTableProps } from "./CrossTable.tsx";
 export { LineChart } from "./LineChart.tsx";
 export type { LineChartProps } from "./LineChart.tsx";
+export { TopicLineChart } from "./TopicLineChart.tsx";
+export type { TopicLineChartProps, TopicSeries } from "./TopicLineChart.tsx";
 export { AnomalyChart } from "./AnomalyChart.tsx";
 export type { AnomalyChartProps } from "./AnomalyChart.tsx";
 export { QuantifyWidget } from "./QuantifyWidget.tsx";

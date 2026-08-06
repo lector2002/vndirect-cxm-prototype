@@ -8,6 +8,7 @@ import { WorkPage } from './features/work/WorkPage.tsx'
 import { AtlasPage } from './features/atlas/AtlasPage.tsx'
 import { VocJourneyPage } from './features/vocjourney/VocJourneyPage.tsx'
 import { SourcesPage } from './features/sources/SourcesPage.tsx'
+import { TopicsPage } from './features/topics/TopicsPage.tsx'
 import { ThemeDetailPage } from './features/topic/ThemeDetailPage.tsx'
 import { SettingsPage } from './features/settings/SettingsPage.tsx'
 import { TourOverlay } from './features/tour/TourOverlay.tsx'
@@ -15,11 +16,12 @@ import { DemoBanner } from './features/settings/DemoBanner.tsx'
 import { useCxmStore } from './store/store.ts'
 
 /* Route (segment đầu URL) hiện có dữ liệu/chart thật trong src/ hiện nay — TimeframeBar chỉ mount
-   trên các route này. 'topics' CHƯA có ở đây: #/topics vẫn là Placeholder thuần trong Shell bên
-   dưới (bản có chart mới tồn tại ở output/cxm-platform-prototype.html, chưa port sang src/) —
-   thêm 'topics' vào set này khi TopicsPage thật được dựng, KHÔNG thêm trước vì sẽ hiện thanh
-   timeframe phía trên một Placeholder không chart nào cả (vi phạm quy tắc "ẩn trên Placeholder"). */
-const TIMEFRAME_ROUTES = new Set(['cxm', 'voc', 'quantify', 'work'])
+   trên các route này. 'topics' vào set này ngày 06/08 khi TopicsPage thật được dựng: màn đó vẽ
+   biểu đồ đường trên chuỗi kỳ thật và CỐ Ý không dựng cụm 3m/6m/1y riêng, mà đọc chính thanh
+   timeframe chung này (docblock TopicsPage, mục 2) — hai chỗ điều khiển cùng một thứ sẽ lệch nhau.
+   Các route còn lại vẫn là Placeholder nên chưa vào: thanh timeframe đứng trên một màn không chart
+   nào là vi phạm quy tắc "ẩn trên Placeholder". */
+const TIMEFRAME_ROUTES = new Set(['cxm', 'voc', 'quantify', 'work', 'topics'])
 
 /** IA 13 view / 4 nhóm (giữ từ prototype). Tour đã dựng — xem features/tour/. */
 const NAV_GROUPS: { g: string; items: { r: string; l: string }[] }[] = [
@@ -173,6 +175,8 @@ function Shell() {
                     <VocJourneyPage />
                   ) : n.r === 'sources' ? (
                     <SourcesPage />
+                  ) : n.r === 'topics' ? (
+                    <TopicsPage />
                   ) : n.r === 'settings' ? (
                     <SettingsPage />
                   ) : (

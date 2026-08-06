@@ -35,6 +35,19 @@ export {
   surveysByProblem,
 } from "./sources.ts";
 export type { IntegrityCount, BrokenImpact } from "./sources.ts";
+export {
+  ptsFor,
+  trendOf,
+  themesByVolume,
+  isFreshTopic,
+  risingThemes,
+  fallingThemes,
+  freshThemes,
+  defaultTopicLines,
+  driftNodes,
+  topicLines,
+} from "./topics.ts";
+export type { TopicLine } from "./topics.ts";
 export { zScores, isAnomaly, countAnomalies } from "./stats.ts";
 export { stepState, stepWhy, metricState, sourceHealth, laneOf } from "./state.ts";
 export type { DerivedState, SourceHealth, LaneKey } from "./state.ts";

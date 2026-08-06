@@ -17,14 +17,17 @@ describe("splitTour — chặng nào bản React đi được", () => {
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
-  it("KHÔNG đi qua chặng của màn chưa dựng, và nêu tên chúng thay vì bỏ im lặng", () => {
+  /* Từ 06/08, MỌI màn mà tour trỏ vào đều đã dựng — `#/topics` là màn cuối cùng rời khỏi nhóm này.
+     Cơ chế giữ theo màn chưa dựng vẫn còn nguyên (và vẫn có test dưới), nhưng hôm nay nó không giữ
+     chặng nào. Ghim bằng cách suy từ chính `SCREEN_BUILT`, không ghim danh sách tên tay: thêm một
+     chặng trỏ vào màn chưa dựng là dòng này đỏ ngay. */
+  it("không còn chặng nào bị giữ vì màn chưa dựng — mọi màn tour trỏ vào đều đã có thân thật", () => {
     const { walk, held } = splitTour(seedTour);
-    const unbuiltScreens = ["topics"];
-    const routes = new Set(walk.map((s) => screenOf(s.r)));
-    for (const r of unbuiltScreens) expect(routes.has(r)).toBe(false);
-
-    const unbuiltHeld = held.filter((h) => h.reason === "màn chưa dựng ở bản React");
-    expect(unbuiltHeld).toHaveLength(seedTour.filter((s) => unbuiltScreens.includes(screenOf(s.r))).length);
+    const unbuilt = seedTour.filter((s) => holdReason(s) === "màn chưa dựng ở bản React");
+    expect(unbuilt).toHaveLength(0);
+    expect(held.filter((h) => h.reason === "màn chưa dựng ở bản React")).toHaveLength(0);
+    // Và không chặng nào rơi ra ngoài: đi được hoặc bị giữ vì LÝ DO KHÁC (lời dẫn cũ).
+    expect(walk.length + held.length).toBe(seedTour.length);
   });
 
   /* `#/work` CÓ thật — nên đây không phải ca "màn chưa dựng" mà là ca lời dẫn nói sai. Owner đã bỏ
@@ -60,7 +63,7 @@ describe("splitTour — chặng nào bản React đi được", () => {
     expect(held.some((h) => screenOf(h.stop.r) === "sources")).toBe(false);
   });
 
-  it("đi qua đủ chặng của sáu màn đã dựng: cxm, atlas, voc, topic, vocjourney, sources", () => {
+  it("đi qua đủ chặng của bảy màn đã dựng: cxm, atlas, voc, topic, vocjourney, sources, topics", () => {
     const { walk } = splitTour(seedTour);
     const count = (r: string) => walk.filter((s) => screenOf(s.r) === r).length;
     expect(count("cxm")).toBe(3);
@@ -69,7 +72,8 @@ describe("splitTour — chặng nào bản React đi được", () => {
     expect(count("topic")).toBe(1);
     expect(count("vocjourney")).toBe(1);
     expect(count("sources")).toBe(2);
-    expect(walk).toHaveLength(12);
+    expect(count("topics")).toBe(2);
+    expect(walk).toHaveLength(14);
   });
 
   /* Chặng đi được mà selector khai sai dạng thì tour chỉ vào chỗ trống. Canh dạng ở đây; còn mốc có
@@ -86,8 +90,9 @@ describe("heldSummary — nói ra phần chưa đi được", () => {
     const { held } = splitTour(seedTour);
     const text = heldSummary(held)!;
     expect(text).toContain(`còn ${held.length} chặng chưa đi được`);
-    // Còn đúng `#/topics` chưa dựng — `#/sources` đã lên 06/08 nên rời khỏi nhóm này.
-    expect(text).toContain("2 chặng màn chưa dựng ở bản React");
+    /* Không còn nhóm "màn chưa dựng" nữa (màn cuối cùng — #/topics — lên 06/08). Bốn chặng còn bị
+       giữ đều vì LỜI DẪN cũ, tức là chờ owner viết chữ mới, không phải chờ tôi dựng màn. */
+    expect(text).not.toContain("màn chưa dựng ở bản React");
     expect(text).toContain("3 chặng lời dẫn còn tả bố cục cũ");
     expect(text).toContain("1 chặng lời dẫn nói hồ sơ mở sẵn ở tab Verbatim");
   });
@@ -127,7 +132,11 @@ describe("holdReason", () => {
   it("trả null cho màn đã dựng, trả lý do đọc được cho màn chưa dựng", () => {
     expect(holdReason(stopAt("atlas"))).toBeNull();
     expect(holdReason(stopAt("sources"))).toBeNull();
-    expect(holdReason(stopAt("topics"))).toBe("màn chưa dựng ở bản React");
+    expect(holdReason(stopAt("topics"))).toBeNull();
+    /* Không màn thật nào còn rơi vào nhánh này (màn cuối lên 06/08), nên dùng một route KHÔNG tồn
+       tại để chứng minh nhánh vẫn sống — xoá nhánh đi thì màn dựng sau sẽ lặng lẽ vào tour với mốc
+       chưa có, và tour chỉ vào chỗ trống. */
+    expect(holdReason(stopAt("man-chua-co"))).toBe("màn chưa dựng ở bản React");
   });
 
   it("đọc đúng segment đầu của route có tham số (topic/x-th-device)", () => {
