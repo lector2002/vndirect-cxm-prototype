@@ -75,6 +75,22 @@ describe("TopicsPage — dải mẫu số của chart nói rõ phần KHÔNG v�
     const m = months0();
     expect(defaultTopicLines(demoData, m).length).toBeLessThan(themesByVolume(demoData).length);
   });
+
+  /* Chart và bảng đều in một dải "N trên 14 topic", nằm sát nhau, cùng mẫu số — hai con số đúng
+     nhưng đặt cạnh nhau thì mời người đọc so nhầm. Ghim rằng (a) chúng THẬT SỰ khác nhau trong bộ
+     đang render, nếu không câu nối chẳng để làm gì, và (b) có câu nói rõ mỗi bên đếm gì. */
+  it("hai dải mẫu số cạnh nhau khác số, và màn nói rõ mỗi bên đếm gì", () => {
+    const { container } = renderPage();
+    const chart = screen.getByTestId("topics-chart-denom").textContent!;
+    const table = within(container.querySelector('[data-tour="topic-table"]') as HTMLElement)
+      .getByTestId("denom-strip").textContent!;
+    const n = (s: string) => Number(s.match(/(\d+)\s+trên/)![1]);
+    expect(n(chart)).not.toBe(n(table));
+    const bridge = screen.getByTestId("topics-chart-bridge");
+    expect(bridge).toHaveTextContent("đường đang mở trên biểu đồ");
+    expect(bridge).toHaveTextContent("dòng bảng đang liệt kê");
+    expect(bridge).toHaveTextContent(`${themesByVolume(demoData).length} topic`);
+  });
 });
 
 describe("TopicsPage — chọn đường vẽ", () => {

@@ -138,6 +138,17 @@ export function TopicsPage({ useStore = useCxmStore }: TopicsPageProps) {
           <AxisLabel>
             {`Trục dọc là volume tuyệt đối, chung một thang cho mọi đường · trục ngang là ${months} kỳ gần nhất · đường nét đứt kèm ✨ là topic mới trồi lên từ gần sàn`}
           </AxisLabel>
+          {/* Màn này có HAI dải mẫu số nằm sát nhau: chart nói "Đang vẽ N trên 14 topic", bảng ngay
+              dưới nói "Đang hiện 8 trên 14 topic". Không con số nào sai, nhưng cùng mẫu số + cùng
+              đơn vị nghe được ("topic") + đặt cạnh nhau thì người đọc tự so hai vế đầu và tưởng
+              chúng phải khớp. Nói thẳng ra rằng hai vế đếm hai thứ khác nhau. KHÔNG in con số của
+              bảng ở đây: bảng mở rộng được (nút "Xem hết"), in ra là câu này sai ngay khi người ta
+              bấm mở. */}
+          <div className="t-meta text-[12px] mt-1" data-testid="topics-chart-bridge">
+            Hai dải mẫu số trên màn này đếm hai thứ khác nhau: ở đây là số <b>đường đang mở trên
+            biểu đồ</b>, còn ở bảng bên dưới là số <b>dòng bảng đang liệt kê</b> — cùng trên{" "}
+            {themes.length} topic đó.
+          </div>
         </Card>
       </div>
 
