@@ -57,7 +57,7 @@
 <header>
   <h1>Việc chờ owner — nền tảng CXM</h1>
   <p class="sub">Gom tất cả những gì tôi phải báo mà chưa được trả lời, để anh mở ra đọc một lượt thay vì lần lại từng lượt chat. Ba nhóm: <strong>cần anh quyết</strong>, <strong>chờ bên dữ liệu</strong>, và <strong>tôi đã xử nhưng anh nên biết</strong>.</p>
-  <p class="meta">Cập nhật 06/08/2026 · <code>tsc -b</code> sạch · 1037/1037 test xanh (88 file) · mười màn đã có thân thật · nguồn đầy đủ: <code>docs/DB-FIRST-HANDOFF.md</code></p>
+  <p class="meta">Cập nhật 06/08/2026 · <code>tsc -b</code> sạch · 1047/1047 test xanh (89 file) · mười màn đã có thân thật · nguồn đầy đủ: <code>docs/DB-FIRST-HANDOFF.md</code></p>
 </header>
 
 <h2>Cần anh quyết <span class="n">4 việc</span></h2>
@@ -117,7 +117,15 @@
   <p class="src">Đặc tả: <code>output/yeu-cau-du-lieu-pilot-mo-rong.html</code></p>
 </div>
 
-<h2>Tôi đã xử, chỉ báo để anh biết <span class="n">10 mục</span></h2>
+<h2>Tôi đã xử, chỉ báo để anh biết <span class="n">11 mục</span></h2>
+
+<div class="card info">
+  <h3><span class="tag i">Đã làm</span> Mọi màn chỉ còn tên tab ở đầu trang</h3>
+  <p>Áp cho cả tám màn, kể cả <strong>Tổng quan CXM</strong>, <strong>Tổng quan VoC</strong> và <strong>Bản đồ hành trình</strong> — ba màn này trước đây không in tên nào ở đầu trang (bỏ từ 02/08), giờ có lại đúng một dòng tên.</p>
+  <p>Cái tên đó giờ hiện ở hai chỗ: mục sáng trong sidebar và dòng tiêu đề. Nếu gõ tay ở từng màn thì sớm muộn hai chỗ lệch nhau, và người bấm “Bảng xử lý” sẽ mở ra màn tự xưng tên khác. Nên tên chỉ khai một chỗ duy nhất, cả hai nơi cùng đọc từ đó, và có test canh riêng chuyện này.</p>
+  <p><strong>Bảng xử lý</strong> làm theo phương án anh chọn: hai con số “N chờ xác nhận, M chờ duyệt” <em>không</em> xoá mà xuống hàng chip bên dưới, thành bốn chip xếp theo thứ tự việc chảy qua — đang tới → chờ duyệt → chờ khép vòng → đã xong. Chip “chờ duyệt” tự ẩn khi bằng 0, cùng luật với chip “chờ khép vòng”.</p>
+  <p>Một câu nữa cũng bỏ theo: <strong>VoC theo hành trình</strong> mở đầu bằng câu <em>“Bản đồ hành trình đo hành vi. Màn này đo tiếng nói tại cùng những điểm chạm đó.”</em> Đó là lý lẽ thiết kế — nó thuộc về tài liệu chứ không phải thứ người dùng phải đọc lại mỗi lần mở màn. Nội dung đã ghi trong <code>docs/DB-FIRST-HANDOFF.md</code>, anh muốn giữ lại trên màn thì nói.</p>
+</div>
 <p class="lead">Không cần anh làm gì. Ghi ra để anh không phát hiện muộn rồi tưởng là lỗi giấu.</p>
 
 <div class="card info">

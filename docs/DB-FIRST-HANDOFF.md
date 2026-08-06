@@ -6,7 +6,7 @@ _Cập nhật: 2026-08-05 (đợt 3 — pilot mở rộng). Đọc file này + `
 
 - `main` = **`c6767d6`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`) · tài liệu S3 (`725d24d`+`c6767d6`).
 - **Working tree KHÔNG sạch.** Pilot mở rộng (đợt 3, 05/08) + ba vòng sửa layout + đổi điểm đo liveness + mở chia màu Quantify + **bản đồ hành trình bù cho bằng prototype & khoá phase ngoài pilot** + **hồ sơ bước lên đủ ba tab** + **bộ máy tour** đã làm xong và tự kiểm nhưng **chưa commit**. Owner chưa yêu cầu commit.
-- `npx tsc -b` sạch. **1036/1036 test xanh (88 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → 893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình) → 903/82 (độ phủ đổi sang phân bố theo dải) → 908/82 (bấm dải mở danh sách bước tại chỗ) → 911/82 (cắt @topictrend + @journeystate) → 951/84 (màn VoC theo hành trình + ghim phase mặc định không rơi vào phase khoá) → 995/86 (màn Nguồn dữ liệu) → 999/86 (`lagText` về `domain/` + ghim tiền đề fixture) → **1036/88 (màn Topic & xu hướng — tour hết chặng bị giữ vì màn chưa dựng)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
+- `npx tsc -b` sạch. **1047/1047 test xanh (89 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → 893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình) → 903/82 (độ phủ đổi sang phân bố theo dải) → 908/82 (bấm dải mở danh sách bước tại chỗ) → 911/82 (cắt @topictrend + @journeystate) → 951/84 (màn VoC theo hành trình + ghim phase mặc định không rơi vào phase khoá) → 995/86 (màn Nguồn dữ liệu) → 999/86 (`lagText` về `domain/` + ghim tiền đề fixture) → 1036/88 (màn Topic & xu hướng — tour hết chặng bị giữ vì màn chưa dựng) → **1047/89 (mọi màn chỉ còn tên tab ở đầu trang, tên lấy từ một nguồn)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
 - **Cả stream đã xong về code, kể cả việc treo cuối cùng (bộ máy tour).** Còn lại là việc của owner + việc chờ dữ liệu thật: xem "Còn hở" và "Việc còn lại của stream".
 - Tài liệu thiết kế owner đã duyệt: **`output/thiet-ke-chart-signal.html`** (6 vòng) + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** (bổ sung đợt 2, owner chốt 04/08/2026) — cả hai là nguồn sự thật cho stream này, đọc trước khi code. `output/thiet-ke-chieu-phan-tich.html` và `output/thiet-ke-db-first.html` là của stream trước, còn giá trị lịch sử.
 
@@ -723,6 +723,32 @@ Một lựa chọn thiết kế cố ý khác `signalChart`: chart này dùng **
 `topics` vào `SCREEN_BUILT` → tour đi **14 trên 18 chặng**, và **không còn chặng nào bị giữ vì màn chưa dựng**. Bốn chặng còn lại đều chờ **owner viết lời dẫn mới** (3 chặng `#/work` tả board 4 làn đã bỏ, 1 chặng `voc-inspector` nói hồ sơ mở sẵn ở tab Verbatim). Nhánh "màn chưa dựng" vẫn còn trong code và vẫn có test — dùng một route không tồn tại để chứng minh nó còn sống, vì xoá đi thì màn dựng sau sẽ lặng lẽ vào tour với mốc chưa có.
 
 `tsc -b` sạch, **1036 test xanh / 88 file**.
+
+# Đầu mỗi màn chỉ còn tên tab — luật chung, chốt 06/08
+
+Owner đã bỏ khối câu mở đầu ở Bản đồ hành trình (05/08), rồi bắt gặp nó còn sót ở hai màn mới và chốt thành luật cho **mọi** màn: *"chỉ giữ lại tên tab, bỏ các phần ko quan trọng, tương tự với các tab khác, giữ lại tên tab"*. Áp cho cả tám màn có thân thật, **kể cả ba màn trước đây không in tên nào** (`#/cxm`, `#/voc`, `#/atlas`) — tức đảo lại phần "bỏ h1" của declutter 02/08.
+
+## Vì sao tên tab phải khai một chỗ
+
+Luật này làm một cái tên hiện ở **hai** nơi: mục sáng trong sidebar và dòng tiêu đề đầu màn. Gõ tay ở từng màn thì sớm muộn hai chỗ lệch, và người bấm "Bảng xử lý" sẽ mở ra màn tự xưng tên khác. Nên `NAV_GROUPS` rời khỏi `App.tsx` sang `src/nav.tsx`; sidebar và `PageTitle` cùng đọc từ đó. `navLabel()` **ném** khi gặp route lạ chứ không trả chuỗi rỗng — chuỗi rỗng chỉ hiện thành một dòng trắng, chẳng ai để ý, và một màn in được tiêu đề trong khi sidebar không có mục nào trỏ tới nó là màn lọt vào app không qua điều hướng.
+
+`PageTitle` đặt trong container của **chính màn**, không dựng ở shell: `#/topics` canh giữa theo bề rộng tối đa còn các màn khác dùng padding đều, nên tiêu đề dựng ở shell sẽ lệch khỏi thân màn ở đúng màn đó.
+
+`src/nav.test.tsx` (10 test) canh chính bất biến này, không canh câu chữ của từng màn.
+
+## Bỏ thì phải kiểm từng vế xem nó có mất thông tin không
+
+Ba màn, ba kết luận khác nhau — đây là phần đáng đọc lại nếu sau này có màn mới:
+
+- **`#/topics`** — "14 topic đang mở, 9 đang tăng theo hướng xấu" đã có nguyên vẹn trong dải mẫu số của chart. Bỏ thẳng, không mất gì.
+- **`#/sources`** — "2 trong 7 nguồn đang có vấn đề, và 2 chỉ số đang ăn dữ liệu từ chúng" đã có ở khối "Hệ quả cụ thể" cuối màn, và ở đó nêu **đích danh** từng nguồn kèm từng chỉ số — chi tiết hơn hẳn con số tổng. Bỏ thẳng. `atRisk` mất caller cuối cùng nên bỏ cùng import; `metricsAtRisk` vẫn sống vì `ownersAtRisk` gọi nó.
+- **`#/work`** — khác hẳn hai màn trên: hai phép đếm "N chờ xác nhận, M chờ duyệt" **không có mặt ở đâu khác trên màn**, xoá thẳng là mất thông tin thật. Owner chọn phương án dời chúng xuống hàng chip có sẵn, thành bốn chip xếp theo thứ tự việc chảy qua (đang tới → chờ duyệt → chờ khép vòng → đã xong). Giữ cả hai nhánh của câu cũ; chip "chờ duyệt" vắng hẳn khi bằng 0, cùng luật với chip "chờ khép vòng" — hàng chip đếm việc **đang** có, không đếm số 0.
+
+Câu luận đề của `#/vocjourney` ("Bản đồ hành trình đo *hành vi*. Màn này đo *tiếng nói* tại cùng những điểm chạm đó.", port prototype dòng 2694) cũng bỏ theo. Đó là lý lẽ **thiết kế** — nó thuộc về tài liệu này chứ không phải thứ người dùng phải đọc lại mỗi lần mở màn. Ghi ở đây để không mất: đó là câu duy nhất nói ra vì sao màn đó tồn tại cạnh `#/atlas`.
+
+Bốn test cũ ghim "không còn `<h1>` nào" hoặc đọc câu mở đầu đều được **viết lại để canh chỗ mới**, không xoá — bỏ một câu chữ không có nghĩa là bỏ nghĩa vụ nói thật của màn.
+
+`tsc -b` sạch, **1047 test xanh / 89 file**.
 
 ## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
 
