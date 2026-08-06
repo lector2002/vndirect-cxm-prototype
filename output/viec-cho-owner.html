@@ -57,7 +57,7 @@
 <header>
   <h1>Việc chờ owner — nền tảng CXM</h1>
   <p class="sub">Gom tất cả những gì tôi phải báo mà chưa được trả lời, để anh mở ra đọc một lượt thay vì lần lại từng lượt chat. Ba nhóm: <strong>cần anh quyết</strong>, <strong>chờ bên dữ liệu</strong>, và <strong>tôi đã xử nhưng anh nên biết</strong>.</p>
-  <p class="meta">Cập nhật 06/08/2026 · <code>tsc -b</code> sạch · 1036/1036 test xanh (88 file) · mười màn đã có thân thật · nguồn đầy đủ: <code>docs/DB-FIRST-HANDOFF.md</code></p>
+  <p class="meta">Cập nhật 06/08/2026 · <code>tsc -b</code> sạch · 1037/1037 test xanh (88 file) · mười màn đã có thân thật · nguồn đầy đủ: <code>docs/DB-FIRST-HANDOFF.md</code></p>
 </header>
 
 <h2>Cần anh quyết <span class="n">4 việc</span></h2>
@@ -117,7 +117,7 @@
   <p class="src">Đặc tả: <code>output/yeu-cau-du-lieu-pilot-mo-rong.html</code></p>
 </div>
 
-<h2>Tôi đã xử, chỉ báo để anh biết <span class="n">8 mục</span></h2>
+<h2>Tôi đã xử, chỉ báo để anh biết <span class="n">10 mục</span></h2>
 <p class="lead">Không cần anh làm gì. Ghi ra để anh không phát hiện muộn rồi tưởng là lỗi giấu.</p>
 
 <div class="card info">
@@ -150,6 +150,19 @@
 <div class="card info">
   <h3><span class="tag i">Bố cục</span> Hàng chip flow của phase “Giao dịch” hiện 16 chip</h3>
   <p>Phase này đông flow nhất. Nó nằm ngoài pilot nên chưa bấm vào được, nhưng khi mở phạm vi thì hàng chip này là chỗ tiếp theo phải cắt theo đúng luật anh đã duyệt cho các chart.</p>
+</div>
+
+<div class="card info">
+  <h3><span class="tag i">Đã sửa</span> Hai con số cạnh nhau trên màn Topic đang mời đọc nhầm</h3>
+  <p>Biểu đồ ghi “Đang vẽ <strong>6</strong> trên 14 topic”, cái bảng ngay bên dưới ghi “Đang hiện <strong>8</strong> trên 14 topic”. Cả hai đều đúng, nhưng cùng mẫu số 14, cùng chữ “topic”, dán sát nhau — người xem sẽ tự hỏi tại sao hai con số không khớp.</p>
+  <p>Đã thêm một câu ngay giữa hai chỗ nói rõ mỗi bên đang đếm gì: bên trên đếm <em>đường đang mở trên biểu đồ</em>, bên dưới đếm <em>dòng bảng đang liệt kê</em>. Cố ý không viết con số của bảng vào câu đó, vì bảng bấm mở rộng được — viết ra là câu sai ngay khi anh bấm “Xem hết”.</p>
+</div>
+
+<div class="card wait">
+  <h3><span class="tag w">Anh nên tự nhìn</span> Hai màn mới chưa ai mở bằng mắt</h3>
+  <p><strong>Nguồn dữ liệu</strong> và <strong>Topic &amp; xu hướng</strong> đều đã dựng xong và test xanh, nhưng test chứng minh <em>con số và câu chữ</em> đúng — nó không chứng minh <em>bố cục</em> đẹp. Tôi định mở trình duyệt soi hộ anh nhưng máy này chưa bật extension điều khiển Chrome, nên phần đó tôi bỏ trống chứ không nói bừa là đã xem.</p>
+  <p>Ba chỗ chỉ nhìn mới biết, riêng màn Topic: (1) sáu đường màu cứng, chưa theo bộ màu sáng/tối của hệ thống — nền tối có thể chói; (2) khung biểu đồ rộng cố định, màn hình rộng có thể để thừa khoảng trắng bên phải; (3) tên topic dài nên hàng chú thích màu có thể xuống dòng.</p>
+  <p>Anh mở bằng: <code>cd web &amp;&amp; npm run dev</code> rồi vào <code>localhost:5173/#/topics</code> và <code>#/sources</code>. Thấy lệch chỗ nào cứ chụp lại, tôi sửa.</p>
 </div>
 
 <div class="card info">
