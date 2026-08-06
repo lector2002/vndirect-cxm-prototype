@@ -6,7 +6,6 @@ import {
   freshnessCount,
   instrumentedCount,
   lagText,
-  metricsAtRisk,
   passiveActive,
   sourceHealth,
   sourcesByProblem,
@@ -82,7 +81,6 @@ export function SourcesPage() {
   const ordered = sourcesByProblem(data, cfg);
   const shownSources = srcAll ? ordered : ordered.slice(0, TOP_ROWS);
   const impacts = brokenImpacts(data, cfg);
-  const atRisk = metricsAtRisk(data, cfg);
   const fresh = freshnessCount(data, cfg);
   const cont = continuityCount(data, cfg);
   const instr = instrumentedCount(data);
@@ -95,22 +93,11 @@ export function SourcesPage() {
 
   return (
     <div className="p-8">
-      <h1 className="t-hero max-w-[46ch] mb-3.5" data-testid="src-hero">
-        {impacts.length === 0 ? (
-          <>Cả {data.sources.length} nguồn đang nhận đúng hạn.</>
-        ) : (
-          <>
-            {impacts.length} trong {data.sources.length} nguồn đang có vấn đề, và {atRisk.length} chỉ
-            số đang ăn dữ liệu từ chúng.
-          </>
-        )}
-      </h1>
-      <p className="t-meta max-w-[88ch] mb-4">
-        Ba phép đếm dưới đây bắt ba kiểu hỏng khác nhau — dữ liệu <b>về muộn</b>, có điểm đo{" "}
-        <b>chưa nguồn nào chạm tới</b>, và nguồn <b>đứt giữa chừng</b> làm số tụt giả tạo. Ba phép
-        không cùng một thước, nên mỗi ô nói rõ nó đang đếm gì. SLA riêng từng nguồn đặt ở{" "}
-        <a href="#/rules">Chỉ số &amp; ngưỡng</a>.
-      </p>
+      {/* KHÔNG có câu mở đầu ở đầu màn (quyết định owner 05/08, áp cho Bản đồ hành trình rồi mở ra
+          mọi màn 06/08). Không mất thông tin nào: mỗi ô đếm đã tự nói nó đang đếm gì ở dòng chân ô,
+          còn "chỉ số nào đang ăn dữ liệu hỏng" thì khối "Hệ quả cụ thể" cuối màn nêu ĐÍCH DANH từng
+          chỉ số theo từng nguồn — chi tiết hơn hẳn con số tổng ở câu mở đầu cũ. `atRisk` mất caller
+          cuối cùng ở màn này nên bỏ luôn; `metricsAtRisk` vẫn sống vì `ownersAtRisk` gọi nó. */}
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 mb-4" data-testid="src-stats">
         <Stat

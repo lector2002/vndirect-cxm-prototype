@@ -75,14 +75,10 @@ export function TopicsPage({ useStore = useCxmStore }: TopicsPageProps) {
 
   return (
     <div className="max-w-[1240px] mx-auto px-6 py-5">
-      <h1 data-testid="topics-hero" className="t-hero max-w-[38ch] mb-2">
-        {themes.length} topic đang mở, {rising.length} đang tăng theo hướng xấu.
-      </h1>
-      <p className="t-meta max-w-[90ch] mb-4">
-        Trục <b>thời gian</b> của tiếng nói khách hàng: cái gì đang <b>nổi lên</b>, cái gì đã{" "}
-        <b>lắng xuống</b>, cái gì <b>mới xuất hiện</b> — đọc trên {months} kỳ gần nhất. Bấm một topic
-        để xem chi tiết, verbatim và quyết định phân loại.
-      </p>
+      {/* KHÔNG có câu mở đầu ở đầu màn (quyết định owner 05/08, áp cho Bản đồ hành trình rồi mở ra
+          mọi màn 06/08): đó là chỗ ngốn chiều cao trước khi người xem thấy được gì, và mọi thứ nó
+          nói đều đã có mặt ngay tại chỗ cần — số topic đang mở và ba nhóm chuyển động nằm trong dải
+          mẫu số của chart, số kỳ nằm ở nhãn trục, cách bấm nằm ở câu cuối màn. */}
 
       {/* Node cần người quyết: hệ thống chỉ PHÁT HIỆN, không tự gộp/tách. Nút dẫn thẳng vào node
           đó thay vì bắt người đọc tự tìm trong bảng. */}

@@ -40,19 +40,19 @@ function renderPage() {
 const range0 = useTimeframeStore.getState().range;
 afterEach(() => useTimeframeStore.getState().setRange(range0));
 
-describe("TopicsPage — câu tiêu đề đọc từ dữ liệu", () => {
-  it("đếm đúng số topic đang mở và số topic đang tăng theo hướng xấu", () => {
-    renderPage();
-    const m = months0();
-    expect(screen.getByTestId("topics-hero")).toHaveTextContent(
-      `${themesByVolume(demoData).length} topic đang mở, ${risingThemes(demoData, m).length} đang tăng theo hướng xấu.`,
-    );
-  });
-
-  /* Nếu hai con số này bằng nhau thì test trên vẫn xanh mà chẳng chứng minh gì — chốt rằng chúng
-     thật sự khác nhau trong bộ đang render. */
+/* Câu mở đầu ở đầu màn ĐÃ BỎ (owner 06/08 — cùng chỉ thị đã áp cho Bản đồ hành trình): nó nói
+   "14 topic đang mở, 9 đang tăng theo hướng xấu" rồi tả cách đọc màn. Hai phép đếm đó không mất:
+   chúng nằm trong dải mẫu số của chart ngay dưới, và describe kế tiếp canh đúng chúng. Test nào
+   từng bám riêng vào câu mở đầu thì bỏ hẳn ở đây thay vì viết lại thành trùng lặp. */
+describe("TopicsPage — hai phép đếm nền của màn khác nhau thật", () => {
+  /* Nếu chúng bằng nhau thì mọi kỳ vọng suy từ chúng vẫn xanh mà chẳng chứng minh gì. */
   it("số topic đang tăng KHÁC tổng số topic", () => {
     expect(risingThemes(demoData, months0()).length).not.toBe(themesByVolume(demoData).length);
+  });
+
+  it("màn không còn câu mở đầu ở đầu trang", () => {
+    renderPage();
+    expect(screen.queryByTestId("topics-hero")).not.toBeInTheDocument();
   });
 });
 

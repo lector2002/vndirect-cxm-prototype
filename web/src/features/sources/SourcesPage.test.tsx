@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { demoData } from "../../data/fixtures/demo.ts";
 import {
@@ -39,31 +39,38 @@ afterEach(() => {
 
 const cfg = () => useCxmStore.getState().cfg;
 
-describe("SourcesPage — tiêu đề nói đúng thứ dữ liệu chứng minh được", () => {
-  it("đếm đúng số nguồn hỏng và số chỉ số ăn dữ liệu từ chúng", () => {
+/* Câu mở đầu ở đầu màn ĐÃ BỎ (owner 06/08 — cùng chỉ thị đã áp cho Bản đồ hành trình). Nó từng nói
+   "N trong 7 nguồn đang có vấn đề, và M chỉ số đang ăn dữ liệu từ chúng". Cả hai vế đó vẫn phải
+   chứng minh được, chỉ là ở chỗ khác: khối "Hệ quả cụ thể" cuối màn nêu ĐÍCH DANH từng nguồn hỏng
+   và từng chỉ số nó kéo theo. Ba test dưới đây chuyển sang canh đúng chỗ ấy — không xoá đi, vì bỏ
+   một câu chữ không có nghĩa là bỏ nghĩa vụ nói thật của màn. */
+describe("SourcesPage — khối hệ quả nói đúng thứ dữ liệu chứng minh được", () => {
+  it("nêu đích danh từng nguồn hỏng và từng chỉ số đang ăn dữ liệu từ chúng", () => {
     render(<SourcesPage />);
     const impacts = brokenImpacts(demoData, cfg());
     const atRisk = metricsAtRisk(demoData, cfg());
     expect(impacts.length).toBeGreaterThan(0);
-    expect(screen.getByTestId("src-hero")).toHaveTextContent(
-      `${impacts.length} trong ${demoData.sources.length} nguồn đang có vấn đề`,
-    );
-    expect(screen.getByTestId("src-hero")).toHaveTextContent(`${atRisk.length} chỉ số`);
+    expect(atRisk.length).toBeGreaterThan(0);
+    const impact = screen.getByTestId("src-impact");
+    // Một dòng cho mỗi nguồn hỏng — không gộp thành một con số tổng.
+    expect(within(impact).getAllByRole("listitem")).toHaveLength(impacts.length);
+    for (const b of impacts) expect(impact).toHaveTextContent(b.source.name);
+    for (const m of atRisk) expect(impact).toHaveTextContent(m.name);
   });
 
   /* Prototype viết "… và điều đó LÀM SAI N chỉ số". Nguồn hỏng làm chỉ số tính trên dữ liệu THIẾU;
      chiều lệch thì không suy được từ dữ liệu (công thức có thể hụt cả tử lẫn mẫu). */
   it("KHÔNG nói nguồn hỏng 'làm sai' chỉ số — dữ liệu không chứng minh được điều đó", () => {
     render(<SourcesPage />);
-    expect(screen.getByTestId("src-hero")).not.toHaveTextContent("làm sai");
+    const impact = screen.getByTestId("src-impact");
+    expect(impact).not.toHaveTextContent("làm sai");
+    expect(impact).toHaveTextContent("không nói được");
   });
 
-  it("không nguồn nào hỏng thì tiêu đề đổi hẳn câu, không in '0 trong 7'", () => {
+  it("không nguồn nào hỏng thì khối hệ quả biến mất hẳn, không in khung rỗng", () => {
     makeEveryoneHealthy();
     render(<SourcesPage />);
-    expect(screen.getByTestId("src-hero")).toHaveTextContent(
-      `Cả ${demoData.sources.length} nguồn đang nhận đúng hạn`,
-    );
+    expect(brokenImpacts(demoData, cfg())).toHaveLength(0);
     expect(screen.queryByTestId("src-impact")).not.toBeInTheDocument();
   });
 });
