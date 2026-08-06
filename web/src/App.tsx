@@ -6,6 +6,8 @@ import { QuantifyPage } from './features/quantify/QuantifyPage.tsx'
 import { ValidateBanner } from './features/quantify/ValidateBanner.tsx'
 import { WorkPage } from './features/work/WorkPage.tsx'
 import { AtlasPage } from './features/atlas/AtlasPage.tsx'
+import { VocJourneyPage } from './features/vocjourney/VocJourneyPage.tsx'
+import { SourcesPage } from './features/sources/SourcesPage.tsx'
 import { ThemeDetailPage } from './features/topic/ThemeDetailPage.tsx'
 import { SettingsPage } from './features/settings/SettingsPage.tsx'
 import { TourOverlay } from './features/tour/TourOverlay.tsx'
@@ -167,6 +169,10 @@ function Shell() {
                     <WorkPage />
                   ) : n.r === 'atlas' ? (
                     <AtlasPage />
+                  ) : n.r === 'vocjourney' ? (
+                    <VocJourneyPage />
+                  ) : n.r === 'sources' ? (
+                    <SourcesPage />
                   ) : n.r === 'settings' ? (
                     <SettingsPage />
                   ) : (

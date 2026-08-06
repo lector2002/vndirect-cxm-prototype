@@ -14,7 +14,9 @@ import type { TourStop } from "../../data/schema/index.ts";
 
 /** Route (segment đầu của `TourStop.r`) đã có thân màn thật trong `src/`. Đối chiếu trực tiếp với
     bảng route ở App.tsx: mọi route ngoài danh sách này rơi vào `<Placeholder>`. */
-const SCREEN_BUILT = new Set(["cxm", "voc", "atlas", "topic", "work", "quantify", "settings"]);
+const SCREEN_BUILT = new Set([
+  "cxm", "voc", "atlas", "topic", "work", "quantify", "settings", "vocjourney", "sources",
+]);
 
 /* Ba chặng `work` là ca RIÊNG, không phải "màn chưa dựng": `#/work` có thật và đầy đủ dữ liệu.
    Vấn đề nằm ở LỜI DẪN — nó tả "Bốn làn công việc", "Làn Chờ duyệt", "Làn verify", trong khi owner
@@ -24,6 +26,23 @@ const SCREEN_BUILT = new Set(["cxm", "voc", "atlas", "topic", "work", "quantify"
    Không tự viết lại ba câu này: lời dẫn là chữ nói với người dùng, thuộc quyền owner, không phải chi
    tiết cài đặt để lập trình viên tiện tay sửa. Giữ lại và nêu tên cho tới khi có bản chữ mới. */
 const STALE_COPY = new Set(["work"]);
+
+/* Ca thứ ba (06/08), hẹp hơn hai ca trên: MỘT CHẶNG có lời dẫn sai, trong khi chặng anh em của nó
+   trên cùng màn thì đúng. `#/vocjourney` vừa dựng xong, chặng "Tiếng nói theo điểm chạm" tả đúng
+   chuỗi điểm chạm nên đi được; nhưng chặng kế khai "Hồ sơ điểm chạm mở sẵn ở tab Verbatim"
+   (seed.ts:945) — màn thật mở hồ sơ ở tab Topic, và chỉ mở sau khi bấm chọn một điểm chạm.
+
+   Giữ theo MÀN như `STALE_COPY` sẽ chôn theo cả chặng nói đúng; tự viết lại câu chữ thì phạm đúng
+   ranh giới đã đặt ở docblock trên (lời dẫn thuộc quyền owner). Nên khoá theo tên mốc. */
+const STALE_STOP: Record<string, string> = {
+  "voc-inspector":
+    "lời dẫn nói hồ sơ mở sẵn ở tab Verbatim, màn thật mở ở tab Topic và chỉ hiện sau khi chọn điểm chạm",
+};
+
+/** Tên mốc trong selector: `[data-tour="voc-spine"]` → `voc-spine`. */
+function anchorOf(stop: TourStop): string | undefined {
+  return /^\[data-tour="([^"]+)"\]$/.exec(stop.sel)?.[1];
+}
 
 export type HeldStop = { stop: TourStop; reason: string };
 export type TourSplit = {
@@ -43,6 +62,8 @@ export function holdReason(stop: TourStop): string | null {
   const screen = screenOf(stop);
   if (!SCREEN_BUILT.has(screen)) return "màn chưa dựng ở bản React";
   if (STALE_COPY.has(screen)) return "lời dẫn còn tả bố cục cũ (board 4 làn đã bỏ)";
+  const anchor = anchorOf(stop);
+  if (anchor && STALE_STOP[anchor]) return STALE_STOP[anchor];
   return null;
 }
 
@@ -57,8 +78,10 @@ export function splitTour(stops: TourStop[]): TourSplit {
   return { walk, held };
 }
 
-/* Chặng đi được vẫn có thể KHÔNG tìm thấy mốc của nó, vì hai mốc dưới đây chỉ tồn tại ở một số
-   trạng thái của AtlasPage — và trạng thái đó là state cục bộ (useState, AtlasPage.tsx:84-87).
+/* Chặng đi được vẫn có thể KHÔNG tìm thấy mốc của nó, vì ba mốc dưới đây chỉ tồn tại ở một số
+   trạng thái của màn — và trạng thái đó là state cục bộ (useState ở AtlasPage.tsx:60-68 và
+   SourcesPage.tsx). Cùng một luật ở ba màn: hồ sơ chi tiết CHỈ mở khi người dùng bấm chọn, màn
+   không tự chọn hộ để tour có cái tô sáng.
 
    Mỗi ca một lý do RIÊNG. Bản đầu ở đây dùng một câu chung ("chỉ hiện sau khi bạn thao tác trên
    màn") cho mọi ca — đúng cái lỗi cả stream đang chữa: màn nói một điều nghe rất chắc chắn về chính
@@ -76,6 +99,11 @@ const ABSENT_REASON: Record<string, string> = {
     "Hồ sơ bước chỉ hiện sau khi đã chọn một bước trên xương sống, mà màn cố ý không chọn sẵn bước nào — nên ở chặng này chưa có gì để tô sáng.",
   "atlas-spine":
     "Xương sống chỉ hiện khi flow đang mở có bước, mà flow ngoài pilot thì chưa khai bước nào — nên chưa có gì để tô sáng.",
+  /* Lời dẫn của chặng này (seed.ts:940) tự nói "Bấm một nguồn để mở hồ sơ", nên nó KHÔNG sai như
+     `voc-inspector` — chỉ là mốc chưa tồn tại lúc tour chạy tới. Hai chuyện khác nhau: một bên câu
+     chữ tả sai màn (giữ chặng lại), một bên câu chữ đúng mà mốc vắng (đi tiếp, nói ra vì sao). */
+  "src-profile":
+    "Hồ sơ dữ liệu chỉ hiện sau khi đã bấm một nguồn trong bảng, mà màn cố ý không mở sẵn hồ sơ nào — nên ở chặng này chưa có gì để tô sáng.",
 };
 
 /** Vì sao mốc của chặng này không có trên màn. Ca chưa biết thì NÓI LÀ CHƯA BIẾT — không mượn lý
@@ -83,7 +111,7 @@ const ABSENT_REASON: Record<string, string> = {
 
     Chỉ MÔ TẢ, tuyệt đối không bảo người ta làm gì. Bản trước ở đây viết "thoát tour, chọn một bước,
     rồi mở lại" — nghe hợp lý mà làm không được: mở lại thì tour bắt đầu từ chặng `#/cxm`, tour rời
-    khỏi `#/atlas` rồi quay lại, AtlasPage remount, `selectedStepId` về `null` (AtlasPage.tsx:87).
+    khỏi `#/atlas` rồi quay lại, AtlasPage remount, `selectedStepId` về `null` (AtlasPage.tsx:63).
     Đúng chính cái remount vừa dùng để chứng `atlas-spine` an toàn. Một lời khuyên không thực hiện
     được cũng là màn nói sai, chỉ là sai kín đáo hơn. */
 export function absentReason(sel: string): string {

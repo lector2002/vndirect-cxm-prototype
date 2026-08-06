@@ -63,9 +63,9 @@ describe("TourOverlay — bản giới thiệu có dẫn", () => {
     expect(document.querySelector(walk[0].sel)).not.toBeNull();
   });
 
-  /* Phép kiểm ĐẮT nhất của file: đi hết 9 chặng và đòi mỗi chặng phải có mốc thật. Nếu ai đó đổi
+  /* Phép kiểm ĐẮT nhất của file: đi hết mọi chặng và đòi mỗi chặng phải có mốc thật. Nếu ai đó đổi
      tên một `data-tour` mà quên `seedTour` (hoặc ngược lại), đây là chỗ đỏ. */
-  it("đi hết mọi chặng, mỗi chặng tìm thấy mốc thật của nó — trừ đúng một ca đã biết", async () => {
+  it("đi hết mọi chặng, mỗi chặng tìm thấy mốc thật của nó — trừ đúng hai ca đã biết", async () => {
     await startTour();
     const missing: string[] = [];
     for (let n = 1; n <= walk.length; n++) {
@@ -80,9 +80,10 @@ describe("TourOverlay — bản giới thiệu có dẫn", () => {
       await waitFor(() => expect(screen.getByTestId("tour-pop")).toBeInTheDocument());
       if (!document.querySelector(sel)) missing.push(sel);
     }
-    /* Đúng MỘT mốc được phép vắng, và nó vắng có chủ ý: hồ sơ bước chỉ hiện sau khi chọn bước, mà
-       rule 4 nói mới vào màn thì chưa chọn bước nào. Ghim đích danh — vắng thêm chỗ nào là lỗi. */
-    expect(missing).toEqual(['[data-tour="atlas-inspector"]']);
+    /* Đúng HAI mốc được phép vắng, và cả hai vắng vì CÙNG MỘT chủ ý: hồ sơ chi tiết chỉ hiện sau
+       khi người dùng bấm chọn, mà không màn nào tự chọn hộ để tour có cái tô sáng (rule 4 ở #/atlas,
+       và cùng luật đó ở #/sources). Ghim đích danh — vắng thêm chỗ nào là lỗi. */
+    expect(missing.sort()).toEqual(['[data-tour="atlas-inspector"]', '[data-tour="src-profile"]']);
   });
 
   it("chặng không tô sáng được thì NÓI RA, không lặng lẽ đưa popover ra giữa màn", async () => {

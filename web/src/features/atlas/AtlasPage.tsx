@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { Flow, Group, Obs } from "../../data/schema/index.ts";
-import { fx, stepState, stepWhy } from "../../domain/index.ts";
+import type { Flow, Obs } from "../../data/schema/index.ts";
+import { fx, lockReasonForPhase, phaseIdOfFlow, stepState, stepWhy } from "../../domain/index.ts";
 import { Badge, Card, JourneySpine, Note } from "../../design-system/index.ts";
 import type { SpineStep } from "../../design-system/index.ts";
 import { useCxmStore } from "../../store/store.ts";
@@ -24,17 +24,10 @@ import { AtlasStepInspector } from "./AtlasStepInspector.tsx";
      ghi chú "chưa nằm trong pilot" — nội dung có chủ ý, prototype cũng vậy.
 
    Cùng ngày, owner thu hẹp tiếp: "hide cả phần giao dịch đi, chỉ lấy dòng tiền và mở tk thôi" —
-   phạm vi còn ĐÚNG hai phase, xem PILOT_PHASE_CODES. "Giao dịch" bị KHOÁ MỜ chứ không gỡ khỏi rail:
+   phạm vi còn ĐÚNG hai phase, xem PILOT_PHASE_CODES ở domain/pilotScope.ts. "Giao dịch" bị KHOÁ MỜ chứ không gỡ khỏi rail:
    toàn dự án đang theo một luật hiển thị (SplitToggle.tsx:4-8) là thứ ngoài phạm vi phải HIỆN MỜ kèm
    lý do, không biến mất — bản đồ hành trình mà thiếu hẳn một giai đoạn thì bản đồ sai, và ba phase
    ngoài pilot còn lại cũng đang hiện mờ, gỡ riêng một phase là hai luật trong cùng một hàng. */
-
-/** Phase mà một flow thuộc về, tra qua group — flow không có `phaseId` trực tiếp (journey.ts:26-36),
-    phải đi qua Group (journey.ts:19-24). Cục bộ ở màn này, không phải luật domain dùng chỗ khác. */
-function phaseIdOfFlow(flow: Flow, groups: Group[]): string {
-  const g = groups.find((x) => x.id === flow.groupId);
-  return g ? g.phaseId : "";
-}
 
 /** Màu chấm trạng thái flow trên rail/chip — port dotOf() (prototype dòng 3370). #D6D1CB port 1-1 từ
     hex gốc (không phải hex tự bịa — xem tiền lệ JourneySpine.tsx dòng 55 dùng #8F2A23 cùng lý do). */
@@ -48,26 +41,9 @@ function flowDotTitle(f: Flow): string {
   return f.observed ? "Có dữ liệu quan sát" : f.verified ? "Có nguồn · chưa có dữ liệu" : "Chờ nguồn";
 }
 
-/* PHẠM VI PILOT ĐANG TRÌNH BÀY — owner chốt 05/08: chỉ "Mở tài khoản" và "Dòng tiền".
-   Đây là một QUYẾT ĐỊNH phạm vi, KHÔNG suy được từ dữ liệu: "04 Giao dịch" cũng đã có 1 flow được đo
-   (1/16) mà owner vẫn để ngoài lượt trình bày này. Nên ghim tường minh, không đoán bằng cờ `observed`
-   — đoán thì Giao dịch sẽ tự mở khoá trở lại và không ai biết vì sao.
-   Ghim theo `code` của phase (chuỗi "02"/"03" hiện ngay trên rail, ổn định hơn id fixture). */
-const PILOT_PHASE_CODES = new Set(["02", "03"]);
-
-/* Lý do một phase bị KHOÁ — MỘT chuỗi duy nhất dùng cho CẢ tooltip lẫn dòng chữ in ra khi bấm. Cùng
-   luật với SplitToggle (design-system/SplitToggle.tsx:19-21): chỗ hiển thị không được viết lại lý do
-   bằng câu chữ của mình, nếu không hai chỗ trôi khỏi nhau và người đọc gặp hai câu trả lời.
-
-   Câu chữ nói ĐÚNG tình trạng đo của từng phase, không nói bừa "chưa đo gì": phase khoá có hai kiểu
-   rất khác nhau — chưa có flow nào được đo (01/05/06) và đã đo một phần nhưng để ngoài lượt này (04). */
-function phaseLockReason(phaseName: string, flowCount: number, observedCount: number): string {
-  const measured =
-    observedCount === 0
-      ? `chưa flow nào trong ${flowCount} flow có dữ liệu quan sát`
-      : `mới ${observedCount} trên ${flowCount} flow có dữ liệu quan sát`;
-  return `${phaseName} tạm khoá vì chưa nằm trong phạm vi pilot đang trình bày (${measured}).`;
-}
+/* Phạm vi pilot (phase nào mở, phase nào khoá, khoá thì nói lý do gì) đã DỜI sang
+   domain/pilotScope.ts ngày 06/08 — màn "VoC theo hành trình" cũng có rail phase và phải khoá y hệt
+   màn này. Để mỗi màn giữ một bản sao là mở đường cho chuyện màn này khoá còn màn kia mở. */
 
 export function AtlasPage() {
   const data = useCxmStore((s) => s.data);
@@ -190,9 +166,7 @@ export function AtlasPage() {
         {data.phases.map((p) => {
           const flowsOfP = data.flows.filter((f) => phaseIdOfFlow(f, data.groups) === p.id);
           const on = p.id === selectedPhaseId;
-          const lockReason = PILOT_PHASE_CODES.has(p.code)
-            ? undefined
-            : phaseLockReason(p.name, flowsOfP.length, flowsOfP.filter((f) => f.observed).length);
+          const lockReason = lockReasonForPhase(p, data.flows, data.groups) ?? undefined;
           return (
             <button
               key={p.id}

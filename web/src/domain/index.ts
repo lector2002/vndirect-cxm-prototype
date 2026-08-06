@@ -1,5 +1,40 @@
 export { fx, esc, BASE_FACTOR } from "./format.ts";
 export { scopeSources, scopeTotal } from "./scope.ts";
+export { PILOT_PHASE_CODES, isPilotPhase, phaseIdOfFlow, phaseLockReason, lockReasonForPhase } from "./pilotScope.ts";
+export {
+  evidenceAtStep,
+  sentimentAtStep,
+  themeRowsAtStep,
+  intentRowsAtStep,
+  voiceCountAtPhase,
+  phaseTaxNode,
+  coverageGapLine,
+  phaseLockNote,
+  quietButVoicedSteps,
+} from "./vocJourney.ts";
+export type { StepThemeRow } from "./vocJourney.ts";
+export {
+  sourcesByProblem,
+  unhealthySources,
+  freshnessCount,
+  continuityCount,
+  instrumentedCount,
+  passiveActive,
+  brokenImpacts,
+  metricsAtRisk,
+  ownersAtRisk,
+  lagText,
+  evidenceOfSource,
+  senBucket,
+  distByIntent,
+  distBySentiment,
+  distByPlatform,
+  distByTheme,
+  distByPhase,
+  surveyCounts,
+  surveysByProblem,
+} from "./sources.ts";
+export type { IntegrityCount, BrokenImpact } from "./sources.ts";
 export { zScores, isAnomaly, countAnomalies } from "./stats.ts";
 export { stepState, stepWhy, metricState, sourceHealth, laneOf } from "./state.ts";
 export type { DerivedState, SourceHealth, LaneKey } from "./state.ts";

@@ -67,6 +67,20 @@ describe("AtlasPage — #/atlas", () => {
     expect(screen.getByTestId(`atlas-flow-${otherPhaseFlow.id}`)).toBeInTheDocument();
   });
 
+  /* Cùng bất biến với #/vocjourney: phase màn tự chọn khi mới vào không được là phase khoá — đứng
+     sẵn bên trong một phase mà màn báo là chưa mở thì màn đang tự cãi mình. Hai màn dùng biểu thức
+     chọn mặc định khác nhau (ở đây là flow observed đầu tiên; bên kia là flow có bằng chứng đầu
+     tiên), nên phải ghim riêng từng màn. Hôm nay cả hai đều rơi vào phase 02 — nhưng đó là thứ tự
+     mảng flow, không phải luật; thêm một flow observed ở phase khoá lên đầu là hỏng. */
+  it("phase màn tự chọn khi mới vào không bao giờ là phase đang khoá", () => {
+    const { container } = render(<AtlasPage />);
+    const selected = [...container.querySelectorAll('[data-testid^="atlas-phase-"]')].filter(
+      (el) => el.getAttribute("aria-pressed") === "true",
+    );
+    expect(selected).toHaveLength(1);
+    expect(selected[0]).not.toHaveAttribute("aria-disabled", "true");
+  });
+
   /* Owner 05/08: "tạm thời lock các stage ko pilot lại để ko bấm được nữa". Ba khẳng định phải cùng
      đúng thì mới gọi là khoá tử tế: nút KHÔNG mất khỏi màn, bấm KHÔNG đổi được lựa chọn, và người
      bấm ĐỌC ĐƯỢC vì sao — bài học 05/08 từ chip chia màu: lý do chỉ nằm trong tooltip thì owner vẫn

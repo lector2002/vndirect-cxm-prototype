@@ -19,7 +19,7 @@ describe("splitTour — chặng nào bản React đi được", () => {
 
   it("KHÔNG đi qua chặng của màn chưa dựng, và nêu tên chúng thay vì bỏ im lặng", () => {
     const { walk, held } = splitTour(seedTour);
-    const unbuiltScreens = ["sources", "topics", "vocjourney"];
+    const unbuiltScreens = ["topics"];
     const routes = new Set(walk.map((s) => screenOf(s.r)));
     for (const r of unbuiltScreens) expect(routes.has(r)).toBe(false);
 
@@ -40,14 +40,36 @@ describe("splitTour — chặng nào bản React đi được", () => {
     }
   });
 
-  it("đi qua đủ chặng của bốn màn đã dựng: cxm, atlas, voc, topic", () => {
+  /* Ca hẹp hơn hai ca trên: `#/vocjourney` đã dựng, nhưng chỉ MỘT trong hai chặng của nó nói đúng.
+     Giữ theo màn sẽ chôn theo cả chặng đúng, nên khoá theo tên mốc — canh đúng điều đó ở đây. */
+  it("màn vocjourney đã dựng: đi chặng nói đúng, giữ RIÊNG chặng lời dẫn sai", () => {
+    const { walk, held } = splitTour(seedTour);
+    expect(walk.some((s) => s.sel.includes("voc-spine"))).toBe(true);
+    const inspector = held.find((h) => h.stop.sel.includes("voc-inspector"));
+    expect(inspector?.reason).toContain("mở ở tab Topic");
+    // Chặng anh em cùng màn KHÔNG bị giữ lây.
+    expect(held.some((h) => h.stop.sel.includes("voc-spine"))).toBe(false);
+  });
+
+  /* `#/sources` vừa dựng: CẢ HAI chặng đi được. Khác `#/vocjourney` ở chỗ lời dẫn của chặng hồ sơ
+     ("Bấm một nguồn để mở hồ sơ") tả ĐÚNG hành vi màn — mốc chỉ vắng lúc chưa bấm, và ca vắng mốc
+     đã có câu riêng ở `absentReason`. Vắng mốc thì đi tiếp và nói ra; lời dẫn sai mới phải giữ. */
+  it("màn sources đã dựng: đi cả hai chặng, không chặng nào bị giữ", () => {
+    const { walk, held } = splitTour(seedTour);
+    expect(walk.filter((s) => screenOf(s.r) === "sources")).toHaveLength(2);
+    expect(held.some((h) => screenOf(h.stop.r) === "sources")).toBe(false);
+  });
+
+  it("đi qua đủ chặng của sáu màn đã dựng: cxm, atlas, voc, topic, vocjourney, sources", () => {
     const { walk } = splitTour(seedTour);
     const count = (r: string) => walk.filter((s) => screenOf(s.r) === r).length;
     expect(count("cxm")).toBe(3);
     expect(count("atlas")).toBe(3);
     expect(count("voc")).toBe(2);
     expect(count("topic")).toBe(1);
-    expect(walk).toHaveLength(9);
+    expect(count("vocjourney")).toBe(1);
+    expect(count("sources")).toBe(2);
+    expect(walk).toHaveLength(12);
   });
 
   /* Chặng đi được mà selector khai sai dạng thì tour chỉ vào chỗ trống. Canh dạng ở đây; còn mốc có
@@ -64,8 +86,10 @@ describe("heldSummary — nói ra phần chưa đi được", () => {
     const { held } = splitTour(seedTour);
     const text = heldSummary(held)!;
     expect(text).toContain(`còn ${held.length} chặng chưa đi được`);
-    expect(text).toContain("6 chặng màn chưa dựng ở bản React");
+    // Còn đúng `#/topics` chưa dựng — `#/sources` đã lên 06/08 nên rời khỏi nhóm này.
+    expect(text).toContain("2 chặng màn chưa dựng ở bản React");
     expect(text).toContain("3 chặng lời dẫn còn tả bố cục cũ");
+    expect(text).toContain("1 chặng lời dẫn nói hồ sơ mở sẵn ở tab Verbatim");
   });
 
   it("không có gì bị giữ lại thì không dựng câu thừa", () => {
@@ -80,9 +104,11 @@ describe("absentReason — vì sao không tô sáng được", () => {
   it("mỗi mốc đã biết có lý do riêng, không dùng chung một câu", () => {
     const inspector = absentReason('[data-tour="atlas-inspector"]');
     const spine = absentReason('[data-tour="atlas-spine"]');
+    const profile = absentReason('[data-tour="src-profile"]');
     expect(inspector).toContain("chọn một bước");
     expect(spine).toContain("ngoài pilot");
-    expect(inspector).not.toBe(spine);
+    expect(profile).toContain("bấm một nguồn");
+    expect(new Set([inspector, spine, profile]).size).toBe(3);
   });
 
   it("mốc chưa lường trước thì NHẬN là chưa rõ, không mượn lý do của mốc khác", () => {
@@ -100,7 +126,8 @@ describe("absentReason — vì sao không tô sáng được", () => {
 describe("holdReason", () => {
   it("trả null cho màn đã dựng, trả lý do đọc được cho màn chưa dựng", () => {
     expect(holdReason(stopAt("atlas"))).toBeNull();
-    expect(holdReason(stopAt("sources"))).toBe("màn chưa dựng ở bản React");
+    expect(holdReason(stopAt("sources"))).toBeNull();
+    expect(holdReason(stopAt("topics"))).toBe("màn chưa dựng ở bản React");
   });
 
   it("đọc đúng segment đầu của route có tham số (topic/x-th-device)", () => {
