@@ -3,6 +3,7 @@ import type { Flow, Obs } from "../../data/schema/index.ts";
 import { fx, lockReasonForPhase, phaseIdOfFlow, stepState, stepWhy } from "../../domain/index.ts";
 import { Badge, Card, JourneySpine, Note } from "../../design-system/index.ts";
 import type { SpineStep } from "../../design-system/index.ts";
+import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
 import { AtlasStepInspector } from "./AtlasStepInspector.tsx";
 
@@ -137,7 +138,10 @@ export function AtlasPage() {
 
   return (
     <div className="p-8">
-      {/* 0. KHÔNG có hero, KHÔNG có đoạn dẫn — owner bỏ 05/08.
+      <PageTitle route="atlas" />
+
+      {/* 0. Ngoài tên tab thì KHÔNG có gì nữa ở đầu màn — owner bỏ 05/08, chốt thành luật chung cho
+          mọi màn 06/08 (kèm yêu cầu giữ lại tên tab).
 
           Prototype mở màn bằng một dòng đếm ("32 flow trên 6 phase…") và một đoạn hướng dẫn đọc
           ("Chọn phase ở hàng trên…", "bề dày dải nối cho biết…"). Cả hai đã bỏ theo yêu cầu owner:

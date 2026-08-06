@@ -3,6 +3,7 @@ import type { Issue } from "../../data/schema/index.ts";
 import type { ConfirmFields, CreateIssueFields } from "../../data/repository.ts";
 import { advanceBlockedReason, getPrimaryAction, laneOf } from "../../domain/index.ts";
 import { IssueBar, Note, btnPrimary, btnSecondary, btnSizeLg, btnSizeSm } from "../../design-system/index.ts";
+import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
 import { WorkCreateForm } from "./WorkCreateForm.tsx";
 import { WorkConfirmForm } from "./WorkConfirmForm.tsx";
@@ -119,9 +120,17 @@ export function WorkPage() {
      công thức gốc còn bắt được cả trường hợp bất thường validated+blocked. */
   const waitLoop = act.filter((a) => a.iv === "validated" && a.lc !== "closed").length;
 
-  const hero = pendingConfirm
-    ? `${pendingConfirm} điểm gãy chờ xác nhận, ${pend} đang chờ duyệt.`
-    : `${onBoard} điểm gãy đang trong vòng xử lý, ${pend} chờ người có thẩm quyền quyết định.`;
+  /* Trước 06/08 hai phép đếm này nằm trong một câu mở đầu cỡ lớn ở đầu màn. Owner bỏ khối câu mở
+     đầu trên MỌI màn, nhưng ở đây khác hai màn Topic/Nguồn: không chỗ nào khác trên màn nói ra
+     chúng, xoá thẳng là mất thông tin thật. Nên chúng xuống hàng chip có sẵn cạnh "chờ khép
+     vòng"/"Đã xong" — cùng một hàng đếm, cùng cỡ chữ, đọc được cả bốn trong một liếc.
+
+     Vẫn giữ hai nhánh của câu cũ: khi CÓ việc chờ xác nhận thì đó là việc gấp nhất nên nêu riêng;
+     khi hết thì nói tổng số đang trong vòng xử lý, vì "0 chờ xác nhận" không đáng một chip mà lại
+     đẩy con số đáng xem ra xa. */
+  const loadChip = pendingConfirm
+    ? `${pendingConfirm} chờ xác nhận`
+    : `${onBoard} trong vòng xử lý`;
 
   /* Danh sách thanh — lọc theo `lc !== 'closed'`, KHÔNG dùng `laneOf(a) !== 'off'`: `lc==='ready'`
      kéo theo `iv==='validated'` nên laneOf trả 'off' — lọc bằng laneOf sẽ làm việc đang CHỜ KHÉP
@@ -140,13 +149,7 @@ export function WorkPage() {
 
   return (
     <div className="p-8">
-      <h1 className="t-hero max-w-[32ch] mb-2">{hero}</h1>
-      <p className="t-meta max-w-[88ch] mb-3.5">
-        Danh sách dưới đây là việc còn cần tay người, xếp theo điểm ưu tiên. Mỗi thanh là một điểm
-        gãy; dải bốn chặng trên thanh cho biết nó đang ở đâu. Việc đã khép vòng rời khỏi danh sách
-        xuống hai khối cuối màn — đây không phải kho lưu trữ. Nút trên thanh chạy đúng bước kế tiếp
-        của thanh đó.
-      </p>
+      <PageTitle route="work" />
 
       <div className="flex items-center gap-2.5 flex-wrap mb-3.5">
         <button
@@ -161,6 +164,24 @@ export function WorkPage() {
           Chỉ tạo khi xác định được bước trong hành trình và chỉ số dùng để kết luận.
         </span>
         <div className="grow" />
+        {/* Bốn chip đếm, xếp theo thứ tự việc chảy qua: đang tới → chờ duyệt → chờ khép vòng → đã
+            xong. Hai chip đầu là hai phép đếm dời từ câu mở đầu cũ xuống (owner 06/08). */}
+        <span
+          data-testid="chip-load"
+          className="inline-block px-2 py-0.5 rounded-[7px] text-[11px] font-bold border whitespace-nowrap bg-surface-2 border-line text-ink-2"
+        >
+          {loadChip}
+        </span>
+        {/* Chờ duyệt = đã xác nhận nhưng còn đợi người có thẩm quyền. Vắng hẳn khi bằng 0, cùng
+            luật với chip "chờ khép vòng" ngay dưới — hàng chip đếm việc ĐANG có, không đếm số 0. */}
+        {pend > 0 ? (
+          <span
+            data-testid="chip-pend"
+            className="inline-block px-2 py-0.5 rounded-[7px] text-[11px] font-bold border whitespace-nowrap bg-surface-2 border-line text-ink-2"
+          >
+            {`${pend} chờ duyệt`}
+          </span>
+        ) : null}
         {waitLoop > 0 ? (
           <span
             data-testid="chip-waitloop"

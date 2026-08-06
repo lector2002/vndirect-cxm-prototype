@@ -10,6 +10,7 @@ import {
   risingThemes,
   themesByVolume,
 } from "../../domain/index.ts";
+import { navLabel } from "../../nav.tsx";
 import { effectiveMonths, maxRealMonths } from "../overview/sec.ts";
 import { useTimeframeStore } from "../../store/timeframe.ts";
 import { TopicsPage } from "./TopicsPage.tsx";
@@ -50,9 +51,12 @@ describe("TopicsPage — hai phép đếm nền của màn khác nhau thật", (
     expect(risingThemes(demoData, months0()).length).not.toBe(themesByVolume(demoData).length);
   });
 
-  it("màn không còn câu mở đầu ở đầu trang", () => {
-    renderPage();
+  it("đầu màn chỉ có tên tab, không còn câu mở đầu", () => {
+    const { container } = renderPage();
     expect(screen.queryByTestId("topics-hero")).not.toBeInTheDocument();
+    const h1s = container.querySelectorAll("h1");
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0]).toHaveTextContent(navLabel("topics"));
   });
 });
 

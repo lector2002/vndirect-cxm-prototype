@@ -14,6 +14,7 @@ import { SettingsPage } from './features/settings/SettingsPage.tsx'
 import { TourOverlay } from './features/tour/TourOverlay.tsx'
 import { DemoBanner } from './features/settings/DemoBanner.tsx'
 import { useCxmStore } from './store/store.ts'
+import { NAV_GROUPS, NAV_ITEMS } from './nav.tsx'
 
 /* Route (segment đầu URL) hiện có dữ liệu/chart thật trong src/ hiện nay — TimeframeBar chỉ mount
    trên các route này. 'topics' vào set này ngày 06/08 khi TopicsPage thật được dựng: màn đó vẽ
@@ -23,43 +24,9 @@ import { useCxmStore } from './store/store.ts'
    nào là vi phạm quy tắc "ẩn trên Placeholder". */
 const TIMEFRAME_ROUTES = new Set(['cxm', 'voc', 'quantify', 'work', 'topics'])
 
-/** IA 13 view / 4 nhóm (giữ từ prototype). Tour đã dựng — xem features/tour/. */
-const NAV_GROUPS: { g: string; items: { r: string; l: string }[] }[] = [
-  {
-    g: 'CXM · Quản trị trải nghiệm',
-    items: [
-      { r: 'cxm', l: 'Tổng quan CXM' },
-      { r: 'atlas', l: 'Bản đồ hành trình' },
-      { r: 'work', l: 'Bảng xử lý' },
-    ],
-  },
-  {
-    g: 'Voice of Customer',
-    items: [
-      { r: 'voc', l: 'Tổng quan VoC' },
-      { r: 'sources', l: 'Nguồn dữ liệu' },
-      { r: 'topics', l: 'Topic & xu hướng' },
-      { r: 'vocjourney', l: 'VoC theo hành trình' },
-    ],
-  },
-  {
-    g: 'Công cụ',
-    items: [
-      { r: 'quantify', l: 'Quantify' },
-      { r: 'assistant', l: 'Trợ lý' },
-    ],
-  },
-  {
-    g: 'Quản trị',
-    items: [
-      { r: 'rules', l: 'Chỉ số & ngưỡng' },
-      { r: 'agents', l: 'Agent & cảnh báo' },
-      { r: 'settings', l: 'Cài đặt' },
-    ],
-  },
-]
-
-const ALL = NAV_GROUPS.flatMap((grp) => grp.items)
+/* NAV_GROUPS dời sang `nav.tsx` ngày 06/08: từ khi mỗi màn in tên tab ở đầu trang, cái nhãn đó có
+   HAI nơi hiện — mục sáng ở sidebar và tiêu đề màn — nên nó phải có đúng một nơi khai. */
+const ALL = NAV_ITEMS
 
 function Placeholder({ name }: { name: string }) {
   return (

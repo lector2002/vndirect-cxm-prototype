@@ -1,3 +1,4 @@
+import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
 
 export type SettingsPageProps = {
@@ -16,7 +17,7 @@ export function SettingsPage({ useStore = useCxmStore }: SettingsPageProps) {
 
   return (
     <div className="p-8">
-      <h1 className="t-hero">Cài đặt</h1>
+      <PageTitle route="settings" />
 
       <div className="mt-6 max-w-xl border border-line rounded-xl bg-surface p-4 flex items-center justify-between gap-4">
         <div>

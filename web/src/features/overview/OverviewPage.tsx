@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Cfg, CxmData, Dim } from "../../data/schema/index.ts";
 import { Note, QuantifyWidget } from "../../design-system/index.ts";
+import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
 import { useTimeframeStore } from "../../store/timeframe.ts";
 import {
@@ -139,6 +140,9 @@ export function OverviewPage({ sec, useStore = useCxmStore }: OverviewPageProps)
 
   return (
     <div className="p-8">
+      {/* `sec` LÀ route ('cxm' | 'voc') nên tiêu đề tra thẳng nhãn tab bằng nó — hai màn dùng chung
+          component này, khỏi phải viết hai chuỗi tên rồi trông chúng khớp với sidebar. */}
+      <PageTitle route={sec} />
       <SetChips
         sets={sets}
         currentId={cur.id}

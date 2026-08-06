@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { BLOCKS } from "../../data/blocks.ts";
 import { MockRepository } from "../../data/mock-repository.ts";
+import { navLabel } from "../../nav.tsx";
 import { createCxmStore } from "../../store/store.ts";
 import { DEFAULT_RANGE, useTimeframeStore } from "../../store/timeframe.ts";
 import { OverviewPage } from "./OverviewPage.tsx";
@@ -127,11 +128,17 @@ describe("OverviewPage — F1: set mặc định của mỗi phần", () => {
   });
 });
 
-describe("OverviewPage — hero + dòng meta owner/role + provenance + desc ĐÃ CẮT (declutter 02/08, thay bằng TimeframeBar global)", () => {
-  it("#/cxm KHÔNG còn <h1> hero, không còn dòng meta owner/role/shared, KHÔNG còn desc/provenance", () => {
+/* 06/08: owner chốt "chỉ giữ lại tên tab" cho MỌI màn, nên `<h1>` quay lại — nhưng chỉ đúng một
+   dòng tên tab, không phải câu hero cũ. Hai test này trước ghim "không còn <h1> nào"; ghim như vậy
+   giờ vừa sai vừa quá rộng. Đổi thành: `<h1>` PHẢI có, đúng MỘT cái, và đúng bằng nhãn trong
+   sidebar — còn toàn bộ nội dung hero cũ (kick label, dòng owner/role, provenance, desc) vẫn vắng. */
+describe("OverviewPage — đầu màn chỉ còn tên tab; meta owner/role + provenance + desc vẫn ĐÃ CẮT", () => {
+  it("#/cxm in đúng nhãn tab, không còn dòng meta owner/role/shared, KHÔNG còn desc/provenance", () => {
     const store = createCxmStore(new MockRepository());
     const { container } = renderAt("/cxm", store);
-    expect(container.querySelector("h1")).not.toBeInTheDocument();
+    const h1s = container.querySelectorAll("h1");
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0]).toHaveTextContent(navLabel("cxm"));
     expect(container.querySelector('[data-testid="overview-kick"]')).not.toBeInTheDocument();
     // b-cxm-exec: owner 'Thu Hà · Head of CX', role 'Head of CX / CX Manager' — dòng SetMeta cũ
     // ghép owner/role/shared bằng ' · '; SetMeta đã xóa nên các cụm này không còn xuất hiện.
@@ -144,10 +151,15 @@ describe("OverviewPage — hero + dòng meta owner/role + provenance + desc ĐÃ
     expect(screen.queryByText(/Bốn câu của người điều hành/)).not.toBeInTheDocument();
   });
 
-  it("#/voc KHÔNG còn <h1> hero", () => {
+  /* Hai màn dùng CHUNG component, chỉ khác prop `sec` — nên đây không phải bản sao thừa của test
+     trên: nó chốt rằng tiêu đề đi theo `sec`, không phải một chuỗi đóng cứng cho màn CXM. */
+  it("#/voc in nhãn tab CỦA NÓ, không mượn tên của #/cxm", () => {
     const store = createCxmStore(new MockRepository());
     const { container } = renderAt("/voc", store);
-    expect(container.querySelector("h1")).not.toBeInTheDocument();
+    const h1s = container.querySelectorAll("h1");
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0]).toHaveTextContent(navLabel("voc"));
+    expect(h1s[0]).not.toHaveTextContent(navLabel("cxm"));
   });
 });
 

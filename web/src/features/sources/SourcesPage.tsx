@@ -15,6 +15,7 @@ import {
 import type { IntegrityCount } from "../../domain/index.ts";
 import { Badge, Note, SrcMatrix, Stat } from "../../design-system/index.ts";
 import { nf } from "../../design-system/format.ts";
+import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
 import { SourceProfile } from "./SourceProfile.tsx";
 
@@ -93,11 +94,12 @@ export function SourcesPage() {
 
   return (
     <div className="p-8">
-      {/* KHÔNG có câu mở đầu ở đầu màn (quyết định owner 05/08, áp cho Bản đồ hành trình rồi mở ra
-          mọi màn 06/08). Không mất thông tin nào: mỗi ô đếm đã tự nói nó đang đếm gì ở dòng chân ô,
-          còn "chỉ số nào đang ăn dữ liệu hỏng" thì khối "Hệ quả cụ thể" cuối màn nêu ĐÍCH DANH từng
-          chỉ số theo từng nguồn — chi tiết hơn hẳn con số tổng ở câu mở đầu cũ. `atRisk` mất caller
-          cuối cùng ở màn này nên bỏ luôn; `metricsAtRisk` vẫn sống vì `ownersAtRisk` gọi nó. */}
+      {/* Đầu màn chỉ còn tên tab (quyết định owner 06/08). Không mất thông tin nào: mỗi ô đếm đã tự
+          nói nó đang đếm gì ở dòng chân ô, còn "chỉ số nào đang ăn dữ liệu hỏng" thì khối "Hệ quả
+          cụ thể" cuối màn nêu ĐÍCH DANH từng chỉ số theo từng nguồn — chi tiết hơn hẳn con số tổng
+          ở câu mở đầu cũ. `atRisk` mất caller cuối cùng ở màn này nên bỏ luôn; `metricsAtRisk` vẫn
+          sống vì `ownersAtRisk` gọi nó. */}
+      <PageTitle route="sources" />
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 mb-4" data-testid="src-stats">
         <Stat

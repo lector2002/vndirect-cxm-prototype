@@ -12,6 +12,7 @@ import {
   unhealthySources,
 } from "../../domain/index.ts";
 import { nf } from "../../design-system/format.ts";
+import { navLabel } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
 import { SourcesPage } from "./SourcesPage.tsx";
 
@@ -65,6 +66,14 @@ describe("SourcesPage — khối hệ quả nói đúng thứ dữ liệu chứn
     const impact = screen.getByTestId("src-impact");
     expect(impact).not.toHaveTextContent("làm sai");
     expect(impact).toHaveTextContent("không nói được");
+  });
+
+  it("đầu màn chỉ có tên tab, không còn câu mở đầu", () => {
+    const { container } = render(<SourcesPage />);
+    expect(screen.queryByTestId("src-hero")).not.toBeInTheDocument();
+    const h1s = container.querySelectorAll("h1");
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0]).toHaveTextContent(navLabel("sources"));
   });
 
   it("không nguồn nào hỏng thì khối hệ quả biến mất hẳn, không in khung rỗng", () => {

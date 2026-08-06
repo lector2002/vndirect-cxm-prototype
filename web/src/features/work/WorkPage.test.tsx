@@ -2,6 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { seed } from "../../data/fixtures/seed.ts";
 import { getPrimaryAction } from "../../domain/index.ts";
+import { navLabel } from "../../nav.tsx";
 import { WorkPage } from "./WorkPage.tsx";
 import { useCxmStore } from "../../store/store.ts";
 
@@ -41,12 +42,22 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
     expect(domIds).toEqual(expectedIds);
   });
 
-  it("dòng hero khớp nhánh pendingConfirm > 0, hai con số suy lại từ seed", () => {
+  /* Hai phép đếm này trước nằm trong câu mở đầu cỡ lớn; owner bỏ khối đó ngày 06/08 và chọn dời
+     chúng xuống hàng chip (phương án 1). Test đi theo: cùng hai con số, cùng suy lại từ seed, chỉ
+     đổi chỗ đọc. */
+  it("hai phép đếm nằm ở hàng chip, khớp nhánh pendingConfirm > 0, suy lại từ seed", () => {
     render(<WorkPage />);
     expect(pendingConfirm).toBeGreaterThan(0);
-    expect(
-      screen.getByText(`${pendingConfirm} điểm gãy chờ xác nhận, ${pend} đang chờ duyệt.`),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("chip-load")).toHaveTextContent(`${pendingConfirm} chờ xác nhận`);
+    expect(screen.getByTestId("chip-pend")).toHaveTextContent(`${pend} chờ duyệt`);
+  });
+
+  it("đầu màn chỉ có tên tab, không còn câu đếm mở đầu", () => {
+    const { container } = render(<WorkPage />);
+    const h1s = container.querySelectorAll("h1");
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0]).toHaveTextContent(navLabel("work"));
+    expect(h1s[0]).not.toHaveTextContent("điểm gãy");
   });
 
   it(`chip "Đã xong ${closed}" luôn hiện`, () => {
@@ -186,14 +197,15 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
     expect(screen.getByTestId("banner-mkok")).toHaveTextContent("chặng Xác nhận");
     expect(screen.queryByTestId("banner-asok")).not.toBeInTheDocument();
 
-    // criterion 8: pendingConfirm +1, hero line + chip cập nhật đúng (suy lại từ store SAU khi tạo,
-    // không phải từ seed tĩnh — vì test advance ở đầu file đã đổi state trước đó), bar mới đúng hạn
-    // dd/MM/yyyy.
+    // criterion 8: pendingConfirm +1, hàng chip cập nhật đúng (suy lại từ store SAU khi tạo, không
+    // phải từ seed tĩnh — vì test advance ở đầu file đã đổi state trước đó), bar mới đúng hạn
+    // dd/MM/yyyy. Hai chip đếm này trước là một câu mở đầu; owner dời xuống hàng chip 06/08.
     const afterCreate = useCxmStore.getState().data;
     const pendingConfirmAfter = afterCreate.act.filter((a) => a.cf === "pending").length;
     expect(pendingConfirmAfter).toBe(pendingConfirmBefore + 1);
     const pendAfter = afterCreate.act.filter((a) => a.cf === "confirmed" && a.ap === "pending").length;
-    expect(screen.getByText(`${pendingConfirmAfter} điểm gãy chờ xác nhận, ${pendAfter} đang chờ duyệt.`)).toBeInTheDocument();
+    expect(screen.getByTestId("chip-load")).toHaveTextContent(`${pendingConfirmAfter} chờ xác nhận`);
+    expect(screen.getByTestId("chip-pend")).toHaveTextContent(`${pendAfter} chờ duyệt`);
     const closedAfter = afterCreate.act.filter((a) => a.lc === "closed").length;
     expect(screen.getByTestId("chip-closed")).toHaveTextContent(`Đã xong ${closedAfter}`);
     const newBar = screen.getByTestId(`issue-bar-${newIssue.id}`);

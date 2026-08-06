@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { QuantifyView } from "../../data/schema/index.ts";
 import { Modal, btnPrimary, btnSecondary, btnSizeLg } from "../../design-system/index.ts";
+import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
 import { QB_DEF, QuantifyBuilder, type QbState } from "./QuantifyBuilder.tsx";
 import { QuantifyDetail } from "./QuantifyDetail.tsx";
@@ -311,7 +312,8 @@ export function QuantifyPage() {
   return (
     <div className="p-8">
       <div className="flex items-end justify-between gap-4 flex-wrap mb-4">
-        <h1 className="t-hero">Quantify</h1>
+        {/* Tên gõ tay trước đây trùng nhãn tab một cách may mắn; từ 06/08 nó tra thẳng từ nav. */}
+        <PageTitle route="quantify" />
         <div className="flex gap-2">
           <button
             type="button"

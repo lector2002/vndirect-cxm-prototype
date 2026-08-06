@@ -12,6 +12,7 @@ import {
 } from "../../domain/index.ts";
 import { Badge, Card, Note } from "../../design-system/index.ts";
 import { nf } from "../../design-system/format.ts";
+import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
 import { VocTouchpointInspector } from "./VocTouchpointInspector.tsx";
 
@@ -93,11 +94,11 @@ export function VocJourneyPage() {
 
   return (
     <div className="p-8">
-      {/* Câu luận đề — GIỮ nội dung prototype dòng 2694. Đây là chỗ duy nhất nói ra vì sao màn này
-          tồn tại bên cạnh bản đồ hành trình. */}
-      <h1 className="t-hero max-w-[46ch] mb-3.5">
-        Bản đồ hành trình đo <i>hành vi</i>. Màn này đo <i>tiếng nói</i> tại cùng những điểm chạm đó.
-      </h1>
+      {/* Chỗ này từng là câu luận đề port từ prototype dòng 2694 ("Bản đồ hành trình đo hành vi.
+          Màn này đo tiếng nói tại cùng những điểm chạm đó"). Owner bỏ khối câu mở đầu trên mọi màn
+          06/08, để lại đúng tên tab. Câu đó là lý lẽ THIẾT KẾ — nó thuộc về tài liệu, không phải
+          thứ người dùng phải đọc lại mỗi lần mở màn; nội dung đã ghi ở docs/DB-FIRST-HANDOFF.md. */}
+      <PageTitle route="vocjourney" />
 
       {/* 1. Rail phase — MỘT đơn vị: bằng chứng mẫu gắn tới điểm chạm trong phase. */}
       <div

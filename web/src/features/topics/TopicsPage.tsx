@@ -12,6 +12,7 @@ import {
 import { AxisLabel, Card, Note, TopicLineChart } from "../../design-system/index.ts";
 import { TopicTrendBlock } from "../overview/blocks/index.ts";
 import { effectiveMonths, maxRealMonths } from "../overview/sec.ts";
+import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
 import { useTimeframeStore } from "../../store/timeframe.ts";
 
@@ -75,10 +76,10 @@ export function TopicsPage({ useStore = useCxmStore }: TopicsPageProps) {
 
   return (
     <div className="max-w-[1240px] mx-auto px-6 py-5">
-      {/* KHÔNG có câu mở đầu ở đầu màn (quyết định owner 05/08, áp cho Bản đồ hành trình rồi mở ra
-          mọi màn 06/08): đó là chỗ ngốn chiều cao trước khi người xem thấy được gì, và mọi thứ nó
-          nói đều đã có mặt ngay tại chỗ cần — số topic đang mở và ba nhóm chuyển động nằm trong dải
-          mẫu số của chart, số kỳ nằm ở nhãn trục, cách bấm nằm ở câu cuối màn. */}
+      {/* Đầu màn chỉ còn tên tab (quyết định owner 06/08). Câu dẫn cũ bỏ hết vì mọi thứ nó nói đã
+          có mặt ngay tại chỗ cần: số topic đang mở và ba nhóm chuyển động nằm trong dải mẫu số của
+          chart, số kỳ nằm ở nhãn trục, cách bấm nằm ở câu cuối màn. */}
+      <PageTitle route="topics" />
 
       {/* Node cần người quyết: hệ thống chỉ PHÁT HIỆN, không tự gộp/tách. Nút dẫn thẳng vào node
           đó thay vì bắt người đọc tự tìm trong bảng. */}
