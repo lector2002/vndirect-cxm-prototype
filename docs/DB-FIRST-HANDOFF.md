@@ -6,7 +6,7 @@ _Cập nhật: 2026-08-05 (đợt 3 — pilot mở rộng). Đọc file này + `
 
 - `main` = **`c6767d6`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`) · tài liệu S3 (`725d24d`+`c6767d6`).
 - **Working tree KHÔNG sạch.** Pilot mở rộng (đợt 3, 05/08) + ba vòng sửa layout + đổi điểm đo liveness + mở chia màu Quantify + **bản đồ hành trình bù cho bằng prototype & khoá phase ngoài pilot** + **hồ sơ bước lên đủ ba tab** + **bộ máy tour** đã làm xong và tự kiểm nhưng **chưa commit**. Owner chưa yêu cầu commit.
-- `npx tsc -b` sạch. **911/911 test xanh (82 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → 893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình) → 903/82 (độ phủ đổi sang phân bố theo dải) → 908/82 (bấm dải mở danh sách bước tại chỗ) → **911/82 (cắt @topictrend + @journeystate)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
+- `npx tsc -b` sạch. **999/999 test xanh (86 file)**. Các mốc đã đi qua: 727/72 (trước S1) → 749/73 (sau S1) → 751/74 (S2+S4) → 754/74 (S3a-1) → 793/77 (S3c-1) → 814/78 (S3c-2a) → 827/79 (S3c-2b) → 828/79 (pilot mở rộng) → 861/80 (Atlas + ba tab) → 877/82 (bộ máy tour) → 883/82 (sửa nền tối đóng tour + lý do vắng mốc theo từng chặng) → 893/82 (bỏ hero Atlas + gộp khối "gãy ở đâu" theo hành trình) → 903/82 (độ phủ đổi sang phân bố theo dải) → 908/82 (bấm dải mở danh sách bước tại chỗ) → 911/82 (cắt @topictrend + @journeystate) → 951/84 (màn VoC theo hành trình + ghim phase mặc định không rơi vào phase khoá) → 995/86 (màn Nguồn dữ liệu) → **999/86 (`lagText` về `domain/` + ghim tiền đề fixture)**. Dùng mốc gần nhất để đối chiếu, đừng dùng số cũ.
 - **Cả stream đã xong về code, kể cả việc treo cuối cùng (bộ máy tour).** Còn lại là việc của owner + việc chờ dữ liệu thật: xem "Còn hở" và "Việc còn lại của stream".
 - Tài liệu thiết kế owner đã duyệt: **`output/thiet-ke-chart-signal.html`** (6 vòng) + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** (bổ sung đợt 2, owner chốt 04/08/2026) — cả hai là nguồn sự thật cho stream này, đọc trước khi code. `output/thiet-ke-chieu-phan-tich.html` và `output/thiet-ke-db-first.html` là của stream trước, còn giá trị lịch sử.
 
@@ -560,6 +560,130 @@ Chẩn đoán: bản đồ hành trình trả lời *"khách rơi ở đâu"*, k
 - Đường sang bản đồ hành trình **vẫn còn** nhưng thành link phụ cuối khối, kèm một câu nói rõ mỗi màn trả lời câu gì.
 
 `tsc -b` sạch, **911 test xanh / 82 file**.
+
+## Màn "VoC theo hành trình" `#/vocjourney` — dựng mới 06/08
+
+Màn thứ tám có thân thật (sau `#/cxm`, `#/voc`, `#/atlas`, `#/work`, `#/quantify`, `#/topic`, `#/settings`). Port `V.vocjourney` của prototype (dòng 2671-2759) + `vocInspector` (2762-2823).
+
+**Vì sao nó tồn tại bên cạnh bản đồ hành trình:** cùng ba nhịp điều hướng (phase → flow → chuỗi điểm chạm), khác thứ đo. `#/atlas` đo **hành vi** (bao nhiêu người vào, hoàn tất, rơi); màn này đo **tiếng nói** (khách nói gì ở đó, sắc thái ra sao). Đặt cạnh nhau mới lộ ra chỗ hành vi im lặng mà tiếng nói thì không.
+
+### Phạm vi pilot dời sang `domain/pilotScope.ts`
+
+Hai màn dùng chung rail phase, nên luật "phase nào mở, phase nào khoá, khoá thì nói lý do gì" **không còn nằm trong một màn**. `PILOT_PHASE_CODES` + `phaseLockReason` + `phaseIdOfFlow` từ `AtlasPage.tsx` chuyển hết vào `domain/pilotScope.ts`; cả hai màn đọc một bản. Owner đổi phạm vi thì sửa đúng một chỗ. Để mỗi màn giữ một bản sao là mở đường cho chuyện màn này khoá còn màn kia mở.
+
+### Hai mẫu số cùng sống trên một màn — cái bẫy chính
+
+Đây là chỗ dễ lặp lại đúng lỗi đã sửa ba lần ở `@coverage`/`@topictrend`/`@journeystate`:
+
+| Con số | Nghĩa | Phase 04 Giao dịch |
+|---|---|---|
+| `TaxNode.n` (tầng L1 gắn với phase) | volume **tổng hợp** taxonomy khai | **1.900** — cao nhất trong sáu phase |
+| `Evidence` gắn tới bước | **bằng chứng mẫu**, đếm được từng cái | **51** |
+
+Prototype in `n` lên rail kèm chữ "phản hồi" và in số evidence ở hồ sơ điểm chạm kèm chữ "bằng chứng mẫu" — hai đơn vị, hai chỗ, không nói với nhau. Người đọc lướt rail sẽ kết luận phase 04 nhiều tiếng nói nhất.
+
+**Cách xử:** rail mang **đúng một đơn vị** (bằng chứng mẫu, cùng đơn vị với spine). Số của taxonomy vẫn hiện, nhưng ở đúng một chỗ — `coverageGapLine`, câu nói ra *khoảng cách* giữa hai con số, nơi chênh lệch chính là nội dung.
+
+### Một phát hiện thật khi đo, owner cần biết
+
+Flow **"Mở tài khoản phái sinh"** (5 bước, **51 bằng chứng mẫu**) nằm ở **phase 04 Giao dịch**, không phải phase 02 như tên gọi khiến người ta tưởng. Phase 04 đang **khoá**. Kéo theo:
+
+- Một trong sáu flow đã đo của pilot **không mở được trên cả hai màn** — Atlas lẫn VoC theo hành trình đều khoá phase 04.
+- Rail in "51 bằng chứng mẫu" trên một ô bấm không vào được. Đã xử bằng `phaseLockNote`: lý do khoá nay nói cả hai vế — *"…đã có 51 bằng chứng mẫu gắn tới điểm chạm, nhưng vẫn nằm ngoài lượt trình bày"*. **Không** tự mở khoá: phạm vi là quyết định của owner.
+- Còn một hệ quả nữa, sát hơn: **cả hai màn tự chọn sẵn một phase khi mới vào**, suy từ flow mặc định — Atlas lấy flow observed đầu tiên, VoC lấy flow có bằng chứng đầu tiên. Nếu biểu thức đó rơi vào một flow ở phase khoá thì màn mới mở đã đứng sẵn bên trong một phase nó vừa báo là chưa mở. Hôm nay chưa xảy ra, và chỉ vì flow phái sinh tình cờ đứng sau trong mảng — **thứ tự mảng, không phải luật**. Đã ghim bằng một test ở mỗi màn: ô phase đang `aria-pressed` khi vừa render không được mang `aria-disabled`.
+- **Việc của owner:** có mở phase 04 (hoặc riêng flow phái sinh) vào lượt trình bày không.
+
+### Cắt danh sách — cùng khuôn với ba chart đã sửa
+
+| Chỗ | Nở tới đâu nếu không cắt | Cắt |
+|---|---|---|
+| Verbatim tại một điểm chạm | **175** (bước `s3`) | hiện 10, đếm phần còn lại ra chữ, mở ra thì cuộn trong `max-h-[520px]` |
+| Topic tại một điểm chạm | **16** node theme+subtheme (bước `s2`) | gộp theo **theme cha**, sub-theme thành chip dưới đúng cha; hiện 6 |
+| Intent | 4 category cố định | không nở |
+| Chuỗi điểm chạm | 4-7 bước/flow | không cần cắt |
+
+Vì sao gộp theo theme cha thay vì cắt danh sách phẳng như prototype: danh sách phẳng trộn hai cấp, cắt theo số đếm thô sẽ **đẩy theme cha xuống dưới sub-theme con của chính nó** — cắt xong mất cha, còn con.
+
+### Ba nghĩa của "trống" ở màn này
+
+`sentimentAtStep` trả `null` khi chưa có bằng chứng nào — **khác hẳn** 0 (đã đọc, thấy trung tính). Trong `demoData` cả 30 bước đều có bằng chứng nên nhánh `null` không bao giờ chạy qua màn; test **dựng thẳng ca rỗng** ra. Một fixture đầy đủ tiện tay là cùng cái bẫy với một fixture nhỏ tiện tay.
+
+Tab Insight là ca chính chứ không phải ngoại lệ: **27 trên 30 bước** chưa có insight nào. Câu chữ tách hai thứ mà một chữ "trống" gộp làm một — *chưa có tiếng nói* và *có tiếng nói nhưng chưa ai tổng hợp*.
+
+### Ba chỗ cố ý không port
+
+- **Đoạn dẫn cách đọc** (2695) — bỏ, cùng lý do đã bỏ ở Atlas. Câu luận đề (2694) thì giữ: đó là nội dung.
+- **Banner "bạn vừa mở từ node …"** (2697-2701) — đọc `ST.sel.vocTax`, đặt bởi màn Topic. Bản React chưa có màn nào đặt được giá trị đó, nhánh không tới được.
+- **Hai nút gọi `drillFeed(...)`** (2781/2786/2802) — hàm đó **không tồn tại** trong prototype: gọi ở ba chỗ, không khai ở đâu, bấm vào là lỗi. Bỏ vì đích đến không có, không phải vì quên.
+
+### Tour: một chặng mở, một chặng vẫn giữ
+
+`vocjourney` vào `SCREEN_BUILT`, nhưng chỉ **một** trong hai chặng của nó đi được. Chặng `voc-inspector` khai *"Hồ sơ điểm chạm mở sẵn ở tab Verbatim"* (`seed.ts:945`) — màn thật mở ở tab **Topic**, và chỉ mở sau khi bấm chọn một điểm chạm. Giữ theo màn sẽ chôn theo cả chặng nói đúng, tự viết lại câu chữ thì phạm ranh giới "lời dẫn thuộc quyền owner", nên thêm cơ chế **khoá theo tên mốc** (`STALE_STOP`). Tour nay đi **10 trên 18 chặng**. **Việc của owner:** bản chữ mới cho chặng đó.
+
+`tsc -b` sạch, **951 test xanh / 84 file**.
+
+## Màn "Nguồn dữ liệu" `#/sources` — dựng mới 06/08
+
+Màn thứ chín có thân thật. Port `V.sources` (prototype dòng 3671-3757) + `srcProfile` (3600-3665).
+
+**Vì sao khảo sát nằm trong màn này** (giữ nguyên lý do prototype dòng 3666-3669): khảo sát cũng là một nguồn phản hồi, chỉ khác ở chỗ **ta tự tạo ra nó** thay vì chờ khách nói. Để riêng một route thì không bao giờ đọc được tỷ lệ *nghe thụ động so với hỏi chủ động* — mà đó chính là con số nói ra ta đang nghe hay đang hỏi. Hôm nay tỷ lệ đó là **92×**.
+
+### Ba phép đếm toàn vẹn, ba thước khác nhau
+
+Prototype xếp bốn ô số cạnh nhau, ba ô đọc trần là "N/M":
+
+| Ô | Đếm gì | Mẫu số |
+|---|---|---|
+| Độ tươi | nguồn còn trong SLA của chính nó | **7 nguồn** |
+| Tính liên tục | nguồn chưa đứt | **7 nguồn** |
+| Độ phủ đo lường | điểm đo đã instrument | **30 điểm đo** |
+
+Bốn ô cùng một hình, hai đơn vị — đúng cái bẫy hai mẫu số vừa xử ở `#/vocjourney`, chỉ chật hơn. **Cách xử:** đơn vị nằm **trong** giá trị (`6/7 nguồn`, `25/30 điểm đo`), nên không có đường nào in trần "6/7" cạnh "25/30". `IntegrityCount` mang theo `unit` như một field bắt buộc, tầng render không bỏ được.
+
+Thêm một chỗ đếm trùng đã sửa: nguồn **đứt hẳn** cũng thoả điều kiện "quá SLA". Prototype trừ nó ở cả hai ô, người đọc thấy hai vấn đề trong khi chỉ có một. Nay `freshnessCount` chỉ đếm trạng thái `stale`.
+
+### Câu cảnh báo cuối màn — thứ đáng nói nhất của lần này
+
+Prototype đóng cứng (dòng 3752): *"Zalo OA ngừng gửi từ 19/07 nên repeat contact **bị đếm thiếu**. Con số 24% trên bảng điều hành **thấp hơn thực tế**."*
+
+Mọi **dữ kiện** trong câu đó đều tra được: nguồn nào đứt, đứt mấy ngày (`lagH` = 192 → 8 ngày), nhận lần cuối (`last`), chỉ số nào ăn nguồn đó (`Source.metrics`), giá trị đang hiện (`Metric.value`). Nay câu đó **sinh từ dữ liệu**, nên đúng với bất kỳ số nguồn hỏng nào — kể cả không nguồn nào hỏng (khối biến mất) hay nhiều nguồn hỏng (mỗi nguồn một dòng).
+
+Riêng **"thấp hơn thực tế" thì không suy được, và tôi đã bỏ.** Công thức của `m-repeat` là *"Khách liên hệ lại ÷ khách có liên hệ"* (`Metric.formula`), mà Zalo OA là một **kênh liên hệ** — mất nó thì hụt **cả tử lẫn mẫu**, dữ liệu không nói được thương số đi lên hay xuống. Màn nay nói ra khoảng hụt rồi **chỉ đúng chủ chỉ số** (`Metric.owner` = CS Center) để hỏi. Cùng kỷ luật với `phaseLockNote`: nói cả hai vế, đừng suy vế không nhìn thấy.
+
+Tiêu đề cũng bỏ chữ "làm sai" vì cùng lý do — *"2 trong 7 nguồn đang có vấn đề, và 2 chỉ số đang ăn dữ liệu từ chúng"* là đúng thứ dữ liệu chứng minh được.
+
+### Hai chỗ khác đã sửa
+
+- **`Math.round(passive / (active || 1))`** — không có khảo sát nào thì prototype trả nguyên tổng volume thụ động dưới dạng "56120×", trông y hệt một phép đo. Nay `ratio` trả `null` và ô số nói bằng chữ ("chưa hỏi").
+- **Nhãn mẫu số trong hồ sơ nguồn.** Prototype in `share + "% tổng bản ghi phản hồi"` — owner đã bác đúng cách gọi đó **01/08** (ghi tại `domain/scope.ts:12-15`): mẫu số `scopeTotal` gộp cả nguồn hành vi (~95% tổng) vốn không có lời khách nào. Nhãn nay là **"tín hiệu khách hàng"**.
+- **Câu "NPS đang tạm dừng"** không còn đóng cứng tên. Khảo sát nào `status='paused'` thì tự nêu tên mình.
+
+### Cắt danh sách — và một chỗ phải nói rõ để phiên sau đừng đọc nhầm
+
+Hôm nay 7 nguồn, 6 khảo sát nên chưa cắt gì, nhưng một ngân hàng đủ nguồn thì bảng dài vài chục dòng. Cả hai bảng cắt ở **8 dòng**, mở ra thì cuộn trong `max-h-[520px]`. Trong hồ sơ nguồn, phân bố **theo topic** cắt ở 6 (tầng theme có 14 node); bốn phân bố còn lại không cần cắt (intent ≤ 4, sắc thái 3, nền tảng ≤ 4, phase 6) — nói ra chỗ **không** cắt cũng là một phần của luật.
+
+**Lưu ý cho phiên sau:** luật cắt owner duyệt nói về **chart**. Bảng nguồn là một **sổ đăng ký**, không phải chart — nó cắt được vì đã xếp nguồn hỏng lên đầu, nên cái cắt đi luôn là nguồn đang khoẻ. Đừng đọc chỗ này thành "mọi bảng đều cắt".
+
+### Tour: hai chặng mở thêm
+
+`sources` vào `SCREEN_BUILT`, **cả hai chặng đi được** — khác `#/vocjourney` ở chỗ lời dẫn của chặng hồ sơ (*"Bấm một nguồn để mở hồ sơ"*, `seed.ts:940`) tả **đúng** hành vi màn. Mốc `src-profile` chỉ vắng lúc chưa bấm, và ca vắng mốc có câu riêng ở `absentReason` — **vắng mốc thì đi tiếp và nói ra; lời dẫn sai mới phải giữ**. Hai chuyện khác nhau, nay có hai cơ chế khác nhau. Tour đi **12 trên 18 chặng**.
+
+### ⚠️ Màn này là BẢN TẠM — owner chốt 06/08
+
+**Danh sách nguồn dữ liệu chưa chốt.** Bảy nguồn đang hiện là giả định của prototype, không phải kết quả kiểm kê thật. Khi bên dữ liệu chốt đủ nguồn, **màn này phải dựng lại** — owner đã nói rõ như vậy.
+
+Cái gì sẽ đổi, cái gì không:
+
+- **Sẽ đổi:** số dòng trong bảng, ba phép đếm toàn vẹn, ma trận nguồn × chỉ số, và câu cảnh báo (nó sinh từ dữ liệu nên tự đổi theo — không phải sửa tay).
+- **KHÔNG nên vứt khi dựng lại:** ba thứ dưới đây là *luật đọc số*, không phải dữ liệu, nên nguồn nào cũng đúng — (1) đơn vị nằm trong kiểu `IntegrityCount` để không in được "N/M" trần, (2) nguồn đứt hẳn không bị đếm lần hai vào ô "trễ", (3) không phán chiều lệch của chỉ số khi nguồn hỏng, chỉ nêu dữ kiện và chỉ đích danh `Metric.owner`.
+
+Nói cách khác: **thân màn là tạm, `domain/sources.ts` thì không.** Dựng lại phần hiển thị, giữ phần số học và bộ test của nó.
+
+### Một chỗ dọn tầng sau khi màn xong
+
+`lagText` — hàm quy `Source.lagH` thành chữ ("trễ 8 ngày") — ban đầu nằm trong `SourceProfile.tsx` và bị `SourcesPage.tsx` import ngược sang. Nó thuần chuỗi, không React, nên đã chuyển xuống `domain/sources.ts` **cạnh `brokenImpacts`** — hai chỗ này cùng quy giờ ra ngày, để tách nhau ra là bảng nói "trễ 7 ngày" còn câu cảnh báo bên dưới nói "8 ngày". Có test riêng cho ba nhánh (dưới 24 giờ, tròn ngày, lẻ giờ) **và** một test đối chiếu thẳng với `brokenImpacts().days`.
+
+`tsc -b` sạch, **999 test xanh / 86 file**.
 
 ## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
 

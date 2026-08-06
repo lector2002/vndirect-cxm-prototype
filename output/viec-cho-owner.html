@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Việc chờ owner — CXM Platform</title>
+<style>
+  :root{
+    --bg:#FBF9F6; --surface:#fff; --line:#E7E1D9; --ink:#221F1C; --ink2:#4A443D; --ink3:#8A8177;
+    --primary:#B4472B; --primary-soft:#FDF2EE; --primary-line:#EBC3B6;
+    --warn:#B8860B; --warn-soft:#FDF8E9;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#17150F; --surface:#201D17; --line:#332E26; --ink:#F0EAE0; --ink2:#C9C0B4; --ink3:#8F877B;
+           --primary:#E0785A; --primary-soft:#2C1F19; --primary-line:#5A3A2C;
+           --warn:#D9A93B; --warn-soft:#2A2413; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.6 "Segoe UI",system-ui,-apple-system,sans-serif;
+       padding:0 20px 80px}
+  .wrap{max-width:900px;margin:0 auto}
+  header{padding:40px 0 26px;border-bottom:1px solid var(--line);margin-bottom:30px}
+  h1{font-size:26px;margin:0 0 10px;letter-spacing:-.01em}
+  .sub{color:var(--ink2);margin:0;font-size:14.5px}
+  .meta{color:var(--ink3);font-size:13px;margin-top:14px;font-variant-numeric:tabular-nums}
+  h2{font-size:17px;margin:38px 0 6px;letter-spacing:-.005em}
+  h2 .n{font:600 12px/1 ui-monospace,monospace;color:var(--ink3);
+        border:1px solid var(--line);border-radius:99px;padding:5px 9px;margin-left:8px;vertical-align:2px}
+  .lead{color:var(--ink2);font-size:14px;margin:0 0 16px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+        padding:16px 18px;margin-bottom:12px}
+  .card.act{border-left:3px solid var(--primary)}
+  .card.wait{border-left:3px solid var(--warn)}
+  .card.info{border-left:3px solid var(--ink3)}
+  .card h3{font-size:15px;margin:0 0 8px;font-weight:650;display:flex;gap:9px;align-items:baseline}
+  .tag{font:600 10.5px/1 ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;
+       padding:4px 7px;border-radius:5px;white-space:nowrap;flex:0 0 auto}
+  .tag.q{background:var(--primary-soft);color:var(--primary);border:1px solid var(--primary-line)}
+  .tag.w{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+  .tag.i{background:var(--bg);color:var(--ink3);border:1px solid var(--line)}
+  .card p{margin:0 0 8px;color:var(--ink2);font-size:14px}
+  .card p:last-child{margin-bottom:0}
+  .why{color:var(--ink);font-size:14px}
+  code{font:13px ui-monospace,SFMono-Regular,monospace;background:var(--bg);
+       border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+  .card.act code{background:var(--surface)}
+  .src{color:var(--ink3);font-size:12.5px;margin-top:10px;padding-top:9px;border-top:1px dashed var(--line)}
+  .num{font-variant-numeric:tabular-nums;font-weight:650;color:var(--ink)}
+  footer{margin-top:46px;padding-top:20px;border-top:1px solid var(--line);
+         color:var(--ink3);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Việc chờ owner — nền tảng CXM</h1>
+  <p class="sub">Gom tất cả những gì tôi phải báo mà chưa được trả lời, để anh mở ra đọc một lượt thay vì lần lại từng lượt chat. Ba nhóm: <strong>cần anh quyết</strong>, <strong>chờ bên dữ liệu</strong>, và <strong>tôi đã xử nhưng anh nên biết</strong>.</p>
+  <p class="meta">Cập nhật 06/08/2026 · <code>tsc -b</code> sạch · 999/999 test xanh (86 file) · chín màn đã có thân thật · đã commit <code>3541eef</code> · nguồn đầy đủ: <code>docs/DB-FIRST-HANDOFF.md</code></p>
+</header>
+
+<h2>Cần anh quyết <span class="n">4 việc</span></h2>
+<p class="lead">Không việc nào chặn tôi làm tiếp. Nhưng mỗi việc là một chỗ tôi cố tình <em>không</em> tự quyết, vì quyết hộ là lật một lựa chọn của anh sau lưng anh.</p>
+
+<div class="card act">
+  <h3><span class="tag q">Phạm vi</span> Có mở phase 04 “Giao dịch” vào lượt trình bày pilot không?</h3>
+  <p class="why">Flow <strong>“Mở tài khoản phái sinh”</strong> — 5 bước, <span class="num">51</span> bằng chứng mẫu — nằm ở <strong>phase 04</strong>, không phải phase 02 như tên gọi khiến người ta tưởng. Phase 04 đang khoá.</p>
+  <p>Kéo theo: một trong sáu flow đã đo <strong>không mở được trên cả hai màn hành trình</strong>. Người xem thấy rail ghi “51 bằng chứng mẫu” trên một ô bấm không vào được.</p>
+  <p>Tôi <strong>không</strong> tự mở — phạm vi pilot là quyết định của anh. Trước mắt lý do khoá nay nói cả hai vế thay vì chỉ nói “chưa đo”.</p>
+  <p class="src">Chọn: mở cả phase 04 · mở riêng flow phái sinh · giữ nguyên khoá. — <code>docs/DB-FIRST-HANDOFF.md</code> §“Một phát hiện thật khi đo”</p>
+</div>
+
+<div class="card act">
+  <h3><span class="tag q">Lời dẫn</span> Bản chữ mới cho chặng tour “Hồ sơ điểm chạm”</h3>
+  <p class="why">Lời dẫn hiện tại nói hồ sơ <em>“mở sẵn ở tab Verbatim”</em>. Màn thật mở ở tab <strong>Topic</strong>, và chỉ mở <strong>sau khi</strong> bấm chọn một điểm chạm.</p>
+  <p>Tôi không tự viết lại — lời dẫn là chữ của anh. Tour đang giữ riêng chặng đó lại và nêu tên, thay vì đọc chữ sai. Có bản mới là nó vào lại ngay.</p>
+  <p class="src">Chữ cũ ở <code>seed.ts:945</code> · cơ chế giữ ở <code>features/tour/tourStops.ts</code> (<code>STALE_STOP</code>)</p>
+</div>
+
+<div class="card act">
+  <h3><span class="tag q">Lời dẫn</span> Bản chữ mới cho ba chặng tour của màn Công việc</h3>
+  <p class="why">Ba chặng đang tả <em>“Bốn làn công việc” / “Làn Chờ duyệt” / “Làn verify”</em> — nhưng anh đã bỏ board bốn làn. Cùng lý do trên: tour giữ chặng lại chứ không đọc chữ sai.</p>
+  <p class="src">Chữ cũ ở <code>seed.ts:946-948</code> · gỡ <code>"work"</code> khỏi <code>STALE_COPY</code> là ba chặng vào lại</p>
+</div>
+
+<div class="card act">
+  <h3><span class="tag q">Thứ tự</span> Màn nào dựng tiếp? Hai màn đang trỏ sang “Chỉ số &amp; ngưỡng” mà màn đó còn trống</h3>
+  <p class="why">Màn Bản đồ hành trình và màn Nguồn dữ liệu <strong>cùng hứa</strong> rằng chỗ sửa SLA từng nguồn và chỗ sửa số ngày cooldown nằm ở màn <strong>Chỉ số &amp; ngưỡng</strong>. Anh bấm vào sẽ ra <strong>trang trống</strong>. Đây là chữ trên màn hứa một chỗ mà chỗ đó chưa có — khác với các mục ở nhóm dưới, nó chưa được xử.</p>
+  <p>Tôi <strong>không</strong> gỡ câu chữ, vì về thiết kế nó đúng: đó <em>là</em> chỗ sẽ sửa. Cách đóng đúng là dựng màn đó. Kỹ thuật đã sẵn: cửa đổi cấu hình <code>setCfg</code> có rồi ở store, màn Nguồn dữ liệu đã dùng nó thật trong test.</p>
+  <p class="src">Bốn màn còn trống: <strong>Chỉ số &amp; ngưỡng</strong> (đề xuất làm trước — đóng luôn hai liên kết chết) · Topic &amp; xu hướng (giữ 2 chặng tour cuối chưa đi được) · Agent &amp; cảnh báo · Trợ lý</p>
+</div>
+
+<h2>Chờ bên dữ liệu <span class="n">3 mục</span></h2>
+<p class="lead">Khi dữ liệu về, <strong>phần lớn cột của chart sẽ đổi</strong> — đó là chủ ý, không phải hồi quy.</p>
+
+<div class="card wait">
+  <h3><span class="tag w">Kiểm kê nguồn</span> Chưa chốt đủ nguồn dữ liệu — màn Nguồn dữ liệu sẽ phải dựng lại</h3>
+  <p class="why">Anh chốt 06/08: <strong>danh sách nguồn chưa đủ</strong>. Bảy nguồn đang hiện là giả định của prototype, không phải kết quả kiểm kê thật. Màn đó là <strong>bản tạm</strong>.</p>
+  <p>Khi dựng lại: số dòng, ba ô đếm, ma trận nguồn × chỉ số đều đổi — câu cảnh báo <em>tự</em> đổi theo vì nó sinh từ dữ liệu, không phải sửa tay. Ba thứ <strong>nên giữ</strong> vì là luật đọc số chứ không phải dữ liệu: đơn vị gắn liền con số, nguồn đứt không bị đếm hai lần, và không phán chiều lệch của chỉ số. Phần số học <code>domain/sources.ts</code> cùng bộ test của nó dùng lại được nguyên.</p>
+  <p class="src">Ghi tại <code>docs/DB-FIRST-HANDOFF.md</code> §“Màn này là BẢN TẠM”</p>
+</div>
+
+<div class="card wait">
+  <h3><span class="tag w">Bảng D</span> Điểm đo gắn ở đâu trên web/app</h3>
+  <p class="why">Hôm nay <strong>không có gì</strong> trong dữ liệu nói một điểm đo nằm ở màn nào, đường dẫn nào, element nào. Gần nhất là tên điểm tiếp xúc — tên màn do người viết, không phải định danh kỹ thuật.</p>
+  <p>Panel “gắn ở đâu” đang hiện đúng những gì có, và <strong>nói thẳng đó là mô tả nghiệp vụ, chưa phải vị trí kỹ thuật</strong>. Tôi không bịa field vào fixture — đó đúng là cách một lỗ hổng cũ đã phát sinh.</p>
+  <p class="src">Đặc tả: <code>output/yeu-cau-du-lieu-pilot-mo-rong.html</code></p>
+</div>
+
+<div class="card wait">
+  <h3><span class="tag w">Bảng E</span> Số phễu từng bước</h3>
+  <p class="why"><span class="num">30</span> bước đang chạy số demo. Dải nối dày mỏng và vạch đỏ trên bản đồ hành trình vẽ từ số đó.</p>
+  <p>Đã đo trên cả sáu bước hiện có: số hoàn tất cộng số rơi bằng đúng số vào, và số hoàn tất của bước trước bằng đúng số vào của bước sau. Nếu dữ liệu thật <strong>không</strong> khớp thì phải khai luật đối chiếu tường minh — không được lặng lẽ vẽ theo số nào tiện hơn.</p>
+  <p class="src">Đặc tả: <code>output/yeu-cau-du-lieu-pilot-mo-rong.html</code></p>
+</div>
+
+<h2>Tôi đã xử, chỉ báo để anh biết <span class="n">7 mục</span></h2>
+<p class="lead">Không cần anh làm gì. Ghi ra để anh không phát hiện muộn rồi tưởng là lỗi giấu.</p>
+
+<div class="card info">
+  <h3><span class="tag i">Sẽ cũ dần</span> Lời dẫn tour ghi cứng “Sức khỏe 7 nguồn”</h3>
+  <p>Đúng hôm nay vì đang có đúng 7 nguồn. Thêm nguồn thứ 8 là câu này sai. Không sửa vì lời dẫn là chữ của anh — báo để khi nào anh sửa lời dẫn thì nhớ luôn chỗ này.</p>
+</div>
+
+<div class="card info">
+  <h3><span class="tag i">Chưa ai duyệt mắt</span> Nhánh “ghi được một phần” của nút chiều</h3>
+  <p>Test chứng minh nó chạy đúng, nhưng <strong>bộ dữ liệu đã qua kiểm không sinh nổi ca này</strong> — nên chưa lần nào có người nhìn thấy nó bằng mắt. Anh đã chốt không nới ràng buộc kiểm tra chỉ để bấm thử được trong demo. Với dữ liệu thật thiếu dòng, app vẫn vẽ và nhánh này sẽ hiện.</p>
+</div>
+
+<div class="card info">
+  <h3><span class="tag i">Hứa vừa đủ</span> Bấm một dòng ở khối “gãy ở đâu” chỉ mở bản đồ hành trình</h3>
+  <p>Nó mở ở <strong>flow mặc định</strong>, không nhảy tới đúng flow vừa bấm — vì flow đang chọn là trạng thái trong màn chứ không nằm trên đường dẫn. Chữ trên màn chỉ hứa “mở bản đồ hành trình”, không hứa hơn. Muốn nhảy đúng chỗ thì phải đưa flow lên đường dẫn, là một việc riêng.</p>
+</div>
+
+<div class="card info">
+  <h3><span class="tag i">Bố cục</span> Thanh chuyển chế độ xuống dòng khi cửa sổ hẹp</h3>
+  <p>Dưới khoảng <span class="num">1555px</span> thanh này wrap xuống hàng dưới. Không mất chức năng, chỉ xấu.</p>
+</div>
+
+<div class="card info">
+  <h3><span class="tag i">Bố cục</span> Hàng chip flow của phase “Giao dịch” hiện 16 chip</h3>
+  <p>Phase này đông flow nhất. Nó nằm ngoài pilot nên chưa bấm vào được, nhưng khi mở phạm vi thì hàng chip này là chỗ tiếp theo phải cắt theo đúng luật anh đã duyệt cho các chart.</p>
+</div>
+
+<div class="card info">
+  <h3><span class="tag i">Vặt</span> Tên tab trình duyệt vẫn là “web”</h3>
+  <p>Mặc định của công cụ build, chưa đặt tên thật. Sửa một dòng, chờ anh cho tên muốn hiện.</p>
+</div>
+
+<div class="card info">
+  <h3><span class="tag i">Vặt</span> Ba ảnh chụp màn hình chưa đưa vào kho</h3>
+  <p><code>output/atlas-lock-preview.png</code>, <code>atlas-nosignal-preview.png</code>, <code>atlas-tabs-preview.png</code> — tôi chụp để tự kiểm bằng mắt. Giữ hay xoá tuỳ anh.</p>
+</div>
+
+<footer>
+  Nguồn đầy đủ, có bằng chứng đo và lý do từng quyết định: <code>docs/DB-FIRST-HANDOFF.md</code>.
+  File này là bản rút gọn để đọc nhanh — khi hai bên lệch, tin file handoff.
+</footer>
+
+</div>
+</body>
+</html>
