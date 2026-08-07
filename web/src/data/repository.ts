@@ -27,6 +27,11 @@ export interface CxmRepository {
   /** Bản data hiện tại (đọc để render). */
   getSnapshot(): CxmData;
   getCfg(): Cfg;
+  /** Cfg MẶC ĐỊNH (không phải cfg hiện tại) — seam cho nút "Trả về mặc định" của màn #/rules. Trả
+      BẢN SAO, y hệt `getCfg()`: caller (domain/resetCfg.ts) mutate kết quả không được đụng tới cfg
+      mặc định lưu trong repo. Tách riêng khỏi `getCfg()` vì `features/` không được `import { cfgDefault }`
+      từ fixture trực tiếp (bất biến tầng data → store → domain → design-system → features). */
+  getCfgDefault(): Cfg;
   getDims(): Record<string, Dim>;
   /** Danh sách người xử lý có thể gán cho action — port OWNERS của prototype (~dòng 2878). */
   getOwners(): string[];

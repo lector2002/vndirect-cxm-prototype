@@ -122,6 +122,10 @@ export class MockRepository implements CxmRepository {
     return structuredClone(this.cfg);
   }
 
+  getCfgDefault(): Cfg {
+    return structuredClone(cfgDefault);
+  }
+
   getDims(): Record<string, Dim> {
     return structuredClone(this.dims);
   }

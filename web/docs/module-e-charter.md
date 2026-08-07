@@ -146,7 +146,15 @@ lý do data/segment.ts và data/metric-direction.ts đã đặt ở đó.
 | **E4** | validate.ts đổi luật 19 + luật mới cho giá trị thô | navValue sentinel ⇒ lỗi (giữ nguyên câu đã có); ageYears ngoài [18,120] ⇒ lỗi; tenureMonths < 0 ⇒ lỗi; acq không thuộc cfg.segment.acq.values ⇒ lỗi; validateFixture(demoData, ...) = [] |
 | **E5** | domain/quantify.ts: RowBuilder nhận cfg, derive dải | ROW_BUILDERS vẫn đối chiếu 1-1 với dims (test cũ phải còn xanh); q18 trên demoData ra **`<50tr` 247 · 50-200tr 18 · 200tr-1tỷ 17 · 1-5tỷ 10 · >5tỷ 8**; đổi cfg.segment.nav.cuts thêm cut 1 ⇒ **cùng một data** tách `<50tr` 247 thành hai dải `0đ` + `<50tr` mà TỔNG hai dải vẫn đúng 247 (con số từng dải: worker ĐO rồi pin, KHÔNG lấy từ charter — charter chưa đo cái này), KHÔNG sửa data |
 | **E6** | Repo + store: ghi được cfg.segment | Repo có method ghi cfg; store action đổi cut ⇒ store.cfg.segment đổi VÀ chart đọc lại số mới; đổi cut khi demoMode tắt **không** làm data sống lại (guard refresh ở store.ts:70-74) |
-| **E7** | Màn #/rules — section "Phân khúc khách" | Route rules không còn Placeholder; 3 trục số có control thêm/xoá/sửa cut, 1 control danh sách kênh; **xem trước nhãn sinh ra + số khách mỗi dải NGAY khi sửa, trước khi lưu**; cut sai (không tăng dần, trùng) bị chặn kèm câu nói rõ; 6 nhóm cfg còn lại hiện nhãn "chưa dựng"; rules **KHÔNG** vào TIMEFRAME_ROUTES (màn cấu hình, không có chart theo kỳ) |
+| **E7** ✅ | Màn #/rules — section "Phân khúc khách" | Route rules không còn Placeholder; 3 trục số có control thêm/xoá/sửa cut, 1 control danh sách kênh; **xem trước nhãn sinh ra + số khách mỗi dải NGAY khi sửa, trước khi lưu**; cut sai (không tăng dần, trùng) bị chặn kèm câu nói rõ; 6 nhóm cfg còn lại hiện nhãn "chưa dựng"; rules **KHÔNG** vào TIMEFRAME_ROUTES (màn cấu hình, không có chart theo kỳ) |
+
+**E7 XONG 06/08/2026** ở Module G (`docs/module-g-rules-charter.md`), `features/rules/groups/SegmentGroup.tsx`. Ba chỗ kết quả KHÁC tiêu chí trên, cố ý:
+
+- **2 trục chứ không phải 3.** `tenure` đã rút khỏi `cfg.segment.band` ở S2 (04/08) — nhóm này sinh trục từ `cfg.segment.band` đang có, nên nó theo cấu hình thật chứ không theo con số 3 viết ở đây. Thêm `tenure` lại thì trục tự hiện ra, không phải sửa màn.
+- **6 nhóm còn lại KHÔNG hiện nhãn "chưa dựng"** — cả 6 đã dựng thật ở Module G, cộng nhóm SLA nguồn thành 7. Tiêu chí này viết khi Module G chưa có kế hoạch.
+- **`cfg.segment.values` (danh sách giá trị hợp lệ) hiện CHỈ ĐỌC**, chưa có control sửa như tiêu chí đòi. Sửa danh sách này là đổi tập giá trị hợp lệ của một chiều, trong khi `data.cust` đang giữ giá trị cũ — bỏ một giá trị đang có khách là tạo ra khách không thuộc giá trị nào. Đây là **suy đoán của tôi, owner chưa quyết**; đã đưa vào `output/viec-cho-owner.html` để owner chốt.
+
+Đây cũng là lần đầu tiêu chí nghiệm thu #7 của luồng tín hiệu ("đổi ranh giới NAV thì các dải chia lại ngay") **chạm được bằng tay qua giao diện**, không phải chỉ qua test.
 
 ## Điểm chặn RNG — quyết định quan trọng nhất của module
 

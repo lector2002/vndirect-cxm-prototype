@@ -1,0 +1,73 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { sourceHealth } from "../../../domain/index.ts";
+import { useCxmStore } from "../../../store/store.ts";
+import { AlertGroup } from "./AlertGroup.tsx";
+
+/* Ghim: câu "áp ngay lúc này" của nhóm Cảnh báo & khảo sát SINH TỪ store, không phải chữ viết tay.
+   Đổi `data.deadDays` qua ô nhập là phép test chính — độc lập tính lại số nguồn "Ngừng gửi" bằng
+   `sourceHealth` (domain/state.ts), không chép số bằng tay, để fixture đổi thì test đổi theo. */
+
+const cfg0 = useCxmStore.getState().cfg;
+const cfg = () => useCxmStore.getState().cfg;
+
+afterEach(() => {
+  useCxmStore.getState().setCfg({ data: cfg0.data, anomaly: cfg0.anomaly });
+});
+
+function deadCount(): number {
+  const { data, cfg: c } = useCxmStore.getState();
+  return data.sources.filter((s) => sourceHealth(s, c) === "down").length;
+}
+
+describe("AlertGroup — bảy ngưỡng cảnh báo + áp ngay lúc này", () => {
+  it("hiện đúng số nguồn Ngừng gửi ứng với deadDays mặc định", () => {
+    render(<AlertGroup />);
+    const n = deadCount();
+    expect(n).toBeGreaterThan(0); // seed hôm nay có src-zalo im lặng 192h > 2 ngày mặc định
+    expect(screen.getAllByText(new RegExp(`${n} nguồn`)).length).toBeGreaterThan(0);
+  });
+
+  it("đổi data.deadDays qua ô nhập ⇒ câu 'bao nhiêu nguồn bị coi là Ngừng gửi' đổi theo", () => {
+    render(<AlertGroup />);
+    const before = deadCount();
+    expect(before).toBeGreaterThan(0);
+
+    const field = screen.getByLabelText("Số ngày im lặng thì coi là Ngừng gửi");
+    fireEvent.change(field, { target: { value: "30" } });
+    fireEvent.blur(field);
+
+    expect(cfg().data.deadDays).toBe(30);
+    const after = deadCount();
+    expect(after).toBe(0); // nới SLA lên 30 ngày thì không nguồn nào còn bị coi là ngừng gửi
+    expect(screen.getAllByText(/0 nguồn/).length).toBeGreaterThan(0);
+  });
+
+  it("đổi repeatWarn/churnWarn ⇒ số điểm gãy bị tô đỏ đổi theo, tính độc lập trên data.iss", () => {
+    render(<AlertGroup />);
+    const field = screen.getByLabelText("Ngưỡng tô đỏ repeat contact");
+    fireEvent.change(field, { target: { value: "0" } });
+    fireEvent.blur(field);
+
+    const expectRep = useCxmStore.getState().data.iss.filter((i) => i.imp.rep > 0).length;
+    expect(screen.getAllByText(new RegExp(`${expectRep} điểm gãy`)).length).toBeGreaterThan(0);
+  });
+
+  it("bảy ô số đều ghi đúng khoá cfg tương ứng", () => {
+    render(<AlertGroup />);
+    const cases: [string, number, "data" | "anomaly", string][] = [
+      ["Ngưỡng Z-score đánh dấu bất thường", 1, "anomaly", "z"],
+      ["Số lần vượt baseline thì cảnh báo", 3, "data", "anomalyX"],
+      ["Cooldown khảo sát toàn cục", 7, "data", "cooldown"],
+      ["Số lần liên hệ tính là repeat contact", 5, "data", "repeatMin"],
+      ["Ngưỡng tô đỏ số khách có tín hiệu churn", 40, "data", "churnWarn"],
+    ];
+    for (const [label, value, group, key] of cases) {
+      const field = screen.getByLabelText(label);
+      fireEvent.change(field, { target: { value: String(value) } });
+      fireEvent.blur(field);
+      const g = useCxmStore.getState().cfg[group] as unknown as Record<string, number>;
+      expect(g[key]).toBe(value);
+    }
+  });
+});

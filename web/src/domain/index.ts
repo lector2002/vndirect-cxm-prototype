@@ -61,3 +61,5 @@ export { buildSearchIndex, queryIndex } from "./search.ts";
 export type { SearchKind, SearchEntry } from "./search.ts";
 export { themeSegments, themeAxisOptions, themeLegend, SUBTHEME_AXIS } from "./themeSegments.ts";
 export type { ThemeAxis, ThemeSegment, ThemeAxisOption } from "./themeSegments.ts";
+export { cfgIssues } from "./cfgIssues.ts";
+export { resetCfgPatch } from "./resetCfg.ts";

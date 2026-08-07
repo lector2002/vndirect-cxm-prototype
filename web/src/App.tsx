@@ -10,6 +10,7 @@ import { VocJourneyPage } from './features/vocjourney/VocJourneyPage.tsx'
 import { SourcesPage } from './features/sources/SourcesPage.tsx'
 import { TopicsPage } from './features/topics/TopicsPage.tsx'
 import { ThemeDetailPage } from './features/topic/ThemeDetailPage.tsx'
+import { RulesPage } from './features/rules/RulesPage.tsx'
 import { SettingsPage } from './features/settings/SettingsPage.tsx'
 import { TourOverlay } from './features/tour/TourOverlay.tsx'
 import { DemoBanner } from './features/settings/DemoBanner.tsx'
@@ -144,6 +145,8 @@ function Shell() {
                     <SourcesPage />
                   ) : n.r === 'topics' ? (
                     <TopicsPage />
+                  ) : n.r === 'rules' ? (
+                    <RulesPage />
                   ) : n.r === 'settings' ? (
                     <SettingsPage />
                   ) : (

@@ -13,6 +13,10 @@ export type CxmStore = {
   repo: CxmRepository;
   data: CxmData;
   cfg: Cfg;
+  /** Cfg MẶC ĐỊNH — seam cho nút "Trả về mặc định" (màn #/rules), đọc qua repo.getCfgDefault()
+      chứ không `import { cfgDefault }` trực tiếp từ fixture. Không đổi sau khi store dựng (cfg mặc
+      định không phải thứ owner sửa được), nên không cần cập nhật riêng ở setDemoMode. */
+  cfgDefault: Cfg;
   dims: Record<string, Dim>;
   boards: Record<string, string[][]>;
   owners: string[];
@@ -65,6 +69,7 @@ function readSnapshot(repo: CxmRepository) {
   return {
     data: repo.getSnapshot(),
     cfg: repo.getCfg(),
+    cfgDefault: repo.getCfgDefault(),
     dims: repo.getDims(),
     boards: repo.getBoards(),
     owners: repo.getOwners(),
