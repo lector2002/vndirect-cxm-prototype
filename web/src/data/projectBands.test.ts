@@ -60,7 +60,9 @@ describe("projectCustomerBands", () => {
 
     const cfg = cfgWithZeroAssetCut();
     expect(projectCustomer(zero, cfg, dims).bands.nav).toBe("0đ");
-    expect(projectCustomer(small, cfg, dims).bands.nav).toBe("<50tr");
+    // Cùng dải số như trước (chưa đổi cut giữa), nhưng dải đó không còn là dải đáy ⇒ nhãn đổi từ
+    // "<50tr" sang "1đ-50tr" (in biên dưới thật, xem bands.ts, sửa 07/08).
+    expect(projectCustomer(small, cfg, dims).bands.nav).toBe("1đ-50tr");
   });
 });
 
@@ -109,7 +111,9 @@ describe("MockRepository.setCfg — cut đổi thì snapshot đổi", () => {
     repo.setCfg({ segment: cfgWithZeroAssetCut().segment });
 
     expect(navOf("KH•••7A2")).toBe("0đ"); // tách ra được
-    expect(navOf("KH•••4B8")).toBe("<50tr"); // vẫn ở dải cũ ⇒ hai nhóm đã khác nhau
+    // Vẫn ở dải cũ ⇒ hai nhóm đã khác nhau — chỉ đổi NHÃN của dải đó (không còn là dải đáy nên
+    // không gộp về "<50tr" nữa, phải in biên dưới thật — xem bands.ts, sửa 07/08).
+    expect(navOf("KH•••4B8")).toBe("1đ-50tr");
   });
 
   it("chart theme chia lại nhóm theo cut mới — nhãn đoạn đổi, Σ vẫn bằng theme.n", () => {
@@ -128,14 +132,15 @@ describe("MockRepository.setCfg — cut đổi thì snapshot đổi", () => {
     /* Bằng chứng cuối: một NHÃN MỚI xuất hiện trên chart chỉ vì owner thêm một cut — không sửa dòng
        code nào, không đổi một số thô nào. Đây là điều bản trước section này không làm được. */
     expect(after.map((s) => s.label)).toContain("0đ");
-    expect(after.map((s) => s.label)).toContain("<50tr");
+    expect(after.map((s) => s.label)).toContain("1đ-50tr");
     /* Mẫu số KHÔNG được rứt ai: đổi cut chỉ chia lại nhóm, không làm mất hay thêm bằng chứng. */
     expect(sumOf(after)).toBe(themeN);
-    /* '<50tr' cũ TÁCH thành '0đ' + '<50tr' mới — tổng hai nhóm phải bằng đúng nhóm cũ. */
-    expect(nOf(after, "0đ") + nOf(after, "<50tr")).toBe(nOf(before, "<50tr"));
+    /* '<50tr' cũ TÁCH thành '0đ' + '1đ-50tr' — tổng hai nhóm phải bằng đúng nhóm cũ. Dải kế không
+       còn là dải đáy nên nhãn đổi từ '<50tr' sang '1đ-50tr' (bands.ts, sửa 07/08). */
+    expect(nOf(after, "0đ") + nOf(after, "1đ-50tr")).toBe(nOf(before, "<50tr"));
     /* Và phép tách phải THẬT SỰ tách: cả hai nhóm đều có khách, không phải một nhóm rỗng. */
     expect(nOf(after, "0đ")).toBeGreaterThan(0);
-    expect(nOf(after, "<50tr")).toBeGreaterThan(0);
+    expect(nOf(after, "1đ-50tr")).toBeGreaterThan(0);
   });
 
   it("CHẶN (ném) cfg có cuts không tăng dần — state cũ giữ nguyên", () => {

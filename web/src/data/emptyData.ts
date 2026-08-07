@@ -24,6 +24,7 @@ export const EMPTY_DATA: CxmData = {
   out: [],
   snap: [],
   loop: [],
+  hist: [],
   cust: [],
   qt: [],
   dash: [],

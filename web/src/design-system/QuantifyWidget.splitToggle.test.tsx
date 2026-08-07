@@ -90,7 +90,7 @@ describe("QuantifyWidget — toggle chiều chia màu: lựa chọn tới đư�
       "50-200tr: 6",
       "200tr-1tỷ: 3",
       "1-5tỷ: 3",
-      ">5tỷ: 2",
+      "5tỷ+: 2",
     ]);
 
     fireEvent.click(chip("Độ tuổi"));

@@ -696,4 +696,76 @@ describe("validateFixture", () => {
     const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
     expect(r).toEqual([]);
   });
+
+  /* Group 23: chuỗi lịch sử chỉ số (`hist`) — module-b-issue-charter.md, section B1. Năm luật, mỗi
+     luật một fixture cast vi phạm đúng nó. `seed.hist` là mảng rỗng nên mọi ca dưới đây PHẢI tự
+     thêm một dòng hist vào fixture rồi phá đúng một luật. */
+  function validHistRow(): CxmData["hist"][number] {
+    // CXI-021 có snapshot thật trong seed (u:'%', v:83.3) — dòng hợp lệ dùng làm khung cho các test
+    // "phá đúng một luật", mỗi test chỉ sửa đúng một trường để không lây sang luật khác.
+    return {
+      iss: "CXI-021",
+      u: "%",
+      pre: [
+        { p: "01/2026", v: 80 },
+        { p: "02/2026", v: 81 },
+        { p: "03/2026", v: 82 },
+      ],
+      demo: true,
+    };
+  }
+
+  it("23.1: hist.iss trỏ issue không tồn tại (referential integrity)", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.hist = [{ ...validHistRow(), iss: "CXI-nonexistent" }];
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("hist") && e.includes("CXI-nonexistent") && e.includes("không tồn tại"))).toBe(true);
+  });
+
+  it("23.2: một issue có nhiều hơn 1 dòng hist", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.hist = [validHistRow(), validHistRow()];
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("hist") && e.includes("CXI-021") && e.includes("nhiều hơn 1 dòng"))).toBe(true);
+  });
+
+  it("23.3a: pre rỗng", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.hist = [{ ...validHistRow(), pre: [] }];
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("hist") && e.includes("CXI-021") && e.includes("pre rỗng"))).toBe(true);
+  });
+
+  it("23.3b: nhãn kỳ pre[].p trùng nhau trong cùng một dòng", () => {
+    const d = structuredClone(seed) as CxmData;
+    const row = validHistRow();
+    d.hist = [{ ...row, pre: [row.pre[0], row.pre[0]] }];
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("hist") && e.includes("CXI-021") && e.includes("trùng nhau trong pre"))).toBe(true);
+  });
+
+  it("23.4: u khác đơn vị snapshot của cùng issue", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.hist = [{ ...validHistRow(), u: "đ" }]; // snapshot CXI-021 có m.u = '%'
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("hist") && e.includes("CXI-021") && e.includes("hình nói sai"))).toBe(true);
+  });
+
+  it("23.5: hist của issue KHÔNG có snapshot (CXI-024) ⇒ lỗi (chuỗi không có điểm neo)", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.hist = [{ ...validHistRow(), iss: "CXI-024" }]; // CXI-024 cố ý không có snapshot trong seed
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("hist") && e.includes("CXI-024") && e.includes("không có điểm neo"))).toBe(true);
+  });
+
+  it("23: một dòng hist hợp lệ (đủ neo snapshot, u khớp, pre không rỗng/không trùng) ⇒ không lỗi nhóm 23", () => {
+    const d = structuredClone(seed) as CxmData;
+    d.hist = [validHistRow()];
+    const r = validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("hist"))).toBe(false);
+  });
+
+  it("23: seed.hist là mảng rỗng — fixture thật không mang số minh hoạ", () => {
+    expect(seed.hist).toEqual([]);
+  });
 });

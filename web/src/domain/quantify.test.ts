@@ -199,7 +199,7 @@ describe("qRunSegment", () => {
   // Oracle đếm tay trên seed.cust thật (7 khách, dòng ~518-531 seed.ts):
   // age:    25-34,35-49,25-34,35-49,25-34,35-49,50+           → known=7 unknown=0 missing=0
   // nav:    '<50tr' x6, '1-5tỷ' x1 (KH•••9F1)                  → known=7 unknown=0 missing=0
-  // tenure: chưa-biết x4, '<6 tháng' x2, '>5 năm' x1           → known=3 unknown=4 missing=0
+  // tenure: chưa-biết x4, '<6 tháng' x2, '5 năm+' x1           → known=3 unknown=4 missing=0
   // acq:    banner,banner,tự tìm,giới thiệu,đối tác,chi nhánh,chi nhánh → known=7 unknown=0 missing=0
   it("age — mọi khách đã biết, known=7", () => {
     const item: QuantifyShow = { id: "test-seg-age", kind: "show", show: "age", metric: "count", chart: "rank", name: "test" };
@@ -324,7 +324,7 @@ describe("qRunSplit", () => {
 
     // (a) đếm tay, KHÔNG qua qRunSplit — đường tính hoàn toàn khác
     const hand = (nav: string) => demoData.cust.filter((c) => c.acq === "banner" && c.bands.nav === nav).length;
-    for (const nav of ["<50tr", "50-200tr", "200tr-1tỷ", "1-5tỷ", ">5tỷ"]) {
+    for (const nav of ["<50tr", "50-200tr", "200tr-1tỷ", "1-5tỷ", "5tỷ+"]) {
       expect(byLabel[nav]).toBe(hand(nav));
     }
     /* KHÔNG có đoạn "Không xác định" trên trục nav (owner chốt 04/08: NAV lấy từ tài sản hiện tại).
@@ -334,7 +334,7 @@ describe("qRunSplit", () => {
 
     // (b) chốt hồi quy trên generator demo.ts hiện tại (Σ = 60 = số khách acq='banner')
     expect(byLabel).toEqual({
-      "200tr-1tỷ": 5, "50-200tr": 4, "<50tr": 47, "1-5tỷ": 2, ">5tỷ": 2,
+      "200tr-1tỷ": 5, "50-200tr": 4, "<50tr": 47, "1-5tỷ": 2, "5tỷ+": 2,
     });
     expect(sp.byRow["banner"].reduce((a, s) => a + s.n, 0)).toBe(60);
   });

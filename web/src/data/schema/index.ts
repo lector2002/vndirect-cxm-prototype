@@ -1,6 +1,6 @@
 ﻿export type { Period, Scope, Phase, Group, Flow, Step, Obs, Touchpoint, SignalSt, Signal } from './journey.ts';
 export type { Metric, SourceKind, Source, SurveyStatus, SurveyState, Survey, TaxLv, TaxNode, Category, EvidenceKind, Evidence, VoiceInsight } from './voc.ts';
-export type { IssueSt, IssueSev, IssuePri, IssueImp, Issue, ActionAp, ActionCf, ActionDl, ActionIv, ActionLc, Action, Verdict, OutcomeMeasure, Outcome, Snapshot, Loop, Customer, AgeBand, NavBand, TenureBand, AcqChannel, SegUnknown } from './cxm.ts';
+export type { IssueSt, IssueSev, IssuePri, IssueImp, Issue, ActionAp, ActionCf, ActionDl, ActionIv, ActionLc, Action, Verdict, OutcomeMeasure, Outcome, Snapshot, Loop, HistPoint, MetricHistory, Customer, AgeBand, NavBand, TenureBand, AcqChannel, SegUnknown } from './cxm.ts';
 export type { ChartKind, ShowMark, SeriesMark, QuantifyView, StackMode, QuantifyShow, QuantifySeriesPoint, QuantifySeries, QuantifyItem, DashQuestion, DashSet, AgentKind, AgentFindingLane, AgentFinding, Agent } from './quantify.ts';
 export type { CfgStep, CfgMetricBand, CfgData, CfgAnomaly, CfgSub, CfgBandAxis, CfgSegment, Cfg, DimBase, DimRow, DimCut, Dim, MetricKind } from './config.ts';
 export type { NavItem, Meta, TourStop, Chip } from './ui.ts';
@@ -12,7 +12,7 @@ export type { SigCount } from '../projectSignalCounts.ts';
 
 import type { Period, Scope, Phase, Group, Flow, Step, Obs, Touchpoint, Signal } from './journey.ts';
 import type { Metric, Source, Survey, TaxNode, Category, Evidence, VoiceInsight } from './voc.ts';
-import type { Issue, Action, Outcome, Snapshot, Loop, Customer } from './cxm.ts';
+import type { Issue, Action, Outcome, Snapshot, Loop, MetricHistory, Customer } from './cxm.ts';
 import type { QuantifyItem, DashSet, Agent } from './quantify.ts';
 import type { SigCount } from '../projectSignalCounts.ts';
 
@@ -41,6 +41,9 @@ export type CxmData = {
   out: Outcome[];
   snap: Snapshot[];
   loop: Loop[];
+  /** Chuỗi lịch sử chỉ số TRƯỚC mốc đóng băng — xem MetricHistory (schema/cxm.ts). Fixture thật
+      (seed) không mang dòng nào; demo.ts sinh tất định cho các issue có snapshot. */
+  hist: MetricHistory[];
   cust: Customer[];
   qt: QuantifyItem[];
   dash: DashSet[];

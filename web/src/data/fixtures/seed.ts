@@ -719,6 +719,10 @@ const seedRaw: CxmData = {
     { iss:'CXI-017', need:29, done:0,  ch:'In-app + ZNS',   by:null,                    sent:null },
     { iss:'CXI-013', need:25, done:25, ch:'In-app',         by:'Thu Hà · Head of CX',   sent:'Sentiment sau liên hệ +0,4 · 18/25 phản hồi tích cực' },
   ],
+  /* Fixture thật KHÔNG mang số minh hoạ — cùng nguyên tắc với sigCounts (Demo Mode TẮT ⇒ rỗng là
+     trạng thái TRUNG THỰC, không phải bịa số để lấp chart). Xem data/fixtures/demo.ts cho 5 dòng
+     sinh tất định (module-b-issue-charter.md, section B1). */
+  hist: [],
   /* `bands` ở đây là GIÁ TRỊ MONG ĐỢI theo `cfgDefault` — nguồn thật là ba số thô ngay cạnh
      (ageYears/navVnd/tenureMonths), và `seed` export ở cuối file CHIẾU LẠI bằng
      `projectCustomerBands` nên nhãn thực tế luôn do ranh giới sinh. Giữ nhãn viết tay vì nó tự tài

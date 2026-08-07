@@ -1,4 +1,5 @@
-import type { CfgBandAxis, CxmData, Customer, Dim, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, Signal, TaxNode } from "../schema/index.ts";
+import type { CfgBandAxis, CxmData, Customer, Dim, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, Signal, TaxNode, Snapshot, MetricHistory, Issue, Metric } from "../schema/index.ts";
+import { metricDirection } from "../metric-direction.ts";
 import { cfgDefault, dims, seed } from "./seed.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
 import { ANON_CK } from "../validate.ts";
@@ -90,7 +91,7 @@ const NAV_BANDS_STANDARD: ReadonlyArray<readonly [NavBand, number]> = [
   ["50-200tr", 0.3],
   ["200tr-1tỷ", 0.22],
   ["1-5tỷ", 0.13],
-  [">5tỷ", 0.05],
+  ["5tỷ+", 0.05],
 ];
 
 /* Khách chuyển từ CTCK khác thường đã có tài sản sẵn — NAV khai lúc chuyển sang lệch cao hơn. */
@@ -99,14 +100,14 @@ const NAV_BANDS_TRANSFER: ReadonlyArray<readonly [NavBand, number]> = [
   ["50-200tr", 0.15],
   ["200tr-1tỷ", 0.3],
   ["1-5tỷ", 0.35],
-  [">5tỷ", 0.15],
+  ["5tỷ+", 0.15],
 ];
 
 const TENURE_FRESH: ReadonlyArray<readonly [TenureBand, number]> = [
   ["<6 tháng", 0.6],
   ["6-24 tháng", 0.25],
   ["2-5 năm", 0.1],
-  [">5 năm", 0.05],
+  ["5 năm+", 0.05],
 ];
 
 /* Khách 50+ / chuyển từ CTCK khác thường là quan hệ lâu năm hơn — tenure lệch dài hơn nhóm mới. */
@@ -114,7 +115,7 @@ const TENURE_ESTABLISHED: ReadonlyArray<readonly [TenureBand, number]> = [
   ["<6 tháng", 0.1],
   ["6-24 tháng", 0.2],
   ["2-5 năm", 0.3],
-  [">5 năm", 0.4],
+  ["5 năm+", 0.4],
 ];
 
 const ACQ_CHANNELS: ReadonlyArray<readonly [AcqChannel, number]> = [
@@ -234,7 +235,7 @@ function genOne(rng: () => number, rawRng: () => number, usedKeys: Set<string>):
   let tier: string;
   if (isTransfer) {
     tier = "high-value";
-  } else if (nav === "1-5tỷ" || nav === ">5tỷ") {
+  } else if (nav === "1-5tỷ" || nav === "5tỷ+") {
     tier = "high-value";
   } else if (pos === "s1" || pos === "s2") {
     tier = rng() < 0.7 ? "new" : "standard";
@@ -837,6 +838,114 @@ export function generateFires(signals: readonly Signal[], custPool: readonly Cus
 
 const demoFires = generateFires(seed.signals, demoCust);
 
+/* ---------- Chuỗi lịch sử chỉ số trước mốc đóng băng (module-b-issue-charter.md, section B1) ----------
+   6 điểm MINH HOẠ theo tháng, sinh tất định, cho các issue ĐÃ có snapshot — snapshot là điểm neo duy
+   nhất của chuỗi (validate.ts nhóm 23, luật 5: không snapshot thì không có dòng hist).
+   `Snapshot.m.p` là CỬA SỔ ĐO TỰ DO, mỗi issue một kiểu (quyết định #2 của charter) — KHÔNG suy được
+   lưới kỳ đều nhau từ nó, nên 6 điểm trước KHÔNG nhân cửa sổ đo ra sau; chúng là điểm minh hoạ theo
+   THÁNG, đi tới gần giá trị đã đóng băng (`snap.m.v`) để chuỗi đọc được như diễn biến dẫn tới lúc
+   issue được ghi nhận. Điểm đóng băng và điểm "sau" KHÔNG sinh ở đây — số THẬT (`snap.m.v`/
+   `out.post.v`), domain/ (section B2) nối lại, đúng bảng ba tầng "data sinh minh hoạ, domain chỉ nối"
+   ở quyết định #3. */
+
+/* Hạt giống RIÊNG, KHÔNG dùng chung DEMO_SEED/RAW_SEED/DEMO_EV_SEED/SIG_SEED — đây là một STREAM MỚI
+   HOÀN TOÀN, không rút thêm số từ bất kỳ stream đang có, nên thêm chuỗi lịch sử ở đây KHÔNG làm lệch
+   một khách/bằng chứng/lần bắn nào đã sinh trước đó (demoData.cust không đổi một khách nào — xem
+   demo.test.ts, chốt chặn "hist không làm lệch cust"). */
+const HIST_SEED = 0x486973;
+
+/* Nhãn 6 kỳ trước, THÁNG LÙI DẦN từ tháng của `at` (dd/MM/yyyy) — KHÔNG tính tháng của `at` (đó là
+   tháng đóng băng). Ví dụ at='15/07/2026' ⇒ '01/2026'..'06/2026'. Định dạng MM/yyyy để KHÔNG lẫn với
+   cửa sổ đo dạng dd/MM/yyyy – dd/MM/yyyy của snapshot (quyết định #2 — nhãn phải nói rõ nó là tháng). */
+function preMonthLabels(at: string): string[] {
+  const [, mmStr, yyyyStr] = at.split("/");
+  let month = parseInt(mmStr!, 10);
+  let year = parseInt(yyyyStr!, 10);
+  const labels: string[] = [];
+  for (let i = 0; i < 6; i++) {
+    month -= 1;
+    if (month === 0) { month = 12; year -= 1; }
+    labels.unshift(`${String(month).padStart(2, "0")}/${year}`);
+  }
+  return labels;
+}
+
+/* 6 giá trị đi từ một điểm lệch khỏi mốc đóng băng, tiến dần về gần mốc — hình dạng "diễn biến dẫn
+   tới lúc ghi nhận vấn đề" (đặc tả B1), KHÔNG phải hằng số tỷ lệ nghiệp vụ (ranh giới đó thuộc
+   domain/, không đụng ở đây — data/fixtures/ được phép mã hoá mẫu tay, cùng loại quyết định với
+   NAV_BANDS_TRANSFER phía trên). Chặn về [0,100] khi đơn vị là '%': spread theo % của chính giá trị
+   có thể vượt biên khi mốc đóng băng gần 100 (vd CXI-017 = 94,0%), tự chặn ở đây để chuỗi vẫn đọc
+   được như một chỉ số phần trăm thật, không cần domain/ xử lý việc này. */
+function genPreValues(rng: () => number, frozen: number, unit: string, dir: "up" | "down"): number[] {
+  const spreadPct = 0.05 + rng() * 0.1; // lệch 5%-15% so với mốc đóng băng ở điểm xa nhất
+  /* CHIỀU KHÔNG ĐƯỢC RÚT NGẪU NHIÊN — phải suy từ `metricDirection`. Bản đầu tung đồng xu
+     (`rng() < 0.5 ? 1 : -1`) và đo được 1/5 dòng kể NGƯỢC câu chuyện: CXI-013 (`m-ocr`, target
+     `≥ 90%`, hướng LÊN) ra 63 → 71,1 tiến tới mốc đóng băng 71,0 — tức biểu đồ nói chỉ số đang TỐT
+     DẦN rồi bỗng bị ghi nhận là điểm gãy, mâu thuẫn với chính lý do điểm gãy đó tồn tại. Chuỗi phải
+     đi từ chỗ ĐỠ XẤU về đúng giá trị đã đóng băng: chỉ số hướng LÊN thì bắt đầu CAO hơn rồi tụt
+     xuống; hướng XUỐNG (vd `m-repeat`, target `≤ 15%`) thì bắt đầu THẤP hơn rồi dâng lên.
+     Vẫn RÚT rồi BỎ một số ở đây để không dịch chuỗi số phía sau: bốn dòng còn lại vốn đã đúng chiều,
+     giữ nguyên vị trí trong stream thì chúng không đổi một giá trị nào và mọi số đã đối chiếu trước
+     đó còn nguyên giá trị làm chứng. */
+  rng();
+  const sign = dir === "up" ? 1 : -1;
+  const start = frozen + sign * frozen * spreadPct;
+  const values: number[] = [];
+  for (let i = 0; i < 6; i++) {
+    const t = i / 5; // 0 ở điểm xa nhất → 1 ở điểm gần mốc đóng băng nhất
+    const base = start + (frozen - start) * t;
+    const noise = (rng() - 0.5) * frozen * 0.02;
+    let v = Math.round((base + noise) * 10) / 10;
+    if (unit === "%") v = Math.max(0, Math.min(100, v));
+    values.push(v);
+  }
+  return values;
+}
+
+/* Khoá hạt giống theo NỘI DUNG đo (v/u/p/obs), KHÔNG theo vị trí lặp trong một stream chung — hai
+   snapshot trùng nội dung đo (cùng metric, cùng mốc, cùng cửa sổ) phải ra CÙNG hình dạng chuỗi, nếu
+   không sẽ "nói sai" khi hai issue cùng trưng cùng một số liệu nhưng minh hoạ hai chiều diễn biến
+   ngược nhau. FNV-1a 32-bit, thuần, tất định. */
+function hashStr(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+/* Sinh MỖI issue CÓ snapshot đúng MỘT dòng hist — vòng lặp chạy trên `snaps` (không phải `data.iss`)
+   nên issue KHÔNG có snapshot (CXI-024) tự động KHÔNG có dòng nào, đúng luật 5 mà không cần điều
+   kiện lọc riêng. Mỗi snapshot dùng một mulberry32 RIÊNG khoá theo nội dung đo (xem hashStr) — không
+   rút tuần tự từ một rng chung, nên thứ tự `snaps` không ảnh hưởng kết quả và hai snapshot trùng số
+   liệu luôn ra cùng chuỗi. */
+export function generateMetricHistory(
+  snaps: readonly Snapshot[],
+  issues: readonly Issue[],
+  metrics: readonly Metric[],
+): MetricHistory[] {
+  return snaps.map((s): MetricHistory => {
+    const labels = preMonthLabels(s.at);
+    const key = hashStr(`${HIST_SEED}|${s.m.v}|${s.m.u}|${s.m.p}|${s.obs.entered}|${s.obs.completed}|${s.obs.failed}`);
+    const rng = mulberry32(key);
+    /* Chiều của chỉ số quyết định chuỗi đi lên hay xuống (xem genPreValues). Không tra ra được
+       metric thì mặc định 'up' — cùng mặc định mà mock-repository.ts:464 đã dùng, để hai nơi không
+       suy khác nhau về cùng một ca thiếu dữ liệu. */
+    const metric = metrics.find((m) => m.id === issues.find((i) => i.id === s.iss)?.metric);
+    const dir = metric ? metricDirection(metric) : "up";
+    const values = genPreValues(rng, s.m.v, s.m.u, dir);
+    return {
+      iss: s.iss,
+      u: s.m.u,
+      pre: labels.map((p, i) => ({ p, v: values[i]! })),
+      demo: true,
+    };
+  });
+}
+
+const demoHist: MetricHistory[] = generateMetricHistory(seed.snap, seed.iss, seed.metrics);
+
 /* Chiếu lại nhãn dải qua `cfgDefault` — CÙNG phép chiếu mà MockRepository.getSnapshot() chạy với
    cfg hiện tại, nên fixture và runtime không thể lệch cách hiểu dải. Idempotent với 7 khách của
    `seed` (đã chiếu một lần rồi): nhãn luôn tính từ số thô, không đọc nhãn cũ. */
@@ -851,6 +960,7 @@ const demoProjected: CxmData = projectCustomerBands({ ...seed, cust: demoCust, e
 export const demoData: CxmData = {
   ...demoProjected,
   sigCounts: projectSignalCounts(demoFires, demoProjected.cust, dims),
+  hist: demoHist,
 };
 
 /** Đường tái cộng `sigCounts` cho MockRepository (data/mock-repository.ts) — đóng kín trên

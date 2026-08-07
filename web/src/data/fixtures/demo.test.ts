@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { generateCustomers, generateEvidence, demoData } from "./demo.ts";
+import { generateCustomers, generateEvidence, generateMetricHistory, demoData } from "./demo.ts";
 import { dims, seedNav, seedTour, cfgDefault, seed } from "./seed.ts";
 import { validateFixture, ANON_CK } from "../validate.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
 import { CUST_CAT } from "../rawFields.ts";
 import { bandOf } from "../bands.ts";
+import { metricDirection } from "../metric-direction.ts";
 import type { Customer, AgeBand, NavBand, TenureBand, AcqChannel, TaxNode, CfgBandAxis } from "../schema/index.ts";
 
 /* `tenure` đã rút khỏi `dims` (S2, 04/08): `projectCustomerBands` không còn tính `c.bands.tenure`
@@ -95,13 +96,13 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
   });
 
   it("mọi NavBand khai trong schema đều xuất hiện ít nhất một lần", () => {
-    const bands: NavBand[] = ["<50tr", "50-200tr", "200tr-1tỷ", "1-5tỷ", ">5tỷ"];
+    const bands: NavBand[] = ["<50tr", "50-200tr", "200tr-1tỷ", "1-5tỷ", "5tỷ+"];
     const present = new Set(demoData.cust.map((c) => c.bands.nav));
     for (const b of bands) expect(present.has(b), `nav band ${b}`).toBe(true);
   });
 
   it("mọi TenureBand khai trong schema đều xuất hiện ít nhất một lần", () => {
-    const bands: TenureBand[] = ["<6 tháng", "6-24 tháng", "2-5 năm", ">5 năm"];
+    const bands: TenureBand[] = ["<6 tháng", "6-24 tháng", "2-5 năm", "5 năm+"];
     // tenure đã rút khỏi dims (S2) ⇒ c.bands.tenure không còn được tính — băng lại từ c.tenureMonths thô.
     const present = new Set(demoData.cust.map((c) => valueOf(c, "tenure")));
     for (const b of bands) expect(present.has(b), `tenure band ${b}`).toBe(true);
@@ -141,7 +142,7 @@ describe("demoData — fixture demo 300 khách (Module C, section C4)", () => {
   it("bất biến: tier 'high-value' luôn ở dải NAV cao, hoặc là khách chuyển từ CTCK khác", () => {
     for (const c of demoData.cust) {
       if (c.tier !== "high-value") continue;
-      const ok = c.bands.nav === "1-5tỷ" || c.bands.nav === ">5tỷ" || c.seg === "Khách chuyển từ CTCK khác";
+      const ok = c.bands.nav === "1-5tỷ" || c.bands.nav === "5tỷ+" || c.seg === "Khách chuyển từ CTCK khác";
       expect(ok, `${c.key}: tier high-value nhưng nav="${c.bands.nav}" seg="${c.seg}"`).toBe(true);
     }
   });
@@ -279,5 +280,112 @@ describe("demoData.ev — bằng chứng demo sinh thêm cho theme (Module F, se
       return rows.filter((e) => e.pf === "android").length / rows.length;
     };
     expect(androidShare("x-th-device")).toBeGreaterThan(androidShare("x-th-status") + 0.1);
+  });
+});
+
+/* Module B, section B1 — chuỗi lịch sử chỉ số (`hist`) TRƯỚC mốc đóng băng
+   (module-b-issue-charter.md). domain/verifyTimeline.ts (section B2, việc sau) sẽ nối 6 điểm này với
+   snap.m.v (đóng băng) + out.post.v (sau) — file này chỉ kiểm phần data/ sinh ra. */
+describe("demoData.hist — chuỗi lịch sử chỉ số trước mốc đóng băng (Module B, section B1)", () => {
+  it("đúng 5 dòng — một cho mỗi issue có snapshot, KHÔNG có dòng cho CXI-024 (không có snapshot)", () => {
+    expect(demoData.hist.length).toBe(5);
+    expect(demoData.hist.some((h) => h.iss === "CXI-024")).toBe(false);
+    const issIds = demoData.hist.map((h) => h.iss).sort();
+    expect(issIds).toEqual(["CXI-013", "CXI-017", "CXI-021", "CXI-026", "CXI-028"].sort());
+  });
+
+  it("mỗi dòng: pre có đúng 6 kỳ, demo=true, u khớp snap.m.u của chính issue đó", () => {
+    const snapByIss = new Map(seed.snap.map((s) => [s.iss, s]));
+    for (const h of demoData.hist) {
+      expect(h.pre.length, `${h.iss}.pre.length`).toBe(6);
+      expect(h.demo, `${h.iss}.demo`).toBe(true);
+      const snap = snapByIss.get(h.iss)!;
+      expect(h.u, `${h.iss}.u`).toBe(snap.m.u);
+    }
+  });
+
+  it("sinh TẤT ĐỊNH — generateMetricHistory(seed.snap, seed.iss, seed.metrics) hai lần cho kết quả giống hệt nhau", () => {
+    const a = generateMetricHistory(seed.snap, seed.iss, seed.metrics);
+    const b = generateMetricHistory(seed.snap, seed.iss, seed.metrics);
+    expect(a).toEqual(b);
+  });
+
+  /* Chốt số CỤ THỂ của CXI-013 — pin để đối chiếu chuỗi có dẫn tới mốc đóng băng thật (snap.m.v =
+     71,0) hay không. Đổi HIST_SEED hoặc công thức sinh sẽ làm test này đỏ ngay, đúng vai trò một
+     chốt chặn (không phải chỉ kiểm hình dạng). */
+  it("CXI-013: 6 nhãn kỳ + 6 giá trị PIN, hội tụ về gần snap.m.v = 71,0", () => {
+    const h = demoData.hist.find((x) => x.iss === "CXI-013")!;
+    expect(h.pre).toEqual([
+      { p: "01/2026", v: 78.1 },
+      { p: "02/2026", v: 77.2 },
+      { p: "03/2026", v: 75.8 },
+      { p: "04/2026", v: 73.4 },
+      { p: "05/2026", v: 73.0 },
+      { p: "06/2026", v: 71.1 },
+    ]);
+    const snap = seed.snap.find((s) => s.iss === "CXI-013")!;
+    expect(snap.m.v).toBe(71.0);
+    // Điểm gần mốc đóng băng nhất (kỳ cuối) phải nằm GẦN snap.m.v hơn điểm xa nhất (kỳ đầu).
+    expect(Math.abs(h.pre[5].v - snap.m.v)).toBeLessThan(Math.abs(h.pre[0].v - snap.m.v));
+  });
+
+  /* CXI-021 và CXI-026 trưng CÙNG một số liệu (metric m-liveness, snap.m.v=83.3, cùng cửa sổ đo,
+     cùng obs) — hạt giống khoá theo NỘI DUNG đo (không theo vị trí trong `snaps`), nên hai issue này
+     PHẢI ra đúng cùng 6 điểm minh hoạ; nếu không, hai màn "Điểm gãy" khác nhau sẽ minh hoạ hai chiều
+     diễn biến ngược nhau cho cùng một chỉ số — tự mâu thuẫn trong chính data demo. */
+  /* CHỐT CHẶN chống hồi quy — defect đo được 07/08 và đã sửa: bản đầu RÚT NGẪU NHIÊN chiều của chuỗi
+     (`rng() < 0.5 ? 1 : -1`), làm CXI-013 ra 63 → 71,1 tiến tới mốc đóng băng 71,0, tức biểu đồ nói
+     chỉ số đang TỐT DẦN rồi bỗng bị ghi nhận là điểm gãy — tự mâu thuẫn với lý do điểm gãy tồn tại.
+     Tệ hơn: test pin lúc đó khoá đúng chuỗi sai đó lại, đúng khuôn "tiêu chí nghiệm thu khoá cái sai"
+     đã ghi ở mục Bài học đắt nhất. Test này canh LUẬT chứ không canh giá trị, nên nó vẫn bắt được kể
+     cả khi ai đó đổi HIST_SEED hay công thức sinh. */
+  it("MỌI chuỗi đều đi từ chỗ đỡ xấu VỀ mốc đóng băng, theo đúng metricDirection — không dòng nào kể ngược", () => {
+    for (const h of demoData.hist) {
+      const iss = seed.iss.find((i) => i.id === h.iss)!;
+      const metric = seed.metrics.find((m) => m.id === iss.metric)!;
+      const dir = metricDirection(metric);
+      const first = h.pre[0].v;
+      const last = h.pre[h.pre.length - 1].v;
+      // hướng LÊN (cao hơn là tốt) ⇒ chuỗi phải GIẢM; hướng XUỐNG ⇒ chuỗi phải TĂNG.
+      if (dir === "up") expect(last, `${h.iss} (${metric.id}, hướng lên) phải xấu dần`).toBeLessThan(first);
+      else expect(last, `${h.iss} (${metric.id}, hướng xuống) phải xấu dần`).toBeGreaterThan(first);
+    }
+  });
+
+  it("hai issue trùng số liệu (CXI-021, CXI-026, cùng metric m-liveness) ra CÙNG một chuỗi hist", () => {
+    const h1 = demoData.hist.find((x) => x.iss === "CXI-021")!;
+    const h2 = demoData.hist.find((x) => x.iss === "CXI-026")!;
+    expect(h1.pre).toEqual(h2.pre);
+  });
+
+  it("validateFixture(demoData, dims, nav, tour, cfg) vẫn RỖNG sau khi có hist", () => {
+    const errors = validateFixture(demoData, dims, seedNav, seedTour, cfgDefault);
+    expect(errors).toEqual([]);
+  });
+
+  /* CHỐT CHẶN PHÒNG NGỪA (không phải bằng chứng "không lệch" — số ghim dưới đây lấy từ CHÍNH lần
+     chạy sau khi thêm hist, nên tự nó không chứng minh gì thay đổi hay không). Bằng chứng thật nằm ở
+     hai chỗ: (1) HIST_SEED là stream mulberry32 hoàn toàn mới, generateMetricHistory() không đụng tới
+     DEMO_SEED/RAW_SEED/DEMO_EV_SEED/SIG_SEED và chạy SAU khi demoCust/demoEv/demoFires đã tính xong
+     (xem vị trí khai báo trong demo.ts); (2) toàn bộ 1100+ test CŨ (không sửa) vẫn xanh, kể cả các
+     chốt ghim khác dựa trên demoData.cust (ví dụ so khớp 300 khách ở projectBands, sigCounts) — nếu
+     stream bị lệch, các chốt đó sẽ đỏ trước. Test này chỉ là RÀO CHẮN cho tương lai: nếu sau này ai
+     sửa lại demo.ts mà vô tình rút thêm số từ stream cust, con số ghim ở đây sẽ đỏ ngay. */
+  it("[rào chắn tương lai] demoData.cust: vẫn 300 khách, đúng phân bố acq đã ghim", () => {
+    expect(demoData.cust.length).toBe(300);
+    const acqCounts: Record<string, number> = {};
+    for (const c of demoData.cust) {
+      const k = String(c.acq);
+      acqCounts[k] = (acqCounts[k] ?? 0) + 1;
+    }
+    expect(acqCounts).toEqual({
+      banner: 60,
+      "tự tìm": 62,
+      "giới thiệu": 60,
+      "đối tác": 42,
+      "chi nhánh": 59,
+      "thiếu": 9,
+      "chưa-biết": 8,
+    });
   });
 });

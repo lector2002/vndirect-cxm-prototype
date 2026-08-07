@@ -55,14 +55,21 @@ function fmtDong(v: number): string {
   return `${roundTrim(v / dongDivisor(t))}${t}`;
 }
 
+/** Hiện số đồng THÔ, không quy đổi tầng 'tr'/'tỷ' — dùng cho biên DƯỚI của một dải mà tầng triệu sẽ
+    làm nó biến mất về 0 (ví dụ 1 đồng), nhưng dải đó KHÔNG phải dải đáy (đã có một dải "0đ" riêng
+    nằm ngay dưới nó). Gộp về `<upper` ở ca này sẽ đọc như nhãn bao cả số 0 — trong khi 0 đã có dải
+    của riêng nó, nên biên dưới thật (dù nhỏ) phải hiện ra để hai dải không nói trùng nhau. */
+function fmtDongRaw(v: number): string {
+  return `${roundTrim(v)}đ`;
+}
+
 function bandLabelsDong(axis: CfgBandAxis): string[] {
   const { min, cuts } = axis;
   const n = cuts.length;
   const labels: string[] = [];
   for (let i = 0; i <= n; i++) {
     if (i === n) {
-      const last = cuts[n - 1];
-      labels.push(min !== null ? `${fmtDong(last)}+` : `>${fmtDong(last)}`);
+      labels.push(`${fmtDong(cuts[n - 1])}+`);
       continue;
     }
     const upper = cuts[i];
@@ -72,7 +79,12 @@ function bandLabelsDong(axis: CfgBandAxis): string[] {
       continue;
     }
     if (dongIsNegligible(lower) && dongIsNegligible(upper)) { labels.push("0đ"); continue; }
-    if (dongIsNegligible(lower)) { labels.push(`<${fmtDong(upper)}`); continue; }
+    if (dongIsNegligible(lower)) {
+      // Dải đáy (i === 0): không có dải nào dưới nó, gộp về "<upper" là đúng.
+      // Dải không phải đáy (i > 0): đã có một dải "0đ" nằm dưới — phải in biên dưới thật, không gộp.
+      labels.push(i === 0 ? `<${fmtDong(upper)}` : `${fmtDongRaw(lower)}-${fmtDong(upper)}`);
+      continue;
+    }
     if (dongTier(lower) === dongTier(upper)) {
       labels.push(`${roundTrim(lower / dongDivisor(dongTier(upper)))}-${fmtDong(upper)}`);
     } else {
@@ -117,7 +129,7 @@ function bandLabelsThang(axis: CfgBandAxis): string[] {
   for (let i = 0; i <= n; i++) {
     if (i === n) {
       const { num, tier } = fmtThangIncl(cuts[n - 1]);
-      labels.push(min !== null ? `${num} ${tier}+` : `>${num} ${tier}`);
+      labels.push(`${num} ${tier}+`);
       continue;
     }
     const upper = fmtThangExcl(cuts[i]);
@@ -143,8 +155,7 @@ function bandLabelsNam(axis: CfgBandAxis): string[] {
   const labels: string[] = [];
   for (let i = 0; i <= n; i++) {
     if (i === n) {
-      const last = cuts[n - 1];
-      labels.push(min !== null ? `${last}+` : `>${last}`);
+      labels.push(`${cuts[n - 1]}+`);
       continue;
     }
     const upper = cuts[i] - 1;
@@ -153,6 +164,35 @@ function bandLabelsNam(axis: CfgBandAxis): string[] {
     labels.push(`${lower}-${upper}`);
   }
   return labels;
+}
+
+/** Cách đọc GỌN HƠN của một con số ranh giới ("200tr", "5tỷ", "2 năm") — hoặc `null` khi chính số
+    thô đã là cách đọc đúng rồi.
+
+    Dùng cho màn cấu hình: ô nhập ranh giới buộc phải hiện số THÔ (nhập 1 đồng thì ô phải hiện `1`,
+    không phải "0,000001tr"), mà số thô 10 chữ số thì người đọc không nhận ra ngay là năm tỷ. Hàm
+    này cho chỗ nhập một cách đọc đi kèm.
+
+    VÌ SAO TRẢ `null` CHỨ KHÔNG LUÔN TRẢ CHUỖI — đây là một lỗi thật đã bị bắt trong review: bản đầu
+    trả `'0đ'` cho MỌI giá trị dưới 500.000đ, nên đúng ca dùng owner đặt hàng ở Module E (thêm mốc
+    `1` để tách nhóm CHƯA CÓ TÀI SẢN) cho ra ô ghi `1` mà chú thích cạnh nó ghi `= 0đ`. Con số đứng
+    dưới một cách đọc không thuộc về nó — đúng loại lỗi cả stream này tồn tại để chặn. Dưới tầng
+    triệu thì "1 đồng" chính là cách đọc đúng, và trục tuổi cũng vậy: không có tầng đơn vị nào để
+    rút gọn, `18` đọc là `18`. Cả hai ca đó trả `null` để nơi gọi KHÔNG in gì thêm.
+
+    Đặt ở ĐÂY chứ không viết lại trong `features/`: quy tắc đổi tầng (1e9 → 'tỷ', 24 tháng → 'năm')
+    đã sống trong file này và nhãn dải đang dùng chính nó. Viết bản thứ hai ở tầng UI là mở đường
+    cho hai cách đọc cùng một con số lệch nhau — đúng loại lỗi `PF_LABEL` đã gây một lần. */
+export function formatBound(v: number, unit: CfgBandAxis['unit']): string | null {
+  switch (unit) {
+    case 'đ': return dongIsNegligible(v) ? null : fmtDong(v);
+    case 'tháng': {
+      const { num, tier } = fmtThangIncl(v);
+      return tier === 'tháng' && num === String(v) ? null : `${num} ${tier}`;
+    }
+    // Tuổi không có tầng đơn vị nào (không "tr"/"tỷ"/"năm" gắn sau) — số thô đã là cách đọc đúng.
+    case 'năm': return null;
+  }
 }
 
 /** Sinh danh sách nhãn dải theo đúng thứ tự dải, từ `axis.cuts` — n cut cho n+1 nhãn. Nguồn nhãn

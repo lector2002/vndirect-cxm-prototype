@@ -104,7 +104,7 @@ describe("projectSignalCounts — phép cộng ra năm bảng đếm", () => {
 
     const before = projectSignalCounts(fires, projectedMiniCust(cfgDefault), dims);
     const navBefore = before.find((r) => r.dim === "nav")!.band;
-    expect(navBefore).toBe(">5tỷ"); // navVnd = 6e9 dưới cfgDefault (cuts 50e6/200e6/1e9/5e9)
+    expect(navBefore).toBe("5tỷ+"); // navVnd = 6e9 dưới cfgDefault (cuts 50e6/200e6/1e9/5e9)
 
     const cfgNarrow: Cfg = structuredClone(cfgDefault);
     cfgNarrow.segment.band.nav = { min: null, cuts: [50e6, 200e6, 1e9, 5e9, 8e9], unit: "đ" };
@@ -116,7 +116,7 @@ describe("projectSignalCounts — phép cộng ra năm bảng đếm", () => {
   });
 
   /* Bản mạnh hơn của test trên: hai khách "KH•••BBB" (nav=6e9) và "KH•••CCC" (nav=9e9) đều rơi vào
-     CÙNG MỘT dải ">5tỷ" dưới cfgDefault (chỉ 1 dải cho mọi thứ trên 5 tỷ) — đây là chỗ chart điểm đo
+     CÙNG MỘT dải "5tỷ+" dưới cfgDefault (chỉ 1 dải cho mọi thứ trên 5 tỷ) — đây là chỗ chart điểm đo
      sẽ gộp hai khách khác hẳn nhau vào một cột. Thêm ranh giới 8e9 phải TÁCH cột đó thành hai, không
      chỉ đổi TÊN của một cột như test ở trên. */
   it("thêm ranh giới NAV mới ⇒ MỘT dải gộp trước đó TÁCH THẬT thành hai dải, không chỉ đổi tên", () => {
@@ -133,14 +133,14 @@ describe("projectSignalCounts — phép cộng ra năm bảng đếm", () => {
     const projectedBefore = projectCustomerBands({ ...seed, cust: custWithThird }, cfgDefault, dims).cust;
     const before = projectSignalCounts(fires, projectedBefore, dims);
     const navBandsBefore = new Set(before.filter((r) => r.dim === "nav").map((r) => r.band));
-    expect(navBandsBefore.size).toBe(1); // 6e9 và 9e9 CHƯA tách — cùng rơi vào ">5tỷ"
+    expect(navBandsBefore.size).toBe(1); // 6e9 và 9e9 CHƯA tách — cùng rơi vào "5tỷ+"
 
     const cfgNarrow: Cfg = structuredClone(cfgDefault);
     cfgNarrow.segment.band.nav = { min: null, cuts: [50e6, 200e6, 1e9, 5e9, 8e9], unit: "đ" };
     const projectedAfter = projectCustomerBands({ ...seed, cust: custWithThird }, cfgNarrow, dims).cust;
     const after = projectSignalCounts(fires, projectedAfter, dims);
     const navBandsAfter = new Set(after.filter((r) => r.dim === "nav").map((r) => r.band));
-    expect(navBandsAfter.size).toBe(2); // 6e9 → "5-8tỷ", 9e9 → ">8tỷ" — dải cũ đã CHIA THẬT làm hai
+    expect(navBandsAfter.size).toBe(2); // 6e9 → "5-8tỷ", 9e9 → "8tỷ+" — dải cũ đã CHIA THẬT làm hai
   });
 });
 

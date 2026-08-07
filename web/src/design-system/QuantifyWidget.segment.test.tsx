@@ -8,7 +8,7 @@ import { QuantifyWidget } from "./QuantifyWidget.tsx";
 
 /* S2.C3b: trục base:'cust' (age/nav/tenure/acq/seg/tier) phải đi qua qRunSegment, KHÔNG qRun —
    oracle đếm tay trên seed.cust thật (7 khách, xem domain/quantify.test.ts): tenure = 'chưa-biết' x4,
-   '<6 tháng' x2, '>5 năm' x1 → known=3 unknown=4 missing=0.
+   '<6 tháng' x2, '5 năm+' x1 → known=3 unknown=4 missing=0.
 
    Ba test dưới ĐỔI TỪ nav SANG tenure (04/08): owner chốt NAV lấy trực tiếp từ giá trị tài sản hiện
    tại nên trục nav KHÔNG còn sentinel nào — dùng nó thì không chạm được nhánh "gộp Không xác định"
@@ -41,7 +41,7 @@ describe("QuantifyWidget — trục base:'cust' đi qua qRunSegment (S2.C3b)", (
   it("seg.kind='draw' (tenure, known=3/7) → gộp 'chưa-biết'+'thiếu' thành MỘT bar 'Không xác định' NGAY TRONG chart", () => {
     render(<QuantifyWidget item={tenureItem} data={seedWithTenure} dims={testDims} />);
     const bars = screen.getByTestId("bars");
-    // 3 hàng: 2 band đã biết ('<6 tháng' 2, '>5 năm' 1) + bar gộp "Không xác định" (unknown=4) ghim cuối.
+    // 3 hàng: 2 band đã biết ('<6 tháng' 2, '5 năm+' 1) + bar gộp "Không xác định" (unknown=4) ghim cuối.
     expect(bars.children).toHaveLength(3);
     expect(bars).toHaveTextContent("<6 tháng");
     expect(bars).toHaveTextContent("Không xác định");

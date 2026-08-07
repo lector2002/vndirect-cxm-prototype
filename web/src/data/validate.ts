@@ -7,7 +7,8 @@ import { isSegUnknown } from "./segment.ts";
 import { bandLabels, bandOf } from "./bands.ts";
 import { NOT_IDENTIFIED, SIG_CUST_DIMS, SIG_FIRE_DIM } from "./projectSignalCounts.ts";
 
-/* validateFixture — 19 nhóm bất biến (port từ prototype; nhóm 19 thêm 02/08 cho phân khúc khách) */
+/* validateFixture — 23 nhóm bất biến (port từ prototype; nhóm 19 thêm 02/08 cho phân khúc khách;
+   nhóm 23 thêm 07/08 cho chuỗi lịch sử chỉ số `hist`, module-b-issue-charter.md section B1) */
 
 const ROUTES = new Set([
   "cxm", "voc", "quantify", "assistant", "atlas", "work",
@@ -738,6 +739,37 @@ export function validateFixture(
           );
         }
       }
+    }
+  }
+
+  /* 23. Chuỗi lịch sử chỉ số (`hist`) — module-b-issue-charter.md, section B1. Năm luật: thiếu bất
+     kỳ luật nào là lỗi im lặng (join sai trả 0 dòng, trông y như "chưa có data" — bài học D-2). */
+  {
+    const seenHistIss = new Set<string>();
+    for (const h of data.hist) {
+      // 1. Referential integrity: iss phải tồn tại trong data.iss.
+      if (!lookup.iss.has(h.iss)) e.push(`hist: issue ${h.iss} không tồn tại`);
+
+      // 2. Mỗi issue tối đa MỘT dòng hist.
+      if (seenHistIss.has(h.iss)) e.push(`hist: issue ${h.iss} có nhiều hơn 1 dòng`);
+      seenHistIss.add(h.iss);
+
+      // 3. pre không rỗng; nhãn kỳ pre[].p không trùng nhau trong cùng một dòng.
+      if (h.pre.length === 0) e.push(`hist ${h.iss}: pre rỗng — chuỗi lịch sử phải có ít nhất 1 kỳ`);
+      const seenPeriods = new Set<string>();
+      for (const pt of h.pre) {
+        if (seenPeriods.has(pt.p)) e.push(`hist ${h.iss}: nhãn kỳ "${pt.p}" trùng nhau trong pre`);
+        seenPeriods.add(pt.p);
+      }
+
+      // 4. u phải khớp snap.m.u của cùng issue.
+      const snap = lookup.snapByIss.get(h.iss);
+      if (snap && h.u !== snap.m.u) {
+        e.push(`hist ${h.iss}: đơn vị "${h.u}" khác đơn vị snapshot "${snap.m.u}" — hai đơn vị khác nhau trên một đường là hình nói sai`);
+      }
+
+      // 5. Không có snapshot ⇒ lỗi — không có mốc đóng băng thì chuỗi không có điểm neo.
+      if (!snap) e.push(`hist ${h.iss}: không có snapshot cho issue này — chuỗi lịch sử không có điểm neo`);
     }
   }
 

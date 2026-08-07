@@ -117,9 +117,21 @@ export type Loop = {
   sent: string | null;
 };
 
+/* Chuỗi lịch sử chỉ số TRƯỚC mốc đóng băng (module-b-issue-charter.md, section B1, quyết định #2/#3).
+   Chỉ chứa các kỳ TRƯỚC — điểm đóng băng (Snapshot.m) và điểm SAU (Outcome.post) là số THẬT đã có ở
+   nơi khác; domain/ (section B2) nối lại, KHÔNG sinh thêm. Một issue tối đa MỘT dòng (validate.ts
+   nhóm 23, luật 2). */
+export type HistPoint = { p: string; v: number };
+export type MetricHistory = {
+  iss: string;        // khoá issue — validate.ts nhóm 23 canh tồn tại trong data.iss
+  u: string;          // đơn vị — phải khớp Snapshot.m.u của cùng issue
+  pre: HistPoint[];   // các kỳ TRƯỚC mốc đóng băng, theo thứ tự thời gian (cũ → mới)
+  demo: boolean;      // cờ minh hoạ — UI đọc cờ này, KHÔNG hardcode trong component
+};
+
 export type AgeBand = '18-24' | '25-34' | '35-49' | '50+';
-export type NavBand = '<50tr' | '50-200tr' | '200tr-1tỷ' | '1-5tỷ' | '>5tỷ';
-export type TenureBand = '<6 tháng' | '6-24 tháng' | '2-5 năm' | '>5 năm';
+export type NavBand = '<50tr' | '50-200tr' | '200tr-1tỷ' | '1-5tỷ' | '5tỷ+';
+export type TenureBand = '<6 tháng' | '6-24 tháng' | '2-5 năm' | '5 năm+';
 export type AcqChannel = 'banner' | 'giới thiệu' | 'chi nhánh' | 'tự tìm' | 'đối tác';
 
 /** Hai loại "không biết" — xem chú thích trong data/segment.ts. KHÔNG gộp làm một. */

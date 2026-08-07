@@ -52,14 +52,14 @@ describe("MockRepository", () => {
      KHÔNG chia lại `sigCounts` — vỡ đúng tiêu chí "đổi ranh giới NAV → lát trong cột chia lại ngay,
      không sửa dòng code nào" cho riêng chart điểm đo. */
   describe("recount tiêm được qua constructor — sigCounts re-aggregate theo cfg", () => {
-    it("đổi ranh giới NAV qua setCfg ⇒ nhãn dải nav trong sigCounts chia lại — '>5tỷ' biến mất, '5-8tỷ'/'>8tỷ' xuất hiện", () => {
+    it("đổi ranh giới NAV qua setCfg ⇒ nhãn dải nav trong sigCounts chia lại — '5tỷ+' biến mất, '5-8tỷ'/'8tỷ+' xuất hiện", () => {
       const demoRepo = new MockRepository(demoData, recountDemoSignals);
       const navBandsBefore = new Set(
         demoRepo.getSnapshot().sigCounts.filter((r) => r.dim === "nav").map((r) => r.band),
       );
-      expect(navBandsBefore.has(">5tỷ")).toBe(true);
+      expect(navBandsBefore.has("5tỷ+")).toBe(true);
       expect(navBandsBefore.has("5-8tỷ")).toBe(false);
-      expect(navBandsBefore.has(">8tỷ")).toBe(false);
+      expect(navBandsBefore.has("8tỷ+")).toBe(false);
 
       demoRepo.setCfg({
         segment: { ...demoRepo.getCfg().segment, band: { ...demoRepo.getCfg().segment.band, nav: { min: null, cuts: [50e6, 200e6, 1e9, 5e9, 8e9], unit: "đ" } } },
@@ -67,10 +67,10 @@ describe("MockRepository", () => {
       const navBandsAfter = new Set(
         demoRepo.getSnapshot().sigCounts.filter((r) => r.dim === "nav").map((r) => r.band),
       );
-      // Dải ">5tỷ" cũ đã CHIA THẬT làm hai — không chỉ đổi tên (cùng oracle với projectSignalCounts.test.ts).
-      expect(navBandsAfter.has(">5tỷ")).toBe(false);
+      // Dải "5tỷ+" cũ đã CHIA THẬT làm hai — không chỉ đổi tên (cùng oracle với projectSignalCounts.test.ts).
+      expect(navBandsAfter.has("5tỷ+")).toBe(false);
       expect(navBandsAfter.has("5-8tỷ")).toBe(true);
-      expect(navBandsAfter.has(">8tỷ")).toBe(true);
+      expect(navBandsAfter.has("8tỷ+")).toBe(true);
     });
 
     it("bất biến trung thực sống sót qua re-aggregate: Σ n mỗi chiều của MỖI signal vol>0 vẫn bằng đúng Signal.vol", () => {
