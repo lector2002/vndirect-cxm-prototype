@@ -2,6 +2,13 @@
 
 _Cập nhật: 2026-08-05 (đợt 3 — pilot mở rộng). Đọc file này + `AI-CONTEXT.md` + **`output/thiet-ke-chart-signal.html`** + **`output/thiet-ke-chart-signal-bo-sung-dot-2.html`** + **`output/yeu-cau-du-lieu-pilot-mo-rong.html`** trước khi làm._
 
+> ⏭️ **Stream này ĐÃ ĐÓNG. Hướng hiện tại nằm ở chỗ khác (07/08/2026).** Owner chốt ưu tiên **MVP
+> tối giản về quản trị flow dữ liệu và độ phủ** — bắt đầu ở
+> **`web/docs/HANDOFF-MVP-FLOW-COVERAGE.md`**, và phiên sau **mở đầu bằng brainstorm, không code**.
+> Mọi số đo trong file này (commit, số test 1047/89) là mốc **05/08** của stream chart điểm đo, đã
+> cũ — mốc mới nhất: **1113 test / 99 file**, vẫn chưa commit. Giữ file để tra thiết kế chart điểm
+> đo, đừng dùng làm trạng thái dự án.
+
 ## Trạng thái
 
 - `main` = **`c6767d6`** (05/08). Đã commit: S1 (`ca3cfc0`+`3a43c2c`) · S2+S4 (`13199fd`+`27fd4f6`) · S3a-1 (`607b1fd`) · tài liệu đợt 2b + kế hoạch S3 (`33a07d2`) · S3a-2 (`3f00a99`) · S3b (`9ad1a14`) · S3c-1 (`88a41ec`) · S3c-2a + tầng phân loại "không biết" (`869338b`) · S3c-2b (`17b84ec`) · tài liệu S3 (`725d24d`+`c6767d6`).
@@ -749,6 +756,119 @@ Câu luận đề của `#/vocjourney` ("Bản đồ hành trình đo *hành vi*
 Bốn test cũ ghim "không còn `<h1>` nào" hoặc đọc câu mở đầu đều được **viết lại để canh chỗ mới**, không xoá — bỏ một câu chữ không có nghĩa là bỏ nghĩa vụ nói thật của màn.
 
 `tsc -b` sạch, **1047 test xanh / 89 file**.
+
+# Màn "Chỉ số & ngưỡng" `#/rules` — dựng mới 06/08, ĐỦ 7 NHÓM
+
+Charter: `web/docs/module-g-rules-charter.md`. Owner chốt 06/08 (hộp hỏi): dựng màn này trước, và
+nhóm SLA nguồn thì **dựng, sinh từ dữ liệu, kèm nhãn bản tạm** — không chừa lại.
+
+`tsc -b` sạch · **1089 test xanh / 99 file** (từ 1047/89) · `vite build` xanh · live-check headless
+Chromium, **0 console error** trên cả 7 nhóm.
+
+## Vì sao màn này đi trước, dù trước đó tôi đã hoãn nó
+
+Bản trước tôi ghi cho owner rằng "nửa màn Chỉ số & ngưỡng là chỗ đặt SLA cho từng nguồn — đúng phần
+anh vừa nói là chưa chốt", rồi hoãn. **Câu đó sai về tỷ lệ.** Đo lại bốn chỗ trong app đang hứa dẫn
+sang màn này: `AnomalyLanes.tsx:62` (ngưỡng Z + kênh nhận) · `AtlasMetricsTab.tsx:67` (ngưỡng từng
+chỉ số) · `AtlasPage.tsx:327` (chọn chỉ số theo dõi) · `SourcesPage.tsx:336` (số ngày cooldown).
+**Không chỗ nào cần SLA từng nguồn.** Phần bị kiểm-kê-nguồn-chưa-chốt ảnh hưởng đúng **một nhóm trên
+bảy**, và là nhóm duy nhất không ai link tới.
+
+Bài học chung: *"màn X bị chặn"* phải đo bằng **chỗ nào đang hứa gì**, không bằng cảm giác về khối
+lượng. Tôi đã suýt hoãn thêm một vòng nữa vì một câu ước lượng của chính mình.
+
+## Nhóm 7 đóng luôn E7 của Module E — món nợ từ 04/08
+
+`module-e-charter.md:149` đặc tả E7 (màn sửa ranh giới dải) cùng ngày owner chốt *"nguồn trong
+setting sẽ là source of truth"*. Module E làm xong `cfg.segment`, `data/bands.ts` và đường ghi
+`setCfg` — **nhưng màn thì không ai dựng**, nên tới hôm nay ranh giới dải vẫn là thứ chỉ sửa được
+bằng cách sửa code, đúng cái quyết định đó nói là không nên. Nay bấm được thật.
+
+Kèm theo: đây là lần đầu **tiêu chí #7 của stream signal** ("đổi ranh giới NAV thì lát chia lại
+ngay") đi được bằng tay qua UI, không chỉ ở mức hàm.
+
+## Ba quyết định đáng đọc lại
+
+1. **"Trả về mặc định" KHÔNG gán thẳng `cfgDefault.sub`.** `cfg.sub` bị mutate ngoài màn cấu hình
+   (`mock-repository.ts` thêm entry khi tạo/nhân bản set, xoá khi xoá set) và `validate.ts:256/272`
+   buộc mỗi set có đúng một entry. Gán một cục thì: set tạo trong phiên mất entry ⇒ `setCfg` **ném**
+   ⇒ nút reset **tịt đúng lúc cần nhất**. Luật đúng ở `domain/resetCfg.ts`: lặp trên khoá đang có,
+   khoá lạ thì đặt `{f:'off', ch:'Email'}` — đúng giá trị repo gán cho set mới. Có test dựng đúng ca
+   đó.
+2. **Nhóm Trọng số ưu tiên CHỈ ĐỌC, và có test canh chuyện chỉ-đọc.** Fixture lưu điểm tuyệt đối,
+   `validateFixture()` khẳng định `sev+aff+jc+rep+tr+reg === total`; cho sửa mà không tính lại
+   `total` là bắn banner đỏ mọi màn. Test assert nhóm này **không render ô nhập/select/checkbox
+   nào** — vì đây đúng loại ràng buộc một phiên sau dễ vô tình nới ra.
+3. **Sửa cut chặn trước, nhưng vẫn bắt lỗi ném ra.** UI tự kiểm bốn ca nói được thành câu (rỗng ·
+   không tăng dần · sàn chồng ranh giới đầu · hai dải ra cùng một nhãn), rồi vẫn `try/catch` quanh
+   `setCfg` và in nguyên văn. Luật ở `validate.ts` rộng hơn phần UI kiểm được — UI không được giả vờ
+   mình biết hết luật.
+
+## Bốn lỗi CHỈ NHÌN MỚI THẤY — test xanh không chứng minh bố cục
+
+Đây là phần đáng giá nhất của đợt này. 28 test của màn xanh hết, `tsc` sạch, 0 console error — và
+màn vẫn sai bốn chỗ, tất cả chỉ lộ ra khi mở trình duyệt soi:
+
+| Lỗi | Vì sao test không bắt | Đã sửa thế nào |
+|---|---|---|
+| **Ô ranh giới cắt mất chữ số** — `200000000` hiện thành `20000000`, `5000000000` thành `50000000` | test đọc `value` của input, không đo bề rộng hiển thị. Đây là **màn nói sai con số của chính nó**, đúng loại lỗi stream này đã chặn ba lần ở chỗ khác | ô rộng riêng cho số nhiều chữ số + cách đọc đi kèm (`= 200tr`, `= 5tỷ`), sinh từ `formatBound()` mới ở `data/bands.ts` — KHÔNG viết bản format thứ hai ở tầng UI |
+| **Bảng chỉ số bị bóp**: 7 cột vào ~700px, cột tên là cột duy nhất co được nên tụt xuống **mỗi dòng một chữ**, một dòng cao gần 200px | test tìm theo `data-testid`, không quan tâm cột rộng bao nhiêu | sàn bề rộng `min-w-[880px]` rồi mới cho cuộn ngang; cùng cách cho bảng nguồn |
+| **Câu giải thích dài bị cắt cụt** ở hai nhóm | `subtitle` của `Card` có `truncate`, test dùng `toHaveTextContent` nên vẫn khớp | câu dài chuyển xuống thân card; `subtitle` chỉ giữ câu một dòng |
+| **Tên bước cắt thành "03 Live…"** trên thẻ kết quả | test khớp badge trạng thái, không đọc tên | thẻ xếp 2 cột thay vì 3, tên **xuống dòng** thay vì cắt |
+
+**Rút ra, ghi cho phiên sau:** với màn nhiều bảng và nhiều ô nhập, *test xanh + tsc sạch* mới chỉ
+chứng minh **số và câu chữ**. Bề rộng cột, chữ số bị cắt trong ô, chữ bị `truncate` — không cái nào
+có đường đỏ. Phải mở trình duyệt. Máy này chưa bật extension điều khiển Chrome, nhưng **skill
+`drive-local-webapp` (Playwright headless) chạy được** — đây là lần đầu dùng nó trong dự án, và nó
+bắt được cả bốn lỗi trên trong một lượt.
+
+### Lỗi thứ năm — nằm ngay TRONG bản vá lỗi thứ nhất
+
+Bản vá "ô cắt mất chữ số" ở trên đẻ ra một lỗi cùng loại, và **bốn ảnh chụp màn hình không bắt được
+nó** vì nó chỉ hiện ra ở một giá trị không có sẵn trên màn lúc chụp. `formatBound` bản đầu trả `'0đ'`
+cho **mọi** mốc dưới 500.000đ. Nên đúng ca dùng owner đặt hàng ở Module E — thêm mốc `1` để tách nhóm
+CHƯA CÓ TÀI SẢN — cho ra ô ghi `1` mà chú thích ngay cạnh ghi `= 0đ`. Chú thích sinh ra để chống "màn
+nói sai con số của chính nó" lại đi nói sai chính con số đó. Trục tuổi thì ngược lại: mọi chú thích
+đều là lặp thừa (`18` → `= 18`).
+
+Đã sửa: `formatBound` trả `string | null` — **`null` nghĩa là số thô đã là cách đọc đúng, đừng in gì
+thêm**. Ghim bằng test đơn vị ở `data/bands.test.ts` (`formatBound(1,'đ')` phải là `null`, không được
+là `'0đ'`) cộng một test RTL ở `SegmentGroup.test.tsx` gõ `1` vào ô rồi khẳng định không có chuỗi
+`= 0đ` nào trong DOM. Đã soi lại bằng trình duyệt cả hai trục.
+
+**Rút ra thêm:** một bản vá cho lỗi "màn nói sai chính nó" **cũng là code mới**, và bản thân nó chưa
+có test cho tới khi mình viết. Bốn lỗi trên tìm bằng mắt xong là hết đường đỏ — không có gì giữ chúng
+không quay lại. Vá lỗi hiển thị xong thì hỏi tiếp: *phần vừa thêm được ghim bằng cái gì?*
+
+## Ba điều nói thẳng, chưa xử
+
+1. **Nhánh "bước chưa có dữ liệu quan sát" không bấm ra xem được trong demo.** Đo lại fixture:
+   **30/30 bước đều có dòng `obs`** — charter tôi viết là "chỉ một phần có quan sát", **sai**. Luật
+   loại-bước-chưa-đo vẫn cài như một bất biến của màn (không tự gán "đang ổn" cho bước chưa đo) và
+   được ghim bằng test giả lập bỏ `obs` của một bước. Cùng nhóm với các nhánh "có code, có test,
+   chưa ai duyệt bằng mắt" đã ghi trước đây.
+2. **Hai câu "áp ngay lúc này" của prototype đã BỎ vì không tính được thật:** (a) "volume vượt
+   baseline N lần" — prototype so với tỷ lệ **cứng** `1.180/490`, không có chuỗi volume nào trong
+   `CxmData` để tính lại; (b) "cooldown và mốc repeat đang hiện nguyên văn trên `#/agents`" — màn
+   `#/agents` chưa dựng, và `repeatMin` không hiện ở màn nào. Bỏ hẳn, không thay bằng số khác.
+   Hệ quả: `data.anomalyX` là field **sửa được mà chưa có bằng chứng "áp ngay"** đi kèm.
+3. **`cfg.segment.values` (danh sách giá trị hợp lệ của chiều `acq`) để CHỈ ĐỌC** — bỏ một giá trị
+   đang có khách mang nó không phải "đổi cách chia" mà là tuyên bố dữ liệu đang có là sai, tức một
+   quyết định về dữ liệu chứ không phải một ô ngưỡng vận hành. Đây là **suy luận của tôi, owner chưa
+   phán** — nói ra để không đọc thành việc còn dở.
+
+## Nợ Module E nay đã hiện ra trước mắt owner
+
+Review Module E section 1 ghi hai chỗ **nhãn nói sai khoảng**, lúc đó không sửa vì chưa có màn nào
+cho owner đụng vào cut. Nay có, nên owner sẽ nhìn thấy chúng:
+
+1. `>5tỷ` **sai bao hàm** — biên dưới đóng, nên khách có **đúng** 5 tỷ nằm trong dải mà nhãn bảo là
+   hơn 5 tỷ. Đúng phải là `5tỷ+`.
+2. Thêm một cut sát 0 thì dải thứ hai mang nhãn `<50tr` trong khi ngay dưới nó đã có dải `0đ` — chữ
+   nói sai khoảng, dù hai nhãn không trùng nhau nên luật nhãn-trùng không bắt.
+
+Module G **không sửa** hai chỗ này: `'>5tỷ'` đang là literal trong seed và trong pin của test, sửa
+lẻ là đổi nhãn owner đang thấy mà không hỏi.
 
 ## Còn hở sau S3c — nói thẳng, đừng đọc thành đã phủ
 

@@ -1,16 +1,26 @@
 # AI Context
 
-> Updated: 2026-08-02
+> Updated: 2026-08-07
 > Level: Small
 > Status: active · đang dựng lại bằng React trong `web/`
 
-> 🔴 **CÔNG VIỆC HIỆN TẠI NẰM Ở `web/` — ĐỌC `web/docs/REBUILD-STATUS.md` TRƯỚC.**
+> 🔴 **CÔNG VIỆC HIỆN TẠI NẰM Ở `web/`. ĐỔI HƯỚNG 07/08/2026 — ĐỌC
+> `web/docs/HANDOFF-MVP-FLOW-COVERAGE.md` TRƯỚC, rồi mới tới `web/docs/REBUILD-STATUS.md`.**
+> Owner chốt: **ưu tiên MVP tối giản về quản trị flow dữ liệu và độ phủ**, làm kĩ và tinh phần đó
+> trước mọi màn còn lại. **Phiên sau MỞ ĐẦU BẰNG BRAINSTORM, không code** — phạm vi MVP chưa định
+> nghĩa; năm câu hỏi đã neo sẵn vào số đo thật ở §4 của handoff.
+>
 > Từ 31/07/2026, prototype một-file đang được **dựng lại thật bằng React** trong `web/`
-> (React 19 · Vite · TypeScript · Tailwind · Zustand · Vitest). Tính đến 03/08: `tsc -b` xanh,
-> **598 test / 68 file**, build xanh. Xong Phase 0–3, Module A (chặng Xác nhận + đóng băng baseline),
-> Module C1/C2/C4 (trục phân khúc khách + tính khả dụng + fixture demo), toolbar + search,
-> Demo Mode, VoC stacked-bar `@themestack` + màn `/topic/:id`.
-> Còn: **chốt seam fixture (chặn C3)** · C3 · nửa sau C5 · Module B · màn 6 nhóm ngưỡng.
+> (React 19 · Vite · TypeScript · Tailwind · Zustand · Vitest). Tính đến **07/08**: `tsc -b` xanh,
+> **1113 test / 99 file**, build xanh, **mười một màn có thân thật**, chưa commit.
+> Xong Phase 0–3, Module A (chặng Xác nhận + đóng băng baseline), Module C (trục phân khúc khách +
+> tính khả dụng + fixture demo + tầng vẽ), Module E (ranh giới dải sinh từ cấu hình),
+> Module F, **Module G (màn `#/rules` đủ 7 nhóm ngưỡng — 06/08)**, toolbar + search, Demo Mode,
+> VoC stacked-bar `@themestack` + màn `/topic/:id`.
+> **Đang TREO vì đổi hướng:** Module B — màn điểm gãy `#/issue/:id` (mới xong nền dữ liệu B0+B1;
+> 3 đường dẫn vào vẫn ra trang trắng — đây là trạng thái đã chấp nhận, không phải sót) ·
+> Module H — rework Bảng xử lý. Charter của cả hai đã viết xong và đánh dấu HOÃN.
+> Còn: màn `#/agents` · màn `#/assistant` · nửa sau C5.
 > **Mọi mục bên dưới mô tả GIAI ĐOẠN PROTOTYPE (tới 28/07) và vẫn đúng với
 > `output/cxm-platform-prototype.html` — file đó nay là ĐẶC TẢ GỐC chỉ đọc cho bản React.**
 > Cảnh báo "React app không nằm trên đường deploy" bên dưới nói về `legacy/` (bản cũ 8 route),

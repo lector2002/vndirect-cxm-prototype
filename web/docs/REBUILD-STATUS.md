@@ -1,16 +1,108 @@
 # `web/` — Trạng thái bản dựng lại bằng React
 
-> Cập nhật 03/08/2026. **Đọc file này trước khi sửa bất cứ thứ gì trong `web/`.**
-> Tài liệu kèm: [module-a-charter.md](./module-a-charter.md) · [module-c-charter.md](./module-c-charter.md) · [certification-log.md](./certification-log.md) · [VOC-STACKED-SPEC.md](./VOC-STACKED-SPEC.md)
+> Cập nhật 07/08/2026. **Đọc file này trước khi sửa bất cứ thứ gì trong `web/`.**
+> Tài liệu kèm: [module-a-charter.md](./module-a-charter.md) · [module-b-issue-charter.md](./module-b-issue-charter.md) · [module-h-work-rework-charter.md](./module-h-work-rework-charter.md) · [module-c-charter.md](./module-c-charter.md) · [module-e-charter.md](./module-e-charter.md) · [module-f-charter.md](./module-f-charter.md) · [module-g-rules-charter.md](./module-g-rules-charter.md) · [certification-log.md](./certification-log.md) · [VOC-STACKED-SPEC.md](./VOC-STACKED-SPEC.md)
+
+## 👉 ĐỌC [HANDOFF-MVP-FLOW-COVERAGE.md](./HANDOFF-MVP-FLOW-COVERAGE.md) TRƯỚC FILE NÀY
+
+Bàn giao phiên 07/08/2026: dự án đổi hướng sang **MVP minimal về quản trị flow data & coverage**,
+kèm bản đồ đo được của mảng đó và **năm câu hỏi để brainstorm**. Việc đầu tiên của phiên sau là
+**brainstorm, không phải code**.
+
+---
+
+## 🔄 ĐỔI HƯỚNG DỰ ÁN — owner chốt 07/08/2026, đọc TRƯỚC MỌI THỨ KHÁC
+
+**Trạng thái dự án đổi sang: ưu tiên MVP ĐƠN GIẢN NHẤT.**
+
+Nguyên văn owner: *"đổi trạng thái dự án thành ưu tiên làm mvp đơn giản nhất, trước tiên làm kĩ và
+tinh phần quản trị các điểm data và ngưỡng trước, sẽ brainstorm kĩ trong session sau"*.
+
+| | |
+|---|---|
+| **Ưu tiên số 1** | **Quản trị các điểm data và ngưỡng** — làm **kĩ và tinh**, không làm rộng |
+| **Hiệu lực** | **NGAY** — dừng ở B1. Owner chốt "làm trọn màn Điểm gãy rồi mới dừng", rồi **đổi ý ngay sau đó**: *"đã xong rồi thì viết handoff để session sau tập trung vào mvp minimal…"*. Câu sau thắng; B2–B6 **không chạy** |
+| **Bước kế** | **BRAINSTORM với owner ở phiên sau** — phạm vi MVP chưa được định nghĩa, ĐỪNG tự suy rồi code |
+
+**Điều quan trọng nhất của mục này: đừng đọc "ưu tiên MVP" thành "cứ làm tiếp cho nhanh".** Owner
+đã hẹn brainstorm để chốt phạm vi. Mọi charter viết trước 07/08 đều được viết dưới giả định *dựng
+đủ như prototype*, tức **giả định đã đổi**. Charter cũ không tự động còn hiệu lực — phải soi lại
+từng cái theo phạm vi MVP sau khi brainstorm xong.
+
+**"Quản trị các điểm data và ngưỡng" chạm những gì đang có** (kiểm kê 07/08, để phiên brainstorm có
+sẵn bản đồ, KHÔNG phải để làm ngay):
+
+| Đang có | Ở đâu | Tình trạng |
+|---|---|---|
+| màn Chỉ số & ngưỡng, 7 nhóm, sửa được thật | `features/rules/` (Module G) | xong 06/08, đã chứng thực |
+| màn Nguồn dữ liệu | `features/sources/` | **bản tạm** — owner chốt 06/08 danh sách nguồn chưa đủ, sẽ phải dựng lại |
+| điểm đo / signal / touchpoint | `features/atlas/`, `AtlasSignalPanel` | có, chưa soi kỹ dưới góc "quản trị" |
+| ranh giới dải phân khúc | nhóm 7 của `#/rules` + `data/bands.ts` | xong (E7 đóng ở Module G) |
+| danh sách yêu cầu dữ liệu D-1…D-4 | mục *YÊU CẦU DATA* cuối file này | đang mở |
+
+**Việc đã đóng lúc đổi hướng** (Module B — màn Điểm gãy `#/issue/:id`):
+B0 **xong, đã chứng thực**. B1 **xong, đã chứng thực**. **B2–B6 KHÔNG chạy** — ba đường dẫn vào màn
+`#/issue/:id` vẫn ra trang trắng, và **đó là trạng thái được chấp nhận**, không phải việc bỏ quên.
+Xem [module-b-issue-charter.md](./module-b-issue-charter.md).
+Module H (rework Bảng xử lý) **chưa khởi động**, hoãn theo ưu tiên mới —
+xem [module-h-work-rework-charter.md](./module-h-work-rework-charter.md).
+
+---
+
+## BÀN GIAO PHIÊN 06-07/08/2026 — đọc mục này trước, rồi mới đọc phần còn lại
+
+**Trạng thái cây code:** `tsc -b` exit 0 · **1094 test / 99 file xanh** · `vite build` xanh ·
+**chưa commit gì** (owner chưa yêu cầu). `git status` bẩn ở 12 file sửa + `web/src/features/rules/`
+và 4 file `domain/` mới, cộng 3 ảnh png untracked có từ trước phiên này.
+
+**Việc đã xong phiên này:** Module G — màn `#/rules` đủ **7 nhóm**. Chi tiết ở
+[module-g-rules-charter.md](./module-g-rules-charter.md), phần dành cho owner ở
+`output/viec-cho-owner.html`, phần kể chuyện ở `docs/DB-FIRST-HANDOFF.md`.
+
+**Năm điều chỉ sống trong đầu phiên này, ghi lại để phiên sau không phải đoán:**
+
+1. **`testTimeout: 20_000` ở `vite.config.ts` là CỐ Ý, đừng gỡ.** Test màn cấu hình gõ nhiều ô liên
+   tiếp; mỗi lần ghi `setCfg` là một vòng validate toàn fixture cộng một lần render lại cả nhóm.
+   Chạy riêng mỗi test 1,3–3,2s; chạy song song cả bộ thì có test chạm 6,8s và đỏ vì **hết giờ, không
+   phải vì sai**. Thấy test chậm thì đừng đi tối ưu `setCfg` — chậm là đặc tính của seam ghi tự
+   validate, và đó là thứ ta muốn giữ.
+2. **`#/issue/:id` là màn trống thứ tư, không nằm trong danh sách "ba màn trống".** Nó không có mục
+   nào ở sidebar nên mọi lần kiểm kê bằng nav đều bỏ sót. Có **ba đường dẫn vào** đang trỏ tới nó:
+   kết quả tìm kiếm · khối "Ưu tiên xử lý" · trình xem điểm chạm ở VoC. Port đủ **5 tab** của
+   `V.issue` (prototype dòng 3228). Đây là màn tôi đề xuất dựng tiếp.
+3. ~~**Ba việc đang chờ owner quyết, chưa ai chốt**~~ — **CẢ BA ĐÃ CHỐT 07/08/2026:**
+   - `cfg.segment.values` (danh sách kênh mở TK) **giữ CHỈ ĐỌC** — nay là **quyết định của owner**,
+     không còn là suy luận của tôi. Đừng mở ra vì tưởng chưa ai phán.
+   - Nợ nhãn `>5tỷ`/`<50tr` — **sửa cả cụm một lượt**, làm thành section **B0** (chi tiết ở
+     [module-b-issue-charter.md](./module-b-issue-charter.md)).
+   - Màn dựng tiếp: **Điểm gãy `#/issue/:id`**, 5 tab. Charter đã viết, xem link trên.
+   - Kèm theo, hỏi cùng lượt: **phase 04 "Giao dịch" GIỮ KHOÁ** (không mở vào lượt trình bày pilot).
+4. **Số khách là 300, không phải 293.** `demoData` = 7 khách thật của seed + **293 sinh** tất định.
+   Con số 293 chỉ là tham số của `generateCustomers`. Đừng viết 293 vào bất cứ chỗ nào nói "tổng số
+   khách".
+5. **Tiêu chí #7 của luồng tín hiệu đã kiểm bằng tay, CẢ HAI đường lan của cấu hình.** Đổi Mốc 1 của
+   trục NAV thành `1` rồi lưu:
+   - *Chart cắt THEO NAV* — `q18` "Khách theo phân khúc NAV" chia lại ngay:
+     `<50tr 247 · 50-200tr 18 · 200tr-1tỷ 17 · 1-5tỷ 10 · >5tỷ 8` ⟶
+     `0đ 232 · <200tr 33 · 200tr-1tỷ 17 · 1-5tỷ 10 · >5tỷ 8`, cả hai cộng đúng 300, khớp y khung
+     xem trước trong màn cấu hình.
+   - *NAV làm MÀU CHIA* — `q3` "Volume theo Category" → Chia màu → Phân khúc NAV cho chú thích
+     `0đ · <200tr · 200tr-1tỷ · 1-5tỷ · >5tỷ · Chưa xếp được nhóm`. Dải mới, và nhóm không nối được
+     về hồ sơ khách vẫn hiện chứ không bị rứt khỏi mẫu số.
+
+   **Đừng đi tìm chart theme để thử đường thứ hai** — `q1` "Volume theo Theme" khoá nó **có lý do và
+   nói ra lý do**: số trên thanh là số tổng hợp sẵn, chia màu theo thuộc tính khách sẽ ra tỷ lệ bịa.
+   Chart trục hàng `base:'agg'` khoá, `base:'ev'` mở. Tôi đã mất hai lượt thử nhầm ở đây.
 
 ## Đây là gì, và không phải là gì
 
 `web/` là bản dựng lại **thật** bằng React của prototype một-file
 `output/cxm-platform-prototype.html` (~4786 dòng, **chỉ đọc — là đặc tả gốc, không sửa**).
 
-⚠️ `AI-CONTEXT.md` ở project root viết ngày 28/07 nói nguồn sự thật để deploy là file HTML kia và
-"React app không nằm trên đường deploy nào". Câu đó đúng với thư mục `legacy/` (React app cũ 8 route,
-đã bỏ), **không đúng với `web/`**. `web/` là nơi công việc đang diễn ra từ 31/07.
+⚠️ `AI-CONTEXT.md` ở project root có một cảnh báo (viết từ đợt 28/07, vẫn còn nguyên văn trong file
+dù phần đầu file đã cập nhật 07/08) nói nguồn sự thật để deploy là file HTML kia và "React app không
+nằm trên đường deploy nào". Câu đó đúng với thư mục `legacy/` (React app cũ 8 route, đã bỏ), **không
+đúng với `web/`**. `web/` là nơi công việc đang diễn ra từ 31/07.
 
 ## Cấu hình vận hành owner đã chốt (áp dụng cho MỌI phiên sau)
 
@@ -222,8 +314,12 @@ nới một trong ba thì nhánh này bắt đầu chạy thật — đừng xo�
    > phải nêu rõ nó chạm `data/` và `store/`, nếu không worker sẽ ước lượng sai kích thước.
 3. **Module B** — màn chi tiết điểm gãy, port đủ **5 tab** của `V.issue` trong prototype (dòng 3228):
    `Bằng chứng · Ảnh hưởng · Cohort ảnh hưởng · Xử lý · Kết quả`.
-4. **Sau nữa** — port màn cấu hình 6 nhóm ngưỡng nghiệp vụ của prototype (dòng 4112-4141+:
-   `step`/`metric`/`source`/`alert`/`sub`/`weight`, kèm `resetCfg()`/`cfgDirty()`).
+4. ~~**Sau nữa** — port màn cấu hình 6 nhóm ngưỡng nghiệp vụ của prototype (dòng 4112-4141+:
+   `step`/`metric`/`source`/`alert`/`sub`/`weight`, kèm `resetCfg()`/`cfgDirty()`).~~
+   **XONG 06/08/2026** — Module G, xem `docs/module-g-rules-charter.md`. Màn `#/rules` có đủ **7
+   nhóm**: 6 nhóm trên cộng "Phân khúc khách" (chính là E7 của Module E, xem dưới). `resetCfg()` nằm
+   ở `domain/resetCfg.ts`, `cfgDirty()` dựng lại trong `RulesPage.tsx` (so key-sorted, không so chuỗi
+   thô — `resetCfgPatch` dựng lại `cfg.sub` nên thứ tự khoá có thể khác mặc định).
 
 ## Nợ kỹ thuật đã ghi nhận, cố ý chưa xử
 
@@ -428,6 +524,7 @@ nào đang bị què vì thiếu nó** và **số đo chứng minh**, chứ khô
 | **D-1** | **Mật độ `Evidence` tương đương cohort.** Hiện `data.ev` có **17 bản ghi** cho **14 theme** và **300 khách**. | **10/14 theme có 0 bằng chứng** ⇒ bấm vào là panel rỗng. Hàng lớn nhất (`x-th-device`) ghi **412** mà chỉ có **8** bằng chứng — lệch ~50 lần. Nguồn `src-ga` ghi **41.200** có **2**. | Drill-down (mọi trục `agg`); "Evidence mẫu" ở `ThemeDetailPage` |
 | **D-2** | **`Evidence.ck` phải TOÀN VẸN** — mỗi `ck` trỏ tới một dòng `Customer` thật, hoặc là sentinel `'Ẩn danh'` khai báo rõ. | `ck` **đã tồn tại** trong schema (`voc.ts:99`) — nhận định cũ "Evidence không có khoá khách" là **SAI, đã bác 03/08**. Nhưng có **15 giá trị `ck` khác nhau, chỉ 7 khớp** `cust.key`; 7 khoá trỏ vào hư không. `validate.ts` **chưa có luật nào** kiểm việc này ⇒ đúng loại "join im lặng trả 0 dòng" mà mục obligations ở trên đã cảnh báo. | Module D **section 2** (chia màu trục theme theo nhóm khách); drill-down verbatim cho trục khách |
 | **D-3** | **Nhãn `st` (trạng thái hành trình) trên `Customer`** nếu muốn toggle nhóm khách theo bước đang mắc. | Field `st` có sẵn nhưng **chưa có `dims` entry nào** dùng nó, nên chưa vào được picker chia màu. | Yêu cầu toggle nhóm khách (owner nêu 03/08) |
+| **D-4** | **Chuỗi chỉ số theo kỳ ĐỀU NHAU, cùng grain với cửa sổ đo của mốc đóng băng.** Mỗi điểm gãy cần một dãy giá trị của chính `iss.metric` trên lưới kỳ cố định, phủ ít nhất 6 kỳ trước lúc xác nhận và các kỳ sau khi phát hành. | **Không có chuỗi thời gian nào khoá theo chỉ số** (đo 07/08): `Metric` chỉ có `value`/`target` dạng chuỗi, `Obs` không có chiều thời gian, `Snapshot.m` là MỘT điểm. Chuỗi duy nhất đang có là `VoiceInsight.pts` (khối lượng theo theme) — mượn vào là gán cho con số một ý nghĩa nó không có. Tệ hơn, `Snapshot.m.p` là **cửa sổ đo tự do**, mỗi issue một kiểu: `28/01–27/07` (6 tháng) · `28/06–15/07` (2,5 tuần) · `09/07–15/07` (1 tuần) ⇒ **không suy được lưới kỳ từ dữ liệu đang có**. | Tab **Kết quả** của màn Điểm gãy (`#/issue/:id`) — chart verify. Tới khi có nguồn thật, 6 điểm trước là **số minh hoạ theo tháng** sinh trong `demo.ts`, còn mốc đóng băng và số "sau" là số THẬT đo trên cửa sổ riêng; chart phải nói ra chỗ trộn grain đó |
 
 **Kỷ luật đi kèm:** cho tới khi D-1/D-2 được cấp, **KHÔNG sinh thêm verbatim để lấp chỗ rỗng.** Quyền
 "được yêu cầu data" là quyền **đòi**, không phải quyền **bịa**: bịa 800 verbatim làm panel trông đầy

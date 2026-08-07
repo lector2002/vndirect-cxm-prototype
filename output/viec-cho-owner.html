@@ -46,6 +46,19 @@
        border:1px solid var(--line);border-radius:4px;padding:1px 5px}
   .card.act code{background:var(--surface)}
   .src{color:var(--ink3);font-size:12.5px;margin-top:10px;padding-top:9px;border-top:1px dashed var(--line)}
+  .card ol{margin:8px 0 8px 0;padding-left:20px;color:var(--ink2);font-size:14px}
+  .card ol li{margin-bottom:5px}
+  .card ol li::marker{color:var(--ink3);font-variant-numeric:tabular-nums}
+  /* Hai dòng số trước/sau là thứ owner đối chiếu bằng mắt với màn hình thật — chúng KHÔNG được
+     xuống dòng. Ở 1280px chúng vừa khít khung, nên cửa sổ hẹp hơn hoặc cỡ chữ hệ thống lớn hơn là
+     "= 300" tụt xuống dòng riêng và phép so đọc thành sai. Cho khung tự cuộn ngang thay vì cho chữ
+     tự gãy. */
+  .expect{background:var(--bg);border:1px solid var(--line);border-radius:8px;
+          padding:10px 12px;margin:10px 0;font-size:13.5px;color:var(--ink2);overflow-x:auto}
+  .expect strong{color:var(--ink)}
+  .expect .row{font:12.5px/1.75 ui-monospace,SFMono-Regular,monospace;
+               font-variant-numeric:tabular-nums;color:var(--ink);display:block;white-space:nowrap}
+  .tag.t{background:var(--primary-soft);color:var(--primary);border:1px solid var(--primary-line)}
   .num{font-variant-numeric:tabular-nums;font-weight:650;color:var(--ink)}
   footer{margin-top:46px;padding-top:20px;border-top:1px solid var(--line);
          color:var(--ink3);font-size:13px}
@@ -56,11 +69,80 @@
 
 <header>
   <h1>Việc chờ owner — nền tảng CXM</h1>
-  <p class="sub">Gom tất cả những gì tôi phải báo mà chưa được trả lời, để anh mở ra đọc một lượt thay vì lần lại từng lượt chat. Ba nhóm: <strong>cần anh quyết</strong>, <strong>chờ bên dữ liệu</strong>, và <strong>tôi đã xử nhưng anh nên biết</strong>.</p>
-  <p class="meta">Cập nhật 06/08/2026 · <code>tsc -b</code> sạch · 1047/1047 test xanh (89 file) · mười màn đã có thân thật · nguồn đầy đủ: <code>docs/DB-FIRST-HANDOFF.md</code></p>
+  <p class="sub">Gom tất cả những gì tôi phải báo mà chưa được trả lời, để anh mở ra đọc một lượt thay vì lần lại từng lượt chat. Bốn nhóm: <strong>anh nên tự bấm thử</strong>, <strong>cần anh quyết</strong>, <strong>chờ bên dữ liệu</strong>, và <strong>tôi đã xử nhưng anh nên biết</strong>.</p>
+  <p class="meta">Cập nhật 07/08/2026 · <code>tsc -b</code> sạch · 1113/1113 test xanh (99 file) · <strong>mười một màn</strong> đã có thân thật · nguồn đầy đủ: <code>docs/DB-FIRST-HANDOFF.md</code></p>
+
+  <div style="border:2px solid #d9531e;border-radius:10px;padding:14px 16px;margin-top:16px;background:#fdf3ee">
+    <div style="font-weight:800;font-size:15px;margin-bottom:6px">⚠️ Trang này đã CŨ MỘT PHẦN — đọc mục dưới trước khi tin phần “Cần anh quyết”</div>
+    <p style="margin:0 0 8px">Cuối ngày 07/08 anh đã trả lời <strong>4 trong 6 việc</strong> ở nhóm “Cần anh quyết”, và <strong>đổi hướng dự án</strong>. Trang này viết trước lúc đó nên vẫn hỏi lại những thứ anh đã chốt. Bốn việc <strong>không cần trả lời nữa</strong>:</p>
+    <ul style="margin:0 0 10px 18px;padding:0">
+      <li><strong>Màn nào dựng tiếp</strong> → đã chốt: màn Điểm gãy. Đã dựng xong phần dữ liệu nền rồi <em>dừng lại</em> theo hướng mới.</li>
+      <li><strong>Hai nhãn dải nói sai khoảng</strong> → đã chốt sửa cả cụm, và <strong>đã sửa xong</strong>. Hoá ra sai ba chỗ chứ không phải hai: nhãn thâm niên <code>&gt;5 năm</code> sai y hệt vì cùng một đoạn code sinh ra.</li>
+      <li><strong>Danh sách kênh mở tài khoản</strong> → đã chốt: giữ chỉ đọc. Nay là quyết định của anh, không còn là suy luận của tôi.</li>
+      <li><strong>Phase 04 “Giao dịch”</strong> → đã chốt: giữ khoá.</li>
+    </ul>
+    <p style="margin:0"><strong>Hướng mới:</strong> ưu tiên <strong>MVP tối giản về quản trị flow dữ liệu và độ phủ</strong>, làm kĩ và tinh phần đó trước. Phiên sau bắt đầu bằng <strong>brainstorm để chốt phạm vi</strong>, chưa code. Bản đồ đầy đủ kèm số đo và năm câu hỏi cần bàn: <code>web/docs/HANDOFF-MVP-FLOW-COVERAGE.md</code>.</p>
+  </div>
 </header>
 
-<h2>Cần anh quyết <span class="n">4 việc</span></h2>
+<h2>Anh nên tự bấm thử <span class="n">6 việc</span></h2>
+<p class="lead">Chỉ liệt những thứ <strong>bài kiểm không chứng minh được</strong> — bố cục, chữ bị cắt, con số đứng dưới nhãn không thuộc về nó, và những chỗ chỉ anh mới biết đúng hay sai. Những thứ đã có test canh (bảy nhóm mở được, nút trả về mặc định, ngưỡng ghi đúng ô) tôi không đưa vào đây; xanh rồi thì anh không phải bấm lại.</p>
+
+<div class="card act">
+  <h3><span class="tag t">Bấm thử · 3 phút</span> Đổi một ranh giới NAV rồi xem biểu đồ chia lại — lần đầu anh làm được việc này bằng tay</h3>
+  <p>Ngày 04/08 anh chốt “nguồn trong setting sẽ là source of truth” cho ranh giới dải. Từ đó tới nay nó vẫn chỉ đổi được bằng cách sửa code. Đây là lần đầu anh tự đổi được, và tự nhìn thấy hậu quả.</p>
+  <ol>
+    <li>Mở <code>#/rules</code> → nhóm <strong>Phân khúc khách</strong>.</li>
+    <li>Sửa <strong>Mốc 1</strong> của Phân khúc NAV thành <code>1</code>, bấm Enter. Khung bên phải hiện dải mới <em>trước khi</em> lưu — xem có đúng ý không.</li>
+    <li>Bấm <strong>Lưu ranh giới</strong>, rồi sang <code>#/quantify</code>, tìm chart <strong>“Khách theo phân khúc NAV”</strong>.</li>
+  </ol>
+  <div class="expect">
+    <strong>Tôi đã chạy thử, số phải ra thế này:</strong>
+    <span class="row">trước &nbsp;&lt;50tr 247 · 50-200tr 18 · 200tr-1tỷ 17 · 1-5tỷ 10 · &gt;5tỷ 8 &nbsp;= 300</span>
+    <span class="row">sau &nbsp;&nbsp;&nbsp;0đ 232 · &lt;200tr 33 · 200tr-1tỷ 17 · 1-5tỷ 10 · &gt;5tỷ 8 &nbsp;= 300</span>
+  </div>
+  <p class="why"><strong>Câu tôi cần anh trả lời:</strong> sửa một mốc là <strong>thay</strong> mốc đó, nên dải <code>50tr</code> biến mất. Nếu ý anh là “tách nhóm chưa có tài sản ra <em>mà vẫn giữ</em> mốc 50tr” thì phải bấm <strong>+ Thêm ranh giới</strong> chứ không phải sửa Mốc 1. Anh bấm thử cả hai đường xem đường nào khớp cách anh nghĩ — nếu sửa-là-thay gây bất ngờ thì đó là chỗ tôi phải nói rõ hơn trên màn.</p>
+</div>
+
+<div class="card act">
+  <h3><span class="tag t">Bấm thử · 1 phút</span> Dải NAV dùng làm <em>màu chia</em> — đường thứ hai, cũng chạy đúng</h3>
+  <p>Ranh giới mới phải lan theo <strong>hai</strong> đường: chart cắt <em>theo</em> NAV (mục trên), và NAV dùng làm <em>màu chia</em> cho chart khác. Lần đầu tôi thử nhầm chỗ — trên “Volume theo Theme”, và màn <strong>từ chối có lý do</strong>: số trên thanh đó là số tổng hợp sẵn, chia màu theo thuộc tính khách sẽ ra tỷ lệ bịa. Đúng nguyên tắc, không phải lỗi. Chart đọc thẳng từ bằng chứng thì mở.</p>
+  <ol>
+    <li>Vẫn giữ Mốc 1 = <code>1</code> vừa lưu ở mục trên.</li>
+    <li>Ở <code>#/quantify</code>, tìm chart <strong>“Volume theo Category”</strong> → <strong>Chia màu → Phân khúc NAV</strong>.</li>
+  </ol>
+  <div class="expect">
+    <strong>Tôi đã chạy thử, chú thích màu phải là dải MỚI:</strong>
+    <span class="row">0đ · &lt;200tr · 200tr-1tỷ · 1-5tỷ · &gt;5tỷ · Chưa xếp được nhóm</span>
+  </div>
+  <p class="why">Hai điều đáng nhìn: <strong>(1)</strong> nó hiện <code>0đ</code> chứ không còn <code>&lt;50tr</code> — cấu hình lan đúng sang đường thứ hai. <strong>(2)</strong> có dòng <strong>“Chưa xếp được nhóm”</strong> nằm cùng chú thích. Đó là bằng chứng mẫu chưa nối được về hồ sơ khách; nó được <em>hiện ra</em> chứ không bị lặng lẽ rứt khỏi mẫu số. Nếu anh thấy nhóm này to bất thường, đó là tín hiệu về chất lượng nối dữ liệu chứ không phải lỗi chart.</p>
+</div>
+
+<div class="card act">
+  <h3><span class="tag t">Chỉ anh biết</span> Nhóm “SLA từng nguồn” — bảy dòng đó có đúng bảy nguồn không?</h3>
+  <p>Nhóm này sinh dòng thẳng từ danh sách nguồn trong dữ liệu, không gõ tay dòng nào, và có nhãn <strong>“bản tạm”</strong> vì anh nói kiểm kê nguồn chưa chốt. Nghĩa là: nó chắc chắn <em>khớp với dữ liệu</em>, nhưng không ai khẳng định được dữ liệu đang liệt <em>đúng</em> các nguồn.</p>
+  <p class="why">Anh mở <code>#/rules</code> → <strong>SLA từng nguồn</strong>, đọc tên bảy dòng. Thiếu nguồn nào, thừa nguồn nào — chỉ anh trả lời được. Chốt xong danh sách thì màn <strong>Nguồn dữ liệu</strong> cũng phải dựng lại theo (đã ghi ở mục chờ bên dữ liệu).</p>
+</div>
+
+<div class="card act">
+  <h3><span class="tag t">Bấm thử</span> Tải lại trang là mất hết cấu hình — cố ý, nhưng anh phải thấy trước khi nó làm anh bực</h3>
+  <p>Sửa vài ngưỡng rồi nhấn F5: mọi thứ về mặc định. Đây là quyết định cũ (không lưu xuống máy người dùng ở giai đoạn thiết kế), màn có ghi rõ câu đó ở đầu trang. Bài kiểm không chạm được vào chuyện tải lại trang, nên chỉ có anh xác nhận được là <em>chấp nhận được khi đi trình bày</em>.</p>
+  <p class="why">Nếu lúc trình bày pilot anh cần giữ cấu hình qua vài lần tải lại, nói tôi biết — đó là một việc phải làm thêm, không phải một dòng sửa.</p>
+</div>
+
+<div class="card act">
+  <h3><span class="tag t">Bấm thử</span> Bố cục ở đúng kích thước cửa sổ anh hay dùng</h3>
+  <p>Bốn trong năm lỗi đợt này là <strong>lỗi bề rộng</strong>: ô cắt mất chữ số, bảng bị bóp, chữ bị cắt cụt. Tôi soi ở một kích thước duy nhất (1280×720). Màn hình anh rộng hơn, và một số lỗi loại này chỉ hiện ở một bề rộng nhất định.</p>
+  <p class="why">Anh mở <code>#/rules</code>, bấm qua bảy nhóm ở cửa sổ thường dùng. Thấy chữ nào cụt, số nào có vẻ thiếu chữ số, cột nào bị bóp — chụp lại gửi tôi. Đây là loại lỗi <em>không có đường báo đỏ</em>, chỉ mắt bắt được.</p>
+</div>
+
+<div class="card act">
+  <h3><span class="tag t">Chỉ anh biết</span> “Trọng số ưu tiên” tôi để chỉ đọc — anh nhìn rồi bảo có cần sửa được không</h3>
+  <p>Dữ liệu lưu điểm ưu tiên dưới dạng số tuyệt đối, và hệ thống tự kiểm khẳng định sáu thành phần cộng lại đúng bằng tổng. Cho sửa trọng số mà không tính lại toàn bộ điểm là bắn báo đỏ trên mọi màn — nên tôi để chỉ đọc và có test canh chuyện nhóm này không được có ô nhập nào.</p>
+  <p class="why">Nhưng “có nên sửa được không” là câu hỏi sản phẩm, không phải câu hỏi kỹ thuật, và tôi đã tự trả lời hộ anh. Anh xem sáu thành phần đó rồi nói: đây là thứ đội CX cần chỉnh theo thời kỳ, hay là hằng số của mô hình?</p>
+</div>
+
+<h2>Cần anh quyết <span class="n">6 việc</span></h2>
 <p class="lead">Không việc nào chặn tôi làm tiếp. Nhưng mỗi việc là một chỗ tôi cố tình <em>không</em> tự quyết, vì quyết hộ là lật một lựa chọn của anh sau lưng anh.</p>
 
 <div class="card act">
@@ -86,11 +168,27 @@
 </div>
 
 <div class="card act">
-  <h3><span class="tag q">Thứ tự</span> Màn nào dựng tiếp? Hai màn đang trỏ sang “Chỉ số &amp; ngưỡng” mà màn đó còn trống</h3>
-  <p class="why">Màn Bản đồ hành trình và màn Nguồn dữ liệu <strong>cùng hứa</strong> rằng chỗ sửa SLA từng nguồn và chỗ sửa số ngày cooldown nằm ở màn <strong>Chỉ số &amp; ngưỡng</strong>. Anh bấm vào sẽ ra <strong>trang trống</strong>. Đây là chữ trên màn hứa một chỗ mà chỗ đó chưa có — khác với các mục ở nhóm dưới, nó chưa được xử.</p>
-  <p>Tôi <strong>không</strong> gỡ câu chữ, vì về thiết kế nó đúng: đó <em>là</em> chỗ sẽ sửa. Cách đóng đúng là dựng màn đó.</p>
-  <p><strong>Nhưng tôi đã hoãn nó, và cần anh biết vì sao.</strong> Nửa màn Chỉ số &amp; ngưỡng là chỗ đặt <em>SLA cho từng nguồn</em> — đúng phần anh vừa nói là chưa chốt. Dựng bây giờ thì dựng xong lại phải sửa. Nên tôi làm <strong>Topic &amp; xu hướng</strong> trước: màn đó đọc taxonomy và bằng chứng, không đụng danh sách nguồn. Đã xong.</p>
-  <p class="src">Ba màn còn trống: <strong>Chỉ số &amp; ngưỡng</strong> (chờ chốt nguồn) · Agent &amp; cảnh báo · Trợ lý. Anh muốn đảo thứ tự thì nói.</p>
+  <h3><span class="tag q">Thứ tự</span> Màn nào dựng tiếp? Còn <strong>ba</strong> chỗ trống, và một chỗ trước đây tôi không kể ra</h3>
+  <p class="why">Màn <strong>Chỉ số &amp; ngưỡng</strong> đã dựng xong hôm nay (xem mục ở nhóm dưới), nên bốn lời hứa dẫn sang trang trống đã đóng.</p>
+  <p><strong>Tôi đã ước lượng sai và cần nói ra:</strong> lần trước tôi báo “nửa màn Chỉ số &amp; ngưỡng là chỗ đặt SLA cho từng nguồn — đúng phần anh nói là chưa chốt”, rồi hoãn. Đo lại bốn chỗ trong app đang hứa dẫn sang màn đó: không chỗ nào cần SLA nguồn cả. Phần bị kiểm-kê-nguồn ảnh hưởng đúng <strong>một nhóm trên bảy</strong>, và là nhóm duy nhất không ai link tới. Đáng lẽ không phải hoãn.</p>
+  <p><strong>Một chỗ trống nữa mà danh sách cũ của tôi không có:</strong> màn <strong>Điểm gãy</strong> (<code>#/issue/&lt;mã&gt;</code>). Nó không nằm trong sidebar nên tôi đã đếm sót, nhưng có <strong>ba</strong> đường dẫn vào: gõ tìm kiếm rồi bấm một điểm gãy, bấm một dòng ở khối “Ưu tiên xử lý”, và link trong hồ sơ điểm chạm VoC. Cả ba đang ra trang trống. Bản mẫu có 5 tab cho màn này: Bằng chứng · Ảnh hưởng · Cohort ảnh hưởng · Xử lý · Kết quả.</p>
+  <p class="src">Ba chỗ còn trống: <strong>Điểm gãy</strong> (3 đường dẫn vào, đề xuất làm trước) · Agent &amp; cảnh báo · Trợ lý. Anh muốn đảo thứ tự thì nói.</p>
+</div>
+
+<div class="card act">
+  <h3><span class="tag q">Nhãn dải</span> Hai cái nhãn đang nói sai khoảng — giờ anh sẽ nhìn thấy chúng</h3>
+  <p class="why">Từ hôm nay anh sửa được ranh giới dải ngay trên màn. Kéo theo: hai chỗ nhãn nói sai mà tôi ghi nợ từ 04/08 nay hiện ra trước mắt người dùng, không còn nằm im trong tài liệu.</p>
+  <p><strong>Một:</strong> nhãn <code>&gt;5tỷ</code> nói sai. Biên dưới của dải là đóng, nên khách có <em>đúng</em> 5 tỷ nằm trong dải này — mà nhãn bảo là “hơn 5 tỷ”. Đúng phải là <code>5tỷ+</code>.</p>
+  <p><strong>Hai:</strong> nếu anh thêm một mốc sát 0 để tách nhóm chưa có tài sản, dải ngay trên nó vẫn mang nhãn <code>&lt;50tr</code> — đọc như thể bao cả số 0, trong khi ngay dưới đã có dải <code>0đ</code> riêng.</p>
+  <p>Tôi <strong>không</strong> tự sửa: <code>&gt;5tỷ</code> đang là chuỗi cố định trong dữ liệu mẫu và trong nhiều test, sửa lẻ là đổi cái nhãn anh đang thấy mà không hỏi. Anh gật thì tôi đổi cả cụm trong một lần.</p>
+  <p class="src">Ghi từ review Module E · nay nhắc lại tại <code>docs/DB-FIRST-HANDOFF.md</code> §“Nợ Module E nay đã hiện ra trước mắt owner”</p>
+</div>
+
+<div class="card act">
+  <h3><span class="tag q">Phạm vi</span> Danh sách kênh mở tài khoản: tôi để <strong>chỉ đọc</strong>, và đó là suy luận của tôi</h3>
+  <p class="why">Trên nhóm Phân khúc khách, ranh giới dải NAV/tuổi thì sửa được, nhưng <em>danh sách giá trị hợp lệ</em> của kênh mở tài khoản (banner · giới thiệu · chi nhánh · tự tìm · đối tác) tôi để chỉ đọc.</p>
+  <p><strong>Lý do:</strong> bỏ một giá trị đang có khách mang nó không phải là “đổi cách chia”, mà là tuyên bố dữ liệu đang có là sai — đó là một quyết định về dữ liệu, phải đi cùng việc chữa hồ sơ khách, chứ không phải một ô ngưỡng vận hành sửa hằng ngày.</p>
+  <p>Nhưng <strong>anh chưa phán chuyện này</strong>, nên tôi nói ra thay vì để nó thành mặc định lặng lẽ. Anh muốn sửa được thì tôi mở, kèm cảnh báo khi giá trị bỏ đi đang có khách dùng.</p>
 </div>
 
 <h2>Chờ bên dữ liệu <span class="n">3 mục</span></h2>
@@ -117,7 +215,38 @@
   <p class="src">Đặc tả: <code>output/yeu-cau-du-lieu-pilot-mo-rong.html</code></p>
 </div>
 
-<h2>Tôi đã xử, chỉ báo để anh biết <span class="n">11 mục</span></h2>
+<h2>Tôi đã xử, chỉ báo để anh biết <span class="n">14 mục</span></h2>
+
+<div class="card info">
+  <h3><span class="tag i">Đã làm</span> Màn Chỉ số &amp; ngưỡng đã dựng — bảy nhóm, sửa được thật</h3>
+  <p>Bốn chỗ trong app hứa dẫn sang màn này giờ mở ra màn thật. Bảy nhóm: ngưỡng bước hành trình · ngưỡng từng chỉ số · SLA từng nguồn · cảnh báo &amp; khảo sát · phân khúc khách (ranh giới dải) · bản tin định kỳ · trọng số ưu tiên.</p>
+  <p><strong>Sửa một ô là cả app đổi theo ngay</strong>, đúng như bản mẫu: hạ ngưỡng xử lý thì bước đổi nhãn ngay trong màn; tắt theo dõi một chỉ số thì nó mất nhãn trạng thái; nới SLA một nguồn thì nguồn đó chuyển sang “Đang nhận” — kèm câu nhắc rằng độ trễ thật <em>không</em> đổi, đây là chỗ dễ tự lừa nhất.</p>
+  <p><strong>Nhóm “Phân khúc khách” trả một món nợ từ 04/08.</strong> Hôm đó anh chốt “nguồn trong setting sẽ là source of truth” cho ranh giới dải NAV/tuổi, nhưng màn để anh sửa thì chưa ai dựng — tới hôm nay nó vẫn là thứ chỉ đổi được bằng cách sửa code. Giờ anh sửa mốc và <strong>thấy trước</strong> dải mới cùng số khách rơi vào từng dải, <em>trước khi</em> bấm lưu. Mốc đặt sai bị chặn kèm câu nói rõ sai gì.</p>
+  <p><strong>Nhóm “Trọng số ưu tiên” cố ý chỉ đọc</strong> — dữ liệu lưu điểm tuyệt đối và hệ thống tự kiểm khẳng định sáu thành phần cộng lại đúng bằng tổng; cho sửa mà không tính lại tổng là bắn banh báo đỏ trên mọi màn. Có test canh riêng chuyện nhóm này không được có ô nhập nào.</p>
+  <p class="src">Không cần anh làm gì. <code>docs/DB-FIRST-HANDOFF.md</code> §“Màn Chỉ số &amp; ngưỡng”</p>
+</div>
+
+<div class="card info">
+  <h3><span class="tag i">Đáng đọc</span> Test xanh hết mà màn vẫn sai bốn chỗ — chỉ mở trình duyệt mới thấy (rồi lỗi thứ năm nằm trong chính bản vá)</h3>
+  <p>28 bài kiểm của màn xanh, không lỗi biên dịch, không lỗi console. Tôi vẫn mở trình duyệt soi, và thấy bốn chỗ hỏng:</p>
+  <p><strong>Nặng nhất:</strong> ô nhập ranh giới quá hẹp nên <code>200000000</code> hiện ra thành <code>20000000</code> — <strong>màn nói sai con số của chính nó</strong>, đúng loại lỗi đã chặn ba lần ở các màn trước. Đã nới ô và thêm cách đọc đi kèm (<em>= 200tr</em>, <em>= 5tỷ</em>).</p>
+  <p>Ba chỗ còn lại: bảng chỉ số bị bóp đến mức tên chỉ số xuống dòng từng chữ (một dòng cao gần 200px) · hai câu giải thích dài bị cắt cụt giữa chừng · tên bước cắt thành “03 Live…”. Đã sửa cả ba.</p>
+  <p><strong>Vì sao đáng ghi:</strong> test chứng minh <em>con số và câu chữ</em>, nó không chứng minh <em>bố cục</em>. Anh từng nhắc hai màn trước chưa ai soi bằng mắt vì máy chưa bật extension điều khiển Chrome — lần này tôi dùng được một công cụ khác chạy trình duyệt ngầm, và nó bắt cả bốn lỗi trong một lượt. Từ nay màn mới nào tôi cũng soi được như vậy.</p>
+  <p><strong>Rồi có lỗi thứ năm — nằm ngay trong bản vá lỗi thứ nhất, và bốn ảnh chụp kia không bắt được.</strong> Cách đọc tôi thêm vào cạnh ô (“= 200tr”) ghi <em>= 0đ</em> cho mọi mốc dưới một triệu. Nên đúng cái anh cần ở nhóm phân khúc — đặt mốc <strong>1 đồng</strong> để tách nhóm chưa có tài sản — cho ra ô ghi <code>1</code> mà chữ ngay cạnh ghi <em>= 0đ</em>. Thứ tôi thêm để chống “màn nói sai con số của chính nó” lại đi nói sai đúng con số đó. Ảnh chụp không thấy vì lúc chụp trên màn không có mốc nào nhỏ như vậy. Đã sửa: dưới một triệu thì không ghi chú thích gì cả, vì lúc đó số đồng thô đã là cách đọc đúng. Lần này ghim bằng hai bài kiểm để nó không quay lại.</p>
+  <p><strong>Rút ra:</strong> vá xong một lỗi hiển thị thì phải hỏi tiếp <em>phần vừa thêm được ghim bằng cái gì</em> — bản vá cũng là code mới, và tự nó chưa có gì canh.</p>
+  <p class="src">Ảnh chụp bảy nhóm đã xem tại chỗ; không lưu vào kho để khỏi thêm rác.</p>
+</div>
+
+<div class="card info">
+  <h3><span class="tag i">Chưa ai duyệt mắt</span> Nhánh “bước chưa có dữ liệu quan sát”</h3>
+  <p>Màn cố ý <strong>loại</strong> bước chưa đo ra khỏi khối kết quả và đếm số bị loại ra chữ, thay vì gán cho nó nhãn “đang kiểm soát”. Nhưng đo lại dữ liệu hiện tại: <strong>cả 30 bước đều đã có dòng quan sát</strong>, nên nhánh này không bấm ra xem được. Nó có code và có test (giả lập bỏ dữ liệu của một bước), chỉ là chưa lần nào hiện lên màn thật — cùng nhóm với mấy nhánh tôi đã báo trước đây.</p>
+</div>
+
+<div class="card info">
+  <h3><span class="tag i">Đã bỏ</span> Hai câu “áp ngay lúc này” của bản mẫu không tính được thật</h3>
+  <p>Bản mẫu có câu “volume vượt baseline N lần” nhưng nó so với một tỷ lệ <strong>gõ cứng</strong> <code>1.180/490</code> — dữ liệu hiện tại không có chuỗi volume nào để tính lại. Bỏ hẳn, không thay bằng số khác. Hệ quả: ô “volume vượt baseline bao nhiêu lần thì cảnh báo” vẫn sửa được nhưng chưa có câu nói hậu quả đi kèm.</p>
+  <p>Câu thứ hai nhắc màn <em>Agent &amp; cảnh báo</em> — màn đó chưa dựng, nên bỏ vế đó, chỉ giữ vế cooldown trỏ sang màn Nguồn dữ liệu (chỗ đó có thật).</p>
+</div>
 
 <div class="card info">
   <h3><span class="tag i">Đã làm</span> Mọi màn chỉ còn tên tab ở đầu trang</h3>
