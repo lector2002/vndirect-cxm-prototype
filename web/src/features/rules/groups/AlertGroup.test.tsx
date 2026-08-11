@@ -17,7 +17,7 @@ afterEach(() => {
 
 function deadCount(): number {
   const { data, cfg: c } = useCxmStore.getState();
-  return data.sources.filter((s) => sourceHealth(s, c) === "down").length;
+  return data.sources.filter((s) => sourceHealth(s, c, data.asOf) === "down").length;
 }
 
 describe("AlertGroup — bảy ngưỡng cảnh báo + áp ngay lúc này", () => {

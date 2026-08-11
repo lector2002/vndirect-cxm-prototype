@@ -15,14 +15,28 @@ type Pf = (typeof PFS)[number];
 
 const PF_LABEL: Record<Pf, string> = { ios: "iOS", android: "Android", web: "Web", server: "Server" };
 
-const SRC_MARK: Record<SourceHealth, string> = { ok: "●", stale: "◐", down: "✕" };
-const SRC_LABEL: Record<SourceHealth, string> = { ok: "Đang nhận", stale: "Trễ hơn SLA", down: "Ngừng gửi" };
+/* 07/08 (module-i-signal-registry-charter.md I3): thêm nhánh "silent" vào SourceHealth (chấm sức
+   khoẻ đổi cách làm, xem domain/state.ts). Mark/label/màu cho "silent" thêm ở đây CHỈ để các Record
+   này còn EXHAUSTIVE — không nguồn nào trong fixture hôm nay rơi vào nhánh này (xem sources.test.ts),
+   nên mark "○" chưa từng hiện lên màn thật; chọn nghĩa "chưa phân định", không tô như lỗi. */
+const SRC_MARK: Record<SourceHealth, string> = { ok: "●", stale: "◐", down: "✕", silent: "○" };
+const SRC_LABEL: Record<SourceHealth, string> = {
+  ok: "Đang nhận",
+  stale: "Thiếu ngày dữ liệu",
+  down: "Ngừng gửi",
+  silent: "Im lặng, chưa phân định",
+};
 
 /* Màu mark theo trạng thái — token có sẵn trong tailwind.config.js, không thêm hex mới.
    "na" (không áp dụng) không có token riêng: --unk và --ink3 cùng trỏ #8c8681 trong index.css
    (không phải #C6CDD2 gốc) nên chọn nào cũng lệch nhẹ như nhau về màu; dùng text-ink-3 để nhất
    quán với tiền lệ Badge.tsx (cũng dùng --ink3 cho trạng thái "không xác định được"). */
-const MARK_CLASS: Record<SourceHealth, string> = { ok: "text-good", stale: "text-watch", down: "text-crit" };
+const MARK_CLASS: Record<SourceHealth, string> = {
+  ok: "text-good",
+  stale: "text-watch",
+  down: "text-crit",
+  silent: "text-ink-3",
+};
 
 function metricName(metrics: Metric[], id: string): string {
   return metrics.find((m) => m.id === id)?.name ?? id;
@@ -32,11 +46,14 @@ export type SrcMatrixProps = {
   sources: Source[];
   metrics: Metric[];
   cfg: Cfg;
+  /** Mốc số liệu — `sourceHealth()` chấm theo `asOf` từ 07/08 (module-i-signal-registry-charter.md
+      I3), không còn theo `now`/SLA giờ. Component không tự đọc store, nên caller phải truyền vào. */
+  asOf: string;
   /** Bản rút gọn nhúng vào widget Tổng quan: ẩn note + cột metric, cắt tên trong ngoặc. */
   compact?: boolean;
 };
 
-export function SrcMatrix({ sources, metrics, cfg, compact }: SrcMatrixProps) {
+export function SrcMatrix({ sources, metrics, cfg, asOf, compact }: SrcMatrixProps) {
   const noPf = sources.filter((s) => !s.pf.length);
 
   return (
@@ -64,7 +81,7 @@ export function SrcMatrix({ sources, metrics, cfg, compact }: SrcMatrixProps) {
         </thead>
         <tbody>
           {sources.map((s) => {
-            const h = sourceHealth(s, cfg);
+            const h = sourceHealth(s, cfg, asOf);
             const mk = SRC_MARK[h];
             const displayName = compact ? s.name.replace(/ \(.*\)/, "") : s.name;
             return (
@@ -100,7 +117,7 @@ export function SrcMatrix({ sources, metrics, cfg, compact }: SrcMatrixProps) {
                   <span data-testid="src-health" className={`text-[14px] leading-none ${MARK_CLASS[h]}`}>
                     {mk}
                   </span>{" "}
-                  <span className={`text-[11.5px] ${h === "ok" ? "text-ink-3" : h === "stale" ? "text-watch" : "text-crit"}`}>
+                  <span className={`text-[11.5px] ${h === "ok" ? "text-ink-3" : MARK_CLASS[h]}`}>
                     {SRC_LABEL[h]}
                   </span>
                 </td>
@@ -111,7 +128,7 @@ export function SrcMatrix({ sources, metrics, cfg, compact }: SrcMatrixProps) {
                         <span
                           key={mId}
                           className={`inline-block px-2 py-0.5 rounded-[6px] text-[12px] font-semibold border bg-surface-2 mr-1 ${
-                            h !== "ok" ? "text-crit border-current" : "text-ink-2 border-line"
+                            h === "down" || h === "stale" ? "text-crit border-current" : "text-ink-2 border-line"
                           }`}
                         >
                           {metricName(metrics, mId)}
@@ -132,7 +149,7 @@ export function SrcMatrix({ sources, metrics, cfg, compact }: SrcMatrixProps) {
           <b className="text-good">●</b> đang nhận
         </span>
         <span>
-          <b className="text-watch">◐</b> trễ hơn SLA
+          <b className="text-watch">◐</b> thiếu ngày dữ liệu
         </span>
         <span>
           <b className="text-crit">✕</b> ngừng gửi

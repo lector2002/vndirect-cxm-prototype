@@ -24,6 +24,8 @@ export {
   metricsAtRisk,
   ownersAtRisk,
   lagText,
+  worstSource,
+  metricFreshnessText,
   evidenceOfSource,
   senBucket,
   distByIntent,
@@ -49,7 +51,16 @@ export {
 } from "./topics.ts";
 export type { TopicLine } from "./topics.ts";
 export { zScores, isAnomaly, countAnomalies } from "./stats.ts";
-export { stepState, stepWhy, metricState, sourceHealth, laneOf, flowHasSourceCitation, flowStepsCopied } from "./state.ts";
+export {
+  stepState,
+  stepWhy,
+  metricState,
+  sourceHealth,
+  sourceDaysMissing,
+  laneOf,
+  flowHasSourceCitation,
+  flowStepsCopied,
+} from "./state.ts";
 export type { DerivedState, SourceHealth, LaneKey } from "./state.ts";
 export { getPrimaryAction, advanceAction, advanceBlockedReason } from "./loop.ts";
 export type { LoopStageKey, PrimaryAction } from "./loop.ts";

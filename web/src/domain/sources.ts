@@ -1,5 +1,5 @@
 import type { Cfg, CxmData, DimRow, Evidence, Metric, Source, Survey } from "../data/schema/index.ts";
-import { sourceHealth } from "./state.ts";
+import { sourceDaysMissing, sourceHealth } from "./state.ts";
 import type { SourceHealth } from "./state.ts";
 
 /* Phép đếm của màn "Nguồn dữ liệu" (#/sources) — nguồn nào đang nhận, nguồn nào đứt, và nguồn đứt
@@ -29,7 +29,7 @@ import type { SourceHealth } from "./state.ts";
 /** Nguồn có vấn đề xếp lên đầu; trong mỗi nhóm giữ nguyên thứ tự khai báo (thứ tự khai báo là thứ
     tự người dựng dữ liệu chọn, không có lý do gì để mình xáo lại). */
 export function sourcesByProblem(data: CxmData, cfg: Cfg): Source[] {
-  const rank = (s: Source) => (sourceHealth(s, cfg) === "ok" ? 1 : 0);
+  const rank = (s: Source) => (sourceHealth(s, cfg, data.asOf) === "ok" ? 1 : 0);
   return data.sources
     .map((s, i) => ({ s, i }))
     .sort((a, b) => rank(a.s) - rank(b.s) || a.i - b.i)
@@ -38,22 +38,25 @@ export function sourcesByProblem(data: CxmData, cfg: Cfg): Source[] {
 
 /** Nguồn KHÔNG ở trạng thái `ok` — nguồn của mọi câu cảnh báo trên màn. */
 export function unhealthySources(data: CxmData, cfg: Cfg): Source[] {
-  return data.sources.filter((s) => sourceHealth(s, cfg) !== "ok");
+  return data.sources.filter((s) => sourceHealth(s, cfg, data.asOf) !== "ok");
 }
 
 /** Một phép đếm toàn vẹn. `unit` đi kèm là BẮT BUỘC, xem bẫy 1 ở đầu file. */
 export type IntegrityCount = { n: number; of: number; unit: string };
 
-/** Nguồn còn trong SLA độ trễ của chính nó. Nguồn đã đứt hẳn KHÔNG tính là trễ — nó là ca nặng hơn
-    và được đếm riêng ở `continuityCount`; đếm nó vào cả hai chỗ là kể một nguồn hai lần. */
+/** Nguồn đã giao đủ dữ liệu đến mốc số liệu. Từ 07/08 (I3) KHÔNG còn so với SLA giờ — xem
+    `sourceHealth()`. Nguồn đã đứt hẳn KHÔNG tính là trễ: nó là ca nặng hơn, đếm riêng ở
+    `continuityCount`; đếm vào cả hai chỗ là kể một nguồn hai lần.
+    LƯU Ý: nguồn ở hạng "im lặng, chưa phân định" cũng KHÔNG bị trừ ở đây — chưa phân định được
+    thì chưa được kết luận là trễ (luật không trộn *chưa-biết* với *thiếu*). */
 export function freshnessCount(data: CxmData, cfg: Cfg): IntegrityCount {
-  const late = data.sources.filter((s) => sourceHealth(s, cfg) === "stale").length;
+  const late = data.sources.filter((s) => sourceHealth(s, cfg, data.asOf) === "stale").length;
   return { n: data.sources.length - late, of: data.sources.length, unit: "nguồn" };
 }
 
 /** Nguồn chưa đứt. */
 export function continuityCount(data: CxmData, cfg: Cfg): IntegrityCount {
-  const dead = data.sources.filter((s) => sourceHealth(s, cfg) === "down").length;
+  const dead = data.sources.filter((s) => sourceHealth(s, cfg, data.asOf) === "down").length;
   return { n: data.sources.length - dead, of: data.sources.length, unit: "nguồn" };
 }
 
@@ -84,7 +87,7 @@ export type BrokenImpact = {
 export function brokenImpacts(data: CxmData, cfg: Cfg): BrokenImpact[] {
   return unhealthySources(data, cfg).map((s) => ({
     source: s,
-    health: sourceHealth(s, cfg) as Exclude<SourceHealth, "ok">,
+    health: sourceHealth(s, cfg, data.asOf) as Exclude<SourceHealth, "ok">,
     days: Math.floor(s.lagH / 24),
     metrics: s.metrics.map((id) => data.metrics.find((m) => m.id === id)).filter((m): m is Metric => !!m),
   }));
@@ -116,6 +119,54 @@ export function lagText(lagH: number): string {
   const days = Math.floor(lagH / 24);
   const rest = lagH % 24;
   return rest === 0 ? `trễ ${days} ngày` : `trễ ${days} ngày ${rest} giờ`;
+}
+
+/* ---- F7 (charter §7, I3) — "nguồn xấu nhất" khi một chỉ số có nhiều nguồn ---- */
+
+/** Hạng xấu — dùng để CHỌN nguồn xấu nhất, không dùng để hiện lên màn (chữ hiện dùng
+    `HEALTH_WORD` bên dưới). Thứ tự owner chốt: chết > đang trễ > im lặng chưa phân định > đang
+    nhận. */
+const HEALTH_BAD_RANK: Record<SourceHealth, number> = { ok: 0, silent: 1, stale: 2, down: 3 };
+
+/** Nguồn xấu nhất trong một danh sách, theo HẠNG sức khoẻ — KHÔNG theo số ngày thiếu. Đồng hạng
+    thì nguồn thiếu NHIỀU NGÀY hơn thắng (F7). `undefined` khi danh sách rỗng. */
+export function worstSource(sources: readonly Source[], cfg: Cfg, asOf: string): Source | undefined {
+  return sources.reduce<Source | undefined>((worst, s) => {
+    if (!worst) return s;
+    const rankS = HEALTH_BAD_RANK[sourceHealth(s, cfg, asOf)];
+    const rankWorst = HEALTH_BAD_RANK[sourceHealth(worst, cfg, asOf)];
+    if (rankS !== rankWorst) return rankS > rankWorst ? s : worst;
+    return sourceDaysMissing(s, asOf) > sourceDaysMissing(worst, asOf) ? s : worst;
+  }, undefined);
+}
+
+/* ---- D1 (charter §5, I3) — chuỗi độ tươi của MỘT chỉ số, sinh từ nguồn nối tới ---- */
+
+/** Chữ cho từng hạng — CHỈ dùng trong `metricFreshnessText`, không phải nhãn badge của #/sources
+    hay #/rules (hai màn đó có label riêng, ngoài phạm vi lát này). */
+const HEALTH_WORD: Record<SourceHealth, string> = {
+  ok: "đang nhận",
+  stale: "đang trễ",
+  silent: "im lặng, chưa phân định",
+  down: "đã ngừng gửi",
+};
+
+/** Chuỗi độ tươi của một chỉ số — SINH từ `Source.metrics[]` (quan hệ thật), KHÔNG đọc
+    `Metric.freshness` (chuỗi gõ tay, D1 charter: 3/6 lệch số, 1/6 đúng số mà che trạng thái).
+    Nhiều nguồn ⇒ kể nguồn XẤU NHẤT (`worstSource`, F7). Số giờ/ngày lấy từ `lagText(worst.lagH)`,
+    LUÔN kèm hạng sức khoẻ — ca `m-ces` là lý do: số đúng (khớp `src-survey`) nhưng nguồn đó đang
+    "đang trễ", nói con số một mình là nói dối bằng cách im chuyện đó.
+
+    0 nguồn nối tới (ca `m-contract`, khai `Metric.source` bằng chữ nhưng không nguồn nào trong
+    `data.sources` liệt `metric.id` trong `metrics[]`) KHÔNG được nói "chỉ số này không có nguồn" —
+    danh sách 7 nguồn là BẢN TẠM (owner chốt 06/08), lỗi có thể ở danh sách chứ không ở chỉ số. */
+export function metricFreshnessText(metric: Metric, data: CxmData, cfg: Cfg): string {
+  const feeders = data.sources.filter((s) => s.metrics.includes(metric.id));
+  if (feeders.length === 0) {
+    return `"${metric.source}" — khai nguồn bằng chữ nhưng không nối được vào nguồn nào trong danh sách hiện tại.`;
+  }
+  const worst = worstSource(feeders, cfg, data.asOf)!;
+  return `${lagText(worst.lagH)} · ${HEALTH_WORD[sourceHealth(worst, cfg, data.asOf)]}`;
 }
 
 /** Bằng chứng mẫu đến từ một nguồn. */

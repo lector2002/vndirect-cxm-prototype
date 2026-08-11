@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import type { CxmData } from "../../data/schema/index.ts";
 import { demoData } from "../../data/fixtures/demo.ts";
 import {
   brokenImpacts,
@@ -26,16 +27,34 @@ import { SourcesPage } from "./SourcesPage.tsx";
 
 const cfg0 = useCxmStore.getState().cfg;
 
-/** Ca "không nguồn nào hỏng" KHÔNG dựng được từ demoData (luôn có 1 trễ + 1 đứt). Nới SLA và ngưỡng
-    đứt qua chính cửa ghi cấu hình của sản phẩm — đây là đường thật owner sẽ dùng ở #/rules, không
-    phải mock. */
+/* 07/08 (module-i-signal-registry-charter.md I3 Việc 1): `sourceHealth()` không còn đọc
+   `cfg.source[id]`, và "thiếu ≥ 1 ngày, có giao ⇒ đang trễ" là NGƯỠNG CỐ ĐỊNH — không cfg hoá được
+   qua `deadDays` (nới `deadDays` chỉ nâng mốc "chết", không xoá được mốc "đang trễ"). Ca "không
+   nguồn nào hỏng" giờ dựng bằng cách đưa `Source.last` của mọi nguồn về đúng `asOf`.
+
+   Store singleton clone `demoData` vào `MockRepository` lúc dựng (`structuredClone(fixture)`) — sửa
+   `demoData.sources` trực tiếp KHÔNG chạm gì tới cái màn đang render. `repo.data` là field TypeScript
+   `private`, không có seam công khai để ghi — cast bên dưới là cách DUY NHẤT dựng được ca này qua
+   đúng dữ liệu store đang phục vụ màn, không phải việc thêm seam mới (ngoài phạm vi lát I3: chỉ đọc
+   domain/sources.ts, không dựng lại màn #/sources). `setCfg({})` (patch rỗng) là đường CÔNG KHAI duy
+   nhất buộc store refresh() lại `data` sau khi mutate trực tiếp. */
+function repoData(): CxmData {
+  return (useCxmStore.getState().repo as unknown as { data: CxmData }).data;
+}
+const originalLast = repoData().sources.map((s) => s.last);
+
 function makeEveryoneHealthy() {
-  const source = Object.fromEntries(demoData.sources.map((s) => [s.id, 10_000]));
-  useCxmStore.getState().setCfg({ source, data: { ...cfg0.data, deadDays: 10_000 } });
+  const today = `${demoData.asOf.slice(0, 5)} · 00:00`;
+  for (const s of repoData().sources) s.last = today;
+  useCxmStore.getState().setCfg({});
 }
 
 afterEach(() => {
   useCxmStore.getState().setCfg({ source: cfg0.source, data: cfg0.data });
+  repoData().sources.forEach((s, i) => {
+    s.last = originalLast[i]!;
+  });
+  useCxmStore.getState().setCfg({});
 });
 
 const cfg = () => useCxmStore.getState().cfg;
@@ -79,7 +98,10 @@ describe("SourcesPage — khối hệ quả nói đúng thứ dữ liệu chứn
   it("không nguồn nào hỏng thì khối hệ quả biến mất hẳn, không in khung rỗng", () => {
     makeEveryoneHealthy();
     render(<SourcesPage />);
-    expect(brokenImpacts(demoData, cfg())).toHaveLength(0);
+    // Oracle phải đọc data ĐANG RENDER (repoData(), đã mutate qua makeEveryoneHealthy), không phải
+    // `demoData` gốc — 07/08: sức khoẻ nguồn không cfg hoá được nữa nên `demoData` giữ nguyên 2
+    // nguồn hỏng suốt bài test này (xem docblock `makeEveryoneHealthy`).
+    expect(brokenImpacts(repoData(), cfg())).toHaveLength(0);
     expect(screen.queryByTestId("src-impact")).not.toBeInTheDocument();
   });
 });
@@ -105,7 +127,9 @@ describe("SourcesPage — ba phép đếm, ba đơn vị", () => {
        trong comment — fixture đổi hình là dòng này đỏ, chứ không phải phép trừ vẫn đúng một cách
        vô nghĩa. */
     expect(unhealthySources(demoData, cfg())).toHaveLength(2);
-    expect(unhealthySources(demoData, cfg()).filter((s) => sourceHealth(s, cfg()) === "down")).toHaveLength(1);
+    expect(
+      unhealthySources(demoData, cfg()).filter((s) => sourceHealth(s, cfg(), demoData.asOf) === "down"),
+    ).toHaveLength(1);
     // Nguồn đứt đã bị trừ ở ô tính liên tục, nên ô độ tươi chỉ được trừ đúng nguồn TRỄ.
     expect(freshnessCount(demoData, cfg()).n).toBe(demoData.sources.length - 1);
   });

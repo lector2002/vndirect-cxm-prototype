@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Cfg, CxmData, Evidence, Metric, Signal, Source, Survey, TaxNode } from "../data/schema/index.ts";
+import type { CxmData, Evidence, Metric, Signal, Source, Survey, TaxNode } from "../data/schema/index.ts";
 import { cfgDefault, seed } from "../data/fixtures/seed.ts";
 import { demoData } from "../data/fixtures/demo.ts";
 import {
@@ -12,6 +12,7 @@ import {
   freshnessCount,
   instrumentedCount,
   lagText,
+  metricFreshnessText,
   metricsAtRisk,
   ownersAtRisk,
   passiveActive,
@@ -20,18 +21,25 @@ import {
   surveyCounts,
   surveysByProblem,
   unhealthySources,
+  worstSource,
 } from "./sources.ts";
+import { sourceHealth } from "./state.ts";
 
 /* Ca rỗng và ca nhiều-nguồn-hỏng KHÔNG dựng được từ demoData (7 nguồn cố định, đúng 1 trễ + 1 đứt),
    nên phần lớn test ở đây dựng dữ liệu tổng hợp. Vài test cuối đối chiếu với `demoData` để bắt
    trường hợp hàm đúng trên đồ chơi mà sai trên bộ dữ liệu màn thật đang render. */
 
+/* 07/08 (module-i-signal-registry-charter.md I3 Việc 1): sức khoẻ nguồn giờ suy từ `last` so
+   `asOf` (data.asOf ở đây LUÔN là seed.asOf = "27/07/2026", vì `mk()` spread `...seed`), KHÔNG còn
+   từ `lagH`/`cfg.source[id]`. Mặc định `last` = CÙNG NGÀY asOf ⇒ nguồn mặc định LUÔN "ok" — test
+   nào cần nguồn trễ/chết phải override `last` tường minh (không override `lagH` — trường đó giờ chỉ
+   còn ảnh hưởng `brokenImpacts.days`/`lagText`, không ảnh hưởng hạng sức khoẻ). */
 const src = (over: Partial<Source> & Pick<Source, "id">): Source => ({
   name: over.id,
   kind: "event",
   vol: 100,
   lagH: 1,
-  last: "01/06 · 09:00",
+  last: "27/07 · 09:00",
   metrics: [],
   pf: [],
   voice: false,
@@ -116,38 +124,39 @@ function mk(over: Partial<CxmData>): CxmData {
   return { ...seed, sources: [], metrics: [], surveys: [], signals: [], ev: [], tax: [], ...over };
 }
 
-/** SLA riêng từng nguồn — `cfgDefault.source` không biết các id tổng hợp ở đây nên phải khai. */
-function cfgWith(source: Record<string, number>): Cfg {
-  return { ...cfgDefault, source: { ...cfgDefault.source, ...source } };
-}
+/* `cfgWith(source)` (SLA riêng từng id tổng hợp) BỎ 07/08 — `sourceHealth()` không còn đọc
+   `cfg.source[id]` (I3 Việc 1), nên nó thành hàm không mang thông tin nào; mọi test dưới đây dùng
+   thẳng `cfgDefault`. */
 
 describe("sourcesByProblem — nguồn hỏng lên đầu, phần còn lại giữ nguyên thứ tự khai", () => {
   it("xếp nguồn trễ lên trước nguồn đang nhận", () => {
-    const data = mk({ sources: [src({ id: "ok1" }), src({ id: "late", lagH: 20 }), src({ id: "ok2" })] });
-    const cfg = cfgWith({ ok1: 6, late: 6, ok2: 6 });
+    // thiếu 1 ngày (26/07 so asOf 27/07/2026), vol>0 (mặc định 100) → "stale".
+    const data = mk({ sources: [src({ id: "ok1" }), src({ id: "late", last: "26/07 · 09:00" }), src({ id: "ok2" })] });
+    const cfg = cfgDefault;
     expect(sourcesByProblem(data, cfg).map((s) => s.id)).toEqual(["late", "ok1", "ok2"]);
   });
 
   it("hai nguồn cùng khoẻ thì giữ đúng thứ tự khai — không xáo lại sau lưng người dựng dữ liệu", () => {
     const data = mk({ sources: [src({ id: "a" }), src({ id: "b" }), src({ id: "c" })] });
-    const cfg = cfgWith({ a: 6, b: 6, c: 6 });
+    const cfg = cfgDefault;
     expect(sourcesByProblem(data, cfg).map((s) => s.id)).toEqual(["a", "b", "c"]);
   });
 });
 
 describe("Ba phép đếm toàn vẹn — ba thước khác nhau, không được đọc lẫn", () => {
-  /* Nguồn đứt hẳn cũng thoả điều kiện "quá SLA". Nếu `freshnessCount` đếm nó là trễ thì một nguồn
-     bị trừ ở CẢ HAI ô, và người đọc thấy hai vấn đề trong khi chỉ có một. */
+  /* Nguồn đứt hẳn cũng thoả điều kiện "thiếu ≥ deadDays ngày". Nếu `freshnessCount` đếm nó là trễ
+     thì một nguồn bị trừ ở CẢ HAI ô, và người đọc thấy hai vấn đề trong khi chỉ có một. */
   it("nguồn ĐỨT không bị đếm thêm một lần vào ô độ tươi", () => {
-    const data = mk({ sources: [src({ id: "ok" }), src({ id: "dead", lagH: 24 * 10 })] });
-    const cfg = cfgWith({ ok: 6, dead: 6 });
+    // thiếu 56 ngày (01/06 so asOf 27/07/2026) ≥ deadDays 2 → "down".
+    const data = mk({ sources: [src({ id: "ok" }), src({ id: "dead", last: "01/06 · 09:00" })] });
+    const cfg = cfgDefault;
     expect(freshnessCount(data, cfg)).toEqual({ n: 2, of: 2, unit: "nguồn" });
     expect(continuityCount(data, cfg)).toEqual({ n: 1, of: 2, unit: "nguồn" });
   });
 
   it("nguồn TRỄ (chưa đứt) trừ ở ô độ tươi, không trừ ở ô tính liên tục", () => {
-    const data = mk({ sources: [src({ id: "late", lagH: 20 })] });
-    const cfg = cfgWith({ late: 6 });
+    const data = mk({ sources: [src({ id: "late", last: "26/07 · 09:00" })] });
+    const cfg = cfgDefault;
     expect(freshnessCount(data, cfg).n).toBe(0);
     expect(continuityCount(data, cfg).n).toBe(1);
   });
@@ -159,7 +168,7 @@ describe("Ba phép đếm toàn vẹn — ba thước khác nhau, không đượ
       sources: [src({ id: "a" })],
       signals: [sig("g1", "live"), sig("g2", "gap"), sig("g3", "designed"), sig("g4", "validating")],
     });
-    const cfg = cfgWith({ a: 6 });
+    const cfg = cfgDefault;
     expect(instrumentedCount(data)).toEqual({ n: 2, of: 4, unit: "điểm đo" });
     expect(instrumentedCount(data).unit).not.toBe(freshnessCount(data, cfg).unit);
   });
@@ -183,9 +192,12 @@ describe("passiveActive — không có khảo sát thì nói là không, đừng
 });
 
 describe("brokenImpacts — dữ kiện đủ để viết câu cảnh báo, không kèm phán đoán", () => {
-  it("quy lagH ra số ngày trọn vẹn", () => {
-    const data = mk({ sources: [src({ id: "z", lagH: 192 })] });
-    const [b] = brokenImpacts(data, cfgWith({ z: 6 }));
+  /* `last` điều khiển HẠNG sức khoẻ (thiếu ≥ deadDays 2 ngày → "down"); `lagH` giữ nguyên vai trò
+     RIÊNG của nó — chỉ còn nuôi `.days` (`floor(lagH/24)`) và `lagText`, KHÔNG còn ảnh hưởng hạng.
+     Hai trường tách bạch từ 07/08 (I3 Việc 1), ghim cả hai để lộ ngay nếu ai gộp lại. */
+  it("quy lagH ra số ngày trọn vẹn — độc lập với hạng sức khoẻ (suy từ last/asOf)", () => {
+    const data = mk({ sources: [src({ id: "z", lagH: 192, last: "01/06 · 09:00" })] });
+    const [b] = brokenImpacts(data, cfgDefault);
     expect(b?.days).toBe(8);
     expect(b?.health).toBe("down");
   });
@@ -194,16 +206,19 @@ describe("brokenImpacts — dữ kiện đủ để viết câu cảnh báo, kh�
      nghĩa RIÊNG — nguồn hỏng nhưng không con số nào lệch theo — nên phải phân biệt được với ca
      "nguồn hỏng và kéo theo chỉ số". */
   it("nguồn hỏng mà không nối chỉ số nào thì `metrics` rỗng, không phải thiếu dữ liệu", () => {
-    const data = mk({ sources: [src({ id: "z", lagH: 192, metrics: [] })], metrics: [metric("m1", "A")] });
-    expect(brokenImpacts(data, cfgWith({ z: 6 }))[0]?.metrics).toEqual([]);
+    const data = mk({ sources: [src({ id: "z", last: "01/06 · 09:00", metrics: [] })], metrics: [metric("m1", "A")] });
+    expect(brokenImpacts(data, cfgDefault)[0]?.metrics).toEqual([]);
   });
 
   it("chỉ số ăn HAI nguồn cùng hỏng vẫn chỉ đếm một lần", () => {
     const data = mk({
-      sources: [src({ id: "z1", lagH: 192, metrics: ["m1"] }), src({ id: "z2", lagH: 192, metrics: ["m1"] })],
+      sources: [
+        src({ id: "z1", last: "01/06 · 09:00", metrics: ["m1"] }),
+        src({ id: "z2", last: "01/06 · 09:00", metrics: ["m1"] }),
+      ],
       metrics: [metric("m1", "CS Center")],
     });
-    const cfg = cfgWith({ z1: 6, z2: 6 });
+    const cfg = cfgDefault;
     expect(unhealthySources(data, cfg)).toHaveLength(2);
     expect(metricsAtRisk(data, cfg)).toHaveLength(1);
     expect(ownersAtRisk(data, cfg)).toEqual(["CS Center"]);
@@ -211,8 +226,8 @@ describe("brokenImpacts — dữ kiện đủ để viết câu cảnh báo, kh�
 
   it("không nguồn nào hỏng thì không có dữ kiện nào để viết cảnh báo", () => {
     const data = mk({ sources: [src({ id: "a" })] });
-    expect(brokenImpacts(data, cfgWith({ a: 6 }))).toEqual([]);
-    expect(metricsAtRisk(data, cfgWith({ a: 6 }))).toEqual([]);
+    expect(brokenImpacts(data, cfgDefault)).toEqual([]);
+    expect(metricsAtRisk(data, cfgDefault)).toEqual([]);
   });
 });
 
@@ -235,8 +250,8 @@ describe("lagText — độ trễ đọc bằng chữ", () => {
   });
 
   it("cùng số ngày với brokenImpacts trên cùng một lagH", () => {
-    const data = mk({ sources: [src({ id: "z", lagH: 50 })] });
-    const [b] = brokenImpacts(data, cfgWith({ z: 6 }));
+    const data = mk({ sources: [src({ id: "z", lagH: 50, last: "01/06 · 09:00" })] });
+    const [b] = brokenImpacts(data, cfgDefault);
     expect(lagText(50)).toContain(`${b!.days} ngày`);
   });
 });
@@ -331,5 +346,82 @@ describe("Đối chiếu với demoData — bộ dữ liệu màn thật đang r
     expect(freshnessCount(demoData, cfgDefault).of).toBe(demoData.sources.length);
     expect(instrumentedCount(demoData).of).toBe(demoData.signals.length);
     expect(instrumentedCount(demoData).of).not.toBe(freshnessCount(demoData, cfgDefault).of);
+  });
+});
+
+/* F7 (charter §7, I3) — "nguồn xấu nhất" khi một chỉ số có nhiều nguồn: xấu nhất theo HẠNG sức
+   khoẻ (`chết > đang trễ > im lặng chưa phân định > đang nhận`), KHÔNG theo số ngày thiếu. Đo 07/08:
+   fixture hôm nay CHỈ 1/6 chỉ số có >1 nguồn (`m-repeat`), và nguồn xấu nhất của nó CŨNG là nguồn
+   thiếu nhiều ngày nhất — tức fixture không phân biệt được "hạng" với "số ngày thiếu". Test dưới
+   TỰ DỰNG input để tách hai tiêu chí đó. */
+describe("worstSource — F7: chọn theo HẠNG sức khoẻ, không theo số ngày thiếu", () => {
+  it("nguồn thiếu ÍT ngày hơn nhưng hạng XẤU HƠN (stale > silent) phải thắng", () => {
+    const asOf = "10/08/2026";
+    const cfg = { ...cfgDefault, data: { ...cfgDefault.data, deadDays: 5 } };
+    // thiếu 2 ngày, vol>0 → "stale".
+    const a = src({ id: "a", kind: "event", vol: 100, last: "08/08 · 00:00" });
+    // thiếu 3 ngày (NHIỀU hơn a), vol=0, kind='survey' (người chủ động gửi) → "silent" — hạng NHẸ
+    // hơn "stale" dù thiếu nhiều ngày hơn.
+    const b = src({ id: "b", kind: "survey", vol: 0, last: "07/08 · 00:00" });
+    expect(sourceHealth(a, cfg, asOf)).toBe("stale");
+    expect(sourceHealth(b, cfg, asOf)).toBe("silent");
+    expect(worstSource([a, b], cfg, asOf)?.id).toBe("a");
+    expect(worstSource([b, a], cfg, asOf)?.id).toBe("a"); // thứ tự truyền vào không quyết định
+  });
+
+  it("đồng hạng thì nguồn thiếu NHIỀU NGÀY hơn thắng", () => {
+    const asOf = "10/08/2026";
+    const cfg = { ...cfgDefault, data: { ...cfgDefault.data, deadDays: 5 } };
+    const c = src({ id: "c", last: "31/07 · 00:00" }); // thiếu 10 ngày → "down"
+    const d = src({ id: "d", last: "04/08 · 00:00" }); // thiếu 6 ngày → "down"
+    expect(sourceHealth(c, cfg, asOf)).toBe("down");
+    expect(sourceHealth(d, cfg, asOf)).toBe("down");
+    expect(worstSource([c, d], cfg, asOf)?.id).toBe("c");
+  });
+
+  it("danh sách rỗng → undefined", () => {
+    expect(worstSource([], cfgDefault, seed.asOf)).toBeUndefined();
+  });
+});
+
+/* D1 (charter §5, I3) — `Metric.freshness` là chuỗi gõ tay đã trôi khỏi gốc (3/6 lệch số, 1/6 đúng
+   số mà che trạng thái). `metricFreshnessText` sinh lại từ `Source.metrics[]` (quan hệ thật) +
+   `lagText` + hạng sức khoẻ của nguồn XẤU NHẤT — không đọc `metric.freshness`. Bốn ca dùng nguyên
+   `seed` (không dựng input tổng hợp): số/hạng phải TỰ SUY từ `seed.sources`, không ghim tay. */
+describe("metricFreshnessText — D1: sinh từ nguồn nối tới, kèm hạng sức khoẻ", () => {
+  it("m-repeat: kể nguồn XẤU NHẤT (src-zalo, chết) — KHÔNG kể src-case (khoẻ)", () => {
+    const m = seed.metrics.find((x) => x.id === "m-repeat")!;
+    const zalo = seed.sources.find((s) => s.id === "src-zalo")!;
+    const kase = seed.sources.find((s) => s.id === "src-case")!;
+    expect(sourceHealth(zalo, cfgDefault, seed.asOf)).toBe("down");
+    expect(sourceHealth(kase, cfgDefault, seed.asOf)).toBe("ok");
+    const text = metricFreshnessText(m, seed, cfgDefault);
+    expect(text).toContain(lagText(zalo.lagH));
+    expect(text.toLowerCase()).toContain("ngừng gửi");
+    expect(text).not.toContain(lagText(kase.lagH));
+  });
+
+  it("m-ces: con số ĐÚNG (khớp src-survey) nhưng vẫn phải kèm hạng 'đang trễ' — số đúng không đủ", () => {
+    const m = seed.metrics.find((x) => x.id === "m-ces")!;
+    const survey = seed.sources.find((s) => s.id === "src-survey")!;
+    expect(sourceHealth(survey, cfgDefault, seed.asOf)).toBe("stale");
+    const text = metricFreshnessText(m, seed, cfgDefault);
+    expect(text).toContain(lagText(survey.lagH));
+    expect(text).toContain("đang trễ");
+  });
+
+  it("m-ocr: số suy từ src-ekyc thật (6 giờ), không phải số gõ tay cũ (4 giờ)", () => {
+    const m = seed.metrics.find((x) => x.id === "m-ocr")!;
+    const ekyc = seed.sources.find((s) => s.id === "src-ekyc")!;
+    expect(sourceHealth(ekyc, cfgDefault, seed.asOf)).toBe("ok");
+    expect(metricFreshnessText(m, seed, cfgDefault)).toContain(lagText(ekyc.lagH));
+  });
+
+  it("m-contract: 0 nguồn nối tới ⇒ đúng câu 'không nối được', KHÔNG nói 'không có nguồn'", () => {
+    const m = seed.metrics.find((x) => x.id === "m-contract")!;
+    expect(seed.sources.some((s) => s.metrics.includes("m-contract"))).toBe(false);
+    const text = metricFreshnessText(m, seed, cfgDefault);
+    expect(text).toContain("khai nguồn bằng chữ nhưng không nối được vào nguồn nào trong danh sách hiện tại");
+    expect(text).not.toContain("không có nguồn");
   });
 });

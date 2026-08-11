@@ -5,7 +5,11 @@ import { metricDirection } from "../data/metric-direction.ts";
    Không side-effect, không đọc DOM/global: mọi hàm nhận data + cfg làm tham số. */
 
 export type DerivedState = "ok" | "watch" | "crit" | "unknown";
-export type SourceHealth = "ok" | "stale" | "down";
+/* "silent" thêm 07/08 (module-i-signal-registry-charter.md §0 mục A, I3 Việc 2) — trạng thái THỨ TƯ,
+   nghĩa "nguồn không giao gì, và từ dữ liệu hiện có KHÔNG phân định được là hỏng hay chỉ là ngày
+   không ai gửi". KHÔNG phải tin xấu, tự biến mất khi manifest giao hàng về (§10). Thêm một nhánh vào
+   union KHÔNG phải thêm trường — charter cho phép rõ (§0 mục A). */
+export type SourceHealth = "ok" | "stale" | "down" | "silent";
 export type LaneKey = "confirm" | "approve" | "fix" | "verify" | "off";
 
 const failRate = (o: Obs): number => (o.entered ? (o.failed / o.entered) * 100 : 0);
@@ -55,13 +59,55 @@ export function metricState(m: Metric, cfg: Cfg): DerivedState {
   return v < c.crit ? "crit" : v < c.watch ? "watch" : "ok";
 }
 
-/* Sức khoẻ một nguồn dữ liệu: im lặng quá deadDays (giờ) là "down"; trễ hơn SLA riêng của nguồn
-   là "stale". Port từ sourceHealth() (~dòng 1546) — bỏ nhánh `lagH == null` của bản gốc vì
-   Source.lagH trong schema mới là `number` (không nullable). */
-export function sourceHealth(s: Source, cfg: Cfg): SourceHealth {
-  if (s.lagH >= cfg.data.deadDays * 24) return "down";
-  const sla = cfg.source[s.id] ?? 6;
-  return s.lagH > sla ? "stale" : "ok";
+/** Số NGÀY một nguồn còn thiếu, so `Source.last` với mốc số liệu `asOf`.
+    07/08 (module-i-signal-registry-charter.md §0 mục A, I3 Việc 1): thước cũ hỏi "chậm hơn BÂY GIỜ
+    mấy tiếng" — dưới lối giao T+1 thì độ chậm so với `now` không bao giờ dưới 24h, nên thước đó tự
+    báo "chết" mỗi ngày dù nguồn không hỏng. Thước mới hỏi "đã giao đủ dữ liệu của ngày cần chưa".
+
+    ⚠ `Source.last` là CHUỖI NGƯỜI GÕ KHÔNG CÓ NĂM ("27/07 · 14:52") — đúng bẫy D6 của `Signal.seen`
+    (xem `signalRegistry.ts:seenAfterAsOf`). Ở đây parse được số NGÀY (không chỉ trước/sau như D6)
+    bằng cách gán CÙNG MỘT NĂM GIẢ ĐỊNH (2000, không nhuận) cho cả `last` và `asOf` rồi lấy hiệu theo
+    lịch — ĐÚNG khi cả hai rơi trong cùng một năm dương lịch và không bắc qua 31/12 (đúng cho fixture
+    hôm nay, trải hai tháng trong 2026). KHÔNG phải mốc thời gian thật; mốc máy sinh thật đã nằm
+    trong bản yêu cầu dữ liệu (charter §10). Đọc không được khuôn dd/mm thì trả 0 — an toàn hơn báo
+    "chết" sai vì lỗi khuôn chuỗi. */
+export function sourceDaysMissing(s: Source, asOf: string): number {
+  const toDdMm = (str: string): { d: number; m: number } | null => {
+    const m = /^(\d{2})\/(\d{2})/.exec(str);
+    return m ? { d: Number(m[1]), m: Number(m[2]) } : null;
+  };
+  const last = toDdMm(s.last);
+  const ref = toDdMm(asOf);
+  if (!last || !ref) return 0;
+  const lastTs = Date.UTC(2000, last.m - 1, last.d);
+  const refTs = Date.UTC(2000, ref.m - 1, ref.d);
+  return Math.max(0, Math.round((refTs - lastTs) / 86_400_000));
+}
+
+/* Sức khoẻ một nguồn dữ liệu — chấm theo MỐC SỐ LIỆU (`asOf`), KHÔNG theo `now` và KHÔNG theo SLA
+   giờ riêng từng nguồn nữa. Port cũ (~dòng 1546, `lagH` so `cfg.source[id]`) THAY THẾ 07/08 theo
+   quyết định owner ở charter §0 mục A — lý do và số đo ở §12.1: dưới pipeline T+1, `lagH` không bao
+   giờ < 24h vì kiến trúc, nên 5/7 nguồn khai SLA < 24h đọc thành "stale" vĩnh viễn.
+
+   Bậc thang MỚI (charter I3 Việc 1), dùng `cfg.data.deadDays` (đã tính bằng NGÀY):
+     1. thiếu ≥ deadDays ngày            → "down"  (bất kể loại nguồn)
+     2. thiếu ≥ 1 ngày, có giao (vol > 0) → "stale" (đang trễ — rõ ràng, có giao chỉ chậm)
+     3. thiếu ≥ 1 ngày, KHÔNG giao gì     → "stale" nếu `kind:'event'` (app có người dùng thì có
+        event ⇒ im lặng đáng ngờ), ngược lại "silent" (do người chủ động gửi, im lặng là chuyện
+        thường — charter §0 mục A, I3 Việc 2)
+     4. thiếu 0 ngày                      → "ok"
+
+   ⚠ HỆ QUẢ: `cfg.source[id]` (SLA giờ riêng từng nguồn) THÔI ĐƯỢC ĐỌC Ở ĐÂY. KHÔNG xoá khỏi
+   `Cfg`/fixture — Module G (`module-g-rules-charter.md` §3) đã tuyên nhóm đó là BẢN TẠM; nó thành
+   control mồ côi giống `cfg.step.covMin` sau I1 (vẫn hiện, sửa được ở #/rules, chỉ mất quyền quyết
+   định sức khoẻ nguồn). Đo được: cách chấm mới cho ĐÚNG BẢY nhãn như cách chấm cũ trên fixture hôm
+   nay (5 "ok" · 1 "stale" (`src-survey`) · 1 "down" (`src-zalo`)) — xem `sources.test.ts`. */
+export function sourceHealth(s: Source, cfg: Cfg, asOf: string): SourceHealth {
+  const missing = sourceDaysMissing(s, asOf);
+  if (missing >= cfg.data.deadDays) return "down";
+  if (missing < 1) return "ok";
+  if (s.vol > 0) return "stale";
+  return s.kind === "event" ? "stale" : "silent";
 }
 
 /* Hai trục rời của một flow trên bản đồ hành trình — SUY TẠI CHỖ ĐỌC, không lưu thành field.

@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
+import type { Cfg, Source } from "../data/schema/index.ts";
 import { seed, cfgDefault } from "../data/fixtures/seed.ts";
-import { stepState, stepWhy, metricState, sourceHealth, laneOf } from "./state.ts";
+import { demoData } from "../data/fixtures/demo.ts";
+import { stepState, stepWhy, metricState, sourceHealth, sourceDaysMissing, laneOf } from "./state.ts";
 
 describe("stepState", () => {
   it("6 bước pilot (s1..s6) → ok watch crit ok watch ok", () => {
@@ -54,20 +56,90 @@ describe("metricState", () => {
   });
 });
 
-describe("sourceHealth", () => {
-  it("src-ga (lagH 4h, SLA 6h) → ok", () => {
-    const s = seed.sources.find((x) => x.id === "src-ga")!;
-    expect(sourceHealth(s, cfgDefault)).toBe("ok");
+/* 07/08 (module-i-signal-registry-charter.md §0 mục A, I3 Việc 1-2) — chấm sức khoẻ nguồn đổi từ
+   "chậm hơn BÂY GIỜ mấy tiếng" (đọc `lagH` so SLA `cfg.source[id]`) sang "đã giao đủ dữ liệu của
+   ngày cần chưa" (đọc `Source.last` so `CxmData.asOf`, theo NGÀY). Factory dựng Source tối giản —
+   test nào cần `last` khác mặc định thì override tường minh, không dựa vào `lagH`. */
+const src = (over: Partial<Source> & Pick<Source, "id">): Source => ({
+  name: over.id,
+  kind: "chat",
+  vol: 0,
+  lagH: 0,
+  last: "01/01 · 00:00",
+  metrics: [],
+  pf: [],
+  voice: false,
+  note: "",
+  ...over,
+});
+
+describe("sourceHealth — chấm theo MỐC SỐ LIỆU (asOf), không theo now/SLA giờ", () => {
+  it("thiếu 0 ngày (Source.last = asOf) → 'ok', dù cfg.source không khai gì cho id đó", () => {
+    const s = src({ id: "s1", last: "10/08 · 09:00" });
+    expect(sourceHealth(s, cfgDefault, "10/08/2026")).toBe("ok");
   });
 
-  it("src-survey (lagH 12h, SLA 6h) → stale", () => {
-    const s = seed.sources.find((x) => x.id === "src-survey")!;
-    expect(sourceHealth(s, cfgDefault)).toBe("stale");
+  it("thiếu 1 ngày, vol > 0 → 'stale' (đang trễ)", () => {
+    const s = src({ id: "s1", last: "09/08 · 09:00", vol: 500 });
+    expect(sourceHealth(s, cfgDefault, "10/08/2026")).toBe("stale");
   });
 
-  it("src-zalo (lagH 192h ≥ deadDays 2 ngày) → down", () => {
-    const s = seed.sources.find((x) => x.id === "src-zalo")!;
-    expect(sourceHealth(s, cfgDefault)).toBe("down");
+  it("thiếu ≥ deadDays ngày → 'down', bất kể vol/kind", () => {
+    const s = src({ id: "s1", last: "05/08 · 09:00", vol: 900, kind: "event" });
+    expect(sourceHealth(s, { ...cfgDefault, data: { ...cfgDefault.data, deadDays: 2 } }, "10/08/2026")).toBe(
+      "down",
+    );
+  });
+
+  /* Trạng thái THỨ TƯ (charter §0 mục A, Việc 2) — "im lặng, chưa phân định". Bật khi vol=0, thiếu
+     ≥1 ngày nhưng < deadDays, VÀ nguồn do người chủ động gửi (không phải `kind:'event'`). Trên
+     fixture hôm nay KHÔNG nguồn nào rơi vào ca này (xem test "7 nhãn" dưới) — phải dựng riêng. */
+  it("vol=0, kind do người gửi (survey), thiếu 1 ngày < deadDays 2 → 'silent'", () => {
+    const s = src({ id: "s1", kind: "survey", vol: 0, last: "09/08 · 09:00" });
+    expect(sourceHealth(s, cfgDefault, "10/08/2026")).toBe("silent");
+  });
+
+  it("CÙNG dữ liệu, chỉ đổi kind → 'event' ⇒ 'stale', không phải 'silent' (im lặng đáng ngờ)", () => {
+    const s = src({ id: "s1", kind: "event", vol: 0, last: "09/08 · 09:00" });
+    expect(sourceHealth(s, cfgDefault, "10/08/2026")).toBe("stale");
+  });
+
+  it("cfg.source[id] KHÔNG còn được đọc — đổi sang giá trị bất kỳ, hạng nguồn không đổi", () => {
+    const s = src({ id: "s1", last: "09/08 · 09:00", vol: 500 });
+    const before = sourceHealth(s, cfgDefault, "10/08/2026");
+    const changed: Cfg = { ...cfgDefault, source: { ...cfgDefault.source, s1: 999_999 } };
+    expect(sourceHealth(s, changed, "10/08/2026")).toBe(before);
+  });
+
+  /* §12.1/§0 mục A — điều kiện chốt của cả module: cách chấm MỚI phải cho ĐÚNG BẢY nhãn như cách
+     chấm CŨ (`lagH >= deadDays*24 → down`; `lagH > (cfg.source[id] ?? 6) → stale`; else 'ok') trên
+     fixture hôm nay, CẢ HAI fixture. Đếm lại bằng công thức cũ tại chỗ — không ghim số 5/1/1. */
+  it("bảy nhãn nguồn KHÔNG ĐỔI trên cả hai fixture — đối chiếu công thức cũ, đếm lại từ data", () => {
+    const legacyHealth = (s: Source, cfg: Cfg): "ok" | "stale" | "down" => {
+      if (s.lagH >= cfg.data.deadDays * 24) return "down";
+      const sla = cfg.source[s.id] ?? 6;
+      return s.lagH > sla ? "stale" : "ok";
+    };
+    for (const data of [seed, demoData]) {
+      for (const s of data.sources) {
+        expect(sourceHealth(s, cfgDefault, data.asOf)).toBe(legacyHealth(s, cfgDefault));
+      }
+    }
+  });
+});
+
+describe("sourceDaysMissing", () => {
+  it("cùng ngày với asOf → 0", () => {
+    expect(sourceDaysMissing(src({ id: "s1", last: "10/08 · 09:00" }), "10/08/2026")).toBe(0);
+  });
+
+  it("lệch N ngày trong cùng năm, bắc qua ranh tháng → đúng N", () => {
+    expect(sourceDaysMissing(src({ id: "s1", last: "31/07 · 09:00" }), "10/08/2026")).toBe(10);
+  });
+
+  it("khớp đúng nguồn thật của seed: src-zalo (19/07) so asOf (27/07/2026) → 8 ngày", () => {
+    const zalo = seed.sources.find((x) => x.id === "src-zalo")!;
+    expect(sourceDaysMissing(zalo, seed.asOf)).toBe(8);
   });
 });
 

@@ -59,8 +59,11 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number][0];
 
-const HEALTH_LABEL = { ok: "Đang nhận", stale: "Trễ hơn SLA", down: "Ngừng gửi" } as const;
-const HEALTH_BADGE = { ok: "ok", stale: "watch", down: "crit" } as const;
+/* 07/08 (module-i-signal-registry-charter.md I3): "silent" thêm vào SourceHealth (chấm sức khoẻ đổi
+   cách làm, domain/state.ts) — thêm ở đây CHỈ để hai Record còn EXHAUSTIVE, không nguồn nào trong
+   demoData hôm nay rơi vào nhánh này. */
+const HEALTH_LABEL = { ok: "Đang nhận", stale: "Thiếu ngày dữ liệu", down: "Ngừng gửi", silent: "Im lặng, chưa phân định" } as const;
+const HEALTH_BADGE = { ok: "ok", stale: "watch", down: "crit", silent: "unknown" } as const;
 const PF_LABEL: Record<string, string> = { ios: "iOS", android: "Android", web: "Web", server: "Server" };
 
 function countText(c: IntegrityCount): string {
@@ -105,7 +108,7 @@ export function SourcesPage() {
         <Stat
           label="Độ tươi"
           value={countText(fresh)}
-          foot="còn trong SLA độ trễ của chính nó"
+          foot="đã giao đủ dữ liệu đến mốc số liệu"
           srcNote="Nguồn đứt hẳn đếm ở ô Tính liên tục, không đếm hai lần"
           tone={fresh.n < fresh.of ? "var(--watch)" : undefined}
         />
@@ -176,7 +179,7 @@ export function SourcesPage() {
                 </thead>
                 <tbody>
                   {shownSources.map((s) => {
-                    const h = sourceHealth(s, cfg);
+                    const h = sourceHealth(s, cfg, data.asOf);
                     const sla = cfg.source[s.id];
                     return (
                       <tr
@@ -255,7 +258,7 @@ export function SourcesPage() {
           <div className="t-lbl mb-2.5">
             Độ toàn vẹn theo nền tảng — một nguồn có thể khỏe trên nền tảng này và chết trên nền tảng khác
           </div>
-          <SrcMatrix sources={ordered} metrics={data.metrics} cfg={cfg} />
+          <SrcMatrix sources={ordered} metrics={data.metrics} cfg={cfg} asOf={data.asOf} />
         </div>
       ) : null}
 
@@ -359,7 +362,7 @@ export function SourcesPage() {
             <ul className="mt-2 grid gap-2 list-disc pl-5">
               {impacts.map((b) => (
                 <li key={b.source.id}>
-                  <b>{b.source.name}</b> {b.health === "down" ? "đã ngừng gửi" : "đang trễ hơn SLA"}{" "}
+                  <b>{b.source.name}</b> {b.health === "down" ? "đã ngừng gửi" : "đang thiếu ngày dữ liệu"}{" "}
                   {lagText(b.source.lagH).replace(/^trễ /, "")} (nhận lần cuối {b.source.last}).{" "}
                   {b.metrics.length ? (
                     <>

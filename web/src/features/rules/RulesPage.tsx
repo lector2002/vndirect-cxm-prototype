@@ -83,7 +83,7 @@ export function RulesPage() {
     const st = metricState(m, cfg);
     return st === "watch" || st === "crit";
   }).length;
-  const sourceBad = data.sources.filter((s) => sourceHealth(s, cfg) !== "ok").length;
+  const sourceBad = data.sources.filter((s) => sourceHealth(s, cfg, data.asOf) !== "ok").length;
 
   const menu: { g: string; items: { k: GroupKey; l: string; n: number; bad: number }[] }[] = [
     {

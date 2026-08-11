@@ -17,7 +17,36 @@ Mốc quay lui đã có: `cb01013` + `d62cf27`.
 
 Sắp theo mức cản: nhóm A chặn việc, nhóm B chặn lát sau, nhóm C không chặn gì.
 
-### A · CHẶN — không quyết thì lát I3 không nghiệm thu được
+### A · ĐÃ CHỐT 07/08 — A1 không còn chặn
+
+**Owner chọn: chấm sức khoẻ nguồn theo MỐC SỐ LIỆU, không theo SLA giờ.** Kèm hai thứ owner nêu
+thêm khi hỏi *"gặp ngày không có dữ liệu vì không ai feedback thì detect thế nào"*:
+
+1. **Trạng thái thứ tư — *im lặng, chưa phân định*.** Ba trạng thái cũ (đang nhận · đang trễ · chết)
+   ép im lặng vào một trong ba, và ép kiểu nào cũng sai: gọi *chết* thì báo động giả mỗi Chủ nhật,
+   gọi *đang nhận* thì che một webhook đã gãy. Đúng luật **không trộn *chưa-biết* với *thiếu***.
+2. **Loại nguồn quyết định im lặng có đáng ngờ không.** `SourceKind` đã có sẵn và **chưa chỗ nào
+   dùng để chấm sức khoẻ**: `event` chạy theo lưu lượng (app có người dùng thì có event ⇒ im lặng là
+   đáng ngờ); `chat`/`case`/`broker-note`/`store-review`/`survey` do người chủ động gửi (im lặng là
+   chuyện thường).
+
+**Đo được, quan trọng cho việc chuyển đổi:** dùng `Source.last` so với `asOf`, cộng
+`cfg.data.deadDays` (**vốn đã tính bằng NGÀY**) cho ra **đúng bảy nhãn nguồn như hiện tại** — 5 đang
+nhận · 1 đang trễ (`src-survey`) · 1 chết (`src-zalo`). Nên đổi cách chấm **không lệch một nhãn nào
+hôm nay**, và có test khẳng định điều đó.
+
+**Hệ quả:** `cfg.source[id]` (ngưỡng giờ mỗi nguồn) **thôi được đọc**. KHÔNG xoá — Module G đã tuyên
+nhóm đó là bản tạm; nó thành control mồ côi giống `cfg.step.covMin` sau I1. Vòng sau đổi nghĩa nó
+thành **nhịp giao** (*nguồn này ra bao lâu một lần*) — thứ người phụ trách nguồn trả lời được ngay,
+khác với *"chậm mấy giờ thì coi là trễ"* vốn phải đoán.
+
+**Chỗ hôm nay chưa phân biệt được, và vì sao manifest giải quyết:** từ trong dữ liệu, *nguồn hỏng* và
+*không ai gửi gì* trông y hệt — đều là không có dòng nào. Thứ DUY NHẤT nói `src-zalo` hỏng là câu chữ
+trong `Source.note` (*"Webhook lỗi từ 19/07"*), và **không dòng logic nào đọc câu đó** (đã grep).
+Manifest giao hàng — đã nằm trong §10 — tách được **"có giao"** khỏi **"giao cái gì"**: giao 0 dòng
+load OK = ngày yên tĩnh; load lỗi = hỏng biết chắc; không có dòng manifest = chưa giao, chưa biết.
+
+### A-cũ · nội dung gốc của A1 (giữ để tra lại)
 
 | | Việc | Bối cảnh |
 |---|---|---|

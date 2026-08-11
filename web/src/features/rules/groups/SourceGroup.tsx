@@ -12,8 +12,23 @@ import { useCfgWrite } from "../useCfgWrite.ts";
    màn Nguồn dữ liệu). Ràng buộc bắt buộc: SỐ DÒNG SINH TỪ `data.sources`, không gõ tay id nguồn nào
    ở bất cứ đâu trong file này — chốt kiểm kê xong thì bảng tự đổi mà không cần sửa code ở đây. */
 
-const HEALTH_LABEL: Record<SourceHealth, string> = { ok: "Đang nhận", stale: "Trễ hơn SLA", down: "Ngừng gửi" };
-const HEALTH_BADGE: Record<SourceHealth, "ok" | "watch" | "crit"> = { ok: "ok", stale: "watch", down: "crit" };
+/* 07/08 (module-i-signal-registry-charter.md I3): "silent" thêm vào SourceHealth — chấm sức khoẻ
+   giờ theo `asOf` (domain/state.ts), KHÔNG còn đọc `cfg.source[id]` — cột "SLA cho phép" dưới đây
+   thành control MỒ CÔI, giống `cfg.step.covMin` sau I1 (vẫn sửa được, không còn đổi được nhãn cột
+   "Trạng thái suy ra"). Thêm nhánh "silent" ở đây CHỈ để hai Record còn EXHAUSTIVE — không nguồn nào
+   trong fixture hôm nay rơi vào nhánh đó. */
+const HEALTH_LABEL: Record<SourceHealth, string> = {
+  ok: "Đang nhận",
+  stale: "Thiếu ngày dữ liệu",
+  down: "Ngừng gửi",
+  silent: "Im lặng, chưa phân định",
+};
+const HEALTH_BADGE: Record<SourceHealth, "ok" | "watch" | "crit" | "unknown"> = {
+  ok: "ok",
+  stale: "watch",
+  down: "crit",
+  silent: "unknown",
+};
 
 /** Style tiêu đề cột dùng chung — tránh chép cùng một chuỗi class 6 lần (khuôn SourcesPage.tsx). */
 const TH = "text-left font-medium text-ink-3 text-[11px] uppercase tracking-[0.04em] pb-[7px] px-1";
@@ -23,7 +38,7 @@ export function SourceGroup() {
   const cfg = useCxmStore((s) => s.cfg);
   const { write, error } = useCfgWrite();
 
-  const badCount = data.sources.filter((s) => sourceHealth(s, cfg) !== "ok").length;
+  const badCount = data.sources.filter((s) => sourceHealth(s, cfg, data.asOf) !== "ok").length;
 
   return (
     <Card
@@ -66,7 +81,7 @@ export function SourceGroup() {
           </thead>
           <tbody>
             {data.sources.map((s) => {
-              const h = sourceHealth(s, cfg);
+              const h = sourceHealth(s, cfg, data.asOf);
               // Nguồn mới chưa có SLA riêng trong cfg (kiểm kê mở thêm nguồn) không được để ô nhập
               // hiện "undefined" — dùng đúng SLA nền 6 giờ mà `sourceHealth()` (domain/state.ts) đã
               // tự áp khi thiếu cấu hình, để ô nhập và badge không nói khác nhau ngay lần hiện đầu.
@@ -115,11 +130,13 @@ export function SourceGroup() {
       <div className="mt-3.5">
         <Note tone={badCount ? "crit" : "default"}>
           <b>
-            {badCount} trong {data.sources.length} nguồn đang lệch SLA đang đặt.
+            {badCount} trong {data.sources.length} nguồn không ở trạng thái "Đang nhận".
           </b>
           <div className="mt-2">
-            Nới SLA của một nguồn là nhãn của nguồn đó chuyển sang <i>Đang nhận</i> ngay — nhưng độ
-            trễ thực tế không đổi. Đây là chỗ dễ tự lừa nhất trong cả màn này.
+            07/08: cách chấm đổi sang so ngày nhận dữ liệu với mốc số liệu, không còn so giờ trễ với
+            SLA — sửa ô "SLA cho phép" ở đây <b>không còn đổi được</b> nhãn ở cột "Trạng thái suy ra".
+            Ô này giữ lại để ghi nhịp giao dự kiến của từng nguồn, không còn cầm quyền quyết định sức
+            khoẻ nguồn.
           </div>
         </Note>
       </div>

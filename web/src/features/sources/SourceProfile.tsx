@@ -44,13 +44,15 @@ export type SourceProfileProps = {
   onClose: () => void;
 };
 
-const HEALTH_LABEL = { ok: "Đang nhận", stale: "Trễ hơn SLA", down: "Ngừng gửi" } as const;
-const HEALTH_BADGE = { ok: "ok", stale: "watch", down: "crit" } as const;
+/* 07/08 (module-i-signal-registry-charter.md I3): "silent" thêm vào SourceHealth — thêm ở đây CHỈ để
+   hai Record còn EXHAUSTIVE, không nguồn nào trong demoData hôm nay rơi vào nhánh này. */
+const HEALTH_LABEL = { ok: "Đang nhận", stale: "Thiếu ngày dữ liệu", down: "Ngừng gửi", silent: "Im lặng, chưa phân định" } as const;
+const HEALTH_BADGE = { ok: "ok", stale: "watch", down: "crit", silent: "unknown" } as const;
 
 export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps) {
   const [themesOpen, setThemesOpen] = useState(false);
 
-  const health = sourceHealth(source, cfg);
+  const health = sourceHealth(source, cfg, data.asOf);
   const evs = evidenceOfSource(data, source.id);
   const metrics = source.metrics
     .map((id) => data.metrics.find((m) => m.id === id))
@@ -111,7 +113,13 @@ export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps
             value={lagText(source.lagH)}
             foot={sla === undefined ? "chưa đặt SLA riêng cho nguồn này" : `SLA riêng của nguồn này: ${sla} giờ`}
             srcNote={`Nhận lần cuối ${source.last}`}
-            tone={health === "ok" ? undefined : health === "stale" ? "var(--watch)" : "var(--crit)"}
+            tone={
+              health === "ok" || health === "silent"
+                ? undefined
+                : health === "stale"
+                  ? "var(--watch)"
+                  : "var(--crit)"
+            }
           />
           <Stat
             label="Nền tảng phủ"

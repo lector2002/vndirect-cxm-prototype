@@ -24,7 +24,7 @@ export function SrcMatrixBlock({ data, cfg }: SrcMatrixBlockProps) {
       subtitle={`Ảnh chụp · ${periodLabel(data)}`}
       denomStrip={`Đang hiện Top ${data.sources.length} trên ${data.sources.length} nguồn`}
     >
-      <SrcMatrix sources={data.sources} metrics={data.metrics} cfg={cfg} compact />
+      <SrcMatrix sources={data.sources} metrics={data.metrics} cfg={cfg} asOf={data.asOf} compact />
       <AxisLabel>Nguồn × nền tảng</AxisLabel>
     </Card>
   );

@@ -9,9 +9,10 @@ import { useCfgWrite } from "../useCfgWrite.ts";
    bảy ngưỡng nền dùng cho agent, chart bất thường, khảo sát, và cách tô đỏ trên hồ sơ điểm gãy.
 
    KHỐI "ÁP NGAY LÚC NÀY" CHỈ GIỮ NHỮNG CÂU TÍNH ĐƯỢC THẬT TỪ STORE:
-   - Nguồn bị coi Ngừng gửi: dùng lại `sourceHealth(s, cfg) === 'down'` — đúng công thức
-     `lagH >= deadDays*24` (domain/state.ts), tương đương phép so `lagH/24` với `deadDays` mà charter
-     nêu, nhưng tái dùng seam chung thay vì chép lại phép tính.
+   - Nguồn bị coi Ngừng gửi: dùng lại `sourceHealth(s, cfg, data.asOf) === 'down'` — tái dùng seam
+     chung thay vì chép lại phép tính. 07/08 (module-i-signal-registry-charter.md I3): công thức đổi
+     sang so ngày `Source.last` với `data.asOf`, không còn so `lagH` với `deadDays*24` — số ngày im
+     lặng ở ô nhập dưới đây (`data.deadDays`) vẫn đúng nghĩa cũ, chỉ đơn vị đã LUÔN là ngày.
    - Điểm gãy bị tô đỏ theo repeat/churn: lọc thẳng trên `data.iss[].imp`.
    - Số điểm bất thường theo ngưỡng Z: tìm chart `kind:'series', chart:'anomaly'` trong `data.qt`
      (seed hôm nay là "Bất thường theo tháng"), chạy `countAnomalies` (domain/stats.ts) trên từng
@@ -35,7 +36,7 @@ export function AlertGroup() {
   const cfg = useCxmStore((s) => s.cfg);
   const { write, error } = useCfgWrite();
 
-  const dead = data.sources.filter((s) => sourceHealth(s, cfg) === "down");
+  const dead = data.sources.filter((s) => sourceHealth(s, cfg, data.asOf) === "down");
   const redRep = data.iss.filter((i) => i.imp.rep > cfg.data.repeatWarn);
   const redChurn = data.iss.filter((i) => i.imp.churn > cfg.data.churnWarn);
   const anomalyItems = data.qt.filter(isAnomalySeries);
