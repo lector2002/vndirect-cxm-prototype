@@ -123,9 +123,8 @@ export function lagText(lagH: number): string {
 
 /* ---- F7 (charter §7, I3) — "nguồn xấu nhất" khi một chỉ số có nhiều nguồn ---- */
 
-/** Hạng xấu — dùng để CHỌN nguồn xấu nhất, không dùng để hiện lên màn (chữ hiện dùng
-    `HEALTH_WORD` bên dưới). Thứ tự owner chốt: chết > đang trễ > im lặng chưa phân định > đang
-    nhận. */
+/** Hạng xấu — dùng để CHỌN nguồn xấu nhất, không dùng để hiện lên màn. Thứ tự owner chốt:
+    chết > đang trễ > im lặng chưa phân định > đang nhận. */
 const HEALTH_BAD_RANK: Record<SourceHealth, number> = { ok: 0, silent: 1, stale: 2, down: 3 };
 
 /** Nguồn xấu nhất trong một danh sách, theo HẠNG sức khoẻ — KHÔNG theo số ngày thiếu. Đồng hạng
@@ -142,44 +141,13 @@ export function worstSource(sources: readonly Source[], cfg: Cfg, asOf: string):
 
 /* ---- D1 (charter §5, I3) — chuỗi độ tươi của MỘT chỉ số, sinh từ nguồn nối tới ---- */
 
-/** Chữ cho từng hạng — CHỈ dùng trong `metricFreshnessText`, không phải nhãn badge của #/sources
-    hay #/rules (hai màn đó có label riêng, ngoài phạm vi lát này). */
-const HEALTH_WORD: Record<SourceHealth, string> = {
-  ok: "đang nhận",
-  stale: "đang trễ",
-  silent: "im lặng, chưa phân định",
-  down: "đã ngừng gửi",
-};
-
-/** Chuỗi độ tươi của một chỉ số — SINH từ `Source.metrics[]` (quan hệ thật), KHÔNG đọc
-    `Metric.freshness` (chuỗi gõ tay, D1 charter: 3/6 lệch số, 1/6 đúng số mà che trạng thái).
-    Nhiều nguồn ⇒ kể nguồn XẤU NHẤT (`worstSource`, F7). LUÔN kèm hạng sức khoẻ — ca `m-ces` là lý
-    do: số đúng (khớp `src-survey`) nhưng nguồn đó đang "đang trễ", nói con số một mình là nói dối
-    bằng cách im chuyện đó.
-
-    BA ĐOẠN, mỗi đoạn tự gọi tên trục của nó. Từ 07/08 (I3) hạng chấm bằng SỐ NGÀY THIẾU, không còn
-    bằng `lagH`, nên KHÔNG được để `lagText(lagH)` đứng trần cạnh chữ hạng: `m-ces` từng đọc thành
-    "trễ 12 giờ · đang trễ", người xem sẽ tưởng 12 giờ là thứ làm nên chữ "đang trễ", trong khi thật
-    ra là thiếu 1 ngày dữ liệu. Số đứng cạnh chữ phải là số chấm ra chữ đó — đây đúng là bệnh
-    `Metric.freshness` mà module này sinh ra để chữa, không được tái lập ở chuỗi thay thế.
-    Vẫn giữ `lagH` ở đoạn đầu vì nó là sự thật riêng (tuổi lần giao cuối), chỉ cần gọi đúng tên.
-
-    0 nguồn nối tới (ca `m-contract`, khai `Metric.source` bằng chữ nhưng không nguồn nào trong
-    `data.sources` liệt `metric.id` trong `metrics[]`) KHÔNG được nói "chỉ số này không có nguồn" —
-    danh sách 7 nguồn là BẢN TẠM (owner chốt 06/08), lỗi có thể ở danh sách chứ không ở chỉ số. */
-export function metricFreshnessText(metric: Metric, data: CxmData, cfg: Cfg): string {
-  const feeders = data.sources.filter((s) => s.metrics.includes(metric.id));
-  if (feeders.length === 0) {
-    return `"${metric.source}" — khai nguồn bằng chữ nhưng không nối được vào nguồn nào trong danh sách hiện tại.`;
-  }
-  const worst = worstSource(feeders, cfg, data.asOf)!;
-  const missing = sourceDaysMissing(worst, data.asOf);
-  const doPhu =
-    missing === 0
-      ? `đã giao đủ đến ${data.asOf}`
-      : `thiếu ${missing} ngày dữ liệu`;
-  return `${lagText(worst.lagH)} kể từ lần giao cuối · ${doPhu} · ${HEALTH_WORD[sourceHealth(worst, cfg, data.asOf)]}`;
-}
+/* `metricFreshnessText()` và `HEALTH_WORD` ĐÃ XOÁ 11/08. Hàm đó sinh chuỗi ba đoạn
+   ("trễ 4 giờ kể từ lần giao cuối · đã giao đủ đến 27/07/2026 · đang nhận") — đúng thứ luật giao diện
+   11/08 cấm (docs/DB-FIRST-HANDOFF.md §"App hiển thị dữ liệu, không luận giải"). Sau khi bỏ dòng độ
+   tươi khỏi bảng chỉ số, hàm không còn ai gọi; giữ lại một hàm sinh ra chuỗi đã bị cấm là để sẵn một
+   cái bẫy cho lần sau. `worstSource()` GIỮ — nó xếp hạng bằng dữ liệu, không sinh văn.
+   D1 (module-i §5) vẫn đạt theo hướng khác: bảng chỉ số KHÔNG khai gì về độ tươi, thay vì khai một
+   chuỗi gõ tay sai số. Độ tươi thật của từng nguồn ở #/sources, hiện bằng `lagText()` + badge hạng. */
 
 /** Bằng chứng mẫu đến từ một nguồn. */
 export function evidenceOfSource(data: CxmData, srcId: string): Evidence[] {

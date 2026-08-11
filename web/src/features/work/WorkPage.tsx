@@ -160,9 +160,7 @@ export function WorkPage() {
         >
           ＋ Tạo điểm gãy
         </button>
-        <span className="t-meta text-[12px]">
-          Chỉ tạo khi xác định được bước trong hành trình và chỉ số dùng để kết luận.
-        </span>
+        {/* luật 11/08: bỏ hướng dẫn */}
         <div className="grow" />
         {/* Bốn chip đếm, xếp theo thứ tự việc chảy qua: đang tới → chờ duyệt → chờ khép vòng → đã
             xong. Hai chip đầu là hai phép đếm dời từ câu mở đầu cũ xuống (owner 06/08). */}
@@ -207,9 +205,8 @@ export function WorkPage() {
         <div data-testid="banner-mkok" className="mb-3.5">
           <Note tone="bd">
             <div className="flex items-center gap-2.5">
-              <span>
-                {`Đã tạo ${mkok.iid}. Thẻ đang ở chặng ${mkok.stage}. Toàn bộ liên kết dữ liệu vẫn hợp lệ — không có banner đỏ nghĩa là validateFixture() đã chấp nhận bản ghi mới.`}
-              </span>
+              {/* luật 11/08: bỏ vế "Toàn bộ liên kết dữ liệu vẫn hợp lệ — không có banner đỏ nghĩa là validateFixture() đã chấp nhận bản ghi mới" */}
+              <span>{`Đã tạo ${mkok.iid}. Thẻ đang ở chặng ${mkok.stage}.`}</span>
               <button
                 type="button"
                 data-testid="banner-mkok-hide"

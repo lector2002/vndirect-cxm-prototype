@@ -71,18 +71,21 @@ describe("QuantifyBuilder — gate cross-tab: đổi show sang dim không evAttr
    name/định nghĩa mới, và MERGE note cũ (không làm mất note khi builder không có ô sửa note). */
 describe("QuantifyBuilder — Lưu đè giữ id + merge note (harness §314-324)", () => {
   it("Lưu đè: saveQuantify nhận item id cũ + name mới + note cũ", () => {
-    const item = seed.qt.find((q) => q.id === "q1");
-    if (!item || item.kind !== "show" || !item.note) throw new Error("fixture q1 phải là show có note");
+    /* KHÔNG ghim vào `q1`: ý định của test là "lưu đè thì note cũ được merge", không phụ thuộc item
+       nào. Luật 11/08 đã bỏ note của q1 (nó là một định nghĩa), và test ghim id thì đỏ oan. Lấy item
+       `show` ĐẦU TIÊN còn note, kèm chốt chống rỗng để test không xanh vì fixture hết note. */
+    const item = seed.qt.find((q) => q.kind === "show" && !!q.note);
+    if (!item || item.kind !== "show" || !item.note) throw new Error("fixture phải còn ít nhất một show có note");
     const saveQuantify = vi.fn();
     const qb: QbState = { show: item.show, metric: item.metric, chart: item.chart, by: item.by ?? null, view: item.view ?? "chart" };
-    render(<QuantifyBuilder {...baseProps({ qb, editId: "q1", saveQuantify })} />);
+    render(<QuantifyBuilder {...baseProps({ qb, editId: item.id, saveQuantify })} />);
 
     fireEvent.change(screen.getByTestId("qbuilder-name"), { target: { value: "q1 sửa đè" } });
     fireEvent.click(screen.getByTestId("qbuilder-save-overwrite"));
 
     expect(saveQuantify).toHaveBeenCalledTimes(1);
     expect(saveQuantify).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "q1", name: "q1 sửa đè", note: item.note, show: item.show }),
+      expect.objectContaining({ id: item.id, name: "q1 sửa đè", note: item.note, show: item.show }),
     );
   });
 });

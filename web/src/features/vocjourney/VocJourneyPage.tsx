@@ -29,8 +29,9 @@ import { VocTouchpointInspector } from "./VocTouchpointInspector.tsx";
 
    BA CHỖ CỐ Ý KHÔNG PORT:
    · Đoạn dẫn cách đọc (dòng 2695) — bỏ, cùng lý do đã bỏ ở bản đồ hành trình: nó dạy cách đọc một
-     thứ nằm ngay bên dưới và tự nói được. Câu luận đề (2694) thì GIỮ: đó là nội dung, nói ra màn
-     này khác bản đồ hành trình ở chỗ nào.
+     thứ nằm ngay bên dưới và tự nói được. Câu luận đề (2694) LÚC PORT thì giữ vì đó là nội dung,
+     nói ra màn này khác bản đồ hành trình ở chỗ nào — nhưng owner sau đó bỏ khối câu mở đầu trên
+     MỌI màn (06/08), nên câu này KHÔNG còn in trên màn nữa; xem chỗ đánh dấu ngay trên `PageTitle`.
    · Banner "bạn vừa mở từ node …" (2697-2701) — nó đọc `ST.sel.vocTax`, đặt bởi màn Topic. Bản
      React chưa có màn Topic nào đặt được giá trị đó, nên nhánh này không tới được. Port một nhánh
      chết là để nó mục đi trước khi có ai dùng.
@@ -151,7 +152,6 @@ export function VocJourneyPage() {
       <div className="mb-3.5">
         <Card
           title={`${currentPhase.code} · ${currentPhase.name}`}
-          subtitle="Chọn một flow để mở chuỗi điểm chạm"
           denomStrip={`Đang hiện Top ${flowsInPhaseCount} trên ${data.flows.length} flow`}
         >
           <div className="mb-3" data-testid="voc-gap-line">
@@ -198,9 +198,11 @@ export function VocJourneyPage() {
         <div className="mb-3.5">
           <Card
             title={currentFlow.name}
-            subtitle={
-              flowSteps.length ? "Chuỗi điểm chạm — mỗi thẻ hiện tiếng nói tại đó" : "Flow này chưa nằm trong pilot"
-            }
+            /* Luật 11/08: bỏ câu ngắn giải thích dưới title. Nhánh CÓ bước trước đây nói "Chuỗi điểm
+               chạm — mỗi thẻ hiện tiếng nói tại đó" — đó là dạy cách đọc, bỏ. Nhánh KHÔNG bước phải
+               GIỮ: "chưa nằm trong pilot" là sự thật về trạng thái, và là câu duy nhất trên màn nói
+               vì sao khối này trống. Bỏ cả prop là xoá luôn nhánh thứ hai. */
+            subtitle={flowSteps.length ? undefined : "Flow này chưa nằm trong pilot"}
             denomStrip={
               flowSteps.length > 0
                 ? `Đang hiện ${stepsWithVoice.length} trên ${flowSteps.length} điểm chạm có bằng chứng mẫu`
@@ -208,10 +210,10 @@ export function VocJourneyPage() {
             }
           >
             {flowSteps.length === 0 ? (
+              // luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu
               <Note tone="warn">
-                <Badge state="unknown" /> <b>Chưa có phản hồi gán vào flow này.</b> Flow đã map ở mức
-                cấu trúc nhưng chưa nằm trong pilot nên chưa có điểm chạm nào được instrument. Đây là
-                chủ ý, không phải mất dữ liệu.
+                <Badge state="unknown" /> Chưa có phản hồi gán vào flow này. Flow chưa nằm trong
+                pilot.
               </Note>
             ) : (
               <>
@@ -288,8 +290,8 @@ export function VocJourneyPage() {
                         mọi điểm chạm có tiếng nói đều đã vượt ngưỡng theo dõi trên bản đồ hành trình —
                         hai lớp đang nói cùng một điều.
                       </>
-                    )}{" "}
-                    Xem lớp hành vi ở <a href="#/atlas">Bản đồ hành trình</a>.
+                    )}
+                    {/* luật 11/08: bỏ hướng dẫn "Xem lớp hành vi ở Bản đồ hành trình" */}
                   </Note>
                 </div>
               </>

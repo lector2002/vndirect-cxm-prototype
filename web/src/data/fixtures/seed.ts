@@ -758,8 +758,7 @@ const seedRaw: CxmData = {
       bands:{ age:'50+', nav:'<50tr', tenure:'chưa-biết' }, acq:'chi nhánh' },
   ],
   qt: [
-{ id:'q1', kind:'show', show:'theme', metric:'count', chart:'rank', name:'Volume theo Theme',
-      note:'Theme trả lời VÌ SAO, khác với L1–L3 trả lời CÁI GÌ.' },
+{ id:'q1', kind:'show', show:'theme', metric:'count', chart:'rank', name:'Volume theo Theme' },
     { id:'q2', kind:'show', show:'l1', metric:'count', chart:'rank', name:'Volume theo L1 Keyword',
       note:'L1 khớp 1–1 với 6 phase của bản đồ hành trình.' },
     { id:'q3', kind:'show', show:'cat', metric:'count', chart:'rank', name:'Volume theo Category',
@@ -773,11 +772,11 @@ const seedRaw: CxmData = {
     { id:'q11',kind:'show', show:'sub', metric:'count', chart:'rank', name:'Volume theo Sub-theme',
       note:'Sub-theme là sắc thái bên trong một theme.' },
     { id:'q12',kind:'show', show:'sen', metric:'count', chart:'rank', name:'User Sentiment',
-      note:'Tính trên tập evidence mẫu, không phải toàn bộ bản ghi tổng hợp.' },
+      note:'Tính trên tập evidence mẫu.' },
     { id:'q13',kind:'show', show:'pf',  metric:'count', chart:'rank', name:'Volume theo Nền tảng',
-      note:'Tính trên tập evidence mẫu. Nền tảng nào thiếu nguồn thì xem màn Nguồn & độ toàn vẹn.' },
+      note:'Tính trên tập evidence mẫu.' },
     { id:'q14',kind:'show', show:'src', metric:'pct', chart:'donut', name:'Tỷ trọng nguồn phản hồi',
-      note:'Hiện đếm CẢ tín hiệu hành vi lẫn tiếng nói, theo cách Enterpret đếm mọi source. Xem VOC_SCOPE.' },
+      note:'Đếm cả tín hiệu hành vi lẫn tiếng nói.' },
 
     /* q16 (Theme × Nền tảng, ghép chéo) đã BỎ (S4, owner chốt 04/08, thiết kế §5) — năng lực
        qRunCross/CrossTable GIỮ NGUYÊN, chỉ không còn saved query nào trỏ vào; xem

@@ -82,9 +82,10 @@ export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps
         subtitle={source.note}
         denomStrip={
           <span data-testid="src-profile-denom">
+            {/* luật 11/08: bỏ "KHÔNG phải toàn bộ N bản ghi nguồn này khai" */}
             {evs.length === 0
               ? `Chưa có bằng chứng mẫu nào từ nguồn này · volume tổng hợp trong kỳ ${nf(source.vol)}`
-              : `${nf(evs.length)} bằng chứng mẫu đọc được từng cái — KHÔNG phải toàn bộ ${nf(source.vol)} bản ghi nguồn này khai. Năm phân bố bên dưới đếm trên ${nf(evs.length)} đó.`}
+              : `${nf(evs.length)} bằng chứng mẫu đọc được từng cái. Năm phân bố bên dưới đếm trên ${nf(evs.length)} đó.`}
           </span>
         }
         actions={
@@ -149,10 +150,10 @@ export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps
                       {i < metrics.length - 1 ? " và " : " "}
                     </span>
                   ))}
+                  {/* luật 11/08: bỏ "nguồn mất có thể nằm ở cả tử lẫn mẫu..." và "trước khi dùng con số kỳ này" — giữ giá trị chủ chỉ số */}
                   đang tính trên dữ liệu thiếu phần của nguồn này. Dữ liệu <b>không nói được</b> con
-                  số đang cao hơn hay thấp hơn thực tế — nguồn mất có thể nằm ở cả tử lẫn mẫu của
-                  công thức. Hỏi chủ chỉ số ({[...new Set(metrics.map((m) => m.owner))].join(" · ")})
-                  trước khi dùng con số kỳ này.
+                  số đang cao hơn hay thấp hơn thực tế. Chủ chỉ số:{" "}
+                  {[...new Set(metrics.map((m) => m.owner))].join(" · ")}.
                 </>
               ) : (
                 <>

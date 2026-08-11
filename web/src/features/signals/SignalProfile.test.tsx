@@ -49,14 +49,14 @@ describe("F2 — hồ sơ đi hết chuỗi allocate, quét MỌI signal trong d
     }
   });
 
-  it("Ai chịu trách nhiệm suy đúng Flow.owner của flow trong chuỗi, ghi rõ là SUY, không khai riêng", () => {
+  it("Ai chịu trách nhiệm suy đúng Flow.owner của flow trong chuỗi (luật 11/08: đã bỏ chú giải 'suy từ hành trình')", () => {
     const sig = demoData.signals.find((s) => signalAllocationChain(demoData, s).ok)!;
     const chain = signalAllocationChain(demoData, sig);
     if (!chain.ok) throw new Error("fixture phải có ít nhất một signal đi hết chuỗi");
     render(<SignalProfile data={demoData} signal={sig} onBack={noop} dims={dims} />);
     const node = screen.getByTestId("signal-profile-owner");
     expect(node.textContent).toContain(chain.flow.owner);
-    expect(node.textContent).toMatch(/suy từ hành trình/);
+    expect(node.textContent).not.toMatch(/suy từ hành trình/);
   });
 });
 
@@ -120,13 +120,12 @@ describe("D5 (UI) — 'đang chạy' suy từ vol, KHÔNG đọc st", () => {
 });
 
 describe("D6 (UI) — Signal.seen hiện verbatim, KHÔNG suy số ngày/giờ im lặng", () => {
-  it("chuỗi seen thật hiện nguyên văn, kèm nhãn 'mốc do người khai'", () => {
+  it("chuỗi seen thật hiện nguyên văn", () => {
     const sig = demoData.signals.find((s) => s.seen);
     expect(sig).toBeDefined();
     render(<SignalProfile data={demoData} signal={sig!} onBack={noop} dims={dims} />);
     const node = screen.getByTestId("signal-profile-seen");
     expect(node.textContent).toContain(sig!.seen as string);
-    expect(node.textContent).toMatch(/mốc do người khai/i);
   });
 
   it("không nơi nào trên hồ sơ hiện cụm 'im lặng N ngày/giờ' suy ra từ seen", () => {
@@ -153,19 +152,18 @@ describe("D6 (UI) — Signal.seen hiện verbatim, KHÔNG suy số ngày/giờ i
   });
 });
 
-describe("Mặt 3 — client có thể mất dữ liệu, kèm chuỗi chưa nối được vào nguồn nào", () => {
-  it("es==='client' hiện câu client có thể mất dữ liệu", () => {
-    const sig = demoData.signals.find((s) => s.es === "client");
-    expect(sig).toBeDefined();
-    render(<SignalProfile data={demoData} signal={sig!} onBack={noop} dims={dims} />);
-    expect(screen.getByTestId("signal-profile-es").textContent).toMatch(/có thể mất/);
-  });
-
-  it("es==='server' KHÔNG hiện câu đó (fact chỉ áp cho client)", () => {
-    const sig = demoData.signals.find((s) => s.es === "server");
-    expect(sig).toBeDefined();
-    render(<SignalProfile data={demoData} signal={sig!} onBack={noop} dims={dims} />);
-    expect(screen.getByTestId("signal-profile-es").textContent).not.toMatch(/có thể mất/);
+describe("Mặt 3 — phía client/server hiện đúng giá trị, kèm chuỗi chưa nối được vào nguồn nào", () => {
+  it("hiện đúng dòng 'Phía: client' hoặc 'Phía: server' khớp Signal.es (luật 11/08: đã bỏ câu 'có thể mất dữ liệu')", () => {
+    for (const es of ["client", "server"] as const) {
+      const sig = demoData.signals.find((s) => (s.es === "server" ? "server" : "client") === es);
+      expect(sig).toBeDefined();
+      const { unmount } = render(<SignalProfile data={demoData} signal={sig!} onBack={noop} dims={dims} />);
+      const node = screen.getByTestId("signal-profile-es");
+      expect(node.textContent).toContain("Phía");
+      expect(node.textContent).toContain(es);
+      expect(node.textContent).not.toMatch(/có thể mất/);
+      unmount();
+    }
   });
 
   it("mọi signal: 'nguồn chở nó' nói rõ chưa nối được vào nguồn nào trong danh sách hiện tại", () => {
@@ -198,9 +196,12 @@ describe("Mặt 4 — liệt kê values[] đã khai, KÈM chart phân bố giá 
     for (const v of sig!.values) expect(node.textContent).toContain(v);
   });
 
-  it("luôn cảnh báo sigCounts sinh từ chính bản khai — '0 giá trị ngoài khai báo' không phải bằng chứng sạch", () => {
-    render(<SignalProfile data={demoData} signal={demoData.signals[0]} onBack={noop} dims={dims} />);
-    expect(screen.getByText(/0 giá trị ngoài khai báo/).textContent).toMatch(/hệ quả/);
+  it("luật 11/08: đã bỏ cảnh báo '0 giá trị ngoài khai báo', hồ sơ vẫn hiện đúng khối giá trị", () => {
+    const sig = demoData.signals[0];
+    render(<SignalProfile data={demoData} signal={sig} onBack={noop} dims={dims} />);
+    expect(screen.queryByText(/giá trị ngoài khai báo/)).not.toBeInTheDocument();
+    const expectedTestId = sig.values.length === 0 ? "signal-profile-values-empty" : "signal-profile-values";
+    expect(screen.getByTestId(expectedTestId)).toBeInTheDocument();
   });
 
   describe("F5 — chart phân bố giá trị, hai lý do TỪ CHỐI khác nhau", () => {
@@ -242,7 +243,9 @@ describe("Mặt 4 — liệt kê values[] đã khai, KÈM chart phân bố giá 
       const navState = chart.dimStates.find((d) => d.id === "nav")!;
       if (navState.state === "locked") {
         expect(navBtn).toBeDisabled();
-        expect(screen.getByText(/chọn một chiều khác ở trên/)).toBeInTheDocument();
+        // luật 11/08: đã bỏ lời mời "chọn một chiều khác ở trên để xem chart"
+        expect(screen.getByText(/không ghi được cho điểm đo này/)).toBeInTheDocument();
+        expect(screen.queryByText(/chọn một chiều khác/)).not.toBeInTheDocument();
       } else {
         expect(screen.getByTestId("signal-columns")).toBeInTheDocument();
       }

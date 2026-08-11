@@ -50,7 +50,7 @@ export function TopicLineChart({ series, onRemove }: TopicLineChartProps) {
   if (series.length === 0) {
     return (
       <div data-testid="topic-lines-empty" className="t-meta">
-        Chưa chọn topic nào để vẽ. Bấm <b>★</b> ở bảng bên dưới để thêm một đường vào biểu đồ.
+        Chưa chọn topic nào để vẽ.
       </div>
     );
   }

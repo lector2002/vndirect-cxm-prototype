@@ -12,7 +12,6 @@ import {
   freshnessCount,
   instrumentedCount,
   lagText,
-  metricFreshnessText,
   metricsAtRisk,
   ownersAtRisk,
   passiveActive,
@@ -23,7 +22,7 @@ import {
   unhealthySources,
   worstSource,
 } from "./sources.ts";
-import { sourceDaysMissing, sourceHealth } from "./state.ts";
+import { sourceHealth } from "./state.ts";
 
 /* Ca rỗng và ca nhiều-nguồn-hỏng KHÔNG dựng được từ demoData (7 nguồn cố định, đúng 1 trễ + 1 đứt),
    nên phần lớn test ở đây dựng dữ liệu tổng hợp. Vài test cuối đối chiếu với `demoData` để bắt
@@ -384,61 +383,7 @@ describe("worstSource — F7: chọn theo HẠNG sức khoẻ, không theo số 
   });
 });
 
-/* D1 (charter §5, I3) — `Metric.freshness` là chuỗi gõ tay đã trôi khỏi gốc (3/6 lệch số, 1/6 đúng
-   số mà che trạng thái). `metricFreshnessText` sinh lại từ `Source.metrics[]` (quan hệ thật) +
-   `lagText` + hạng sức khoẻ của nguồn XẤU NHẤT — không đọc `metric.freshness`. Bốn ca dùng nguyên
-   `seed` (không dựng input tổng hợp): số/hạng phải TỰ SUY từ `seed.sources`, không ghim tay. */
-describe("metricFreshnessText — D1: sinh từ nguồn nối tới, kèm hạng sức khoẻ", () => {
-  it("m-repeat: kể nguồn XẤU NHẤT (src-zalo, chết) — KHÔNG kể src-case (khoẻ)", () => {
-    const m = seed.metrics.find((x) => x.id === "m-repeat")!;
-    const zalo = seed.sources.find((s) => s.id === "src-zalo")!;
-    const kase = seed.sources.find((s) => s.id === "src-case")!;
-    expect(sourceHealth(zalo, cfgDefault, seed.asOf)).toBe("down");
-    expect(sourceHealth(kase, cfgDefault, seed.asOf)).toBe("ok");
-    const text = metricFreshnessText(m, seed, cfgDefault);
-    expect(text).toContain(lagText(zalo.lagH));
-    expect(text.toLowerCase()).toContain("ngừng gửi");
-    expect(text).not.toContain(lagText(kase.lagH));
-  });
-
-  it("m-ces: con số ĐÚNG (khớp src-survey) nhưng vẫn phải kèm hạng 'đang trễ' — số đúng không đủ", () => {
-    const m = seed.metrics.find((x) => x.id === "m-ces")!;
-    const survey = seed.sources.find((s) => s.id === "src-survey")!;
-    expect(sourceHealth(survey, cfgDefault, seed.asOf)).toBe("stale");
-    const text = metricFreshnessText(m, seed, cfgDefault);
-    expect(text).toContain(lagText(survey.lagH));
-    expect(text).toContain("đang trễ");
-  });
-
-  /* Số đứng cạnh chữ hạng phải là số CHẤM RA chữ đó. Từ I3 hạng chấm bằng số ngày thiếu, nên
-     `lagH` không được đứng trần cạnh "đang trễ"/"đã ngừng gửi" — xem docblock `metricFreshnessText`.
-     Quét MỌI chỉ số có nguồn, không bốc một ca: ca lệch trục chỉ lộ ra ở nguồn thiếu ngày mà `lagH`
-     còn nhỏ (`src-survey`: 12 giờ nhưng thiếu 1 ngày), bốc nhầm `m-completion` là test xanh rỗng. */
-  it("mọi chỉ số có nguồn: số ngày thiếu hiện ra và khớp sourceDaysMissing của nguồn xấu nhất", () => {
-    const coNguon = seed.metrics.filter((m) => seed.sources.some((s) => s.metrics.includes(m.id)));
-    expect(coNguon.length).toBeGreaterThan(0);
-    for (const m of coNguon) {
-      const feeders = seed.sources.filter((s) => s.metrics.includes(m.id));
-      const worst = worstSource(feeders, cfgDefault, seed.asOf)!;
-      const missing = sourceDaysMissing(worst, seed.asOf);
-      const text = metricFreshnessText(m, seed, cfgDefault);
-      expect(text).toContain(missing === 0 ? `đã giao đủ đến ${seed.asOf}` : `thiếu ${missing} ngày dữ liệu`);
-      expect(text).toContain("kể từ lần giao cuối");
-    }
-  });
-
-  it("m-ocr: số suy từ src-ekyc thật (6 giờ), không phải số gõ tay cũ (4 giờ)", () => {
-    const m = seed.metrics.find((x) => x.id === "m-ocr")!;
-    const ekyc = seed.sources.find((s) => s.id === "src-ekyc")!;
-    expect(sourceHealth(ekyc, cfgDefault, seed.asOf)).toBe("ok");
-    expect(metricFreshnessText(m, seed, cfgDefault)).toContain(lagText(ekyc.lagH));
-  });
-
-  it("m-contract: 0 nguồn nối tới ⇒ đúng câu 'không nối được', KHÔNG nói 'không có nguồn'", () => {
-    const m = seed.metrics.find((x) => x.id === "m-contract")!;
-    expect(seed.sources.some((s) => s.metrics.includes("m-contract"))).toBe(false);
-    const text = metricFreshnessText(m, seed, cfgDefault);
-    expect(text).toContain("khai nguồn bằng chữ nhưng không nối được vào nguồn nào trong danh sách hiện tại");
-    expect(text).not.toContain("không có nguồn");
-  });
-});
+/* D1 (charter §5, I3) — `metricFreshnessText()` ĐÃ XOÁ 11/08 cùng bộ test của nó: hàm sinh chuỗi
+   ba đoạn mà luật giao diện 11/08 cấm, và sau khi bỏ dòng độ tươi khỏi bảng chỉ số thì không còn ai
+   gọi. Xem docblock chỗ xoá trong `sources.ts`. D1 vẫn đạt theo hướng khác: bảng chỉ số không khai gì
+   về độ tươi thay vì khai một chuỗi gõ tay sai số. */

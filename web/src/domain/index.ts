@@ -25,7 +25,6 @@ export {
   ownersAtRisk,
   lagText,
   worstSource,
-  metricFreshnessText,
   evidenceOfSource,
   senBucket,
   distByIntent,

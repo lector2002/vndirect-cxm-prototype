@@ -1,4 +1,4 @@
-import { Card, Note } from "../../../design-system/index.ts";
+import { Card } from "../../../design-system/index.ts";
 import { useCxmStore } from "../../../store/store.ts";
 
 /* Nhóm 6 — Trọng số ưu tiên điểm gãy. Port tinh thần V.rules nhánh cuối (prototype dòng 4302-4325).
@@ -28,10 +28,7 @@ export function WeightGroup() {
   const priMax = (k: PriKey): number => Math.max(...data.iss.map((i) => i.pri[k]));
 
   return (
-    <Card
-      title="Trọng số ưu tiên"
-      subtitle="Chỉ đọc — trọng số là quyết định của CX Council, không phải cấu hình vận hành hằng ngày."
-    >
+    <Card title="Trọng số ưu tiên">
       <table className="w-full border-collapse text-[12.5px]">
         <thead>
           <tr>
@@ -55,20 +52,7 @@ export function WeightGroup() {
         </tbody>
       </table>
 
-      <div className="mt-3.5 grid gap-2.5">
-        <Note>
-          Rủi ro pháp lý là thành phần đặc thù ngành chứng khoán — một lỗi eKYC có hệ quả tuân thủ
-          khác một lỗi giao diện, dù cùng số khách bị ảnh hưởng. Đây là lý do không nên để trọng số
-          này sửa được như một ngưỡng vận hành.
-        </Note>
-        <Note tone="crit">
-          <b>Vì sao nhóm này chỉ đọc:</b> fixture lưu điểm tuyệt đối và{" "}
-          <span className="font-mono">validateFixture()</span> khẳng định{" "}
-          <span className="font-mono">sev + aff + jc + rep + tr + reg === total</span>. Cho sửa
-          trọng số mà không tính lại <span className="font-mono">total</span> sẽ bắn banner đỏ trên
-          mọi màn.
-        </Note>
-      </div>
+      {/* luật 11/08: bỏ cả hai ghi chú luận giải (vì sao trọng số đặc thù, vì sao nhóm chỉ đọc) */}
     </Card>
   );
 }

@@ -50,8 +50,10 @@ describe("QuantifyDetail — render", () => {
   });
 
   it("item.note chỉ hiện đúng 1 lần (QuantifyWidget đã tự render note, không lặp lại ở metadata)", () => {
-    const item = findItem("q1");
-    if (!item.note) throw new Error("fixture q1 phải có note để test này có ý nghĩa");
+    /* KHÔNG ghim vào `q1`: test hỏi "note hiện đúng một lần", không phụ thuộc item nào. Luật 11/08
+       đã bỏ note của q1, nên lấy item ĐẦU TIÊN còn note + chốt chống rỗng. */
+    const item = seed.qt.find((x) => !!x.note);
+    if (!item?.note) throw new Error("fixture phải còn ít nhất một item có note");
     render(<QuantifyDetail {...baseProps(item)} />);
     expect(screen.getAllByText(item.note).length).toBe(1);
   });

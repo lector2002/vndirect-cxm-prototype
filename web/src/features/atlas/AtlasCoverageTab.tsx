@@ -6,8 +6,10 @@ import { SIGNAL_STATUS } from "./signalStatus.ts";
    output/cxm-platform-prototype.html dòng 3530-3548). Trả lời: những gì màn nói về bước này đáng tin
    tới đâu, và còn thiếu đo cái gì.
 
-   Câu chốt của prototype giữ nguyên và giữ ĐÚNG chỗ: độ phủ là thuộc tính của BƯỚC, không phải một
-   màn riêng — nên nó sống cạnh chính bước đang xét.
+   Vị trí giữ ĐÚNG chỗ: độ phủ là thuộc tính của BƯỚC, không phải một màn riêng — nên nó sống cạnh
+   chính bước đang xét. Câu chốt luận giải của prototype thì KHÔNG còn giữ nguyên: luật giao diện
+   11/08 (`docs/DB-FIRST-HANDOFF.md` §"App hiển thị dữ liệu, không luận giải") đã cắt xuống chỉ còn
+   câu nói trạng thái dữ liệu đang có, xem hai chỗ đánh dấu "luật 11/08" trong JSX dưới.
 
    07/08 (module-i-signal-registry-charter.md D4): bỏ Stat "Evidence coverage" (đọc trường `cov`
    của obs, số gõ tay không đối chiếu được, kèm `srcNote="Mobile SDK event registry"` hardcode
@@ -48,19 +50,14 @@ export function AtlasCoverageTab({ signals }: AtlasCoverageTabProps) {
       </div>
 
       <div data-testid="atlas-cov-empty">
-        <Note tone="warn">
-          <b>Chưa có số đo được về độ phủ bằng chứng.</b> Tỉ lệ tự khai trước đây không đối chiếu
-          được với gì nên đã bỏ khỏi màn; số đếm được để thay nó (mã lý do rớt theo từng ca thất
-          bại) chưa có, đang nằm trong bản yêu cầu dữ liệu gửi team data.
-        </Note>
+        {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
+        <Note tone="warn">Chưa có số đo được về độ phủ bằng chứng.</Note>
       </div>
 
       {noSignal ? (
         <div className="mt-2.5" data-testid="atlas-cov-nosignal">
-          <Note tone="warn">
-            <b>Bước này chưa khai điểm đo nào.</b> Không có điểm đo nào được khai để nói bước đang
-            nghe những sự kiện gì.
-          </Note>
+          {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
+          <Note tone="warn">Bước này chưa khai điểm đo nào.</Note>
         </div>
       ) : null}
 
@@ -85,14 +82,7 @@ export function AtlasCoverageTab({ signals }: AtlasCoverageTabProps) {
         </div>
       ) : null}
 
-      <div className="mt-3.5">
-        <Note>
-          <span className="text-[12px]">
-            Độ phủ dữ liệu là thuộc tính của <b>bước</b>, không phải một màn riêng — nên nó sống ở
-            đây, cạnh chính bước đang xét.
-          </span>
-        </Note>
-      </div>
+      {/* luật 11/08: bỏ lý lẽ vì sao khối này nằm ở đây */}
     </div>
   );
 }

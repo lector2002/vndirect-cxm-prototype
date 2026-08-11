@@ -29,8 +29,10 @@ describe("WeightGroup — bảng 6 thành phần ưu tiên, chỉ đọc", () =>
     }
   });
 
-  it("nêu rõ lý do chỉ đọc (fixture lưu điểm tuyệt đối, total phải khớp tổng 6 thành phần)", () => {
-    render(<WeightGroup />);
-    expect(screen.getByText(/Vì sao nhóm này chỉ đọc/)).toBeTruthy();
+  it("luật 11/08: đã bỏ ghi chú luận giải, bất biến chỉ đọc vẫn giữ qua việc không có control ghi nào", () => {
+    const { container } = render(<WeightGroup />);
+    expect(screen.queryByText(/Vì sao nhóm này chỉ đọc/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Rủi ro pháp lý là thành phần đặc thù/)).not.toBeInTheDocument();
+    expect(container.querySelectorAll("input, select, button").length).toBe(0);
   });
 });

@@ -757,12 +757,34 @@ Bốn test cũ ghim "không còn `<h1>` nào" hoặc đọc câu mở đầu đ�
 
 `tsc -b` sạch, **1047 test xanh / 89 file**.
 
-# Bỏ câu giải thích dưới title, và khối luận giải trong bảng chỉ số — luật chung, chốt 11/08
+# App hiển thị dữ liệu, không luận giải — luật chung, chốt 11/08
 
-Nối tiếp luật 06/08 (*"đầu màn chỉ còn tên tab"*) xuống một cấp: luật đó dọn phần mở đầu của **màn**,
-luật này dọn phần mở đầu của từng **khối** và các đoạn luận giải nằm trong thân khối. Owner chốt
-11/08: **bỏ toàn bộ câu ngắn giải thích ở dưới title lớn**, và **bỏ các đoạn giải thích cách đọc kiểu
-như đoạn dưới đây ở phần chỉ số theo dõi**:
+**Câu luật, owner nói nguyên văn:**
+
+> hệ thống chỉ là nơi hiển thị data và báo cáo nếu có data lệch hướng, ko tự ý luận giải, giải thích
+> vô nghĩa
+
+Đây là luật **mạnh nhất về giao diện** mà stream này có, và nó lớn hơn hẳn hai luật declutter trước
+(02/08 bỏ `h1`, 06/08 *"đầu màn chỉ còn tên tab"*). Hai luật kia dọn **chỗ**; luật này dọn **loại nội
+dung**: app không còn được phép giảng bài, dù câu giảng đúng và dù nó nằm ở đâu.
+
+## Ba phép thử — áp theo thứ tự, dùng cho mọi chuỗi mới về sau
+
+1. **GIỮ** nếu là **dữ liệu** (giá trị, số kèm mẫu số) hoặc **trạng thái dữ liệu** — *"chưa có số
+   đếm"*, *"bước này chưa khai điểm đo nào"*, *"không tìm được phase hợp lệ"*.
+2. **GIỮ** nếu **báo dữ liệu lệch hướng** (vượt ngưỡng, chở lưu lượng mà chưa được tin dùng), hoặc
+   **cảnh báo hệ quả không hoàn tác được** ngay trước một nút bấm.
+3. **BỎ** mọi thứ còn lại: dạy cách đọc · lý lẽ thiết kế · *"đây là chủ ý, không phải lỗi"* · *"vì sao
+   nhóm này chỉ đọc"* · chỉ đường sang màn khác · hướng dẫn bấm.
+
+Phép thử 2 là chỗ dễ hiểu sai nhất: *"Đang chở lưu lượng thật mà chưa được đánh dấu tin dùng"* **được
+giữ** — đó là **báo lệch hướng**. Nhưng câu đi kèm nó, *"Tình trạng này phải thấy được, không phải
+lỗi"*, **bị bỏ** — đó là trấn an người đọc, tức luận giải. Cùng một khối `<Note>`, hai vế hai số phận.
+
+## Hai đợt bỏ, ghi lại vì đợt sau nuốt đợt trước
+
+**Đợt 1 (sáng 11/08)** — owner nêu hai diện: *"bỏ toàn bộ câu ngắn giải thích ở dưới title lớn"* và bỏ
+đoạn luận giải ở phần chỉ số theo dõi:
 
 > Hướng so sánh suy ra từ dấu trong mục tiêu: ≥ là càng cao càng tốt, ≤ là càng thấp càng tốt. Repeat
 > contact dùng ≤ nên ngưỡng đọc theo chiều "vượt". **Cố ý không có một ngưỡng chung cho mọi chỉ số:**
@@ -773,6 +795,36 @@ như đoạn dưới đây ở phần chỉ số theo dõi**:
 Chỗ đó là `features/rules/groups/MetricGroup.tsx` (chân bảng chỉ số). Cả đoạn là **lý lẽ thiết kế** —
 đúng loại nội dung đã chuyển vào tài liệu này ở luật 06/08 (câu luận đề của `#/vocjourney`), không
 phải thứ người dùng phải đọc lại mỗi lần mở màn.
+
+**Đợt 2 (chiều 11/08)** — owner xem màn thật rồi mở rộng thành câu luật ở đầu section này, và chỉ đích
+danh thêm: hai khối `<Note>` của nhóm Trọng số ưu tiên (*"Rủi ro pháp lý là thành phần đặc thù ngành
+chứng khoán…"* và *"Vì sao nhóm này chỉ đọc: fixture lưu điểm tuyệt đối…"*), câu ở sidebar `#/rules`
+(*"Chấm đỏ nghĩa là với ngưỡng đang đặt…"*), và **cả chuỗi độ tươi mà chính đợt trước vừa dựng lên**:
+
+> trễ 4 giờ kể từ lần giao cuối · đã giao đủ đến 27/07/2026 · đang nhận
+
+Chuỗi đó là kết quả của D1 (Module I) — sinh ra để thay chuỗi gõ tay `Metric.freshness` vốn **sai số ở
+3/6 chỉ số**. Nó đúng, nhưng **ba đoạn nói quanh một việc**, nên vẫn rơi vào luật. Bảng chỉ số giờ
+**không khai gì về độ tươi**: thà không nói còn hơn nói dài hoặc nói sai. Độ tươi thật của từng nguồn
+ở `#/sources`. `metricFreshnessText()` **giữ nguyên trong `domain/`**, chưa có chỗ hiện — đây là một
+export chết có chủ ý, lý do và chỗ dùng tương lai ở C6/C7 charter Module I.
+
+**Đợt 2 quét 45 chỗ luận giải tĩnh** (lọc bằng nguyên tắc: chuỗi **không nội suy `{...}`** thì gần
+chắc là văn giải thích, vì dòng chở dữ liệu luôn phải nội suy). Kết quả từng chỗ ghi ở bảng quyết định
+của lát; phần lớn là **cắt vế** chứ không xoá cả khối — giữ câu trạng thái, bỏ câu bình luận.
+
+## Ba chỗ CỐ Ý giữ, kèm lý do — đừng dọn tiếp mà không hỏi
+
+- **Câu giới hạn đầu `#/signals`** (*"Màn này không nói được đang đo bao nhiêu phần của thực tế…"*) là
+  **bất biến 9** của `web/docs/module-i-signal-registry-charter.md`, owner đã duyệt bằng văn bản là
+  phải **in trên màn**, đặt **trước** khi người đọc thấy số, để ai muốn thêm lại một cột *"% độ phủ"*
+  thì phải xoá câu này trước. Bỏ nó là **tháo một bất biến**, không phải dọn giao diện.
+- **Legend ba nghĩa "không biết"** ở khối độ tin cậy `#/signals`: *chưa định danh* / *chưa-biết* /
+  *thiếu*. Luật dự án cấm trộn ba nghĩa này; bỏ legend thì ba cột cạnh nhau không phân biệt được.
+- **Cảnh báo trước nút "Xác nhận điểm gãy"** (đóng băng mốc, không sửa lại được) — phép thử 2.
+
+Hai chỗ giữ vì là **đơn vị của ô nhập**, không phải lời giảng: *"Số độ lệch chuẩn"* ở ô z-score, và
+*"số lần thử trung bình mỗi khách tại một bước"* ở ô effort. Bỏ thì con số trong ô mất nghĩa.
 
 ## Đo trước khi xoá: 34 chỗ có câu dưới title, KHÔNG cùng một loại
 
@@ -834,11 +886,16 @@ Tám khối `<Note>` chân nhóm ở `#/rules` (`AlertGroup` 2 · `MetricGroup` 
 đoạn ở `MetricGroup` là được chỉ tên đích danh**. Bảy khối kia phải đọc từng cái theo phân biệt trên
 trước khi bỏ, không bỏ cả loạt.
 
-## Chưa thi hành — đây là ghi luật, chưa sửa code
+## Thi hành 11/08
 
-Ghi ngày 11/08 theo yêu cầu *"note lại vào thiết kế"*. Chưa xoá dòng nào. Khi thi hành: `Card` có
-`subtitle` optional nên bỏ prop là đủ, không cần sửa `design-system/Card`; và **test nào đang đọc
-những câu này phải viết lại để canh chỗ mới, không xoá** — cùng luật đã áp ở 06/08.
+Ghi luật trước theo yêu cầu *"note lại vào thiết kế"*, rồi owner nói *"làm đi"* nên thi hành ngay
+trong ngày. `Card` có `subtitle` optional nên bỏ prop là đủ, không sửa `design-system/Card`. **Test nào
+đang đọc những câu này đều viết lại để canh chỗ mới, không xoá** — cùng luật đã áp ở 06/08, vì bỏ một
+câu chữ không có nghĩa là bỏ nghĩa vụ nói thật của màn.
+
+Một ca **được phép xoá test**, đã xét riêng: cặp test canh câu *"Dữ liệu phía client có thể mất…"* ở hồ
+sơ điểm đo — chúng chỉ canh đúng câu đó, không canh thêm hành vi nào, nên câu đi thì test đi cùng.
+Dòng `Phía: client/server` vẫn hiện và vẫn có test.
 
 # Màn "Chỉ số & ngưỡng" `#/rules` — dựng mới 06/08, ĐỦ 7 NHÓM
 

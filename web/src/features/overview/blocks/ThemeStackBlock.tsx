@@ -65,10 +65,11 @@ export function ThemeStackBlock({ data, dims, onGo }: ThemeStackBlockProps) {
 
   const themesWithSub = new Set(data.tax.filter((t) => t.lv === "subtheme").map((t) => t.parentId));
   const subCoverage = themes.filter((t) => themesWithSub.has(t.id)).length;
+  // luật 11/08: bỏ vế giải thích "phần còn lại hiện thanh xám..." ở cả hai nhánh
   const denomStrip =
     axis === SUBTHEME_AXIS
-      ? `${subCoverage} trên ${themes.length} theme có sub-theme thật — phần còn lại hiện thanh xám "Chưa gán sub-theme"`
-      : `Đếm thật từ bằng chứng (data.ev) theo ${dims[axis]?.label ?? axis} — phần theme chưa có bằng chứng gán hiện thanh xám`;
+      ? `${subCoverage} trên ${themes.length} theme có sub-theme thật`
+      : `Đếm thật từ bằng chứng (data.ev) theo ${dims[axis]?.label ?? axis}`;
 
   return (
     <Card

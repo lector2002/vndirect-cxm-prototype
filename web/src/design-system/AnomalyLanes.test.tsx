@@ -38,21 +38,17 @@ describe("AnomalyLanes", () => {
     expect(within(voiceLane).queryByText(af03!.title)).not.toBeInTheDocument();
   });
 
-  it("hiện dòng 'N mục không phải bất thường' cho finding lane===null, và luôn hiện link #/rules + #/agents", () => {
+  it("hiện dòng 'N mục không phải bất thường' cho finding lane===null (luật 11/08: đã bỏ link #/agents)", () => {
     render(<AnomalyLanes agents={seed.ag} />);
     expect(screen.getByText(/1 mục không phải bất thường/)).toBeInTheDocument();
-    const rulesLink = screen.getByText("Chỉ số & ngưỡng").closest("a");
-    const agentsLinks = screen.getAllByText("Agent & cảnh báo").map((el) => el.closest("a"));
-    expect(rulesLink).toHaveAttribute("href", "#/rules");
-    expect(agentsLinks.some((a) => a?.getAttribute("href") === "#/agents")).toBe(true);
+    expect(screen.queryByText("Agent & cảnh báo")).not.toBeInTheDocument();
   });
 
-  it("làn rỗng hiện 'Không có cảnh báo trong làn này.', và dòng link #/rules · #/agents LUÔN hiện kể cả khi không có finding nào", () => {
+  it("làn rỗng hiện 'Không có cảnh báo trong làn này.', không hiện dòng 'mục không phải bất thường' khi không có finding nào", () => {
     render(<AnomalyLanes agents={[]} />);
     const messages = screen.getAllByText("Không có cảnh báo trong làn này.");
     expect(messages).toHaveLength(3);
     expect(screen.queryByText(/mục không phải bất thường/)).not.toBeInTheDocument();
-    expect(screen.getByText("Chỉ số & ngưỡng").closest("a")).toHaveAttribute("href", "#/rules");
-    expect(screen.getByText("Agent & cảnh báo").closest("a")).toHaveAttribute("href", "#/agents");
+    expect(screen.queryByText("Agent & cảnh báo")).not.toBeInTheDocument();
   });
 });

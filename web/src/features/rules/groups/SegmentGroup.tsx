@@ -162,10 +162,8 @@ function AxisEditor({ dimId }: { dimId: string }) {
             <div className="mt-3">
               <div className="t-lbl mb-1.5">Sàn của dải đầu</div>
               {draft.min === null ? (
-                <div className="t-meta text-[12px]">
-                  Không có sàn — dải đầu là “nhỏ hơn ranh giới thứ nhất”. Đúng với trục không có mốc
-                  tự nhiên nào ở dưới.
-                </div>
+                /* luật 11/08: bỏ giải thích ý nghĩa "không có sàn" */
+                null
               ) : (
                 <NumField
                   value={draft.min}
@@ -203,10 +201,7 @@ function AxisEditor({ dimId }: { dimId: string }) {
                 </div>
               ) : null}
             </div>
-            <div className="t-meta mt-2 text-[12px]">
-              Biên dưới đóng, biên trên mở: khách có giá trị đúng bằng một ranh giới thuộc dải TRÊN
-              ranh giới đó.
-            </div>
+          {/* luật 11/08 (bổ sung): bỏ hẳn định nghĩa "biên dưới đóng, biên trên mở" */}
           </div>
         </div>
 
@@ -261,12 +256,7 @@ export function SegmentGroup() {
 
   return (
     <div className="grid gap-4">
-      <Note>
-        Ranh giới dải là <b>cấu hình</b>, không phải hằng số trong code — sửa ở đây là mọi chart cắt
-        theo chiều đó chia lại nhóm ngay, kể cả bảng đếm của chart theo điểm đo. Nhãn của từng dải
-        không có ô nào để gõ: nó luôn được sinh ra từ chính các ranh giới, để nhãn không thể nói
-        khác ranh giới.
-      </Note>
+      {/* luật 11/08: bỏ lý lẽ thiết kế */}
 
       {bandDims.map((id) => (
         <AxisEditor key={id} dimId={id} />
@@ -275,7 +265,6 @@ export function SegmentGroup() {
       {valueDims.length ? (
         <Card
           title="Chiều lấy nguyên giá trị"
-          subtitle="Danh sách giá trị hợp lệ — chỉ đọc trong bản này"
           denomStrip={`${valueDims.length} chiều đã chốt danh sách đóng`}
         >
           <div className="grid gap-3">
@@ -294,13 +283,7 @@ export function SegmentGroup() {
                 </div>
               </div>
             ))}
-            <Note>
-              <b>Vì sao chỉ đọc:</b> danh sách này là <i>tập giá trị hợp lệ</i>, nên bỏ một giá trị
-              đang có khách mang nó không phải là “đổi cách chia” mà là tuyên bố dữ liệu đang có là
-              sai. Đó là một quyết định về dữ liệu, phải đi cùng việc chữa hồ sơ khách — không phải
-              một ô ngưỡng vận hành. Chiều chưa chốt danh sách đóng thì cố ý <b>không</b> có mặt ở
-              đây: khai một danh sách rỗng nghĩa là “mọi giá trị đều lạ”.
-            </Note>
+            {/* luật 11/08: bỏ lý lẽ "vì sao chỉ đọc" */}
           </div>
         </Card>
       ) : null}

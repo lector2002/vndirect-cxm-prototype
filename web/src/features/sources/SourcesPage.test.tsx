@@ -163,7 +163,11 @@ describe("SourcesPage — bảng nguồn", () => {
 });
 
 describe("SourceProfile — hai mẫu số không được gộp", () => {
-  it("dải mẫu số nói rõ đang đếm bằng chứng mẫu, KHÔNG phải volume nguồn khai", () => {
+  /* luật 11/08 (Dạng C): bỏ câu đối chiếu "KHÔNG phải toàn bộ N bản ghi nguồn này khai" khỏi dải mẫu
+     số — đó là một biến thể của câu "bằng chứng mẫu, không phải toàn bộ bản ghi" mà hợp đồng lượt 2
+     liệt kê. Số volume vẫn hiện, chỉ dời sang đúng Stat "Volume trong kỳ" của nó — test canh lại ở
+     đó thay vì đòi cả hai số nằm trong một câu. */
+  it("dải mẫu số nói rõ đang đếm bằng chứng mẫu; volume nguồn khai đọc ở Stat riêng, không gộp vào cùng câu", () => {
     render(<SourcesPage />);
     const s = demoData.sources.find((x) => evidenceOfSource(demoData, x.id).length > 0)!;
     const evs = evidenceOfSource(demoData, s.id);
@@ -171,7 +175,12 @@ describe("SourceProfile — hai mẫu số không được gộp", () => {
     fireEvent.click(screen.getByTestId(`src-row-${s.id}`));
     const denom = screen.getByTestId("src-profile-denom");
     expect(denom).toHaveTextContent(`${nf(evs.length)} bằng chứng mẫu`);
-    expect(denom).toHaveTextContent(`${nf(s.vol)} bản ghi`);
+    expect(denom).not.toHaveTextContent(nf(s.vol));
+    const profile = screen.getByTestId("src-profile");
+    const volStat = within(profile)
+      .getAllByTestId("stat")
+      .find((el) => el.textContent?.includes("Volume trong kỳ"));
+    expect(volStat).toHaveTextContent(nf(s.vol));
   });
 
   it("nguồn không có bằng chứng mẫu nào thì nói là chưa có, không hiện chart rỗng", () => {

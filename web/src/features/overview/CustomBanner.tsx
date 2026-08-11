@@ -10,8 +10,8 @@ export function CustomBanner({ onReset }: CustomBannerProps) {
   return (
     <div className="my-2.5 mb-4">
       <Note tone="warn">
-        Set này đang có thay đổi (sửa ở <b>Quản lý set</b> trong Quantify). Không persist — refresh
-        browser là về mặc định.
+        {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
+        Set này đang có thay đổi chưa lưu.
         <button
           type="button"
           className={`ml-2 ${btnSecondary} ${btnSizeSm}`}

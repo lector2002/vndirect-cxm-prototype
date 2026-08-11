@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { useCxmStore } from "../../../store/store.ts";
 import { MetricGroup } from "./MetricGroup.tsx";
-import { metricFreshnessText } from "../../../domain/index.ts";
 
 /* Container — dùng store singleton thật, cùng khuôn WorkPage.test.tsx. */
 afterEach(() => {
@@ -27,26 +26,19 @@ describe("MetricGroup", () => {
     expect(within(rowAfter).getByTestId("badge")).toHaveTextContent("Chưa đo được");
   });
 
-  /* D1 (module-i §5, I3) — chỗ DUY NHẤT chuỗi độ tươi hiện lên màn. Quét MỌI chỉ số: ca lộ bệnh là
-     chỉ số mà chuỗi gõ tay khác số thật (`m-ocr` khai 4 giờ, nguồn thật 6 giờ), bốc một dòng bất kỳ
-     là test xanh rỗng. Không ghim chuỗi nào — cả hai vế đều suy từ fixture. */
-  it("mọi dòng chỉ số hiện chuỗi độ tươi SINH từ nguồn, và không còn chuỗi gõ tay Metric.freshness", () => {
-    const { data, cfg } = useCxmStore.getState();
+  /* Luật 11/08: chuỗi độ tươi (Metric.freshness, gõ tay) đã bỏ khỏi bảng — bảng giờ KHÔNG khai gì
+     về độ tươi. Quét MỌI chỉ số, kèm chốt chống rỗng: fixture phải còn ít nhất một freshness không
+     rỗng, nếu không vòng dưới không kiểm gì. */
+  it("không dòng chỉ số nào hiện chuỗi gõ tay Metric.freshness", () => {
+    const { data } = useCxmStore.getState();
     render(<MetricGroup />);
 
     expect(data.metrics.length).toBeGreaterThan(0);
-    let soCaLech = 0;
+    expect(data.metrics.some((m) => m.freshness.length > 0)).toBe(true);
     for (const m of data.metrics) {
+      if (!m.freshness) continue;
       const row = screen.getByTestId(`metric-row-${m.id}`);
-      expect(within(row).getByTestId(`metric-freshness-${m.id}`)).toHaveTextContent(
-        metricFreshnessText(m, data, cfg),
-      );
-      if (!metricFreshnessText(m, data, cfg).includes(m.freshness)) {
-        soCaLech++;
-        expect(row).not.toHaveTextContent(m.freshness);
-      }
+      expect(row).not.toHaveTextContent(m.freshness);
     }
-    // Chốt chống rỗng: fixture phải còn ít nhất một ca chuỗi gõ tay lệch, nếu không vòng trên không kiểm gì.
-    expect(soCaLech).toBeGreaterThan(0);
   });
 });

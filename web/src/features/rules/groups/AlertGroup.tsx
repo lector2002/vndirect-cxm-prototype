@@ -46,10 +46,7 @@ export function AlertGroup() {
   );
 
   return (
-    <Card
-      title="Cảnh báo & khảo sát"
-      subtitle="Dùng cho agent, chart bất thường, khảo sát và cách tô đỏ trên hồ sơ điểm gãy."
-    >
+    <Card title="Cảnh báo & khảo sát">
       {error ? (
         <div className="mb-3">
           <Note tone="crit">
@@ -62,9 +59,7 @@ export function AlertGroup() {
         <div className={ROW}>
           <div>
             <b className="block text-[13px]">Ngưỡng Z-score đánh dấu bất thường trên chart</b>
-            <span className="t-meta block text-[12px]">
-              Số độ lệch chuẩn so với kỳ vọng của các kỳ trước · 1,0 nhạy hơn · 2,5+ ít cảnh báo hơn
-            </span>
+            {/* luật 11/08 (bổ sung): bỏ hẳn định nghĩa đơn vị z-score */}
           </div>
           <NumField
             label="Ngưỡng Z-score đánh dấu bất thường"

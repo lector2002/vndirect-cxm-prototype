@@ -31,12 +31,11 @@ describe("F1 — bảng đủ điểm đo, không phụ thuộc lựa chọn nà
   });
 });
 
-describe("Bất biến 9 — câu giới hạn phải in trên màn, và màn KHÔNG được nói 'độ phủ'", () => {
-  it("câu giới hạn có mặt", () => {
+describe("Bất biến 9 (bị owner ghi đè 11/08) — câu giới hạn đã bỏ, màn vẫn KHÔNG được nói 'độ phủ'", () => {
+  it("luật 11/08 (bổ sung): câu giới hạn đầu màn đã bỏ, không còn testid signals-scope-note", () => {
     render(<SignalsPage useStore={seedStore()} />);
-    expect(screen.getByTestId("signals-scope-note").textContent).toMatch(
-      /không nói được đang đo bao nhiêu phần của thực tế/,
-    );
+    expect(screen.queryByTestId("signals-scope-note")).not.toBeInTheDocument();
+    expect(screen.queryByText(/không nói được đang đo bao nhiêu phần của thực tế/)).not.toBeInTheDocument();
   });
 
   it("không chuỗi nào trên màn chứa chữ 'độ phủ' (không phân biệt hoa/thường), trên cả hai fixture", () => {
@@ -93,14 +92,17 @@ describe("Khối ② — hai hướng của owner chốt 07/08 phương án (a)"
     expect(screen.queryByText(/0%/)).not.toBeInTheDocument();
   });
 
-  it("(b) demoData: sigCounts có dữ liệu ⇒ hiện bảng, tách 'thiếu' khỏi 'chưa định danh'/'chưa-biết'", () => {
+  it("(b) demoData: sigCounts có dữ liệu ⇒ hiện bảng, tách 'thiếu' khỏi 'chưa định danh'/'chưa-biết' (luật 11/08: đã bỏ legend giải thích ba nghĩa)", () => {
     const store = demoStore();
     expect(store.getState().data.sigCounts.length).toBeGreaterThan(0);
     render(<SignalsPage useStore={store} />);
     expect(screen.getByTestId("reliability-table")).toBeInTheDocument();
     expect(screen.queryByTestId("reliability-empty")).not.toBeInTheDocument();
-    // Ba nhãn không-biết phải xuất hiện ở đúng chỗ giải thích, tách rời nhau.
-    expect(screen.getByText(/Chỉ cột "Lỗi đo \(thiếu\)" là lỗi đo/)).toBeInTheDocument();
+    // Ba cột không-biết phải hiện tách rời nhau, làm cột riêng — không còn legend giải thích bằng văn.
+    expect(screen.getByText("Lỗi đo (thiếu)")).toBeInTheDocument();
+    expect(screen.getByText("Chưa định danh")).toBeInTheDocument();
+    expect(screen.getByText("Chưa-biết")).toBeInTheDocument();
+    expect(screen.queryByText(/Chỉ cột "Lỗi đo \(thiếu\)" là lỗi đo/)).not.toBeInTheDocument();
   });
 
   it("(b) cột 'Lỗi đo (thiếu)' đúng là số MISSING đếm lại — không lặng lẽ đổi sang notIdentified/unknownYet", () => {

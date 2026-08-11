@@ -199,7 +199,8 @@ function buildDenomStrip(shownRows: DimRow[], all: number, dim: Dim, data: CxmDa
   if (dim.base === "ev") {
     // N = tổng thô (KHÔNG fx()) của các rows ĐANG HIỆN — đúng số bằng chứng người dùng đếm được.
     const sampleN = shownRows.reduce((a, r) => a + r.v, 0);
-    return `${base} · ${nf(sampleN)} bằng chứng mẫu, không phải toàn bộ bản ghi`;
+    // luật 11/08: bỏ "không phải toàn bộ bản ghi"
+    return `${base} · ${nf(sampleN)} bằng chứng mẫu`;
   }
   return base;
 }
@@ -336,10 +337,11 @@ function buildSplitBundle(
      donut TRÊN trục nguồn). Trục khách không bao giờ chạm nhánh agg nên hành vi cũ giữ nguyên. */
   const lockedReason =
     aggReason ??
+    // luật 11/08: bỏ hướng dẫn "chuyển sang Chart để đổi chiều chia" / "dùng chart thanh để đổi chiều chia"
     (effectiveView === "table"
-      ? "View bảng không vẽ được đoạn màu — chuyển sang Chart để đổi chiều chia."
+      ? "View bảng không vẽ được đoạn màu."
       : item.chart === "donut"
-        ? "Donut không vẽ được đoạn màu — dùng chart thanh để đổi chiều chia."
+        ? "Donut không vẽ được đoạn màu."
         : undefined);
 
   return {
@@ -515,16 +517,18 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
     const legendItems = split.kind === "draw" && splitDrawn ? split.legend : buildLegend(chartRows, data);
     /* stack='pct' làm mọi thanh dài bằng nhau ⇒ bề rộng KHÔNG còn mã hoá số lượng. Nói ở NHÃN TRỤC
        (đúng chỗ: đây là phát biểu về trục), không nhồi thêm một dòng chữ dưới card. */
+    // luật 11/08: bỏ "bề rộng KHÔNG mã hoá số lượng"
     const segBottomLabel =
-      isPctStack && splitDrawn ? `Tỷ trọng trong từng ${dim.unit} (100%) — bề rộng KHÔNG mã hoá số lượng` : segBottomAxis;
+      isPctStack && splitDrawn ? `Tỷ trọng trong từng ${dim.unit} (100%)` : segBottomAxis;
     /* `askedReason` đứng TRƯỚC mọi note khác: nó là câu trả lời cho một câu hỏi người xem vừa đặt
        bằng cú bấm, còn các note kia là chú thích nền. Hai dòng cùng lúc thì dòng vừa xin bị lẫn. */
+    // luật 11/08: bỏ hướng dẫn "chuyển sang view Chart để xem"
     const splitNote =
       askedReason ??
       (split.kind === "refuse"
         ? split.reason
         : split.kind === "draw" && !splitDrawn
-          ? `Chia màu theo "${dims[effItem.split ?? ""]?.label ?? effItem.split}" chỉ hiện được ở dạng thanh — chuyển sang view Chart để xem.`
+          ? `Chia màu theo "${dims[effItem.split ?? ""]?.label ?? effItem.split}" chỉ hiện được ở dạng thanh.`
           : null);
 
     /* Trục khách: bản ghi dưới một hàng là KHÁCH, không phải verbatim — `data.cust` đếm đủ nên đó
@@ -636,6 +640,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
   const ncSegments = ncDraw && ncDrawn ? (r: DimRow) => ncDraw.byRow[r.id] ?? [] : undefined;
   const ncPctStack = nc.effItem.stack === "pct";
   // `askedReason` ưu tiên cao nhất — xem ghi chú ở `splitNote`.
+  // luật 11/08: bỏ hướng dẫn "chuyển sang view Chart để xem"
   const ncNote =
     askedReason ??
     (nc.split.kind === "refuse"
@@ -643,11 +648,12 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
       : nc.axisNote
         ? nc.axisNote
         : ncDraw && !ncDrawn
-        ? `Chia màu theo "${dims[nc.effItem.split ?? ""]?.label ?? nc.effItem.split}" chỉ hiện được ở dạng thanh — chuyển sang view Chart để xem.`
+        ? `Chia màu theo "${dims[nc.effItem.split ?? ""]?.label ?? nc.effItem.split}" chỉ hiện được ở dạng thanh.`
         : null);
+  // luật 11/08: bỏ "bề rộng KHÔNG mã hoá số lượng"
   const ncBottomLabel =
     ncPctStack && ncDrawn && dim
-      ? `Tỷ trọng trong từng ${dim.unit} (100%) — bề rộng KHÔNG mã hoá số lượng`
+      ? `Tỷ trọng trong từng ${dim.unit} (100%)`
       : bottomAxis;
 
   return (

@@ -28,7 +28,7 @@ export function SignalInventoryBlock({ data }: { data: CxmData }) {
   const noSignalMetrics = metricsWithoutSignal(data);
 
   return (
-    <Card title="① Có đo không?" subtitle="Kiểm kê thiết bị đo — đếm được hết, hôm nay">
+    <Card title="① Có đo không?">
       <ul className="space-y-2.5 text-[13px]">
         <li data-testid="inv-running">
           <b className="tabular-nums">

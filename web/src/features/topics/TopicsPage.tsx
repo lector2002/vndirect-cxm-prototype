@@ -78,7 +78,9 @@ export function TopicsPage({ useStore = useCxmStore }: TopicsPageProps) {
     <div className="max-w-[1240px] mx-auto px-6 py-5">
       {/* Đầu màn chỉ còn tên tab (quyết định owner 06/08). Câu dẫn cũ bỏ hết vì mọi thứ nó nói đã
           có mặt ngay tại chỗ cần: số topic đang mở và ba nhóm chuyển động nằm trong dải mẫu số của
-          chart, số kỳ nằm ở nhãn trục, cách bấm nằm ở câu cuối màn. */}
+          chart, số kỳ nằm ở nhãn trục. Câu hướng dẫn bấm ở cuối màn sau đó cũng bị bỏ theo luật
+          11/08 (Dạng B), xem chỗ đánh dấu cuối JSX; cách tương tác giờ tự lộ qua chip legend và nút
+          ★ ở bảng, không cần câu chữ dẫn. */}
       <PageTitle route="topics" />
 
       {/* Node cần người quyết: hệ thống chỉ PHÁT HIỆN, không tự gộp/tách. Nút dẫn thẳng vào node
@@ -106,10 +108,7 @@ export function TopicsPage({ useStore = useCxmStore }: TopicsPageProps) {
                   </button>
                 ))}
               </div>
-              <div className="mt-2">
-                Hệ thống phát hiện, con người quyết định. Không có gộp/tách tự động — bấm một node để
-                xem đề xuất và chọn.
-              </div>
+              {/* luật 11/08: bỏ hẳn "Hệ thống phát hiện, con người quyết định. Không có gộp/tách tự động..." */}
             </div>
           </Note>
         </div>
@@ -132,20 +131,10 @@ export function TopicsPage({ useStore = useCxmStore }: TopicsPageProps) {
             series={series.map((l) => ({ id: l.t.id, name: l.t.name, pts: l.pts, fresh: l.fresh }))}
             onRemove={toggleLine}
           />
-          <AxisLabel>
-            {`Trục dọc là volume tuyệt đối, chung một thang cho mọi đường · trục ngang là ${months} kỳ gần nhất · đường nét đứt kèm ✨ là topic mới trồi lên từ gần sàn`}
-          </AxisLabel>
-          {/* Màn này có HAI dải mẫu số nằm sát nhau: chart nói "Đang vẽ N trên 14 topic", bảng ngay
-              dưới nói "Đang hiện 8 trên 14 topic". Không con số nào sai, nhưng cùng mẫu số + cùng
-              đơn vị nghe được ("topic") + đặt cạnh nhau thì người đọc tự so hai vế đầu và tưởng
-              chúng phải khớp. Nói thẳng ra rằng hai vế đếm hai thứ khác nhau. KHÔNG in con số của
-              bảng ở đây: bảng mở rộng được (nút "Xem hết"), in ra là câu này sai ngay khi người ta
-              bấm mở. */}
-          <div className="t-meta text-[12px] mt-1" data-testid="topics-chart-bridge">
-            Hai dải mẫu số trên màn này đếm hai thứ khác nhau: ở đây là số <b>đường đang mở trên
-            biểu đồ</b>, còn ở bảng bên dưới là số <b>dòng bảng đang liệt kê</b> — cùng trên{" "}
-            {themes.length} topic đó.
-          </div>
+          {/* luật 11/08: bỏ "Trục dọc là volume tuyệt đối, chung một thang..." và "đường nét đứt kèm ✨..."
+              (định nghĩa/dạy cách đọc chart) — giữ nhãn số kỳ, có test canh số kỳ THẬT đang xem. */}
+          <AxisLabel>{`${months} kỳ gần nhất`}</AxisLabel>
+          {/* luật 11/08: bỏ hẳn div "topics-chart-bridge" ("Hai dải mẫu số trên màn này đếm hai thứ khác nhau...") */}
         </Card>
       </div>
 
@@ -163,10 +152,7 @@ export function TopicsPage({ useStore = useCxmStore }: TopicsPageProps) {
         />
       </div>
 
-      <Note>
-        Bấm <b>★</b> ở bảng trên để thêm hoặc bớt một đường trên biểu đồ; bấm vào dòng để mở màn chi
-        tiết topic — xu hướng theo kỳ, chủ đề con, điểm chạm, verbatim và quyết định phân loại.
-      </Note>
+      {/* luật 11/08: bỏ hướng dẫn bấm */}
     </div>
   );
 }

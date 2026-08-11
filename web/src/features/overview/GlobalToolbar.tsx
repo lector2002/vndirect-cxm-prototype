@@ -48,7 +48,8 @@ export function GlobalToolbar({ useStore = useCxmStore }: GlobalToolbarProps) {
         <button
           type="button"
           disabled
-          title="Cần lưu cấu hình (persistence) — tính năng chờ pipeline."
+          // luật 11/08: bỏ "tính năng chờ pipeline"
+          title="Cần lưu cấu hình (persistence)."
           className={btnDisabled}
         >
           Lưu làm mặc định
@@ -67,7 +68,8 @@ export function GlobalToolbar({ useStore = useCxmStore }: GlobalToolbarProps) {
         <button
           type="button"
           disabled
-          title="Lọc toàn cục cần pipeline dữ liệu gắn feedback — chưa bật."
+          // luật 11/08: bỏ "chưa bật"
+          title="Lọc toàn cục cần pipeline dữ liệu gắn feedback."
           className={btnDisabled}
         >
           Áp dụng lọc

@@ -210,12 +210,7 @@ function WherePanel({
           );
         })}
       </div>
-      <div className="mt-2">
-        <Note tone="warn">
-          Đây là mô tả nghiệp vụ, chưa phải vị trí kỹ thuật — tên screen, route/deeplink và id của
-          element phát sinh event chưa có trong dữ liệu, đã đưa vào bản yêu cầu dữ liệu (Bảng D).
-        </Note>
-      </div>
+      {/* luật 11/08: bỏ giải thích trường đang có là gì */}
     </div>
   );
 }
@@ -243,8 +238,8 @@ export function AtlasSignalPanel({ signals, touchpoints, rows, dims, stationId }
 
       <div className="mt-4">
         {chart === null ? (
-          // Rule 3: không chọn gì → mời chọn, không vẽ chart (không phải "không có gì để xem").
-          <Note>Chọn ít nhất một điểm đo ở bảng trên để xem chart.</Note>
+          // luật 11/08: bỏ hẳn câu mời "Chọn ít nhất một điểm đo ở bảng trên để xem chart." — không chọn gì thì không vẽ gì.
+          null
         ) : chart.groups.length === 0 ? (
           // Mọi signal đang chọn đều vol=0 (gap/designed) — rule 4: hiện đúng reason, không vẽ cột.
           <div className="space-y-2">
@@ -264,16 +259,12 @@ export function AtlasSignalPanel({ signals, touchpoints, rows, dims, stationId }
                   // là chưa có dòng đếm nào cho lựa chọn điểm đo hiện tại ở BẤT KỲ chiều nào. Không mời
                   // bấm chiều khác (mọi nút đều disabled, lời mời đó không làm được) và không nhắc
                   // "Demo Mode" (component này không biết khái niệm đó tồn tại, chỉ biết rows rỗng).
-                  <Note tone="warn">
-                    Chưa có dòng đếm nào cho lựa chọn điểm đo hiện tại ở bất kỳ chiều nào, nên chưa vẽ
-                    được chart. Bảng đếm đang trống là trạng thái trung thực (chưa nhận được số đếm),
-                    không phải lỗi.
-                  </Note>
+                  <Note tone="warn">Chưa có dòng đếm nào cho lựa chọn điểm đo hiện tại ở bất kỳ chiều nào.</Note>
                 ) : (
                   // Rule 5 (chỉ chiều ĐANG CHỌN hoá locked, các chiều khác vẫn dùng được): KHÔNG tự
-                  // nhảy sang chiều khác trong im lặng — nói rõ bằng chữ, lời mời "chọn chiều khác" ở
-                  // đây làm được thật vì có ít nhất một nút không bị khoá.
-                  <Note tone="warn">{`Chiều "${curDimState.label}" không ghi được cho lựa chọn điểm đo hiện tại — chọn một chiều khác ở trên để xem chart.`}</Note>
+                  // nhảy sang chiều khác trong im lặng.
+                  // luật 11/08: bỏ lời mời "chọn một chiều khác ở trên để xem chart"
+                  <Note tone="warn">{`Chiều "${curDimState.label}" không ghi được cho lựa chọn điểm đo hiện tại.`}</Note>
                 )
               ) : (
                 <SignalColumns groups={toColGroups(chart.groups, selectedDimId)} dimLabel={dims[selectedDimId].label} />

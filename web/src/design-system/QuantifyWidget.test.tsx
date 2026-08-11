@@ -136,9 +136,10 @@ describe("QuantifyWidget — show item (không by)", () => {
     render(<QuantifyWidget item={findItem("q3")} data={seed} dims={dims} />);
     const strip = screen.getByTestId("denom-strip");
     /* D0a: câu cũ "tập mẫu bằng chứng, không phải toàn bộ bản ghi" đổi thứ tự chữ để chèn SỐ THẬT
-       (owner chốt 02/08) — giờ là "<N> bằng chứng mẫu, không phải toàn bộ bản ghi". Caveat "không
-       phải toàn bộ bản ghi" (bất biến gốc) vẫn còn nguyên; N=17 = seed.ev.length (9+3+3+2). */
-    expect(strip).toHaveTextContent("17 bằng chứng mẫu, không phải toàn bộ bản ghi");
+       (owner chốt 02/08) — giờ là "<N> bằng chứng mẫu". N=17 = seed.ev.length (9+3+3+2).
+       luật 11/08: đã bỏ caveat "không phải toàn bộ bản ghi". */
+    expect(strip).toHaveTextContent("17 bằng chứng mẫu");
+    expect(strip).not.toHaveTextContent("không phải toàn bộ bản ghi");
   });
 
   /* D1a: bar + metric==='pct' GIỮ NHÁNH CŨ (không đủ căn cứ đổi — % trên tổng không mã hoá theo

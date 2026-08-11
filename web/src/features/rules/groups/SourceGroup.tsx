@@ -43,14 +43,13 @@ export function SourceGroup() {
   return (
     <Card
       title="SLA độ tươi từng nguồn"
-      subtitle="Crawl store 1 lần/ngày không thể chấm cùng SLA với event stream — nên SLA đặt theo từng nguồn."
       denomStrip={`${data.sources.length} nguồn`}
     >
       <div className="mb-3.5">
         <Note>
+          {/* luật 11/08: bỏ "Chốt xong bảng này tự đổi theo, không cần sửa lại màn." */}
           <b>Bản tạm.</b> Danh sách nguồn dưới đây sinh thẳng từ dữ liệu đang có, cùng lứa với màn{" "}
           <a href="#/sources">Nguồn dữ liệu</a> — kiểm kê nguồn của ngân hàng chưa chốt (06/08/2026).
-          Chốt xong bảng này tự đổi theo, không cần sửa lại màn.
         </Note>
       </div>
 

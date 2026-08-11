@@ -113,8 +113,10 @@ export function ThemeDetailPage({ useStore = useCxmStore }: ThemeDetailPageProps
   } else {
     body = (
       <Note>
+        {/* luật 11/08: bỏ "Xem trong" (Dạng B) — giữ nguyên link atlas, ThemeDetailPage.test.tsx canh
+            link này là điều hướng thật (regression search hit feature), không phải câu chỉ đường. */}
         &quot;{node.name}&quot; là node taxonomy tầng {node.lv} (mô tả CÁI GÌ khách gặp trong hành trình) — CHƯA có
-        màn topic riêng cho tầng này. Xem trong <a href="#/atlas">Bản đồ hành trình</a>.
+        màn topic riêng cho tầng này. <a href="#/atlas">Bản đồ hành trình</a>.
       </Note>
     );
   }

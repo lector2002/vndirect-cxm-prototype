@@ -14,8 +14,8 @@ import { pv } from "../../design-system/format.ts";
 const PENDING_CELLS: { label: string; waiting: string }[] = [
   {
     label: "Giá trị lạ",
-    waiting:
-      'chờ số đếm giá trị ĐỘC LẬP với bản khai từ team data — số đang có sinh từ chính bản khai, nên "0 lệch" là hệ quả cách sinh số, không phải bằng chứng dữ liệu sạch.',
+    // luật 11/08: bỏ vế "số đang có sinh từ chính bản khai... không phải bằng chứng dữ liệu sạch"
+    waiting: "chờ số đếm giá trị ĐỘC LẬP với bản khai từ team data.",
   },
   {
     label: "Trùng lặp",
@@ -41,16 +41,11 @@ export function SignalReliabilityBlock({ data, dims }: { data: CxmData; dims: Re
   const hasCounts = data.sigCounts.length > 0;
 
   return (
-    <Card
-      title="② Dữ liệu đã nhận có tin được không?"
-      subtitle="Độ tin cậy của cái đã NHẬN — không so được với thực tế, chỉ một nguồn ghi"
-    >
+    <Card title="② Dữ liệu đã nhận có tin được không?">
       {!hasCounts ? (
         <div data-testid="reliability-empty">
-          <Note tone="warn">
-            <b>Chưa nhận được số đếm từ bên dữ liệu.</b> Đây là trạng thái trung thực, không phải
-            lỗi — không hiện tỉ lệ nào cho tới khi có số đếm thật.
-          </Note>
+          {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
+          <Note tone="warn">Chưa nhận được số đếm từ bên dữ liệu.</Note>
         </div>
       ) : (
         <div className="overflow-x-auto" data-testid="reliability-table">
@@ -85,11 +80,7 @@ export function SignalReliabilityBlock({ data, dims }: { data: CxmData; dims: Re
               ))}
             </tbody>
           </table>
-          <p className="t-meta mt-2">
-            Chỉ cột "Lỗi đo (thiếu)" là lỗi đo. "Chưa định danh" = khách chưa có hồ sơ lúc event xảy
-            ra — hợp lệ, không ai phải sửa. "Chưa-biết" = có hồ sơ khách nhưng trường đó chưa từng
-            được ghi — việc của CRM/nghiệp vụ, không phải lỗi đo.
-          </p>
+          {/* luật 11/08 (bổ sung): bỏ hẳn legend định nghĩa ba cột */}
         </div>
       )}
 

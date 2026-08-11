@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { PageTitle } from "../../nav.tsx";
-import { Note } from "../../design-system/index.ts";
 import { useCxmStore } from "../../store/store.ts";
 import { SignalInventoryBlock } from "./SignalInventoryBlock.tsx";
 import { SignalReliabilityBlock } from "./SignalReliabilityBlock.tsx";
@@ -18,11 +17,13 @@ import { SignalProfile } from "./SignalProfile.tsx";
    (kiểm kê), T1·T3 ở khối sau bảng (bản khai lệch thực tế). Đừng dồn cả năm vào một khối cho "gọn" —
    làm thế là hiện T4/T5/T7 hai lần trên cùng màn, đúng bug đã cắt ở I5.
 
-   Bất biến 9 (charter §9) — màn KHÔNG khai độ phủ so với thực tế: dữ liệu chỉ đến từ một nguồn ghi
-   duy nhất nên "đo được bao nhiêu % của thực tế" KHÔNG TỒN TẠI, không phải "chưa tính được". Câu
-   giới hạn phải IN RA màn, đặt TRƯỚC khi người đọc thấy số — không phải chú thích chân trang, để
-   lần sau ai muốn thêm lại một cột "% độ phủ" phải xoá câu này trước (quyết định có chủ ý, không
-   phải tai nạn).
+   Bất biến 9 (charter §9 mục 9) có HAI vế. Vế 1 CÒN NGUYÊN: màn KHÔNG khai độ phủ so với thực tế —
+   dữ liệu chỉ đến từ một nguồn ghi duy nhất nên "đo được bao nhiêu % của thực tế" KHÔNG TỒN TẠI,
+   không phải "chưa tính được", và màn không được có cột/tỉ lệ nào lấy "thực tế" làm mẫu số. Vế 2
+   (câu giới hạn phải IN RA màn) đã bị owner GỠ 11/08 theo luật giao diện chung — xem
+   `docs/DB-FIRST-HANDOFF.md` §"App hiển thị dữ liệu, không luận giải" và charter §9 mục 9 — nên câu
+   giới hạn không còn in trên màn (xem chỗ bỏ ngay dưới `PageTitle`); hàng rào còn lại chỉ là vế 1
+   cộng văn bản charter, không còn hàng rào nào trên màn.
 
    Lát I4b: bấm một dòng ở bảng mở hồ sơ MỘT điểm đo (SignalProfile.tsx, bốn mặt của QĐ 9) — state
    local `selectedSignalId` (cùng khuôn AtlasPage.tsx: lựa chọn nào cũng là state của MÀN, không
@@ -51,12 +52,7 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
         </p>
       ) : null}
 
-      <div className="mb-5" data-testid="signals-scope-note">
-        <Note tone="bd">
-          Màn này không nói được đang đo bao nhiêu phần của thực tế. Dữ liệu chỉ đến từ một nguồn
-          ghi duy nhất, nên không có gì để so. Mọi số ở đây là về cái đã nhận được.
-        </Note>
-      </div>
+      {/* luật 11/08 (bổ sung, ghi đè bất biến 9 charter Module I theo owner 11/08): bỏ câu giới hạn đầu màn */}
 
       {selectedSignal ? (
         <SignalProfile data={data} signal={selectedSignal} onBack={() => setSelectedSignalId(null)} dims={dims} />

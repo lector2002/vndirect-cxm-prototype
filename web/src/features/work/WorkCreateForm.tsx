@@ -49,10 +49,7 @@ export function WorkCreateForm({ steps, metrics, owners, approvers, error, onSub
   }
 
   return (
-    <Card
-      title="Tạo điểm gãy mới"
-      subtitle="Điểm gãy phải neo vào một bước trong hành trình và một chỉ số dùng để kết luận — nếu không thì sau này không ai đo được là đã sửa xong hay chưa."
-    >
+    <Card title="Tạo điểm gãy mới">
       {error ? <Note tone="crit">{error}</Note> : null}
 
       <div className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${error ? "mt-3" : ""}`}>
@@ -63,7 +60,6 @@ export function WorkCreateForm({ steps, metrics, owners, approvers, error, onSub
               <option key={s.id} value={s.id}>{`${s.code} · ${s.name}`}</option>
             ))}
           </select>
-          <div className={hintCls}>Chỉ 6 bước của pilot có dữ liệu quan sát</div>
         </div>
         <div>
           <label htmlFor="wcf-metric" className="t-lbl block mb-1">Chỉ số dùng để kết luận</label>
@@ -72,7 +68,6 @@ export function WorkCreateForm({ steps, metrics, owners, approvers, error, onSub
               <option key={m.id} value={m.id}>{`${m.name} · ${m.target}`}</option>
             ))}
           </select>
-          <div className={hintCls}>Đây là thước đo ở chặng Verify sau này</div>
         </div>
       </div>
 
@@ -110,7 +105,6 @@ export function WorkCreateForm({ steps, metrics, owners, approvers, error, onSub
               xử lý chỉ là dọn trước việc cho form xác nhận, KHÔNG bỏ qua được bước xác nhận — vì
               chính lúc xác nhận mới đóng băng số liệu làm mốc so sánh. Chuỗi cũ ("Để trống thì thẻ
               nằm ở chặng Gán") sai cả từ vựng lẫn logic sau Module A. */}
-          <div className={hintCls}>Điền sẵn cũng vẫn phải qua chặng Xác nhận</div>
         </div>
         <div>
           <label htmlFor="wcf-acc" className="t-lbl block mb-1">Người duyệt</label>
@@ -146,10 +140,7 @@ export function WorkCreateForm({ steps, metrics, owners, approvers, error, onSub
         <button type="button" className={`${btnSecondary} ${btnSizeMd}`} onClick={onCancel}>
           Hủy
         </button>
-        <span className="ml-auto t-meta text-[11.5px] max-w-[46ch] text-right">
-          Bản ghi mới sinh kèm một hành động ở trạng thái chờ duyệt và điểm ưu tiên tự tính từ mức nghiêm trọng
-          cộng số khách rơi tại bước. Không có bằng chứng nào được gán — độ tin cậy đặt 50%.
-        </span>
+        {/* luật 11/08: bỏ ghi chú */}
       </div>
     </Card>
   );

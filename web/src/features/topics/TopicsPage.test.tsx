@@ -83,17 +83,14 @@ describe("TopicsPage — dải mẫu số của chart nói rõ phần KHÔNG v�
   /* Chart và bảng đều in một dải "N trên 14 topic", nằm sát nhau, cùng mẫu số — hai con số đúng
      nhưng đặt cạnh nhau thì mời người đọc so nhầm. Ghim rằng (a) chúng THẬT SỰ khác nhau trong bộ
      đang render, nếu không câu nối chẳng để làm gì, và (b) có câu nói rõ mỗi bên đếm gì. */
-  it("hai dải mẫu số cạnh nhau khác số, và màn nói rõ mỗi bên đếm gì", () => {
+  it("hai dải mẫu số cạnh nhau khác số (luật 11/08: đã bỏ câu nối giải thích mỗi bên đếm gì)", () => {
     const { container } = renderPage();
     const chart = screen.getByTestId("topics-chart-denom").textContent!;
     const table = within(container.querySelector('[data-tour="topic-table"]') as HTMLElement)
       .getByTestId("denom-strip").textContent!;
     const n = (s: string) => Number(s.match(/(\d+)\s+trên/)![1]);
     expect(n(chart)).not.toBe(n(table));
-    const bridge = screen.getByTestId("topics-chart-bridge");
-    expect(bridge).toHaveTextContent("đường đang mở trên biểu đồ");
-    expect(bridge).toHaveTextContent("dòng bảng đang liệt kê");
-    expect(bridge).toHaveTextContent(`${themesByVolume(demoData).length} topic`);
+    expect(screen.queryByTestId("topics-chart-bridge")).not.toBeInTheDocument();
   });
 });
 
@@ -127,13 +124,13 @@ describe("TopicsPage — chọn đường vẽ", () => {
     expect(screen.getByTestId(`topic-line-chip-${off.id}`)).toBeInTheDocument();
   });
 
-  it("bỏ hết đường thì chart nói ra và chỉ đường làm lại, không hiện khung trống", () => {
+  it("bỏ hết đường thì chart nói ra trạng thái rỗng, không hiện khung trống (luật 11/08: đã bỏ hướng dẫn bấm)", () => {
     renderPage();
     for (const id of defaultTopicLines(demoData, months0())) {
       fireEvent.click(screen.getByTestId(`topic-line-chip-${id}`));
     }
     expect(screen.queryByTestId("topic-lines")).not.toBeInTheDocument();
-    expect(screen.getByTestId("topic-lines-empty")).toHaveTextContent(/ở bảng bên dưới/);
+    expect(screen.getByTestId("topic-lines-empty")).toHaveTextContent("Chưa chọn topic nào để vẽ.");
   });
 });
 
@@ -163,11 +160,12 @@ describe("TopicsPage — node cần người quyết", () => {
     }
   });
 
-  it("nói thẳng là hệ thống chỉ phát hiện, người mới quyết", () => {
+  it("luật 11/08: đã bỏ câu 'Hệ thống phát hiện, con người quyết định', khối vẫn nêu đủ node + nút", () => {
     renderPage();
-    expect(screen.getByTestId("topics-drift")).toHaveTextContent(
-      "Hệ thống phát hiện, con người quyết định",
-    );
+    const box = screen.getByTestId("topics-drift");
+    expect(box).not.toHaveTextContent("Hệ thống phát hiện, con người quyết định");
+    const drifts = driftNodes(demoData);
+    for (const n of drifts) expect(screen.getByTestId(`topics-drift-${n.id}`)).toBeInTheDocument();
   });
 });
 

@@ -247,7 +247,6 @@ export function AtlasPage() {
       <div className="mb-3.5">
         <Card
           title={`${currentPhase.code} · ${currentPhase.name}`}
-          subtitle="Chọn một flow để mở chuỗi bước"
           /* Port chip mẫu số của chead() (prototype dòng 3390) — ở React nó là dải denomStrip dưới
              header, đúng chỗ 9 block Overview đang dùng, không phải góc phải header. */
           denomStrip={`Đang hiện Top ${flowsInPhaseCount} trên ${data.flows.length} flow`}
@@ -332,21 +331,17 @@ export function AtlasPage() {
           {flowSteps.length === 0 ? (
             // Rule 3: flow không có bước — nói thẳng đây là CHỦ Ý (chưa vào pilot), không phải mất dữ liệu.
             <Note tone="warn">
+              {/* luật 11/08: bỏ "Đây là chủ ý, không phải mất dữ liệu." và đoạn hướng dẫn "Muốn đo flow này thì cần..." */}
               <Badge state="unknown" /> <b>Chưa có dữ liệu quan sát.</b> Flow này đã được map ở mức
-              cấu trúc nhưng chưa nằm trong pilot, nên chưa có bước, signal hay số liệu. Đây là chủ ý,
-              không phải mất dữ liệu.
-              <div className="mt-2">
-                Muốn đo flow này thì cần: xác minh sơ đồ nguồn → khai báo bước và stationId →
-                instrument signal → chọn chỉ số theo dõi ở màn{" "}
-                <a href="#/rules">Chỉ số &amp; ngưỡng</a>. {/* link port prototype dòng 3413 */}
-              </div>
+              cấu trúc nhưng chưa nằm trong pilot, nên chưa có bước, signal hay số liệu.
             </Note>
           ) : (
             <>
               {excludedStepCount > 0 ? (
                 <div className="mb-3">
                   <Note tone="warn">
-                    {`${excludedStepCount} bước không hiện trên xương sống vì chưa có dữ liệu quan sát (obs) — không tự gán 0 để tránh đọc nhầm thành "đã đo được, bằng 0".`}
+                    {/* luật 11/08: bỏ vế "không tự gán 0 để tránh đọc nhầm thành đã đo được, bằng 0" */}
+                    {`${excludedStepCount} bước không hiện trên xương sống vì chưa có dữ liệu quan sát (obs).`}
                   </Note>
                 </div>
               ) : null}

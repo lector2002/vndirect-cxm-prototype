@@ -306,9 +306,7 @@ describe("AtlasPage — #/atlas", () => {
     fireEvent.click(screen.getByTestId(`spine-step-${step.id}`));
     fireEvent.click(screen.getByTestId("atlas-tab-met"));
 
-    expect(screen.getByTestId("atlas-met-empty")).toHaveTextContent(
-      /chưa gắn chỉ số nào.*thiếu khai báo, không phải chỉ số bằng 0/is,
-    );
+    expect(screen.getByTestId("atlas-met-empty")).toHaveTextContent(/chưa gắn chỉ số nào/i);
     expect(screen.queryByTestId("atlas-met-list")).not.toBeInTheDocument();
   });
 
@@ -324,9 +322,7 @@ describe("AtlasPage — #/atlas", () => {
     fireEvent.click(screen.getByTestId(`spine-step-${noSignalStep.id}`));
     fireEvent.click(screen.getByTestId("atlas-tab-met"));
 
-    expect(screen.getByTestId("atlas-met-nosignal")).toHaveTextContent(
-      /chưa khai điểm đo nào.*instrument signal cho bước, rồi mới khai chỉ số/is,
-    );
+    expect(screen.getByTestId("atlas-met-nosignal")).toHaveTextContent(/chưa khai điểm đo nào/i);
     expect(screen.queryByTestId("atlas-met-empty")).not.toBeInTheDocument();
     expect(screen.queryByTestId("atlas-met-list")).not.toBeInTheDocument();
   });

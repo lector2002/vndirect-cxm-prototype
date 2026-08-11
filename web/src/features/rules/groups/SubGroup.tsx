@@ -34,7 +34,7 @@ export function SubGroup() {
   const on = data.dash.filter((d) => cfg.sub[d.id]?.f !== "off");
 
   return (
-    <Card title="Bản tin định kỳ" subtitle="Ai nhận bảng nào, tần suất nào, gửi qua đâu.">
+    <Card title="Bản tin định kỳ">
       {error ? (
         <div className="mb-3">
           <Note tone="crit">

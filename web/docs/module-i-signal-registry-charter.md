@@ -69,7 +69,7 @@ load OK = ngày yên tĩnh; load lỗi = hỏng biết chắc; không có dòng 
 | **C2** | Dòng mốc số liệu hiện ở Tổng quan (sau `SetChips`). Có cần hiện thêm ở màn nào nữa không |
 | **C3** | **Demo Mode có cần hiện mốc rõ ràng là giả** để không nhầm demo với thật? Tôi cố ý **chưa** làm ở I1 để không tự bịa cách thể hiện |
 | **C5** | **Nhóm SLA nguồn ở `#/rules` giờ ghi được mà không quyết định gì** — I3 đã lấy quyền chấm hạng khỏi `cfg.source[id]` (chấm theo số ngày thiếu so với mốc số liệu). Ô cấu hình gõ vào mà không đổi được gì chính là **loại bẫy module này đang dọn**. Hai đường: **bỏ nhóm đó**, hoặc **đổi sang ngưỡng theo NGÀY** để nó có quyền trở lại. Tôi **không tự quyết** vì đó là màn của Module G |
-| **C7** | **Ba khối của màn Điểm đo nằm trong diện luật thiết kế 11/08** — bỏ câu ngắn giải thích dưới title lớn. Cụ thể: *"Kiểm kê thiết bị đo — đếm được hết, hôm nay"* · *"Độ tin cậy của cái đã NHẬN — không so được với thực tế, chỉ một nguồn ghi"* · *"Suy tại chỗ đọc từ dữ liệu hôm nay — không phải một lần chẩn đoán đóng băng"*. ⚠️ Câu giới hạn **đầu màn** (bất biến 9) **KHÔNG** thuộc diện này — nó là *thừa nhận giới hạn*, không phải *dạy cách đọc*, và charter đã buộc nó phải in trên màn. Phân biệt + phạm vi: `docs/DB-FIRST-HANDOFF.md` §"Bỏ câu giải thích dưới title". Chưa thi hành |
+| ~~**C7**~~ | **XONG 11/08 — không còn là việc chờ owner.** Luật giao diện 11/08 đã áp cho màn Điểm đo: bỏ ba câu dưới title khối, bỏ legend ba nghĩa *chưa định danh / chưa-biết / thiếu* (owner cấm **định nghĩa**), và **bỏ cả câu giới hạn đầu màn** — tức **vế 2 của bất biến 9 bị gỡ**, xem mục 9 §9. Vế 1 (màn không được khai độ phủ so với thực tế) **còn nguyên**. Luật + ba phép thử giữ/bỏ: `docs/DB-FIRST-HANDOFF.md` §"App hiển thị dữ liệu, không luận giải" |
 | **C6** | **Tab "Chỉ số liên kết" trong Atlas đã BỎ dòng độ tươi, chưa thay bằng dòng sinh ra.** Chuỗi thay thế cần `data.sources` + `data.asOf`, mà `AtlasMetricsTab` chỉ nhận `signals`/`metrics`/`cfg` — luồn thêm hai prop qua `AtlasStepInspector` là **việc của Atlas**, tôi không tự làm trong module I. Hiện tại chỗ đó **thiếu một dòng** chứ không **sai một dòng**; ở `#/rules` thì đã hiện đầy đủ. Nói một câu là tôi luồn prop |
 | **C4** | **Bước đã chép mà chưa đo — hợp lệ hay lỗi dữ liệu?** Nhóm luật 14 cũ **cấm** trạng thái đó, nhưng UI **đã hỗ trợ** nó (`stepState()` trả *"unknown"*, khối Tổng quan nói *"chưa đo bước nào"*). Hai chỗ mâu thuẫn nhau **từ trước** module này. Ở I2 tôi chọn **hợp lệ** — cấm là chặn một tình trạng thật khỏi màn hình, cùng lý lẽ đã dùng để không thêm luật ở D5. Nếu anh muốn ngược lại thì nói, nhưng khi đó phải bỏ ca *"chưa đo"* khỏi UI cho khỏi nói hai giọng |
 
@@ -316,7 +316,23 @@ ghi ngay trên dòng — **không phải vì hết quan trọng**, mà vì trưn
    "số nhóm + 1". Đừng lấp số 13/14 cho nhóm khác: người đọc log cũ sẽ hiểu sai luật nào đã fail.
    Đếm để **kiểm**, không để **cấp số**: `grep -oE "^\s*/\* ?[0-9]+\." src/data/validate.ts` → số
    lớn nhất hiện **23**.
-9. **Màn KHÔNG khai độ phủ so với thực tế — và phải IN RA điều đó trên màn.** Owner chốt 07/08:
+9. ⚠️ **VẾ "IN RA MÀN" ĐÃ BỊ OWNER GHI ĐÈ 11/08 — đọc hết mục này trước khi dùng.** Bất biến này có
+   **hai vế**, và chỉ vế thứ hai bị gỡ:
+   - **Vế 1 — CÒN NGUYÊN, không ai được tháo:** màn **KHÔNG được khai** độ phủ so với thực tế. Không
+     cột "% độ phủ", không tỉ lệ nào có mẫu số là "thực tế". Vế này là về **không nói sai**.
+   - **Vế 2 — ĐÃ GỠ:** câu giới hạn **không còn in trên màn**. Owner chốt luật giao diện 11/08:
+     *"hệ thống cũng chỉ báo cáo dưới dạng data ở dashboard, ko luận giải, ko định nghĩa, chỉ show
+     data đang có vấn đề, ko có các câu giải thích bằng văn nữa"* (`docs/DB-FIRST-HANDOFF.md` §"App
+     hiển thị dữ liệu, không luận giải"). Tôi đã nêu rõ vế 2 là một bất biến đã duyệt bằng văn bản và
+     hỏi lại trước khi bỏ; owner giữ nguyên quyết định.
+   - **Cái mất đi khi gỡ vế 2, ghi thẳng ra:** lý lẽ gốc bên dưới nói *giới hạn nằm trong charter thì
+     lần tới có người thêm lại cột "% độ phủ" và không ai chặn*. Gỡ vế 2 là **quay về đúng tình huống
+     đó**. Hàng rào duy nhất còn lại là chính vế 1 của bất biến này cộng với văn bản charter — không
+     còn hàng rào nào **trên màn**. Ai định thêm một tỉ lệ có mẫu số "thực tế" thì đây là chỗ phải
+     đọc, và câu trả lời vẫn là **không**.
+
+   Nội dung gốc của bất biến, giữ để tra lại: **Màn KHÔNG khai độ phủ so với thực tế — và phải IN RA
+   điều đó trên màn.** Owner chốt 07/08:
    *"coi như pipeline data chỉ là 1 nguồn, bỏ mẫu số đi vì ko có nguồn khác để so sánh độ phủ thực
    tế, khả năng chỉ chở event thôi"*. Một nguồn ghi duy nhất ⇒ *"đo được bao nhiêu % của thực tế"*
    **không tồn tại**, không phải *"chưa tính được"*. Câu phải hiện trên màn, đại ý: *"Màn này không
@@ -454,7 +470,7 @@ Theo khuôn Module G: mỗi lát một khối việc + tiêu chí ghim. **Một 
 | **I1** | **Mốc số liệu + gỡ số gõ tay khỏi quyền quyết định** | `asOf` (§13) · D4 (gỡ 6 chỗ tiêu thụ `obs.cov`) · D3 (chết theo D4) · F9 | — **làm đầu tiên**: không có mốc thì mọi con số sau đều đọc sai thành "bây giờ" |
 | **I2** | **Bỏ hai cờ không mang thông tin** | D2 · F8 · nhóm luật 13/14 thành **khuyết** (bất biến 8) | Độc lập với I1 |
 | **I3** | **Phả hệ nguồn + độ tươi chỉ số** | D1 (4 ca, gồm `m-ces` đúng số mà che trạng thái) · F7 · ca `m-contract` (T2 cũ) | ✅ **XONG 07/08** — gỡ chặn, xem dưới |
-| **I4a** | **Màn Điểm đo: route + bảng 30 điểm + hai khối tầng ①/②** | F1 · bất biến 9 (câu giới hạn IN TRÊN MÀN) · khối kiểm kê · khối độ tin cậy (1 số thật + 5 ô chờ) · nav vào nhóm Quản trị | I1 (mốc số liệu) |
+| **I4a** | **Màn Điểm đo: route + bảng 30 điểm + hai khối tầng ①/②** | F1 · bất biến 9 (~~câu giới hạn IN TRÊN MÀN~~ — **vế in-ra-màn gỡ 11/08**, xem §9 mục 9; vế "không khai độ phủ" còn nguyên) · khối kiểm kê · khối độ tin cậy (1 số thật + 5 ô chờ) · nav vào nhóm Quản trị | I1 (mốc số liệu) |
 | **I4b** | **Hồ sơ một điểm đo — bốn mặt** | F2 · F4 · D5 · D6 | I4a. **F3 phần độ tươi nguồn HOÃN** — chặn bởi A1 |
 | **I5** | **Chart giá trị + khối đếm + 5 tình trạng trưng** | F5 · F6 · T1 · T3 · T4 · T5 · T7 | ✅ **XONG 07/08** — xem cuối §14 |
 

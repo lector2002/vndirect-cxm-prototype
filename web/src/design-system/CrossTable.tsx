@@ -92,7 +92,8 @@ export function CrossTable({ cx }: CrossTableProps) {
         </table>
       </div>
       <div className="text-[11.5px] text-ink-3 mt-2">
-        Đang hiện {nf(cx.matched)} trên {nf(cx.sampleN)} mẫu bằng chứng — tập mẫu, không phải toàn bộ bản ghi
+        {/* luật 11/08: bỏ "tập mẫu, không phải toàn bộ bản ghi" */}
+        Đang hiện {nf(cx.matched)} trên {nf(cx.sampleN)} mẫu bằng chứng
         {multiNote}
       </div>
     </div>

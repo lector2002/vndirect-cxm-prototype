@@ -89,10 +89,7 @@ export function QuantifySets({
         ← Về thư viện
       </button>
       <h1 className="t-hero mb-2">Quản lý set</h1>
-      <p className="t-meta mb-5 max-w-[92ch]">
-        Ghép chart từ thư viện vào set để hiện trên Tổng quan. Thêm/bớt/đổi thứ tự khối, tạo hoặc xóa
-        set. Hai set <b>cố định</b> khóa cấu trúc — nhân bản để tạo biến thể sửa được.
-      </p>
+      {/* luật 11/08: bỏ đoạn giải thích công cụ */}
 
       {(["voc", "cxm"] as const).map((sec) => (
         <section key={sec} className="mb-6" data-testid={`qsets-group-${sec}`}>

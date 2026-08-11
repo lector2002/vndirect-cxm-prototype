@@ -118,9 +118,9 @@ export function VocTouchpointInspector({ step, evs, ins, data, evTotal }: VocTou
       <div className="mt-3.5">
         {tab === "topic" ? (
           themeRows.length === 0 ? (
+            // luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu
             <Note>
-              <Badge state="unknown" /> Chưa có bằng chứng mẫu nào gán vào điểm chạm này, nên chưa
-              biết khách nói chuyện gì ở đây. Không phải "khách không nói gì" — là chưa đo.
+              <Badge state="unknown" /> Chưa có bằng chứng mẫu nào gán vào điểm chạm này.
             </Note>
           ) : (
             <div className="grid grid-cols-2 gap-5">
@@ -137,7 +137,8 @@ export function VocTouchpointInspector({ step, evs, ins, data, evTotal }: VocTou
                   kids={(row) =>
                     shownThemes.find((r) => r.id === row.id)?.kids.map((k) => ({ name: k.name, n: k.n })) ?? []
                   }
-                  axisLabel="Số bằng chứng mẫu — tập mẫu, không phải toàn bộ bản ghi"
+                  // luật 11/08: bỏ "tập mẫu, không phải toàn bộ bản ghi"
+                  axisLabel="Số bằng chứng mẫu"
                 />
                 {themeRows.length > TOP_THEMES ? (
                   <button
@@ -160,13 +161,7 @@ export function VocTouchpointInspector({ step, evs, ins, data, evTotal }: VocTou
                   scaled={false}
                   axisLabel="Số bằng chứng mẫu"
                 />
-                <div className="mt-3">
-                  <Note>
-                    Volume tổng hợp của từng topic nằm ở <a href="#/topics">Topic &amp; xu hướng</a>;
-                    ở đây là số bằng chứng mẫu thực sự gắn vào đúng điểm chạm này. Hai con số khác
-                    nhau là bình thường — chúng đo hai thứ.
-                  </Note>
-                </div>
+                {/* luật 11/08: bỏ luận giải */}
               </div>
             </div>
           )
@@ -230,16 +225,15 @@ export function VocTouchpointInspector({ step, evs, ins, data, evTotal }: VocTou
                tiếng nói, và có tiếng nói nhưng chưa ai tổng hợp. */
             <Note>
               <Badge state="unknown" />{" "}
+              {/* luật 11/08 (Dạng A): bỏ "chưa đo, chứ không phải đo rồi không thấy gì" và bỏ
+                  'không phải "đã xem xét và kết luận không có vấn đề"' — giữ nguyên vế trạng thái
+                  dữ liệu; VocJourneyPage.test.tsx canh lại ở vế còn giữ, không xoá test. */}
               {evs.length === 0 ? (
-                <>
-                  Chưa có insight nào cho điểm chạm này, và cũng chưa có bằng chứng mẫu nào ở đây —
-                  chưa đo, chứ không phải đo rồi không thấy gì.
-                </>
+                <>Chưa có insight nào cho điểm chạm này, và cũng chưa có bằng chứng mẫu nào ở đây.</>
               ) : (
                 <>
                   Chưa có insight nào cho điểm chạm này, dù đã có {nf(evs.length)} bằng chứng mẫu.
-                  Insight là bước tổng hợp riêng từ các bằng chứng đó, chưa chạy cho điểm chạm này —
-                  không phải "đã xem xét và kết luận không có vấn đề".
+                  Insight là bước tổng hợp riêng từ các bằng chứng đó, chưa chạy cho điểm chạm này.
                 </>
               )}
             </Note>

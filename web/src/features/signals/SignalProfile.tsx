@@ -129,10 +129,8 @@ function SignalValueChart({ data, signal, dims }: { data: CxmData; signal: Signa
   if (!hasRows) {
     return (
       <div data-testid="signal-profile-values-no-counts">
-        <Note tone="warn">
-          Điểm đo này đã khai giá trị nhưng chưa có dòng đếm nào trong bảng đếm (sigCounts) — chưa
-          vẽ được chart, không phải vẽ ra một chart rỗng.
-        </Note>
+        {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
+        <Note tone="warn">Điểm đo này đã khai giá trị nhưng chưa có dòng đếm nào trong bảng đếm.</Note>
       </div>
     );
   }
@@ -157,7 +155,8 @@ function SignalValueChart({ data, signal, dims }: { data: CxmData; signal: Signa
       <ValueDimButtons dimStates={chart.dimStates} selectedDimId={dimId} dims={dims} onSelect={setDimId} />
       <div className="mt-2">
         {curDimState?.state === "locked" ? (
-          <Note tone="warn">{`Chiều "${curDimState.label}" không ghi được cho điểm đo này — chọn một chiều khác ở trên để xem chart.`}</Note>
+          // luật 11/08: bỏ lời mời "chọn một chiều khác ở trên để xem chart"
+          <Note tone="warn">{`Chiều "${curDimState.label}" không ghi được cho điểm đo này.`}</Note>
         ) : (
           <SignalColumns groups={toColGroups(chart.groups, dimId)} dimLabel={dims[dimId].label} />
         )}
@@ -217,12 +216,6 @@ export function SignalProfile({
                 <span className="t-lbl w-[120px] flex-none">Phía</span>
                 <span>{es}</span>
               </div>
-              {es === "client" ? (
-                <Note>
-                  Dữ liệu phía client có thể mất — app bị kill, người dùng chặn, hoặc mạng đứt.
-                  Đo phía server không có chuyện đó.
-                </Note>
-              ) : null}
             </div>
             <div className="flex items-baseline gap-2 text-[13px]" data-testid="signal-profile-pf">
               <span className="t-lbl w-[120px] flex-none">Nền tảng</span>
@@ -235,17 +228,14 @@ export function SignalProfile({
                   {chain.ok ? chain.step.stationId : "không tra được — chuỗi allocate đứt trước bước"}
                 </span>
               </div>
-              {chain.ok ? <Note>Chưa ai đối chiếu mã trạm này với tracking plan thật.</Note> : null}
+              {/* luật 11/08 (bổ sung): bỏ "Chưa ai đối chiếu mã trạm này với tracking plan thật." */}
             </div>
 
             <div className="border-t border-line mt-2 pt-2 flex flex-col gap-2" data-testid="signal-profile-bang-d">
               <DRow label="Tên screen" testId="signal-profile-screen" />
               <DRow label="Route/deeplink" testId="signal-profile-route" />
               <DRow label="ID element" testId="signal-profile-element" />
-              <Note>
-                ▨ = ô trống thật, chưa có dữ liệu — KHÔNG lấp bằng mô tả nghiệp vụ. Đã đưa vào bản
-                yêu cầu dữ liệu gửi team data/mobile (Bảng D).
-              </Note>
+              {/* luật 11/08: bỏ giải thích ô đã hiện placeholder ▨ */}
             </div>
           </div>
         </Card>
@@ -278,8 +268,8 @@ export function SignalProfile({
               Ai chịu trách nhiệm:{" "}
               {chain.ok ? (
                 <>
-                  <b>{chain.flow.owner}</b>{" "}
-                  <span className="t-meta">(suy từ hành trình — điểm đo không khai owner riêng)</span>
+                  {/* luật 11/08 (bổ sung): bỏ "(suy từ hành trình — điểm đo không khai owner riêng)" */}
+                  <b>{chain.flow.owner}</b>
                 </>
               ) : (
                 "không suy được — chuỗi allocate đứt phía trên"
@@ -289,7 +279,8 @@ export function SignalProfile({
             <div data-testid="signal-profile-metrics">
               {signal.metrics.length === 0 ? (
                 <Note tone="warn">
-                  {`Chưa nuôi chỉ số nào. ${noMetricCount}/${data.signals.length} điểm đo đang ở tình trạng này — hoặc gắn vào một chỉ số, hoặc nói rõ vì sao đo.`}
+                  {/* luật 11/08: bỏ "hoặc gắn vào một chỉ số, hoặc nói rõ vì sao đo" */}
+                  {`Chưa nuôi chỉ số nào. ${noMetricCount}/${data.signals.length} điểm đo đang ở tình trạng này.`}
                 </Note>
               ) : (
                 <div className="text-[13px]">Nuôi chỉ số: {metricNamesOf(data, signal)}</div>
@@ -306,32 +297,21 @@ export function SignalProfile({
               <span className="t-meta">(suy từ lưu lượng)</span> ·{" "}
               <Badge state={SIGNAL_STATUS[signal.st].badge} text={declaredStateLabel(signal)} />{" "}
               <span className="t-meta">(người khai)</span>
-              <div className="mt-1 t-meta">
-                Hai trục RỜI, không gộp: có chạy ≠ có tin dùng.
-              </div>
             </div>
             {runningNotTrusted(signal) ? (
               <div data-testid="signal-profile-running-not-trusted">
-                <Note tone="warn">
-                  Điểm đo này đang chở lưu lượng thật mà chưa được đánh dấu tin dùng — số của nó
-                  chưa ai duyệt cho vào chỉ số. Tình trạng này phải thấy được, không phải lỗi.
-                </Note>
+                {/* luật 11/08: bỏ luận giải, chỉ giữ báo lệch hướng */}
+                <Note tone="warn">Đang chở lưu lượng thật mà chưa được đánh dấu tin dùng.</Note>
               </div>
             ) : null}
 
             <div className="text-[13px]" data-testid="signal-profile-vol">
               Lưu lượng: <b className="tabular-nums">{signal.vol ? `${nf(signal.vol)}/ngày` : "—"}</b>
-              <div className="t-meta">
-                Số của MỘT NGÀY (mốc {data.asOf || "chưa có"}) — KHÔNG phải mức ổn định.
-              </div>
             </div>
 
             <div className="text-[13px]" data-testid="signal-profile-seen">
               Thấy lần cuối:{" "}
               <b>{signal.seen ?? <span className="text-ink-3">chưa từng</span>}</b>
-              <div className="t-meta">
-                Mốc do người khai — KHÔNG tính được im lặng bao lâu từ đó.
-              </div>
               {seenLate ? (
                 <div data-testid="signal-profile-seen-late">
                   <Note tone="warn">
@@ -342,15 +322,13 @@ export function SignalProfile({
             </div>
 
             <div className="text-[13px]" data-testid="signal-profile-source">
-              Nguồn chở nó: chưa nối được vào nguồn nào trong danh sách hiện tại (danh sách nguồn
-              còn là bản tạm).
+              {/* luật 11/08 (bổ sung): bỏ "(danh sách nguồn còn là bản tạm)" */}
+              Nguồn chở nó: chưa nối được vào nguồn nào trong danh sách hiện tại.
             </div>
 
             <div data-testid="signal-profile-freshness-hold">
-              <Note>
-                Độ tươi của nguồn chở điểm đo này chưa hiện được — chưa có trường nào nối điểm đo
-                với nguồn. Cách chấm độ tươi thì đã có.
-              </Note>
+              {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
+              <Note>Chưa có trường nào nối điểm đo với nguồn.</Note>
             </div>
           </div>
         </Card>
@@ -379,11 +357,7 @@ export function SignalProfile({
                 <SignalValueChart data={data} signal={signal} dims={dims} />
               </>
             )}
-            <Note tone="warn">
-              Chưa kiểm được giá trị lạ: bảng đếm (sigCounts) hiện sinh từ chính bản khai này, nên
-              "0 giá trị ngoài khai báo" là hệ quả của cách sinh số, KHÔNG phải bằng chứng dữ liệu
-              sạch.
-            </Note>
+            {/* luật 11/08: bỏ luận giải */}
           </div>
         </Card>
       </div>

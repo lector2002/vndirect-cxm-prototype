@@ -90,7 +90,8 @@ export function SignalTable({ data, onSelect }: { data: CxmData; onSelect: (id: 
         </tbody>
       </table>
       <p className="t-meta mt-2" data-testid="signal-table-asof-note">
-        Lưu lượng là số của MỘT NGÀY (mốc số liệu){asOfNote}, không phải mức ổn định. Cột "Thấy lần
+        {/* luật 11/08: bỏ ", không phải mức ổn định" */}
+        Lưu lượng là số của MỘT NGÀY (mốc số liệu){asOfNote}. Cột "Thấy lần
         cuối" là mốc do người khai — không tính được im lặng bao lâu từ đó.
       </p>
     </div>

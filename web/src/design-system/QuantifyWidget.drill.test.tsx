@@ -38,8 +38,8 @@ describe("QuantifyWidget — drill-down trục agg (bằng chứng là TẬP M�
     clickRow(0); // rows xếp giảm dần → x-th-device (n=412), 8 bằng chứng trong tập 17
     const denom = screen.getByTestId("drill-denom");
     expect(denom).toHaveTextContent("tín hiệu tổng hợp");
-    // Câu này là cả lý do panel tồn tại: KHÔNG được để người đọc hiểu 8 là số của hàng 412.
-    expect(denom).toHaveTextContent("KHÔNG đếm từ danh sách");
+    // luật 11/08: đã bỏ câu "con số đó KHÔNG đếm từ danh sách dưới" (luận giải quan hệ hai số)
+    expect(denom).not.toHaveTextContent("KHÔNG đếm từ danh sách");
     expect(denom).toHaveTextContent("8 bằng chứng mẫu");
     expect(denom).toHaveTextContent("trong tập 17 bản ghi");
     expect(screen.getByTestId("drill-lines").children).toHaveLength(8);
@@ -66,7 +66,7 @@ describe("QuantifyWidget — drill-down trục agg (bằng chứng là TẬP M�
 });
 
 describe("QuantifyWidget — drill-down hàng gộp 'Khác (+N)'", () => {
-  it("bấm hàng gộp → liệt kê các NHÓM bị cắt (không phải bản ghi), số nhóm khớp nhãn '(+4)'", () => {
+  it("bấm hàng gộp → liệt kê các NHÓM bị cắt, số nhóm khớp nhãn '(+4)' (luật 11/08: đã bỏ 'không phải bản ghi')", () => {
     render(<QuantifyWidget item={findItem("q1")} data={seed} dims={dims} />);
     const bars = screen.getByTestId("bars");
     // 10 hàng có tên + 1 hàng gộp = 11 (xem QuantifyWidget.test.tsx); hàng gộp ghim CUỐI.
@@ -74,7 +74,7 @@ describe("QuantifyWidget — drill-down hàng gộp 'Khác (+N)'", () => {
     clickRow(10);
     const denom = screen.getByTestId("drill-denom");
     expect(denom).toHaveTextContent("gộp 4 nhóm nhỏ");
-    expect(denom).toHaveTextContent("không phải bản ghi");
+    expect(denom).not.toHaveTextContent("không phải bản ghi");
     expect(screen.getByTestId("drill-lines").children).toHaveLength(4);
     // Tên nhóm KHÔNG bọc ngoặc kép — chỉ verbatim (lời khách nói) mới được bọc.
     expect(screen.getByTestId("drill-lines").textContent).not.toContain("“");
@@ -92,7 +92,8 @@ describe("QuantifyWidget — drill-down trục khách", () => {
     const denom = screen.getByTestId("drill-denom");
     expect(denom).toHaveTextContent("8 chưa biết");
     expect(denom).toHaveTextContent("9 thiếu (lỗi thu thập)");
-    expect(denom).toHaveTextContent("cách chữa ngược nhau");
+    // luật 11/08: đã bỏ câu định nghĩa "chưa biết là chờ, thiếu là phải đi sửa pipeline"
+    expect(denom).not.toHaveTextContent("cách chữa ngược nhau");
   });
 
   it("hàng khách thường: liệt kê KHÁCH (khoá đã mask), total giữ số thật khi danh sách bị cắt", () => {
@@ -100,7 +101,8 @@ describe("QuantifyWidget — drill-down trục khách", () => {
     clickRow(0); // 'tự tìm' = 62 khách, cắt còn 50 dòng
     const denom = screen.getByTestId("drill-denom");
     expect(denom).toHaveTextContent("50 khách đầu trong 62");
-    expect(denom).toHaveTextContent("số trên thanh vẫn là 62");
+    // luật 11/08: đã bỏ vế "danh sách bị cắt cho vừa panel, số trên thanh vẫn là ..."
+    expect(denom).not.toHaveTextContent("số trên thanh vẫn là");
     expect(screen.getByTestId("drill-lines").children).toHaveLength(50);
     // KHÔNG unmask: fixture đã mask, panel in nguyên.
     expect(screen.getByTestId("drill-lines").textContent).toContain("KH•••");

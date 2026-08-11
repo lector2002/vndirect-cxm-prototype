@@ -262,25 +262,21 @@ export function QuantifyBuilder({
         ← Về thư viện
       </button>
       <h1 className="t-hero mb-2 max-w-[40ch]">{editId ? "Sửa chart" : "Tạo chart mới"}</h1>
-      <p className="t-meta mb-4 max-w-[92ch]">
-        Mọi ô là danh sách đóng, không có ô nhập tự do — thấy được toàn bộ giới hạn của công cụ. Ghép
-        chéo 2 chiều <b>chỉ tính từ mẫu bằng chứng</b> (Intent/Sentiment/Nền tảng/Theme…); chiều tổng
-        hợp (Nguồn/Segment/Tier) không có phân phối chung nên bị khóa, tránh bịa số.
-      </p>
+      {/* luật 11/08: bỏ đoạn giải thích công cụ */}
 
       {editId && usedBy.length > 0 ? (
         <div
           data-testid="qbuilder-used-warning"
           className="border-l-[3px] border-watch bg-watch-bg text-ink-2 text-xs rounded-r px-3 py-2 mb-4"
         >
-          ⚠ Chart này đang dùng ở {usedBy.length} set: {usedBy.join(", ")}. <b>Lưu đè</b> sẽ đổi mọi
-          set đó — muốn biến thể thì <b>Lưu thành bản mới</b>.
+          {/* luật 11/08: bỏ "Lưu đè sẽ đổi mọi set đó — muốn biến thể thì Lưu thành bản mới." */}
+          ⚠ Chart này đang dùng ở {usedBy.length} set: {usedBy.join(", ")}.
         </div>
       ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)] gap-4 items-start">
         <div className="flex flex-col gap-4">
-          <Card title="Chọn dữ liệu" subtitle="Danh sách đóng">
+          <Card title="Chọn dữ liệu">
             <Picker testId="qbuilder-picker-show" label="Chiều hàng" options={showOptions} value={qb.show} onSelect={(v) => setField("show", v)} />
             {showEvAttr ? (
               <Picker
@@ -292,8 +288,8 @@ export function QuantifyBuilder({
               />
             ) : (
               <div className="mb-3 text-xs text-ink-2" data-testid="qbuilder-by-locked-note">
-                Chiều hàng này <b>không ghép chéo được</b> — chỉ chiều đọc từ mẫu bằng chứng mới ghép,
-                vì fixture tổng hợp không có phân phối chung.
+                {/* luật 11/08: bỏ "chỉ chiều đọc từ mẫu bằng chứng mới ghép, vì fixture tổng hợp không có phân phối chung" */}
+                Chiều hàng này <b>không ghép chéo được</b>.
               </div>
             )}
             {/* Chia màu (breakdown) — Module D section 1. Chỉ hiện khi trục hàng là thuộc tính khách:
@@ -309,8 +305,8 @@ export function QuantifyBuilder({
               />
             ) : (
               <div className="mb-3 text-xs text-ink-2" data-testid="qbuilder-split-locked-note">
-                Chiều hàng này <b>không chia màu được</b> — chỉ trục thuộc tính khách mới chia, vì khi đó
-                hai giá trị nằm trên cùng một dòng khách nên đếm được thật.
+                {/* luật 11/08: bỏ "chỉ trục thuộc tính khách mới chia, vì khi đó hai giá trị nằm trên cùng một dòng khách nên đếm được thật" */}
+                Chiều hàng này <b>không chia màu được</b>.
               </div>
             )}
             {qb.split ? (
@@ -342,10 +338,7 @@ export function QuantifyBuilder({
             ) : null}
           </Card>
 
-          <Card
-            title={editId ? "Lưu thay đổi" : "Lưu chart"}
-            subtitle={editId ? "Đè bản cũ hoặc tạo bản mới" : "Đặt tên rồi thêm vào thư viện"}
-          >
+          <Card title={editId ? "Lưu thay đổi" : "Lưu chart"}>
             <div className="text-xs font-medium text-ink-2 mb-1.5">Tên chart</div>
             <input
               type="text"

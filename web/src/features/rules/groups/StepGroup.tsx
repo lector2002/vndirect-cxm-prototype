@@ -58,10 +58,7 @@ export function StepGroup() {
      nên câu bị cắt giữa chừng ngay ở bề rộng thật của cột phải màn này — đã thấy bằng mắt. */
   return (
     <Card title="Ngưỡng trạng thái của một bước hành trình">
-      <p className="t-meta mb-3.5 text-[12.5px]">
-        Áp cho mọi bước của mọi flow. Tỷ lệ thất bại là tiêu chí chính; coverage thấp hoặc effort cao
-        thì ít nhất phải Cần theo dõi.
-      </p>
+      {/* luật 11/08: bỏ đoạn giải thích áp ngưỡng */}
 
       {error ? (
         <div className="mb-3" data-testid="step-write-error">
@@ -98,15 +95,13 @@ export function StepGroup() {
 
         <div>
           <b className="block text-[13px] font-semibold text-ink">Evidence coverage tối thiểu</b>
-          <span className="t-meta text-[12px]">
-            dưới mức này thì dù thất bại ít vẫn phải theo dõi — thấy rớt mà không biết vì sao
-          </span>
+          {/* luật 11/08: bỏ giải thích */}
         </div>
         <NumField value={cfg.step.covMin} onCommit={setStep("covMin")} suffix="%" label="Evidence coverage tối thiểu" />
 
         <div>
           <b className="block text-[13px] font-semibold text-ink">Effort tối đa cho phép</b>
-          <span className="t-meta text-[12px]">số lần thử trung bình mỗi khách tại một bước</span>
+          {/* luật 11/08 (bổ sung): bỏ hẳn định nghĩa đơn vị */}
         </div>
         <NumField value={cfg.step.effortMax} onCommit={setStep("effortMax")} suffix="lần" label="Effort tối đa cho phép" />
       </div>
@@ -119,9 +114,8 @@ export function StepGroup() {
 
         {excluded > 0 ? (
           <div className="mb-3" data-testid="step-excluded-note">
-            <Note>
-              {`${excluded} bước chưa có dữ liệu quan sát nên không chấm được — không tự gán trạng thái "đang ổn" cho bước chưa đo.`}
-            </Note>
+            {/* luật 11/08 (bổ sung): bỏ vế 2 "không tự gán trạng thái đang ổn cho bước chưa đo" */}
+            <Note>{`${excluded} bước chưa có dữ liệu quan sát nên không chấm được.`}</Note>
           </div>
         ) : null}
 

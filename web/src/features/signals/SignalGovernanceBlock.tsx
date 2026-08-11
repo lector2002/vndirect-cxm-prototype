@@ -34,10 +34,7 @@ export function SignalGovernanceBlock({ data, cfg }: { data: CxmData; cfg: Cfg }
   );
 
   return (
-    <Card
-      title="Bản khai không khớp thực tế"
-      subtitle="Suy tại chỗ đọc từ dữ liệu hôm nay — không phải một lần chẩn đoán đóng băng"
-    >
+    <Card title="Bản khai không khớp thực tế">
       <ul className="space-y-2.5 text-[13px]">
         <li data-testid="gov-t1">
           <b className="tabular-nums">

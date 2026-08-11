@@ -40,11 +40,8 @@ export function AtlasMetricsTab({ signals, metrics, cfg }: AtlasMetricsTabProps)
   if (signals.length === 0) {
     return (
       <div data-testid="atlas-met-nosignal">
-        <Note tone="warn">
-          <b>Bước này chưa khai điểm đo nào.</b> Chỉ số được lần ra qua điểm đo, nên chưa có điểm đo
-          thì cũng chưa thể nói bước này đang được chấm bằng chỉ số gì. Việc cần làm nằm trước một
-          bậc: instrument signal cho bước, rồi mới khai chỉ số.
-        </Note>
+        {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
+        <Note tone="warn">Bước này chưa khai điểm đo nào.</Note>
       </div>
     );
   }
@@ -52,22 +49,15 @@ export function AtlasMetricsTab({ signals, metrics, cfg }: AtlasMetricsTabProps)
   if (ids.length === 0) {
     return (
       <div data-testid="atlas-met-empty">
-        <Note tone="warn">
-          <b>Bước này chưa gắn chỉ số nào.</b> Điểm đo của bước đã có, nhưng chưa điểm đo nào được
-          khai là nuôi một chỉ số theo dõi — nên chưa có ngưỡng nào chấm bước này. Đây là chỗ còn
-          thiếu khai báo, không phải chỉ số bằng 0.
-        </Note>
+        {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
+        <Note tone="warn">Bước này chưa gắn chỉ số nào.</Note>
       </div>
     );
   }
 
   return (
     <div data-testid="atlas-met-list">
-      <p className="t-meta mb-3">
-        Ngưỡng của từng chỉ số đặt ở màn <a href="#/rules">Chỉ số &amp; ngưỡng</a> — phần dưới đọc
-        trực tiếp từ đó, không khai lại.
-      </p>
-
+      {/* luật 11/08: bỏ dòng chỉ đường sang #/rules */}
       <div className="flex flex-col gap-2.5">
         {linked.map((metric) => {
           const band = cfg.metric[metric.id];
@@ -89,11 +79,10 @@ export function AtlasMetricsTab({ signals, metrics, cfg }: AtlasMetricsTabProps)
                       khi {worse} <b>{dec(band.crit)}</b>
                     </>
                   ) : (
-                    /* Tắt ngưỡng KHÔNG có nghĩa chỉ số hỏng — nói đúng hệ quả: vẫn có số, chỉ là
-                       không ai bị đánh thức vì nó. `metricState` trả 'unknown' đúng cho ca này. */
+                    /* Tắt ngưỡng KHÔNG có nghĩa chỉ số hỏng — `metricState` trả 'unknown' đúng cho ca này.
+                       luật 11/08: bỏ vế "vẫn tính và hiện số, nhưng không gắn nhãn trạng thái và không vào cảnh báo" */
                     <>
-                      Chỉ số này đang <b>không được theo dõi</b> — vẫn tính và hiện số, nhưng không
-                      gắn nhãn trạng thái và không vào cảnh báo.
+                      Chỉ số này đang <b>không được theo dõi</b>.
                     </>
                   )}
                 </div>
@@ -117,7 +106,8 @@ export function AtlasMetricsTab({ signals, metrics, cfg }: AtlasMetricsTabProps)
       {dangling.length > 0 ? (
         <div className="mt-2.5" data-testid="atlas-met-dangling">
           <Note tone="crit">
-            {`${dangling.length} chỉ số được điểm đo nhắc tới nhưng không có trong bảng chỉ số: ${dangling.join(", ")}. Khai báo đang lệch nhau, cần bên dữ liệu đối chiếu.`}
+            {/* luật 11/08: bỏ "Khai báo đang lệch nhau, cần bên dữ liệu đối chiếu." */}
+            {`${dangling.length} chỉ số được điểm đo nhắc tới nhưng không có trong bảng chỉ số: ${dangling.join(", ")}.`}
           </Note>
         </div>
       ) : null}

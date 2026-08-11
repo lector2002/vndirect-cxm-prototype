@@ -127,8 +127,8 @@ export function RulesPage() {
             <div className="min-w-0">
               {dirty ? (
                 <>
-                  <b>Đang dùng ngưỡng đã sửa trong phiên này.</b> Cấu hình không lưu xuống đâu cả —
-                  refresh trình duyệt là về mặc định.
+                  {/* luật 11/08: bỏ câu trùng "Cấu hình không lưu xuống đâu cả — refresh trình duyệt là về mặc định." */}
+                  <b>Đang dùng ngưỡng đã sửa trong phiên này.</b>
                 </>
               ) : (
                 <>
@@ -161,8 +161,8 @@ export function RulesPage() {
       {warns.length ? (
         <div className="mb-4" data-testid="rules-contradictions">
           <Note tone="crit">
-            <b>⚠ {warns.length} ngưỡng đang đặt ngược nhau</b> — vẫn chạy được nhưng nhãn trạng thái
-            sẽ vô nghĩa.
+            {/* luật 11/08: bỏ "vẫn chạy được nhưng nhãn trạng thái sẽ vô nghĩa" */}
+            <b>⚠ {warns.length} ngưỡng đang đặt ngược nhau</b>
             <ul className="mt-2 list-disc pl-5">
               {warns.map((w) => (
                 <li key={w} className="my-0.5">
@@ -203,9 +203,7 @@ export function RulesPage() {
               </div>
             ))}
           </div>
-          <div className="t-meta border-t border-line px-3.5 py-3">
-            Chấm đỏ nghĩa là với ngưỡng đang đặt, nhóm đó đang có đối tượng ở mức cần chú ý.
-          </div>
+          {/* luật 11/08: bỏ giải thích chấm đỏ */}
         </div>
 
         <div className="min-w-0">

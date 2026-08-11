@@ -49,14 +49,9 @@ describe("SEV_LABEL", () => {
 });
 
 describe("WorkCreateForm", () => {
-  it("render tiêu đề + subtitle", () => {
+  it("render tiêu đề", () => {
     renderForm();
     expect(screen.getByText("Tạo điểm gãy mới")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Điểm gãy phải neo vào một bước trong hành trình và một chỉ số dùng để kết luận — nếu không thì sau này không ai đo được là đã sửa xong hay chưa.",
-      ),
-    ).toBeInTheDocument();
   });
 
   it("error!=null: render Note tone=crit chứa đúng nội dung lỗi", () => {

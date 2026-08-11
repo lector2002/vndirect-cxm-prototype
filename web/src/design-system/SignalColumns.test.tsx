@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { SignalColumns, type SigColGroup } from "./SignalColumns.tsx";
+import { nf } from "./format.ts";
 
 describe("SignalColumns", () => {
   it("rule 1: cùng nhãn dải được cùng màu ở hai nhóm dù thứ hạng trong từng nhóm khác nhau", () => {
@@ -150,7 +151,7 @@ describe("SignalColumns", () => {
     expect(screen.getByTestId("sigcol-column-s-glare")).toHaveStyle({ width: "160px" });
   });
 
-  it("rule 4 (sửa lại): câu chống đọc nhầm 'không so chiều cao giữa hai nhóm' luôn có mặt", () => {
+  it("luật 11/08: đã bỏ câu chống đọc nhầm 'không so chiều dài giữa hai nhóm', không còn sigcol-scale-note", () => {
     const groups: SigColGroup[] = [
       {
         sigId: "s", title: "Điểm đo S", vol: 100,
@@ -159,9 +160,8 @@ describe("SignalColumns", () => {
       },
     ];
     render(<SignalColumns groups={groups} dimLabel="Phân khúc NAV" />);
-    expect(screen.getByTestId("sigcol-scale-note").textContent).toContain(
-      "Chiều dài vạch đọc trong từng nhóm — hai nhóm không so chiều dài với nhau.",
-    );
+    expect(screen.queryByTestId("sigcol-scale-note")).not.toBeInTheDocument();
+    expect(screen.getByTestId("signal-columns")).toBeInTheDocument();
   });
 
   it("rule 5: lát n rất nhỏ vẫn chạm sàn 3px hiển thị được; lát n=0 KHÔNG render", () => {
@@ -241,12 +241,12 @@ describe("SignalColumns", () => {
     // Cột đã khai KHÔNG mang tag này.
     expect(screen.getByTestId("sigcol-bar-s-blur")).not.toHaveTextContent("giá trị chưa khai");
     const report = screen.getByTestId("sigcol-undeclared-s-sương mù");
-    expect(report.textContent).toContain(
-      'Giá trị "sương mù" chưa có trong danh sách đã khai của điểm đo — cần người khai bổ sung.',
-    );
+    // luật 11/08: đã bỏ "cần người khai bổ sung"
+    expect(report.textContent).toContain('Giá trị "sương mù" chưa có trong danh sách đã khai của điểm đo.');
+    expect(report.textContent).not.toContain("cần người khai bổ sung");
   });
 
-  it("rule 10 + non-vacuity: nhóm một giá trị hiện câu giải thích, nhóm hai giá trị KHÔNG hiện", () => {
+  it("luật 11/08: đã bỏ ghi chú giải thích hình dạng chart, nhóm một hay nhiều giá trị đều không hiện", () => {
     const groups: SigColGroup[] = [
       {
         sigId: "one", title: "Một giá trị", vol: 614,
@@ -263,10 +263,9 @@ describe("SignalColumns", () => {
       },
     ];
     render(<SignalColumns groups={groups} dimLabel="Phân khúc NAV" />);
-    expect(screen.getByTestId("sigcol-single-one").textContent).toContain(
-      "Điểm đo này chỉ bắn một giá trị — cột chính là toàn bộ lượt bắn.",
-    );
+    expect(screen.queryByTestId("sigcol-single-one")).not.toBeInTheDocument();
     expect(screen.queryByTestId("sigcol-single-two")).not.toBeInTheDocument();
+    expect(screen.getByTestId("sigcol-footer-one").textContent).toContain(`tổng ${nf(614)} lượt/ngày`);
   });
 
   it("rule 13: groups rỗng hiện ghi chú, không phải khung trống", () => {

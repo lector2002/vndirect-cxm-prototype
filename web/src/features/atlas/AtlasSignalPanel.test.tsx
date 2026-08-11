@@ -42,12 +42,12 @@ describe("AtlasSignalPanel — bảng signal (checkbox) + chart điểm đo + pa
     expect(screen.queryByTestId(`sigcol-group-${sg2.id}`)).not.toBeInTheDocument();
   });
 
-  it("b) bỏ tick signal đang chọn duy nhất → hiện câu mời chọn, KHÔNG có chart", () => {
+  it("b) bỏ tick signal đang chọn duy nhất → KHÔNG có chart (luật 11/08: đã bỏ câu mời chọn)", () => {
     render(<AtlasSignalPanel signals={tp1Signals} touchpoints={[tp1]} rows={demoData.sigCounts} dims={dims} stationId={s1.stationId} />);
 
     fireEvent.click(screen.getByTestId(`atlas-sigpick-${sg1.id}`));
 
-    expect(screen.getByText("Chọn ít nhất một điểm đo ở bảng trên để xem chart.")).toBeInTheDocument();
+    expect(screen.queryByText(/Chọn ít nhất một điểm đo/)).not.toBeInTheDocument();
     expect(screen.queryByTestId("signal-columns")).not.toBeInTheDocument();
   });
 
@@ -119,13 +119,12 @@ describe("AtlasSignalPanel — bảng signal (checkbox) + chart điểm đo + pa
     expect(screen.queryByText("android")).not.toBeInTheDocument();
   });
 
-  it("i) panel Đ4 hiện đủ điểm tiếp xúc + event + client/server + nền tảng + mã trạm, và nói rõ giới hạn", () => {
+  it("i) panel Đ4 hiện đủ điểm tiếp xúc + event + client/server + nền tảng + mã trạm (luật 11/08: đã bỏ giải thích giới hạn)", () => {
     render(<AtlasSignalPanel signals={tp2Signals} touchpoints={[tp2]} rows={demoData.sigCounts} dims={dims} stationId={s2.stationId} />);
 
     const expectedLine = `Điểm tiếp xúc: ${tp2.name} (kênh ${tp2.channel}) · event ${sg3.name} · phía client · iOS, Android · trạm ${s2.stationId}`;
     expect(screen.getByTestId(`atlas-where-${sg3.id}`)).toHaveTextContent(expectedLine);
-    expect(screen.getByText(/chưa phải vị trí kỹ thuật/)).toBeInTheDocument();
-    expect(screen.getByText(/Bảng D/)).toBeInTheDocument();
+    expect(screen.queryByText(/chưa phải vị trí kỹ thuật/)).not.toBeInTheDocument();
   });
 
   it("constraint 1: bảng vẫn đủ 6 cột gốc + đúng câu chữ header, chỉ thêm cột checkbox ở đầu", () => {

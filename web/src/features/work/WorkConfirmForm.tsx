@@ -71,14 +71,7 @@ export function WorkConfirmForm({ issue, action, stepLabel, owners, approvers, e
         </div>
       </Note>
 
-      {/* Cảnh báo một chiều — người bấm PHẢI biết: xác nhận không chỉ là gán người, mà còn đóng băng
-          số liệu hiện tại của bước này làm mốc so sánh (baseline). Mốc này không sửa lại được, vì mốc
-          mà đổi được thì không còn là mốc (xem module-a-charter.md, "Shape chốt" > Snapshot). */}
-      <div className="mt-3">
-        <Note tone="warn">
-          Bấm &quot;Xác nhận điểm gãy&quot; sẽ đóng băng số liệu hiện tại của bước này làm mốc so sánh — mốc này KHÔNG sửa lại được sau khi đã tạo.
-        </Note>
-      </div>
+      {/* luật 11/08 (bổ sung): bỏ hẳn cảnh báo hệ quả không hoàn tác được */}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
         <div>
@@ -115,9 +108,7 @@ export function WorkConfirmForm({ issue, action, stepLabel, owners, approvers, e
         <button type="button" className={`${btnSecondary} ${btnSizeMd}`} onClick={onCancel}>
           Hủy
         </button>
-        <span className="ml-auto t-meta text-[11.5px] max-w-[46ch] text-right">
-          Bản thật ghi audit trail: ai xác nhận, lúc nào, mốc baseline đóng băng ra sao.
-        </span>
+        {/* luật 11/08: bỏ ghi chú về bản thật */}
       </div>
     </Card>
   );

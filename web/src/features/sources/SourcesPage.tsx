@@ -333,10 +333,9 @@ export function SourcesPage() {
 
           <div className="mt-3.5 grid gap-2.5">
             <Note>
+              {/* luật 11/08: bỏ "Đây là ràng buộc trong tracking plan..." và hướng dẫn "Đổi số ngày ở ..." */}
               <b>Quy tắc cooldown toàn cục:</b> mỗi khách chịu tối đa 1 khảo sát trong{" "}
-              <b>{cfg.data.cooldown} ngày</b>, và luôn được phép bỏ qua. Đây là ràng buộc trong
-              tracking plan để không làm khách mệt — hệ thống phải tự chặn, không phụ thuộc người vận
-              hành nhớ. Đổi số ngày ở <a href="#/rules">Chỉ số &amp; ngưỡng</a>.
+              <b>{cfg.data.cooldown} ngày</b>, và luôn được phép bỏ qua.
             </Note>
             {/* Câu này SINH TỪ DỮ LIỆU: khảo sát nào đang dừng thì tự nêu tên. Prototype đóng cứng
                 tên "NPS" vào câu chữ — đổi trạng thái trong dữ liệu là câu nói sai ngay. */}
@@ -344,9 +343,9 @@ export function SourcesPage() {
               .filter((s) => s.status === "paused")
               .map((s) => (
                 <Note key={s.id} tone="warn">
+                  {/* luật 11/08: bỏ "con số trông vẫn chính xác nhưng không còn nói về hôm nay" */}
                   <b>{s.name} đang tạm dừng.</b> Mọi xếp hạng dựa trên khảo sát này đều đang đọc số
-                  của lần chạy cuối ({s.latest} trên n = {nf(s.n)}), không phải số của kỳ hiện tại —
-                  con số trông vẫn chính xác nhưng không còn nói về hôm nay.
+                  của lần chạy cuối ({s.latest} trên n = {nf(s.n)}), không phải số của kỳ hiện tại.
                 </Note>
               ))}
           </div>
@@ -366,9 +365,9 @@ export function SourcesPage() {
                   {lagText(b.source.lagH).replace(/^trễ /, "")} (nhận lần cuối {b.source.last}).{" "}
                   {b.metrics.length ? (
                     <>
+                      {/* luật 11/08: bỏ "hỏi {owner} trước khi dùng" */}
                       {b.metrics.map((m) => m.name).join(" và ")} đang tính trên dữ liệu thiếu quãng
-                      đó. Dữ liệu <b>không nói được</b> con số đang cao hơn hay thấp hơn thực tế —
-                      hỏi {[...new Set(b.metrics.map((m) => m.owner))].join(" · ")} trước khi dùng.
+                      đó. Dữ liệu <b>không nói được</b> con số đang cao hơn hay thấp hơn thực tế.
                     </>
                   ) : (
                     <>

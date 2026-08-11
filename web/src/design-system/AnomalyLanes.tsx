@@ -11,7 +11,8 @@ import type { NoteTone } from "./Note.tsx";
 const LANES: { key: Exclude<AgentFindingLane, null>; label: string; desc: string }[] = [
   { key: "voice", label: "Trong phản hồi", desc: "Khách nói khác đi so với baseline" },
   { key: "behaviour", label: "Trong hành vi", desc: "Event hệ thống lệch baseline" },
-  { key: "pipeline", label: "Của chính nguồn dữ liệu", desc: "Ống dẫn hỏng — số tụt vì mất nguồn, không phải vì đã sửa xong" },
+  // luật 11/08: bỏ vế "số tụt vì mất nguồn, không phải vì đã sửa xong"
+  { key: "pipeline", label: "Của chính nguồn dữ liệu", desc: "Ống dẫn hỏng" },
 ];
 
 function noteTone(sev: string): NoteTone {
@@ -55,12 +56,10 @@ export function AnomalyLanes({ agents }: AnomalyLanesProps) {
       })}
       {noneCount ? (
         <div className="t-meta text-[12px] mb-1.5">
-          {noneCount} mục không phải bất thường (bản tin định kỳ) nên không nằm trong ba làn — xem ở <a href="#/agents">Agent & cảnh báo</a>.
+          {noneCount} mục không phải bất thường (bản tin định kỳ) nên không nằm trong ba làn.
         </div>
       ) : null}
-      <div className="t-meta text-[12px]">
-        Ngưỡng và người nhận cảnh báo đặt ở <a href="#/rules">Chỉ số & ngưỡng</a> · chi tiết agent ở <a href="#/agents">Agent & cảnh báo</a>.
-      </div>
+      {/* luật 11/08: bỏ dòng chỉ đường sang #/rules và #/agents */}
     </div>
   );
 }

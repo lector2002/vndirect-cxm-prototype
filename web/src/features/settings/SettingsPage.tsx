@@ -22,10 +22,8 @@ export function SettingsPage({ useStore = useCxmStore }: SettingsPageProps) {
       <div className="mt-6 max-w-xl border border-line rounded-xl bg-surface p-4 flex items-center justify-between gap-4">
         <div>
           <div className="text-sm font-semibold text-ink">Demo Mode</div>
-          <p className="t-meta mt-1">
-            Bật để dùng dữ liệu demo (trình diễn tính năng). Tắt để chỉ dùng dữ liệu thật từ DB —
-            hiện CHƯA kết nối nên app sẽ trống.
-          </p>
+          {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
+          <p className="t-meta mt-1">Dữ liệu thật từ DB chưa kết nối — tắt Demo Mode thì app trống.</p>
         </div>
         <div className="flex items-center gap-2 flex-none">
           <span className="t-meta">{demoMode ? "Đang BẬT" : "Đang TẮT"}</span>

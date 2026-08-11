@@ -10,8 +10,8 @@ export function DemoBanner({ demoMode }: DemoBannerProps) {
 
   return (
     <div data-testid="demo-banner" className="bg-surface-2 border-b border-line px-4 py-2 text-ink-2 text-[13px]">
-      Demo Mode đang TẮT · chưa kết nối cơ sở dữ liệu thật — không có dữ liệu để hiển thị. Bật lại
-      trong Cài đặt.
+      {/* luật 11/08: bỏ "Bật lại trong Cài đặt." */}
+      Demo Mode đang TẮT · chưa kết nối cơ sở dữ liệu thật — không có dữ liệu để hiển thị.
     </div>
   );
 }

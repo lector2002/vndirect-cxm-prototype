@@ -52,19 +52,23 @@ function denomSentence(content: DrillContent, noun: string): string {
       /* fx() PHẢI áp ở đây: kind 'sample' chỉ xảy ra với base:'agg', đúng tập hợp mà Bars vẽ số đã
          scale (`scaled = dim.base === 'agg'`). Không áp thì panel in 412 trong khi thanh in 2,3K —
          cùng một hàng, hai con số, và người dùng không biết tin cái nào. */
+      // luật 11/08: bỏ vế "con số đó KHÔNG đếm từ danh sách dưới"
       return n === 0
         ? `Hàng này đếm ${nf(fx(content.total))} tín hiệu tổng hợp, nhưng CHƯA có bằng chứng mẫu nào gắn vào nó. Tập mẫu hiện có ${content.poolN} bản ghi cho toàn hệ thống.`
-        : `Hàng này đếm ${nf(fx(content.total))} tín hiệu tổng hợp — con số đó KHÔNG đếm từ danh sách dưới. Đang liệt kê ${n} bằng chứng mẫu, trong tập ${content.poolN} bản ghi của toàn hệ thống.`;
+        : `Hàng này đếm ${nf(fx(content.total))} tín hiệu tổng hợp. Đang liệt kê ${n} bằng chứng mẫu, trong tập ${content.poolN} bản ghi của toàn hệ thống.`;
     case "full":
+      // luật 11/08: bỏ vế "danh sách bị cắt cho vừa panel..." / "đúng con số trên thanh"
       return n < content.total
-        ? `Đang liệt kê ${n} ${noun} đầu trong ${nf(content.total)} — danh sách bị cắt cho vừa panel, số trên thanh vẫn là ${nf(content.total)}.`
-        : `Đang liệt kê đủ ${nf(content.total)} ${noun} của hàng này — đúng con số trên thanh.`;
+        ? `Đang liệt kê ${n} ${noun} đầu trong ${nf(content.total)}.`
+        : `Đang liệt kê đủ ${nf(content.total)} ${noun} của hàng này.`;
     case "unknown":
+      // luật 11/08: bỏ câu định nghĩa "chưa biết là chờ, thiếu là phải đi sửa pipeline"
       return `${nf(content.total)} khách không xác định: ${content.unknownYet} chưa biết${
         content.missing > 0 ? ` và ${content.missing} thiếu (lỗi thu thập)` : ""
-      }. Hai loại này cách chữa ngược nhau nên KHÔNG gộp: "chưa biết" là chờ, "thiếu" là phải đi sửa pipeline.`;
+      }.`;
     case "groups":
-      return `Hàng "Khác" gộp ${content.total} nhóm nhỏ bị cắt khỏi Top-N. Đây là các NHÓM, không phải bản ghi — muốn xem bản ghi của một nhóm thì nâng mốc số dòng để nó hiện thành hàng riêng.`;
+      // luật 11/08: bỏ "Đây là các NHÓM, không phải bản ghi" + hướng dẫn "muốn xem bản ghi của một nhóm thì nâng mốc số dòng..."
+      return `Hàng "Khác" gộp ${content.total} nhóm nhỏ bị cắt khỏi Top-N.`;
     case "none":
       return content.reason;
   }

@@ -201,9 +201,10 @@ describe("VocTouchpointInspector — ba nghĩa của 'trống', dựng ca rỗng
       <VocTouchpointInspector step={emptyStep} evs={[]} ins={[]} data={demoData} evTotal={demoData.ev.length} />,
     );
 
-  it("tab Topic: nói rõ CHƯA ĐO, không để người đọc hiểu thành 'khách không nói gì'", () => {
+  it("tab Topic: nói rõ chưa có bằng chứng mẫu (luật 11/08: đã bỏ câu phân biệt 'khách không nói gì')", () => {
     renderEmpty();
-    expect(screen.getByText(/Không phải "khách không nói gì" — là chưa đo/)).toBeInTheDocument();
+    expect(screen.getByText("Chưa có bằng chứng mẫu nào gán vào điểm chạm này.")).toBeInTheDocument();
+    expect(screen.queryByText(/khách không nói gì/)).not.toBeInTheDocument();
   });
 
   it("tab Verbatim: nói chưa có verbatim nào", () => {
@@ -212,12 +213,20 @@ describe("VocTouchpointInspector — ba nghĩa của 'trống', dựng ca rỗng
     expect(screen.getByText(/Chưa có verbatim nào tại điểm chạm này/)).toBeInTheDocument();
   });
 
-  it("tab Insight: KHÔNG bằng chứng nào → nói là chưa đo", () => {
+  /* luật 11/08 (Dạng A): bỏ đuôi "chưa đo, chứ không phải đo rồi không thấy gì" — giữ nguyên vế
+     trạng thái dữ liệu. Canh lại ở vế còn giữ, KHÔNG xoá test. */
+  it("tab Insight: KHÔNG bằng chứng nào → nói rõ chưa có insight VÀ chưa có bằng chứng mẫu", () => {
     renderEmpty();
     fireEvent.click(screen.getByTestId("voc-tab-ins"));
-    expect(screen.getByText(/chưa đo, chứ không phải đo rồi không thấy gì/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Chưa có insight nào cho điểm chạm này, và cũng chưa có bằng chứng mẫu nào ở đây/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/chưa đo, chứ không phải đo rồi không thấy gì/)).not.toBeInTheDocument();
   });
 
+  /* luật 11/08 (Dạng A): bỏ đuôi 'không phải "đã xem xét và kết luận không có vấn đề"' — giữ nguyên
+     vế trạng thái dữ liệu. Ca này vẫn phải đọc KHÁC hẳn ca trên (test gốc), giờ so bằng chính câu
+     còn giữ thay vì câu đã bỏ. */
   it("tab Insight: CÓ bằng chứng nhưng chưa tổng hợp → câu chữ phải khác hẳn ca trên", () => {
     render(
       <VocTouchpointInspector
@@ -229,7 +238,11 @@ describe("VocTouchpointInspector — ba nghĩa của 'trống', dựng ca rỗng
       />,
     );
     fireEvent.click(screen.getByTestId("voc-tab-ins"));
-    expect(screen.getByText(/không phải "đã xem xét và kết luận không có vấn đề"/)).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(`Chưa có insight nào cho điểm chạm này, dù đã có.*bằng chứng mẫu`)),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/và cũng chưa có bằng chứng mẫu nào ở đây/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/đã xem xét và kết luận không có vấn đề/)).not.toBeInTheDocument();
   });
 
   it("bước rỗng: dải mẫu số nói sentiment CHƯA ĐO, không in 0,0", () => {

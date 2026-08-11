@@ -1,5 +1,5 @@
 import { Badge, Card, Note } from "../../../design-system/index.ts";
-import { metricFreshnessText, metricState } from "../../../domain/index.ts";
+import { metricState } from "../../../domain/index.ts";
 import { metricDirection } from "../../../data/metric-direction.ts";
 import { useCxmStore } from "../../../store/store.ts";
 import { NumField } from "../NumField.tsx";
@@ -10,24 +10,15 @@ import { useCfgWrite } from "../useCfgWrite.ts";
 
    BAND RIÊNG TỪNG CHỈ SỐ, KHÔNG NGƯỠNG CHUNG: cột "Cần theo dõi khi"/"Cần xử lý khi" đọc
    `cfg.metric[m.id]`, mỗi chỉ số một cặp watch/crit của riêng nó — không có một % lệch mục tiêu
-   chung nào áp được cho cả sáu chỉ số hôm nay, lý do nằm trong khối giải thích cuối nhóm.
+   chung nào áp được cho cả sáu chỉ số hôm nay.
+
+   KHỐI GIẢI THÍCH CUỐI NHÓM ĐÃ BỎ (luật thiết kế 11/08, docs/DB-FIRST-HANDOFF.md §"Bỏ câu giải
+   thích dưới title"): nó dạy cách đọc dấu ≥/≤ và so hai chỉ số làm ví dụ — thứ người dùng học một
+   lần là xong. Lý lẽ "vì sao không có ngưỡng chung" giữ lại ở chính đoạn trên, trong tài liệu.
 
    HƯỚNG SO SÁNH ("vượt"/"dưới") lấy từ `metricDirection()` (`data/metric-direction.ts`) — MỘT
    nguồn sự thật duy nhất, dùng chung với `domain/state.ts` và `data/mock-repository.ts`. Không viết
    lại luật hướng ở đây (charter cấm). */
-
-/** Câu giải thích cuối nhóm SO HAI CHỈ SỐ THẬT (Liveness vs Evidence coverage), y hệt tinh thần
-    prototype dòng 4205 — nhưng số đọc từ `data.metrics` + trạng thái tính bằng band MẶC ĐỊNH
-    (`cfgDefault`), không gõ cứng "83,3%"/"71%" như prototype. Đổi fixture (giá trị hai chỉ số này,
-    hoặc band mặc định của chúng) là câu tự đổi theo — không cần sửa file này.
-    Dùng `cfgDefault` (không phải cfg đang sửa dở trên chính màn này) để câu giải thích không lung
-    lay theo thao tác thử ngưỡng của người vận hành ngay trên bảng phía trên nó. */
-const STATE_WORD: Record<"ok" | "watch" | "crit" | "unknown", string> = {
-  ok: "đang kiểm soát",
-  watch: "cần theo dõi",
-  crit: "cần xử lý ngay",
-  unknown: "chưa đo được",
-};
 
 /** Style tiêu đề cột dùng chung — tránh chép cùng một chuỗi class 7 lần (khuôn SourcesPage.tsx). */
 const TH = "text-left font-medium text-ink-3 text-[11px] uppercase tracking-[0.04em] pb-[7px] px-1";
@@ -35,7 +26,6 @@ const TH = "text-left font-medium text-ink-3 text-[11px] uppercase tracking-[0.0
 export function MetricGroup() {
   const data = useCxmStore((s) => s.data);
   const cfg = useCxmStore((s) => s.cfg);
-  const cfgDefault = useCxmStore((s) => s.cfgDefault);
   const { write, error } = useCfgWrite();
 
   const watched = data.metrics.filter((m) => cfg.metric[m.id]?.on).length;
@@ -45,30 +35,13 @@ export function MetricGroup() {
     write({ metric: { ...cfg.metric, [id]: { ...c, ...patch } } });
   };
 
-  const liveness = data.metrics.find((m) => m.id === "m-liveness");
-  const ocr = data.metrics.find((m) => m.id === "m-ocr");
-  /* Câu so sánh dưới cùng nói nguyên văn "so CÙNG mục tiêu" — nên nó chỉ đúng khi hai chỉ số thật
-     sự đang cùng một mục tiêu. Hôm nay cả hai là "≥ 90%", nhưng mục tiêu nằm trong fixture và sẽ
-     đổi khi số thật về; thiếu vế kiểm này thì một ngày nào đó màn in ra một câu so sánh sai mà
-     không có gì đỏ. Cùng loại lỗi "một con số đứng dưới cái nhãn không thuộc về nó" mà stream này
-     đã chặn ba lần. */
-  const canCompare =
-    liveness &&
-    ocr &&
-    liveness.target === ocr.target &&
-    cfgDefault.metric["m-liveness"] &&
-    cfgDefault.metric["m-ocr"];
 
   return (
     <Card
       title="Chỉ số đang theo dõi"
       denomStrip={`${watched} trên ${data.metrics.length} chỉ số đang bật theo dõi — bảng dưới vẫn hiện đủ cả ${data.metrics.length}`}
     >
-      {/* Câu này dài hơn một dòng nên KHÔNG vào `subtitle` — slot đó cắt cụt (xem StepGroup). */}
-      <p className="t-meta mb-3 text-[12.5px]">
-        Mỗi chỉ số có band riêng — không dùng một ngưỡng chung cho tất cả. Tắt công tắc thì vẫn tính
-        và hiện số, nhưng nhãn trạng thái đổi thành “Chưa đo được” và không vào cảnh báo.
-      </p>
+      {/* luật 11/08: bỏ nửa còn lại của đoạn giải thích band riêng từng chỉ số */}
 
       {error ? (
         <div className="mb-3" data-testid="metric-write-error">
@@ -112,12 +85,16 @@ export function MetricGroup() {
                     <div className="t-meta text-[11.5px] mt-0.5">
                       {m.source} · {m.owner}
                     </div>
-                    {/* D1 (module-i §5, I3): KHÔNG in `m.freshness` — chuỗi gõ tay đó sai số ở 3/6
-                        chỉ số và đúng số mà giấu trạng thái ở 1/6. Sinh lại từ quan hệ thật
-                        `Source.metrics[]` + số ngày thiếu so với mốc số liệu. */}
-                    <div className="t-meta text-[11.5px] mt-0.5" data-testid={`metric-freshness-${m.id}`}>
-                      {metricFreshnessText(m, data, cfg)}
-                    </div>
+                    {/* KHÔNG in độ tươi ở đây. Hai vòng, hai lý do khác nhau, ghi cả hai để không ai
+                        khôi phục nửa vời:
+                        · `m.freshness` (chuỗi gõ tay) bỏ ngày 07/08 vì SAI — lệch số ở 3/6 chỉ số,
+                          đúng số mà giấu trạng thái ở 1/6 (D1, module-i §5).
+                        · Chuỗi SINH RA thay nó bỏ ngày 11/08 vì LUẬN GIẢI — "trễ 4 giờ kể từ lần giao
+                          cuối · đã giao đủ đến 27/07/2026 · đang nhận" là ba đoạn nói quanh một việc,
+                          đúng diện luật thiết kế 11/08 (docs/DB-FIRST-HANDOFF.md).
+                        Bảng này giờ KHÔNG khai gì về độ tươi — thà không nói còn hơn nói dài hoặc nói
+                        sai. Độ tươi thật của từng nguồn ở `#/sources`. `metricFreshnessText()` giữ
+                        nguyên trong domain, chưa có chỗ hiện (xem C6/C7 charter Module I). */}
                   </td>
                   <td className="py-1.5 px-1">
                     <label className="inline-flex items-center">
@@ -175,26 +152,6 @@ export function MetricGroup() {
         </table>
       </div>
 
-      <div className="mt-3.5">
-        <Note>
-          Hướng so sánh suy ra từ dấu trong mục tiêu: <span className="font-mono">≥</span> là càng cao
-          càng tốt, <span className="font-mono">≤</span> là càng thấp càng tốt. Repeat contact dùng{" "}
-          <span className="font-mono">≤</span> nên ngưỡng đọc theo chiều "vượt".{" "}
-          <b>Cố ý không có một ngưỡng chung cho mọi chỉ số:</b>{" "}
-          {canCompare ? (
-            <>
-              {liveness!.name} {liveness!.value} so mục tiêu {liveness!.target} là{" "}
-              {STATE_WORD[metricState(liveness!, cfgDefault)]}, còn {ocr!.name} {ocr!.value} so cùng
-              mục tiêu {ocr!.target} chỉ là {STATE_WORD[metricState(ocr!, cfgDefault)]} — chỉ số
-              chạm khách và chỉ số chất lượng dữ liệu không đọc cùng một cách.
-            </>
-          ) : (
-            // Không tìm thấy m-liveness/m-ocr trong fixture hoặc band mặc định — không đoán số, chỉ
-            // giữ lý do bằng lời (xem báo cáo worker: fixture hiện tại luôn có đủ hai chỉ số này).
-            <>chỉ số chạm khách và chỉ số chất lượng dữ liệu không đọc cùng một cách.</>
-          )}
-        </Note>
-      </div>
     </Card>
   );
 }

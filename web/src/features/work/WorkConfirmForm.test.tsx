@@ -73,10 +73,10 @@ describe("WorkConfirmForm", () => {
     expect(screen.getByText(`${issue.ev.length} bản ghi`)).toBeInTheDocument();
   });
 
-  it("cảnh báo đóng băng baseline: Note tone=warn nói rõ mốc KHÔNG sửa lại được", () => {
+  it("luật 11/08 (bổ sung): đã bỏ cảnh báo đóng băng baseline bằng văn", () => {
     renderForm();
-    expect(screen.getByText(/đóng băng số liệu hiện tại/)).toBeInTheDocument();
-    expect(screen.getByText(/KHÔNG sửa lại được/)).toBeInTheDocument();
+    expect(screen.queryByText(/đóng băng số liệu hiện tại/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/KHÔNG sửa lại được/)).not.toBeInTheDocument();
   });
 
   it("mọi select/input có label liên kết htmlFor/id", () => {

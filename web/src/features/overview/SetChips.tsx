@@ -33,12 +33,8 @@ export function SetChips({ sets, currentId, boards, onSelect, onManage }: SetChi
           ) : null}
         </button>
       ))}
-      <button
-        type="button"
-        className={`${chip} ${chipOff}`}
-        onClick={onManage}
-        title="Tạo, sửa và ghép chart vào set — trong Quantify"
-      >
+      {/* luật 11/08: bỏ hướng dẫn "Tạo, sửa và ghép chart vào set — trong Quantify" */}
+      <button type="button" className={`${chip} ${chipOff}`} onClick={onManage}>
         ✎ Quản lý set
       </button>
     </div>

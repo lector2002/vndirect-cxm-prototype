@@ -27,15 +27,13 @@ export function CoverageBlock({ data, onGo }: CoverageBlockProps) {
   return (
     <Card title="Độ phủ đo lường" subtitle={`Ảnh chụp · ${periodLabel(data)}`}>
       <div data-testid="cov-empty">
-        <Note tone="warn">
-          <b>Chưa có số đo được về độ phủ bằng chứng.</b> Tỉ lệ tự khai trước đây không đối chiếu
-          được với gì nên đã bỏ khỏi màn; số đếm được để thay nó (mã lý do rớt theo bước) chưa có,
-          đang nằm trong bản yêu cầu dữ liệu gửi team data.
-        </Note>
+        {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
+        <Note tone="warn">Chưa có số đo được về độ phủ bằng chứng.</Note>
       </div>
 
       {onGo ? (
         <p className="text-[12px] text-ink-3 mt-2.5 mb-0">
+          {/* luật 11/08 (bổ sung): bỏ "— để xem khách rơi ở đâu" */}
           <button
             type="button"
             data-testid="cov-go-atlas"
@@ -43,8 +41,7 @@ export function CoverageBlock({ data, onGo }: CoverageBlockProps) {
             className="font-semibold text-ink-3 hover:text-ink hover:underline"
           >
             Mở bản đồ hành trình
-          </button>{" "}
-          — để xem khách rơi ở đâu.
+          </button>
         </p>
       ) : null}
     </Card>

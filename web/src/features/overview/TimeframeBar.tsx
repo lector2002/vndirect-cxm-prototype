@@ -64,7 +64,8 @@ export function TimeframeBar({ useStore = useCxmStore }: TimeframeBarProps) {
                 disabled={isCustom}
                 /* Custom: CHƯA có date-picker thật (không bịa data theo ngày) — disabled/no-op, chỉ
                    chú thích lý do qua title (tooltip), không throw/không giả vờ hoạt động. */
-                title={isCustom ? "Cần pipeline dữ liệu theo ngày — chưa có date-picker thật." : undefined}
+                // luật 11/08: bỏ "chưa có date-picker thật"
+                title={isCustom ? "Cần pipeline dữ liệu theo ngày." : undefined}
                 className={`${seg} ${isCustom ? segDisabled : opt.key === range ? segOn : segOff}`}
                 onClick={isCustom ? undefined : () => setRange(opt.key)}
               >
@@ -76,12 +77,13 @@ export function TimeframeBar({ useStore = useCxmStore }: TimeframeBarProps) {
       </div>
       {isFine ? (
         <span className="t-meta text-ink-3">
-          Dữ liệu hiện theo tháng — đang hiện {shown} tháng gần nhất; mốc nhỏ hơn tháng sẽ đủ khi có
-          pipeline dữ liệu ngày/tuần.
+          {/* luật 11/08: bỏ "mốc nhỏ hơn tháng sẽ đủ khi có pipeline dữ liệu ngày/tuần" */}
+          Dữ liệu hiện theo tháng — đang hiện {shown} tháng gần nhất.
         </span>
       ) : isCapped ? (
         <span className="t-meta text-ink-3">
-          Chuỗi thật hiện chỉ có {maxReal} tháng — đang hiện đủ dữ liệu có, không nội suy thêm.
+          {/* luật 11/08: bỏ "đang hiện đủ dữ liệu có, không nội suy thêm" */}
+          Chuỗi thật hiện chỉ có {maxReal} tháng.
         </span>
       ) : null}
     </div>

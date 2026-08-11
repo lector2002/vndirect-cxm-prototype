@@ -12,8 +12,10 @@ import { nf, pv } from "./format.ts";
    xuyên hai điểm đo — mỗi nhóm cột có chân đế RIÊNG (tổng + % chưa gắn được khách của CHÍNH nó), không
    có dòng tổng chung. Rule 4 (sửa lại): thang chiều cao là CỦA RIÊNG từng nhóm — cột cao nhất của
    CHÍNH nhóm đó mới là 100% MAX_W, không có mẫu số nào dùng chung giữa các nhóm nữa. Vì vậy rule 6
-   giờ đúng TUYỆT ĐỐI, không còn ngoại lệ "hình học" nào cả — và vì hai nhóm không còn cùng thang, phải
-   nói rõ bằng chữ rằng chiều cao không so được giữa hai nhóm (xem dòng ngay dưới header). */
+   giờ đúng TUYỆT ĐỐI, không còn ngoại lệ "hình học" nào cả. Vì hai nhóm không còn cùng thang, chiều
+   cao KHÔNG so được giữa hai nhóm — bất biến này nằm ở CÁCH TÍNH (mỗi nhóm tự co theo max của chính
+   nó), không còn có câu chữ nói thẳng ra dưới header: luật giao diện 11/08 đã bỏ hẳn dòng đó (từng
+   là `sigcol-scale-note`, xem chỗ đánh dấu `luật 11/08` phía dưới). */
 
 /** Ba nghĩa "không biết" KHÁC NHAU (index.css dòng 33-40: `--unk`/`--unk-gap` đã tồn tại đúng cho việc
     này, chart theme dùng 4 token cho 4 nghĩa) — KHÔNG được gộp vào một màu xám, vì đó là đúng phép gộp
@@ -273,12 +275,7 @@ function Group({
             : "chưa biết bao nhiêu lượt chưa gắn được khách"}
         </div>
       </div>
-      {/* Rule 10: điểm đo chỉ bắn một giá trị — nói rõ, không tự làm gì khác. */}
-      {group.bars.length === 1 ? (
-        <div data-testid={`sigcol-single-${group.sigId}`} className="mt-2">
-          <Note>Điểm đo này chỉ bắn một giá trị — cột chính là toàn bộ lượt bắn.</Note>
-        </div>
-      ) : null}
+      {/* luật 11/08: bỏ ghi chú giải thích hình dạng chart khi chỉ có một giá trị */}
       {/* Rule 8: lệch bảng đếm phải LỘ RA, không im lặng sửa số. */}
       {mismatch ? (
         <div data-testid={`sigcol-mismatch-${group.sigId}`} className="mt-2">
@@ -291,7 +288,8 @@ function Group({
       {undeclared.map((bar) => (
         <div key={bar.val} data-testid={`sigcol-undeclared-${group.sigId}-${bar.val}`} className="mt-2">
           <Note tone="warn">
-            Giá trị "{bar.val}" chưa có trong danh sách đã khai của điểm đo — cần người khai bổ sung.
+            {/* luật 11/08: bỏ "cần người khai bổ sung" */}
+            Giá trị "{bar.val}" chưa có trong danh sách đã khai của điểm đo.
           </Note>
         </div>
       ))}
@@ -334,15 +332,14 @@ export function SignalColumns({ groups, dimLabel }: SignalColumnsProps): JSX.Ele
       <div className="text-[13px] font-semibold text-ink-2 mb-1">Nhìn theo: {dimLabel}</div>
       {/* Rule 4 (sửa lại) đổi lấy nguy cơ đọc nhầm mà Đ1 đã cảnh báo ("rất dễ muốn đọc 410 trên 920 =
           45%… hai nhóm đứng cạnh nhau để so, không để chia") — giờ thang riêng từng nhóm nên NGAY CẢ
-          chiều cao cũng không so được giữa hai nhóm nữa, phải nói thẳng bằng chữ. */}
-      <div data-testid="sigcol-scale-note" className="text-[12px] text-ink-3 mb-2">
-        Chiều dài vạch đọc trong từng nhóm — hai nhóm không so chiều dài với nhau.
-      </div>
+          chiều cao cũng không so được giữa hai nhóm nữa. luật 11/08: bỏ hẳn câu nói thẳng bằng chữ,
+          không còn `sigcol-scale-note`. */}
       {colorOverflow > 0 ? (
         <div data-testid="sigcol-color-overflow" className="mb-2">
           <Note tone="warn">
+            {/* luật 11/08: bỏ "cần bổ sung màu trước khi tin vào hình" */}
             chart đang có {namedCount} nhóm giá trị nhưng bảng màu chỉ có {MAX_CAT_COLORS} — {colorOverflow} nhóm đang
-            dùng lại màu của nhóm khác, cần bổ sung màu trước khi tin vào hình.
+            dùng lại màu của nhóm khác.
           </Note>
         </div>
       ) : null}
