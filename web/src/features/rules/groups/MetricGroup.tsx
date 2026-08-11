@@ -1,5 +1,5 @@
 import { Badge, Card, Note } from "../../../design-system/index.ts";
-import { metricState } from "../../../domain/index.ts";
+import { metricFreshnessText, metricState } from "../../../domain/index.ts";
 import { metricDirection } from "../../../data/metric-direction.ts";
 import { useCxmStore } from "../../../store/store.ts";
 import { NumField } from "../NumField.tsx";
@@ -110,7 +110,13 @@ export function MetricGroup() {
                     <b className="text-[13.5px] block">{m.name}</b>
                     <div className="t-meta text-[11.5px] mt-0.5">{m.grain}</div>
                     <div className="t-meta text-[11.5px] mt-0.5">
-                      {m.source} · {m.freshness} · {m.owner}
+                      {m.source} · {m.owner}
+                    </div>
+                    {/* D1 (module-i §5, I3): KHÔNG in `m.freshness` — chuỗi gõ tay đó sai số ở 3/6
+                        chỉ số và đúng số mà giấu trạng thái ở 1/6. Sinh lại từ quan hệ thật
+                        `Source.metrics[]` + số ngày thiếu so với mốc số liệu. */}
+                    <div className="t-meta text-[11.5px] mt-0.5" data-testid={`metric-freshness-${m.id}`}>
+                      {metricFreshnessText(m, data, cfg)}
                     </div>
                   </td>
                   <td className="py-1.5 px-1">

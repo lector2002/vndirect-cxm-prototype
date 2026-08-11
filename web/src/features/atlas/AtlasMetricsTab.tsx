@@ -97,8 +97,14 @@ export function AtlasMetricsTab({ signals, metrics, cfg }: AtlasMetricsTabProps)
                     </>
                   )}
                 </div>
+                {/* `metric.freshness` ĐÃ BỎ khỏi dòng này (D1, module-i §5, I3): chuỗi gõ tay sai số
+                    ở 3/6 chỉ số và đúng số mà giấu trạng thái ở 1/6 — để nguyên là in một câu sai lên
+                    màn. Chuỗi thay thế `metricFreshnessText()` cần `data.sources` + `data.asOf`, mà
+                    tab này chỉ nhận `signals`/`metrics`/`cfg`; luồn thêm hai prop qua
+                    `AtlasStepInspector` là việc của Atlas, không phải của module I. Bỏ trước, hiện
+                    sau — thà thiếu một dòng còn hơn giữ một dòng sai. Xem C6 ở charter §0. */}
                 <div className="mt-1 text-[12px] text-ink-3">
-                  {`Grain ${metric.grain} · ${metric.formula} · ${metric.freshness} · ${metric.owner}`}
+                  {`Grain ${metric.grain} · ${metric.formula} · ${metric.owner}`}
                 </div>
               </Note>
             </div>

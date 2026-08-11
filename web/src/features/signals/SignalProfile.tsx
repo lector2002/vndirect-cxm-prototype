@@ -22,8 +22,11 @@ import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
    này một cách tường minh). `signal.name` vẫn xuất hiện hợp lệ ở mặt 1 ("Tên event").
 
    KHÔNG dựng chart giá trị ở đây (I5, ngoài phạm vi lát này) — mặt 4 chỉ liệt kê `values[]` đã
-   khai. KHÔNG đọc `Metric.freshness`/`sourceHealth()` — độ tươi nguồn HOÃN, chặn bởi quyết định
-   owner về cách chấm SLA dưới pipeline T-1 (charter §12.1, F3). */
+   khai. KHÔNG đọc `Metric.freshness` (D1: chuỗi gõ tay sai số ở 3/6 chỉ số).
+
+   Độ tươi nguồn vẫn chưa hiện, nhưng LÝ DO ĐÃ ĐỔI từ 07/08 (I3): cách chấm đã chốt —
+   `sourceHealth(s, cfg, asOf)` theo số ngày thiếu. Cái còn thiếu là **không có trường nào nối
+   `Signal` → `Source`**, tức việc dữ liệu (charter §10), không phải việc quyết định. */
 
 const PLACEHOLDER_D = "▨ chờ Bảng D — team data/mobile, chưa có dữ liệu";
 
@@ -212,7 +215,8 @@ export function SignalProfile({ data, signal, onBack }: { data: CxmData; signal:
 
             <div data-testid="signal-profile-freshness-hold">
               <Note>
-                Độ tươi của nguồn chở điểm đo này chưa hiện — cách chấm còn đang chốt.
+                Độ tươi của nguồn chở điểm đo này chưa hiện được — chưa có trường nào nối điểm đo
+                với nguồn. Cách chấm độ tươi thì đã có.
               </Note>
             </div>
           </div>
