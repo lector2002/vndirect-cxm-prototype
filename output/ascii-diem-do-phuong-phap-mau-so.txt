@@ -1,0 +1,205 @@
+CẬP NHẬT 07/08 — tiếp theo output/ascii-man-diem-do.txt
+(1) owner chốt phương án (a) cho câu ③  ·  (2) trả lời câu ②: đo mẫu số thế nào, khả thi đến đâu
+Mọi con số ĐO THẬT trên fixture.
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+KHUNG ③ BẢN (a) — THAY THẾ khung ③ ở màn 1
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+ ┌─ ③ ĐO RỒI, DÙNG ĐƯỢC BAO NHIÊU? ─────────────────────────────────────────────────────────────┐
+ │                                                                                              │
+ │  LỖI ĐO — chỉ nhãn "thiếu" được tính. Trên 39.745 event/ngày:                                │
+ │     nguồn lead                    2,4%   █         941 event/ngày mất trường                 │
+ │     nền tảng · NAV · tuổi · hạng    0%             sạch                                      │
+ │                                                                                              │
+ │     → CHỈ CÓ MỘT việc phải sửa, và nó nằm ở đúng một chiều.                                  │
+ │                                                                                              │
+ │  KHÔNG phải lỗi đo — hiện riêng, kèm chủ việc:                                               │
+ │     chưa định danh       21,5%   8.553/ngày   khách chưa có hồ sơ lúc event xảy ra           │
+ │                                               ✔ hợp lệ · không ai phải sửa                   │
+ │     chưa ghi tuổi        19,4%   7.708/ngày   CÓ hồ sơ, chưa từng ghi tuổi → CRM/nghiệp vụ   │
+ │     chưa ghi nguồn lead   2,1%     844/ngày   → CRM/nghiệp vụ                                │
+ │                                                                                              │
+ │  Vì sao (a) đáng chọn dù cột "lỗi" gần như trắng: nó CHUYỂN VIỆC ĐÚNG NGƯỜI. Bản gộp cũ ra   │
+ │  "tuổi 59% dùng được" — nghe như lỗi hệ đo, trong khi lỗi đo là 0% và 19,4% là CRM chưa ghi. │
+ │  Cột trắng không phải cột vô dụng: nó nói "hệ đo đang sạch, việc nằm chỗ khác".              │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+CÂU ②: ĐO "ĐÁNG RA CÓ BAO NHIÊU DATA" — KHẢ THI ĐẾN ĐÂU, BẰNG PHƯƠNG PHÁP NÀO
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+MẤU CHỐT, áp cho mọi cách dưới đây:
+   ĐẾM THEO CA (distinct case / transaction id), KHÔNG ĐẾM THEO DÒNG EVENT.
+
+   Đây đúng là chỗ sinh ra 309%: hệ lõi ghi 1 dòng mỗi giao dịch, còn tracking có thể phát N
+   event cho cùng một giao dịch (thử lại, nhiều bước con). So dòng-với-dòng là so hai đơn vị
+   khác nhau — và đó là lý do phép chia hôm nay ra số vô nghĩa, không phải vì đo tệ.
+
+ ┌─ PHÂN LOẠI 30 ĐIỂM ĐO THEO CHỖ LẤY MẪU SỐ (đo thật) ─────────────────────────────────────────┐
+ │  Nhóm hành trình        Điểm đo   Phía đo             Mẫu số lấy ở đâu                        │
+ │  ─────────────────────────────────────────────────────────────────────────────────────────   │
+ │  Nộp tiền                  8      server 8/8          hệ lõi — sổ giao dịch                  │
+ │  Rút & chuyển tiền         8      server 8/8          hệ lõi — sổ giao dịch                  │
+ │  Phái sinh VN30F           4      server 4/4          hệ lõi — sổ lệnh                       │
+ │  ─────────────────────────────────────────────────────────────────────────────────────────   │
+ │  = 20/30 điểm đo: MẪU SỐ CÓ SẴN, chỉ cần bên data query. Luồng tiền BUỘC phải có bản ghi lõi │
+ │    vì kế toán/pháp lý — đây là mẫu số vững nhất có thể có, không phải ước lượng.              │
+ │  ─────────────────────────────────────────────────────────────────────────────────────────   │
+ │  Mở tài khoản mới         10      client 9 · server 1                                        │
+ │    bước có KẾT QUẢ nghiệp vụ (kích hoạt TK, ký hợp đồng)  → hệ lõi CÓ bản ghi                │
+ │    bước chỉ là TƯƠNG TÁC (bấm nút, mở form)               → KHÔNG bản ghi nào                │
+ │  = 9 điểm đo client là phần khó thật: không ai ghi lại một cú bấm ngoài chính tracking.       │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ ┌─ NĂM PHƯƠNG PHÁP, XẾP THEO CHI PHÍ / GIÁ TRỊ ────────────────────────────────────────────────┐
+ │                                                                                              │
+ │  1. ĐỐI CHIẾU HỆ LÕI                              áp cho 20/30 điểm đo · chi phí THẤP        │
+ │     Đếm distinct case id trong event, so với số dòng sổ lõi CÙNG NGÀY.                       │
+ │     Ra tỉ lệ bắt được thật, mẫu số cứng, không tranh cãi được.                               │
+ │     ĐIỀU KIỆN: mỗi event phải mang case/transaction id ghép được với lõi.                     │
+ │     Nếu chưa có → đây là mục QUAN TRỌNG NHẤT của bản yêu cầu dữ liệu, hơn cả Bảng D.         │
+ │                                                                                              │
+ │  2. CẶP ĐO HAI ĐƯỜNG (client + server cùng một sự việc)   áp cho đầu phễu · chi phí THẤP     │
+ │     Server không bị chặn, không mất khi app bị kill ⇒ số server là SÀN của sự thật.          │
+ │     client ÷ server = tỉ lệ mất phía client, đo liên tục, không cần ai làm gì thêm mỗi ngày. │
+ │     ĐO ĐƯỢC HÔM NAY: 0 cặp — không điểm chạm nào có cả client và server.                     │
+ │     Việc cần làm: thêm 1–2 event server đối chứng cho bước đầu phễu quan trọng nhất.         │
+ │     Rẻ, làm một lần, dùng mãi.                                                               │
+ │                                                                                              │
+ │  3. MẪU ĐỐI CHỨNG                                 áp cho 9 điểm đo client · chi phí TRUNG    │
+ │     Chạy một tập phiên BIẾT TRƯỚC SỐ LƯỢNG (script QA, hoặc nhóm khách có kiểm soát), đếm    │
+ │     bao nhiêu phiên sinh ra event. Ra tỉ lệ bắt được, suy rộng ra tổng.                      │
+ │     Là cách DUY NHẤT cho event tương tác thuần. Không cho tổng tuyệt đối, chỉ cho TỈ LỆ —    │
+ │     nhưng là tỉ lệ bảo vệ được trước câu hỏi "số này ở đâu ra".                              │
+ │                                                                                              │
+ │  4. PHỄU TỰ NHẤT QUÁN                             chi phí BẰNG 0 · HIỆN ĐANG VÔ HIỆU         │
+ │     Luật: số ca vào bước N phải ≤ số ca xong bước N−1. Vượt là bằng chứng lỗi đo.            │
+ │     ĐO ĐƯỢC: trên cả 6 bước mở tài khoản, "vào bước N" BẰNG ĐÚNG "xong bước N−1", không lệch │
+ │     một ca nào. Tức hai số này KHÔNG phải hai phép đo độc lập — chuỗi được dựng khít.        │
+ │     ⇒ Luật này LUÔN xanh trên dữ liệu hôm nay: chưa bắt được gì, và tuyệt đối đừng trưng nó  │
+ │       như bằng chứng dữ liệu khoẻ.                                                           │
+ │     Vẫn nên bật khi có pipeline thật — lúc đó nó thành cái bẫy miễn phí bắt mất mát thật.    │
+ │                                                                                              │
+ │  5. KHÔNG CÓ MẪU SỐ — khai thẳng                                                             │
+ │     Sẽ có điểm đo không cách nào có mẫu số. Màn phải có trạng thái nói đúng câu đó, thay vì  │
+ │     hiện một tỉ lệ tự tin. Đây là chỗ obs.cov đã chết một lần rồi — đừng để nó mọc lại dưới │
+ │     tên khác.                                                                                │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+SỬA MỘT CHỖ TÔI NÓI HỚ — owner phản biện 07/08: "chỉ có mỗi nguồn đo từ 1 pipeline chảy tới
+thì sao để có tỉ lệ đo được, tôi thấy ko hợp lý"
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+PHẢN BIỆN ĐÚNG. Bản trên viết "khả thi cho 20/30" mà chỉ nêu điều kiện case id — thiếu điều kiện
+quan trọng hơn nhiều.
+
+  ĐIỀU KIỆN THẬT không phải SỐ PIPELINE, mà là SỐ NGUỒN GHI ĐỘC LẬP.
+  Pipeline chỉ là ĐƯỜNG VẬN CHUYỂN. Sổ lõi và luồng event là hai hệ ghi khác nhau, đi cùng một
+  con đường vẫn là hai nguồn. Ngược lại, mười pipeline cùng chở đúng một luồng event thì vẫn là
+  MỘT nguồn — và lúc đó không phép chia nào có nghĩa.
+
+  ⇒ Một nguồn ghi duy nhất: "% đo được của thực tế" KHÔNG TỒN TẠI. Không phải "chưa tính được",
+    không phải việc còn nợ. Đo cái thước bằng chính nó thì mọi con số ra đều là 100%.
+
+ ┌─ NĂM PHƯƠNG PHÁP, XÉT LẠI DƯỚI RÀNG BUỘC "MỘT PIPELINE" ─────────────────────────────────────┐
+ │                                                                                              │
+ │  1. Đối chiếu hệ lõi      ⚠ SỐNG CÓ ĐIỀU KIỆN — chỉ khi pipeline chở CẢ sổ lõi, không chỉ    │
+ │                            luồng event. Nếu nó chỉ chở event thì phương pháp này CHẾT, và     │
+ │                            20/30 điểm đo mất mẫu số. Đây là câu phải hỏi bên data TRƯỚC.      │
+ │                                                                                              │
+ │  2. Cặp đo hai đường      ✔ SỐNG NGUYÊN — và đây là lý do nó lên số 1.                       │
+ │                            Client SDK và server hỏng ĐỘC LẬP NHAU: app bị kill, người dùng   │
+ │                            chặn, mạng đứt → mất phía client, server không mất. Độc lập nằm ở │
+ │                            TẦNG ĐO, không ở tầng vận chuyển ⇒ chung một pipeline vẫn đúng.   │
+ │                                                                                              │
+ │  3. Mẫu đối chứng         ✔ SỐNG NGUYÊN — và là cách DUY NHẤT khi thật sự chỉ có luồng event.│
+ │                            Mẫu số đến từ NGOÀI hệ: mình chạy 500 phiên thì mình BIẾT là 500, │
+ │                            không cần pipeline xác nhận. Đắt về vận hành, nhưng không thể phản │
+ │                            biện được.                                                        │
+ │                                                                                              │
+ │  4. Phễu tự nhất quán     ✔ hợp lệ, nhưng KHÔNG cho độ phủ — chỉ bắt MÂU THUẪN NỘI BỘ.       │
+ │                            Vẫn vô hiệu trên dữ liệu hôm nay (chuỗi dựng khít, xem trên).     │
+ │                                                                                              │
+ │  5. Không có mẫu số       ✔ và giờ là trạng thái CHÍNH, không phải trường hợp còn lại.       │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ ┌─ CHỈ CÓ MỘT NGUỒN THÌ ĐO ĐƯỢC GÌ? (không phải độ phủ, nhưng là lỗi thật) ────────────────────┐
+ │                                                                                              │
+ │  a. Giá trị lạ         giá trị đến mà chưa từng khai ⇒ bản khai và thực tế đã lệch.          │
+ │                        Cần: bản khai + luồng event. KHÔNG cần nguồn thứ hai.                 │
+ │  b. Trùng lặp          cùng case id + cùng loại event + cùng mốc, đến nhiều lần.             │
+ │  c. Mồ côi tham chiếu  event trỏ case id không có trong bảng ca.                             │
+ │  d. Đến muộn           event của ngày D đến sau khi cửa sổ D+1 đã đóng. Đo trực tiếp được    │
+ │                        "hôm qua tính số thì đã thiếu bao nhiêu" — số này RẤT đáng giá dưới   │
+ │                        nhịp T-1.                                                             │
+ │  e. Manifest giao hàng pipeline TỰ KHAI nó gửi bao nhiêu dòng mỗi bảng mỗi ngày, load thành  │
+ │                        công/thất bại/một phần. Không chứng minh được đầy đủ so với thực tế,  │
+ │                        nhưng bắt được MẤT MÁT PHÍA PIPELINE — thứ mà nhìn từ trong dữ liệu   │
+ │                        thì vô hình.                                                          │
+ │                                                                                              │
+ │  Năm thứ này là lỗi ĐẾM ĐƯỢC, mẫu số rõ, không cần nguồn thứ hai. Nhưng phải gọi đúng tên:   │
+ │  chúng là ĐỘ TIN CẬY CỦA DỮ LIỆU NHẬN ĐƯỢC, không phải ĐỘ PHỦ SO VỚI THỰC TẾ. Trộn hai thứ   │
+ │  này là đúng cách obs.cov đã sinh ra.                                                        │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+OWNER CHỐT 07/08 — BỎ HẲN TẦNG ②
+"coi như pipeline data chỉ là 1 nguồn, bỏ mẫu số đi vì ko có nguồn khác để so sánh độ phủ
+thực tế, khả năng chỉ chở event thôi"
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+QUYẾT ĐỊNH: màn Điểm đo KHÔNG khai độ phủ so với thực tế. Không phải hoãn — BỎ.
+Phương pháp 1 (đối chiếu sổ lõi) và 3 (mẫu đối chứng) RỜI KHỎI phạm vi.
+Phương pháp 2 (cặp client/server) là cửa duy nhất quay lại nếu sau này owner muốn — ghi lại một
+dòng ở đây để không phải tìm lại, KHÔNG đưa vào kế hoạch.
+
+MÀN CÒN HAI TẦNG, KHÔNG PHẢI BA:
+
+ ┌─ ① CÓ ĐO KHÔNG? ──────────────────────┬─ ② DỮ LIỆU NHẬN ĐƯỢC CÓ TIN ĐƯỢC KHÔNG? ────────────┐
+ │  Kiểm kê thiết bị đo. ĐẾM ĐƯỢC HẾT     │  Độ tin cậy của cái ĐÃ NHẬN.                        │
+ │  ngay hôm nay, trên dữ liệu thật.      │  KHÔNG phải độ phủ so với thực tế.                  │
+ │                                        │                                                     │
+ │  25/30 điểm đo đang chở lưu lượng      │  Tính được HÔM NAY — đúng một số:                    │
+ │   5     khai mà chưa chạy              │    lỗi đo (nhãn "thiếu")  2,4% ở nguồn lead         │
+ │   9/30  bước không có cái nào đang chạy│                            0% bốn chiều còn lại      │
+ │   ↳ 7   không có cái nào               │                                                     │
+ │  20/30  điểm đo không nuôi chỉ số nào  │  Chờ pipeline — 5 ô trống, có tên người nợ:          │
+ │   2/6   chỉ số không điểm đo nào nuôi  │    ▨ giá trị lạ        ▨ trùng lặp                  │
+ │                                        │    ▨ mồ côi tham chiếu ▨ đến muộn                   │
+ │  ĐÂY LÀ NỘI DUNG THẬT CỦA MVP.         │    ▨ manifest giao hàng                             │
+ └────────────────────────────────────────┴─────────────────────────────────────────────────────┘
+
+ ┌─ CÂU PHẢI IN TRÊN MÀN, KHÔNG chỉ ghi trong tài liệu ─────────────────────────────────────────┐
+ │                                                                                              │
+ │   "Màn này KHÔNG nói được đang đo bao nhiêu phần của thực tế. Dữ liệu chỉ đến từ một          │
+ │    nguồn ghi duy nhất, nên không có gì để so. Mọi số ở đây là về CÁI ĐÃ NHẬN ĐƯỢC."          │
+ │                                                                                              │
+ │   Vì sao phải in ra thay vì ghi trong charter: obs.cov sống được một năm vì không ai hỏi nó   │
+ │   là phần trăm CỦA CÁI GÌ. Giới hạn nằm trong tài liệu thì lần tới có người thêm lại một cột │
+ │   "% độ phủ" và không ai chặn. Giới hạn in trên màn thì người thêm phải xoá câu đó trước —    │
+ │   và lúc đó việc thêm thành một quyết định có chủ ý, không phải tai nạn.                      │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ ĐO ĐƯỢC BAO NHIÊU TRONG NĂM Ô CHỜ, TRÊN FIXTURE HÔM NAY: gần như không.
+   giá trị lạ        sigCounts hiện SINH TỪ bản khai ⇒ "0 lệch" là hệ quả cách sinh số, không
+                     phải bằng chứng. Cần số đếm ĐỘC LẬP với bản khai.
+   trùng lặp         cần dòng event thô có case id + mốc. Fixture chỉ có số đã cộng.
+   mồ côi tham chiếu cần dòng event thô. (Riêng obs mồ côi đã có luật ở nhóm 12 sau lát I2.)
+   đến muộn          cần mốc phát sinh + mốc nhận. Fixture không có.
+   manifest          không có gì trong fixture.
+
+ ⇒ Tầng ② hôm nay là MỘT số thật + NĂM ô chờ. Đúng khuôn Bảng D: chừa ô, ghi tên người nợ,
+   không bịa. Và điều đó làm nội dung thật của MVP dồn về tầng ① + hồ sơ từng điểm đo —
+   đúng thứ owner đặt ở QĐ 9.
+
+BẢN YÊU CẦU DỮ LIỆU — thu gọn lại, tất cả nằm trong "chỉ chở event"
+   BỎ:   số ca thật mỗi bước từ hệ lõi (chết cùng phương pháp 1)
+   GIỮ:  Bảng D (screen/route/element) · mốc thấy cuối máy sinh · mốc số liệu asOf
+   THÊM: dòng event thô hoặc tối thiểu (case id · tên event · mốc phát sinh · mốc nhận)
+         → mở được 3 ô: trùng lặp, mồ côi, đến muộn
+         số đếm giá trị ĐỘC LẬP với bản khai  → mở ô giá trị lạ
+         manifest giao hàng theo bảng theo ngày → mở ô manifest
+   Bốn mục thêm/giữ này KHÔNG cần nguồn ghi thứ hai — hỏi được ngay.

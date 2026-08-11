@@ -1,0 +1,127 @@
+PROTOTYPE ASCII — MÀN ĐIỂM ĐO (#/signals) · bản brainstorm 07/08/2026
+Mọi con số dưới đây ĐO THẬT trên fixture, không bịa. Chỗ nào không tính được thì ghi rõ là không tính được.
+
+⚠ KHUNG ③ Ở MÀN 1 ĐÃ BỊ THAY THẾ — owner chốt 07/08 phương án (a): CHỈ nhãn "thiếu" tính là lỗi đo.
+  Khung ③ đúng + bảng phương pháp đo mẫu số: output/ascii-diem-do-phuong-phap-mau-so.txt
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+MÀN 1 — TỔNG QUAN: BA CÂU HỎI TÁCH RỜI
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+  Điểm đo                                        Số liệu tính đến 27/07/2026 · Demo Mode: BẬT
+ ───────────────────────────────────────────────────────────────────────────────────────────────
+
+  Ba câu hỏi dưới đây KHÔNG cộng được thành một điểm số. Gộp lại là cách một con số biết nói dối.
+
+ ┌─ ① CÓ ĐO KHÔNG? ─────────────┬─ ② ĐO ĐƯỢC BAO NHIÊU PHẦN ───┬─ ③ ĐO RỒI, DÙNG ĐƯỢC BAO NHIÊU? ─┐
+ │  đếm được hôm nay            │    CỦA THỰC TẾ?              │  đếm được, nhưng phải đọc kỹ     │
+ │                              │                              │                                  │
+ │  25 / 30  điểm đo đang chở   │   ✗  CHƯA TRẢ LỜI ĐƯỢC       │  39.745  event/ngày đếm được     │
+ │           lưu lượng          │                              │                                  │
+ │                              │   Thiếu MẪU SỐ: không có số  │  Gán được vào chiều phân tích:   │
+ │   5       khai mà chưa chạy  │   ca thật từ hệ lõi           │   nền tảng      100%  ████████   │
+ │           (3 dự định · 2 gap)│                              │   NAV            79%  ██████▌    │
+ │                              │   Đã thử chia lưu lượng cho  │   hạng giá trị   79%  ██████▌    │
+ │   9 / 30  bước KHÔNG có điểm │   số ca vào bước → ra        │   nguồn lead     76%  ██████     │
+ │           đo nào đang chạy   │   0% … 309%                  │   tuổi           59%  ████▌      │
+ │           ↳ 7 không có cái nào│                             │                                  │
+ │                              │   309% chứng minh hai thứ    │  ⚠ 21–41% "không gán được" KHÔNG │
+ │  20 / 30  điểm đo không nuôi │   KHÁC ĐƠN VỊ — một ca sinh  │    phải toàn bộ là lỗi. Xem ③b.  │
+ │           chỉ số nào         │   nhiều event.                │                                  │
+ │                              │                              │                                  │
+ │   2 / 6   chỉ số không có    │   → Cần: số ca THẬT mỗi bước │                                  │
+ │           điểm đo nào nuôi   │     mỗi ngày, từ hệ lõi      │                                  │
+ └──────────────────────────────┴──────────────────────────────┴──────────────────────────────────┘
+
+ ┌─ ③b · BA LOẠI "KHÔNG GÁN ĐƯỢC" — tách hẳn, không gộp ────────────────────────────────────────┐
+ │                                                                                              │
+ │   chưa định danh   Khách chưa đăng nhập / chưa có hồ sơ lúc event xảy ra.                     │
+ │                    ✔ HỢP LỆ — đúng bản chất nghiệp vụ, KHÔNG phải lỗi dữ liệu.               │
+ │                    Đầu phễu mở tài khoản thì hầu hết event là loại này.                      │
+ │                                                                                              │
+ │   chưa-biết        Có hồ sơ khách, nhưng trường đó chưa từng được ghi.                        │
+ │                    → Đây là việc của bên nghiệp vụ, không phải lỗi đo.                       │
+ │                                                                                              │
+ │   thiếu            Đáng lẽ có mà không thấy. → ĐÂY MỚI LÀ LỖI DỮ LIỆU.                       │
+ │                                                                                              │
+ │   Ba nhãn này đã có sẵn trong dữ liệu đếm. Trộn chúng thành một con số "data xấu %" là        │
+ │   biến bản chất nghiệp vụ thành báo động giả.                                                │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ ┌─ BẢNG 30 ĐIỂM ĐO ────────────────────────────────────────────────────────────────────────────┐
+ │ Điểm đo                      Đo ở đâu      Chạy   Lưu lượng  Gán được  Nuôi chỉ số  Trạng thái│
+ │ ──────────────────────────────────────────────────────────────────────────────────────────── │
+ │ account_open_started         client·3 nền   ●     614/ngày     8%  ▏    m-completion   tin dùng│
+ │ account_open_form_submit     client·3 nền   ●   2.840/ngày     7%  ▏    —              tin dùng│
+ │ ekyc_document_capture        client·2 nền   ●     920/ngày    53%  ███  m-ocr          tin dùng│
+ │ ekyc_document_fail_reason    client·2 nền   ●     410/ngày    70%  ████ m-ocr        đang k.chứng│
+ │ nap_tien_khoi_tao            server·1 nền   ●   9.640/ngày    61%  ███▌ —              tin dùng│
+ │ nap_tien_ket_qua             server·1 nền   ●   9.510/ngày    ..%       —            đang k.chứng│
+ │ …                                                                                            │
+ │ rut_tien_xac_thuc            server·1 nền   ○         0       —         —            biết thiếu│
+ │ ──────────────────────────────────────────────────────────────────────────────────────────── │
+ │ ● đang chở lưu lượng   ○ chưa chạy                                                           │
+ │ Cột "Gán được" thấp ở ĐẦU PHỄU là bình thường — khách chưa định danh. Xem ③b.                │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+MÀN 2 — HỒ SƠ MỘT ĐIỂM ĐO (bấm vào một dòng ở bảng trên)
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+  ← Điểm đo   /   account_open_form_submit                    Số liệu tính đến 27/07/2026
+ ───────────────────────────────────────────────────────────────────────────────────────────────
+  "Khách bấm Gửi hồ sơ mở tài khoản"
+
+ ┌─ ĐO NHƯ THẾ NÀO TRÊN HỆ THỐNG ───────────────────────────────────────────────────────────────┐
+ │  Tên event      account_open_form_submit                                                     │
+ │  Phía           client   ← dữ liệu client có thể mất do chặn/tắt app, không như server        │
+ │  Nền tảng       iOS · Android · Web                                                          │
+ │  Mã trạm        JS-MTK-01        ⚠ chưa ai đối chiếu với tracking plan thật                   │
+ │  ────────────────────────────────────────────────────────────────────────────────────────    │
+ │  Tên screen     ▨ chờ Bảng D — team data/mobile                                              │
+ │  Route/deeplink ▨ chờ Bảng D                                                                 │
+ │  ID element     ▨ chờ Bảng D                                                                 │
+ │                 ▨ = chưa có dữ liệu. Ô trống thật, KHÔNG lấp bằng mô tả nghiệp vụ.          │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ ┌─ ĐƯỢC ALLOCATE THẾ NÀO ──────────────────────────────────────────────────────────────────────┐
+ │  Điểm chạm   Form mở tài khoản (kênh app)                                                    │
+ │    └─ Bước     01 Khởi tạo hồ sơ                                                             │
+ │        └─ Hành trình   Mở tài khoản cơ sở 2026                                               │
+ │            └─ Nhóm       Onboarding · Phase   Mở tài khoản                                   │
+ │                └─ Ai chịu trách nhiệm   Onboarding Squad   ← suy từ hành trình, không khai riêng│
+ │                                                                                              │
+ │  Nuôi chỉ số nào   ⚠ CHƯA NUÔI CHỈ SỐ NÀO                                                    │
+ │                    Đo 2.840 lượt/ngày mà không chảy vào chỉ số nào — hoặc gắn vào một chỉ số,│
+ │                    hoặc nói rõ vì sao đo. 20/30 điểm đo đang ở tình trạng này.               │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ ┌─ XỬ LÝ THẾ NÀO ──────────────────────────────────────────────────────────────────────────────┐
+ │  Trạng thái    ĐANG CHẠY  ✔ (suy từ lưu lượng)   ·   TIN DÙNG  ✔ (người khai)                │
+ │                Hai trục RỜI: có chạy ≠ có tin. Một điểm đo chạy 9.510 lượt/ngày mà chưa được │
+ │                đánh dấu tin dùng thì số của nó chưa ai duyệt cho vào chỉ số.                 │
+ │  Lưu lượng     2.840 / ngày   (số của ngày 27/07 — KHÔNG phải mức ổn định)                    │
+ │  Thấy lần cuối 27/07 · 14:52  ← mốc do người khai, KHÔNG tính được "im lặng bao lâu" từ nó   │
+ │  Nguồn chở nó  ▨ chưa nối được vào nguồn nào trong danh sách hiện tại (danh sách còn tạm)    │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+ ┌─ CÁC GIÁ TRỊ NÓ PHÁT RA ─────────────────────────────────────────────────────────────────────┐
+ │  Đã khai   submitted                                                                         │
+ │  Cắt theo  [Nguồn lead] [NAV] [Tuổi] [Hạng giá trị] [Nền tảng]   ← 5 chiều cố định           │
+ │                                                                                              │
+ │            submitted × NAV                                                                   │
+ │            chưa định danh  ██████████████████████████████████████  2.627   93%               │
+ │            <50tr           █▏                                         84    3%               │
+ │            50-200tr        ▊                                          61    2%               │
+ │            200tr-1tỷ       ▌                                          43    2%               │
+ │            1-5tỷ          ▏                                           18    1%               │
+ │            5tỷ+           ▏                                            7    0%               │
+ │            ─────────────────────────────────────────────────────────────────                │
+ │            Mẫu số 2.840 · 93% chưa định danh Ở ĐÂY LÀ ĐÚNG: khách bấm Gửi hồ sơ thì chưa    │
+ │            có hồ sơ nên chưa có NAV. Đừng đọc thành "mất 93% dữ liệu".                       │
+ │                                                                                              │
+ │  ⚠ Chưa kiểm được giá trị lạ: số đếm hiện SINH TỪ chính bản khai, nên "0 giá trị ngoài khai  │
+ │    báo" là hệ quả của cách sinh số, KHÔNG phải bằng chứng dữ liệu sạch. Chỉ khi pipeline giao │
+ │    số đếm ĐỘC LẬP thì cột này mới nói được điều gì.                                          │
+ └──────────────────────────────────────────────────────────────────────────────────────────────┘

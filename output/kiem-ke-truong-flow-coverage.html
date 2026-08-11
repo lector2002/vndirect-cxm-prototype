@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kiểm kê trường — flow data &amp; coverage</title>
+<style>
+:root{
+  --bg:#FAF8F5; --card:#fff; --ink:#1C1A17; --ink2:#4A453E; --ink3:#7C756B;
+  --line:#E5E0D8; --primary:#D9531E;
+  --nguoi:#5B4FBE; --nguoi-bg:#EFEDFB;
+  --data:#1F7A5A; --data-bg:#E7F4EF;
+  --suy:#B26A00; --suy-bg:#FDF2DF;
+  --xau:#C0392B; --xau-bg:#FBECEA;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#171614; --card:#201E1B; --ink:#F2EEE8; --ink2:#C6BFB4; --ink3:#948C81;
+    --line:#332F2A; --primary:#F0763F;
+    --nguoi:#A79BFF; --nguoi-bg:#272449;
+    --data:#5FD3A8; --data-bg:#12332A;
+    --suy:#E7A83C; --suy-bg:#3A2B12;
+    --xau:#F2705E; --xau-bg:#3B1E1A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#171614; --card:#201E1B; --ink:#F2EEE8; --ink2:#C6BFB4; --ink3:#948C81;
+  --line:#332F2A; --primary:#F0763F;
+  --nguoi:#A79BFF; --nguoi-bg:#272449;
+  --data:#5FD3A8; --data-bg:#12332A;
+  --suy:#E7A83C; --suy-bg:#3A2B12;
+  --xau:#F2705E; --xau-bg:#3B1E1A;
+}
+:root[data-theme="light"]{
+  --bg:#FAF8F5; --card:#fff; --ink:#1C1A17; --ink2:#4A453E; --ink3:#7C756B;
+  --line:#E5E0D8; --primary:#D9531E;
+  --nguoi:#5B4FBE; --nguoi-bg:#EFEDFB;
+  --data:#1F7A5A; --data-bg:#E7F4EF;
+  --suy:#B26A00; --suy-bg:#FDF2DF;
+  --xau:#C0392B; --xau-bg:#FBECEA;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 20px 72px}
+h1{font-size:26px;line-height:1.25;margin:0 0 6px;letter-spacing:-.02em}
+.sub{color:var(--ink3);font-size:13.5px;margin:0 0 28px}
+h2{font-size:18px;margin:38px 0 12px;letter-spacing:-.01em;
+  padding-bottom:7px;border-bottom:2px solid var(--line)}
+h3{font-size:14.5px;margin:22px 0 8px;color:var(--ink2)}
+p{margin:0 0 12px;color:var(--ink2)}
+code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+  background:var(--nguoi-bg);color:var(--ink);padding:1px 5px;border-radius:3px}
+@media (prefers-color-scheme:dark){code{background:#2C2924}}
+:root[data-theme="dark"] code{background:#2C2924}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:18px 20px;margin:0 0 16px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border:1px solid var(--line);border-radius:10px;background:var(--card);margin:0 0 18px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--bg);font-weight:650;font-size:12px;letter-spacing:.03em;
+  text-transform:uppercase;color:var(--ink3);position:sticky;top:0}
+tr:last-child td{border-bottom:none}
+td.f{white-space:nowrap;font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+.tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;
+  padding:2px 8px;border-radius:20px;white-space:nowrap}
+.t-nguoi{background:var(--nguoi-bg);color:var(--nguoi)}
+.t-data{background:var(--data-bg);color:var(--data)}
+.t-suy{background:var(--suy-bg);color:var(--suy)}
+.t-xau{background:var(--xau-bg);color:var(--xau)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 20px}
+.legend div{flex:1 1 220px;background:var(--card);border:1px solid var(--line);
+  border-radius:9px;padding:12px 14px}
+.legend p{margin:7px 0 0;font-size:12.5px;line-height:1.5}
+.ent{font-weight:700;font-size:12px;color:var(--primary);letter-spacing:.04em;
+  text-transform:uppercase}
+.warn{border-left:3px solid var(--xau);background:var(--xau-bg);
+  border-radius:0 8px 8px 0;padding:14px 16px;margin:0 0 16px}
+.warn p{color:var(--ink)}
+.warn b{color:var(--xau)}
+.ok{border-left:3px solid var(--data);background:var(--data-bg);
+  border-radius:0 8px 8px 0;padding:14px 16px;margin:0 0 16px}
+.ok p{color:var(--ink)}
+ul{margin:0 0 12px;padding-left:22px;color:var(--ink2)}
+li{margin:0 0 6px}
+.small{font-size:12.5px;color:var(--ink3)}
+.kpi{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 20px}
+.kpi div{flex:1 1 150px;background:var(--card);border:1px solid var(--line);
+  border-radius:9px;padding:14px 16px}
+.kpi b{display:block;font-size:24px;line-height:1.1;letter-spacing:-.02em}
+.kpi span{font-size:12px;color:var(--ink3);display:block;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Kiểm kê trường — miền “flow data &amp; coverage”</h1>
+<p class="sub">Đo trên <code>seed</code> và <code>demoData</code> ngày 07/08/2026 · mọi con số dưới đây
+đếm trực tiếp từ fixture hoặc trích số dòng code, không lấy từ tài liệu cũ.</p>
+
+<div class="card">
+<p><b>Câu hỏi cần trả lời:</b> trường nào <i>buộc</i> phải do người khai, trường nào dữ liệu mang về
+được, và trường nào đang tự khai <i>trong khi</i> hệ đã đủ dữ kiện để suy ra. Chỉ sau khi phân loại
+xong mới chốt được MVP nên hiện cái gì.</p>
+<p style="margin:0"><b>Nguyên tắc này dự án đã có sẵn</b> — <code>data/rawFields.ts</code> tách
+“danh mục dữ kiện hệ thống thật sự biết” khỏi “cách chia dữ kiện đó”, kèm câu:
+<i>“Owner định nghĩa cách chia, không tạo ra dữ liệu.”</i> Bản kiểm kê này chỉ là áp cùng nguyên tắc
+đó cho flow / bước / điểm đo / nguồn / chỉ số.</p>
+</div>
+
+<h2>Bốn loại trường</h2>
+<div class="legend">
+  <div><span class="tag t-nguoi">NGƯỜI</span>
+    <p>Phán đoán hoặc khai báo cấu trúc mà không dữ liệu nào sinh ra được. Đây là phần MVP
+    <b>phải</b> để người nhập, và phải nói rõ ai chịu trách nhiệm.</p></div>
+  <div><span class="tag t-data">DỮ LIỆU</span>
+    <p>Số đo thật, pipeline phải mang về. Hiện đang gõ tay trong fixture — hợp lệ vì đang ở
+    Demo Mode, nhưng phải nằm trong bản yêu cầu dữ liệu.</p></div>
+  <div><span class="tag t-suy">SUY ĐƯỢC</span>
+    <p>Đang lưu như một trường riêng, nhưng đã có sẵn dữ kiện để tính ra. Lưu hai bản của cùng một
+    sự thật ⇒ hai bản sẽ lệch nhau.</p></div>
+  <div><span class="tag t-xau">GIẢ VỜ LÀ SỐ ĐO</span>
+    <p>Người gõ vào, nhưng hiển thị như thứ đo được. Không kiểm được, không truy được nguồn.</p></div>
+</div>
+
+<h2>Bảng kiểm kê</h2>
+
+<h3><span class="ent">Flow</span> — 9 trường</h3>
+<div class="scroll"><table>
+<thead><tr><th>Trường</th><th>Loại</th><th>Căn cứ</th></tr></thead>
+<tbody>
+<tr><td class="f">id · groupId</td><td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Định danh và vị trí trong cây phase → group → flow.</td></tr>
+<tr><td class="f">name · note</td><td><span class="tag t-nguoi">NGƯỜI</span></td><td>—</td></tr>
+<tr><td class="f">owner</td><td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Ai chịu trách nhiệm flow này. Không suy được từ bất cứ đâu, và là thứ MVP cần nhất để
+  “quy được trách nhiệm”.</td></tr>
+<tr><td class="f">version</td><td><span class="tag t-nguoi">NGƯỜI</span></td><td>—</td></tr>
+<tr><td class="f">src</td><td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Trích dẫn sơ đồ nguồn, vd <code>Money Journey · Sơ đồ 5</code>. Người khai, nhưng
+  <b>kiểm được bằng tay</b> — mở <code>docs/money-journey-mermaid.html</code> /
+  <code>account-journey-mermaid.html</code> ra đối chiếu. <code>validate.ts:318-332</code> đã kiểm
+  biên số sơ đồ (AJ ≤ 13, MJ ≤ 7).</td></tr>
+<tr><td class="f">verified</td><td><span class="tag t-suy">SUY ĐƯỢC</span></td>
+  <td><code>validate.ts:314</code> ép <code>verified === true ⟺ src !== '—'</code>. Tức trường này
+  <b>không mang thêm một bit thông tin nào</b> ngoài <code>src</code>. Đếm xác nhận: 25 flow
+  <code>verified:true</code> ⟷ 25 flow có <code>src</code> khác <code>'—'</code>.</td></tr>
+<tr><td class="f">observed</td><td><span class="tag t-suy">SUY ĐƯỢC</span></td>
+  <td><code>validate.ts:339-346</code> ép <code>observed === true ⟺ flow có ≥1 bước, và mọi bước
+  có obs</code>. Cũng không mang thêm bit nào. Đếm xác nhận: 6 flow <code>observed:true</code> ⟷
+  đúng 6 flow có bước.</td></tr>
+</tbody></table></div>
+
+<div class="ok"><p><b>Hệ quả:</b> “ba trạng thái flow” mà màn Atlas đang vẽ
+(<code>AtlasPage.tsx:36,42</code>) <b>vốn đã là số suy ra</b> — chỉ đang bị lưu thêm một bản
+trong fixture, với <code>validate.ts</code> làm keo giữ hai bản khớp nhau. Bỏ hai cờ này
+<b>không thể làm đổi bất kỳ thứ gì đang hiện trên màn</b>, và bỏ luôn được hai nhóm luật.</p></div>
+
+<h3><span class="ent">Step</span> — 6 trường</h3>
+<div class="scroll"><table>
+<thead><tr><th>Trường</th><th>Loại</th><th>Căn cứ</th></tr></thead>
+<tbody>
+<tr><td class="f">id · flowId · code · name</td><td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Chép từ sơ đồ nguồn. Đây chính là việc chưa làm cho 19 flow.</td></tr>
+<tr><td class="f">stationId</td><td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Khoá nối sang tracking plan thật (<code>template/tracking-plan-cx-mau.xlsx</code>).
+  <b>Đây là cây cầu duy nhất</b> từ bản khai bước sang dữ liệu event thật — nên nó là trường
+  quan trọng nhất trong cả bảng này, và hiện không ai kiểm nó có tồn tại bên tracking plan không.</td></tr>
+<tr><td class="f">owner</td><td><span class="tag t-nguoi">NGƯỜI</span></td><td>—</td></tr>
+</tbody></table></div>
+
+<h3><span class="ent">Obs</span> — 6 trường (số quan sát của một bước)</h3>
+<div class="scroll"><table>
+<thead><tr><th>Trường</th><th>Loại</th><th>Căn cứ</th></tr></thead>
+<tbody>
+<tr><td class="f">entered · completed · failed</td><td><span class="tag t-data">DỮ LIỆU</span></td>
+  <td>Đếm được từ event stream nếu <code>stationId</code> nối đúng.</td></tr>
+<tr><td class="f">effort</td><td><span class="tag t-data">DỮ LIỆU</span></td>
+  <td>Số lần thử trung bình — đếm được.</td></tr>
+<tr><td class="f">cov</td><td><span class="tag t-xau">GIẢ VỜ LÀ SỐ ĐO</span></td>
+  <td>Không hàm nào suy ra nó, nhưng UI diễn giải rất cụ thể:
+  <code>AtlasCoverageTab.tsx:58</code> viết <i>“Còn (100−cov)% trường hợp thất bại chưa biết lý
+  do”</i>. Tức nó tự định nghĩa là <b>tỉ lệ ca rớt đọc được lý do</b> — mẫu số
+  <code>obs.failed</code>, tử số là số ca rớt có mã lý do. Fixture <b>không có tử số đó</b>.
+  Thêm bằng chứng nó không truy được nguồn: <code>AtlasCoverageTab.tsx:39</code> dán
+  <code>srcNote="Mobile SDK event registry"</code> <b>cứng cho mọi bước</b>, kể cả bước không đi
+  qua mobile.</td></tr>
+</tbody></table></div>
+
+<h3><span class="ent">Touchpoint</span> — 7 trường</h3>
+<div class="scroll"><table>
+<thead><tr><th>Trường</th><th>Loại</th><th>Căn cứ</th></tr></thead>
+<tbody>
+<tr><td class="f">id · stepId · name · channel · owner · desc</td>
+  <td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Điểm chạm nào thuộc bước nào — khai báo cấu trúc.</td></tr>
+<tr><td class="f">users</td><td><span class="tag t-data">DỮ LIỆU</span></td><td>Đếm được.</td></tr>
+</tbody></table></div>
+
+<h3><span class="ent">Signal</span> — 11 trường (thiết bị đo)</h3>
+<div class="scroll"><table>
+<thead><tr><th>Trường</th><th>Loại</th><th>Căn cứ</th></tr></thead>
+<tbody>
+<tr><td class="f">id · tpId · name · pf · es · desc</td>
+  <td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Khai báo: điểm đo này gắn vào điểm chạm nào, chạy trên nền tảng nào.</td></tr>
+<tr><td class="f">st</td><td><span class="tag t-suy">SUY ĐƯỢC</span> + <span class="tag t-nguoi">NGƯỜI</span></td>
+  <td><b>Một trường đang chở hai chuyện khác nhau.</b> <code>live</code> so với không-live
+  <i>suy được</i> từ <code>vol</code> và <code>seen</code> — có bắn hay không là chuyện đếm.
+  Nhưng <code>designed</code> so với <code>gap</code> (mới có spec / chưa instrument) là
+  <i>ý định của người</i>, không dữ liệu nào nói được. Đo hiện tại:
+  <code>live=21 · validating=4 · designed=3 · gap=2</code>.</td></tr>
+<tr><td class="f">vol · seen</td><td><span class="tag t-data">DỮ LIỆU</span></td>
+  <td>Bắn bao nhiêu, lần cuối thấy khi nào.</td></tr>
+<tr><td class="f">metrics</td><td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Điểm đo này nuôi chỉ số nào — phán đoán. Đo được: <b>20/30 signal không nuôi chỉ số
+  nào</b>, và <code>m-ces</code> + <code>m-repeat</code> <b>không có signal nào</b> nuôi.</td></tr>
+<tr><td class="f">values</td><td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Đội dữ liệu khai — schema đã ghi rõ <i>“KHÔNG quét ngược từ dữ liệu”</i>
+  (<code>schema/journey.ts:79-83</code>).</td></tr>
+</tbody></table></div>
+
+<h3><span class="ent">Source</span> — 10 trường (nguồn dữ liệu)</h3>
+<div class="scroll"><table>
+<thead><tr><th>Trường</th><th>Loại</th><th>Căn cứ</th></tr></thead>
+<tbody>
+<tr><td class="f">id · name · kind · pf · voice · note</td>
+  <td><span class="tag t-nguoi">NGƯỜI</span></td><td>Khai báo nguồn.</td></tr>
+<tr><td class="f">vol · last</td><td><span class="tag t-data">DỮ LIỆU</span></td>
+  <td>Khối lượng và lần nhận cuối.</td></tr>
+<tr><td class="f">lagH</td><td><span class="tag t-suy">SUY ĐƯỢC</span></td>
+  <td>Số giờ trễ — cùng một sự thật với <code>last</code>, lưu hai lần và
+  <b>không luật nào đối chiếu hai trường này</b>.</td></tr>
+<tr><td class="f">metrics</td><td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Nguồn này nuôi chỉ số nào — phán đoán, và là <b>một trong hai bản</b> của cùng mối quan hệ
+  (xem <code>Metric.source</code> dưới).</td></tr>
+</tbody></table></div>
+
+<h3><span class="ent">Metric</span> — 10 trường (chỉ số)</h3>
+<div class="scroll"><table>
+<thead><tr><th>Trường</th><th>Loại</th><th>Căn cứ</th></tr></thead>
+<tbody>
+<tr><td class="f">id · name · unit · grain · formula</td>
+  <td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Định nghĩa chỉ số. Không thay được bằng máy.</td></tr>
+<tr><td class="f">target</td><td><span class="tag t-nguoi">NGƯỜI</span></td>
+  <td>Mục tiêu nghiệp vụ.</td></tr>
+<tr><td class="f">owner</td><td><span class="tag t-nguoi">NGƯỜI</span></td><td>—</td></tr>
+<tr><td class="f">value</td><td><span class="tag t-data">DỮ LIỆU</span></td>
+  <td>Giá trị hiện tại.</td></tr>
+<tr><td class="f">source</td><td><span class="tag t-xau">GIẢ VỜ LÀ SỐ ĐO</span></td>
+  <td>Chuỗi chữ tự do (vd <code>"SmartCA + Account service"</code>), <b>trùng vai</b> với
+  <code>Source.metrics[]</code> mà <b>không khớp ở 3/6 chỉ số</b> — xem bảng lệch dưới.</td></tr>
+<tr><td class="f">freshness</td><td><span class="tag t-suy">SUY ĐƯỢC</span></td>
+  <td>Chuỗi <code>"Snapshot · trễ N giờ"</code> gõ tay. <b>Hàm sinh đúng chuỗi này đã có sẵn
+  trong code</b>: <code>domain/sources.ts:114 lagText(lagH)</code>. Fixture gõ một bản sao, và
+  bản sao <b>lệch ở 3/6 chỉ số</b>.</td></tr>
+</tbody></table></div>
+
+<h2>Bốn chỗ lệch đã đo được</h2>
+
+<div class="warn"><p><b>1 · Chuỗi độ tươi của chỉ số lệch với nguồn nuôi nó — 3/6.</b>
+Đây không phải lỗi chính tả: nó là một derivation bị gõ tay rồi trôi khỏi gốc.</p></div>
+
+<div class="scroll"><table>
+<thead><tr><th>Chỉ số</th><th>Nguồn nối tới (<code>Source.metrics[]</code>)</th>
+<th><code>lagText()</code> đúng phải là</th><th><code>freshness</code> đang khai</th><th></th></tr></thead>
+<tbody>
+<tr><td class="f">m-completion</td><td class="f">src-ga (lagH 4)</td><td>trễ 4 giờ</td><td>trễ 4 giờ</td><td>khớp</td></tr>
+<tr><td class="f">m-liveness</td><td class="f">src-ekyc (lagH 6)</td><td>trễ 6 giờ</td><td>trễ 6 giờ</td><td>khớp</td></tr>
+<tr><td class="f">m-ces</td><td class="f">src-survey (lagH 12)</td><td>trễ 12 giờ</td><td>trễ 12 giờ</td><td>khớp</td></tr>
+<tr><td class="f">m-ocr</td><td class="f">src-ekyc (lagH 6)</td><td>trễ 6 giờ</td>
+  <td><b style="color:var(--xau)">trễ 4 giờ</b></td><td>lệch</td></tr>
+<tr><td class="f">m-repeat</td><td class="f">src-case (lagH 2) <b>+ src-zalo (lagH 192)</b></td>
+  <td>phải nói cả hai — nguồn xấu nhất là <b>8 ngày</b></td>
+  <td><b style="color:var(--xau)">trễ 2 giờ</b></td><td>chỉ kể nguồn tốt</td></tr>
+<tr><td class="f">m-contract</td><td class="f"><b style="color:var(--xau)">không nguồn nào</b></td>
+  <td>không có căn cứ nào để nói</td><td><b style="color:var(--xau)">trễ 4 giờ</b></td>
+  <td>bịa</td></tr>
+</tbody></table></div>
+
+<div class="warn"><p><b>2 · <code>Metric.source</code> (chữ) không khớp
+<code>Source.metrics[]</code> (quan hệ).</b> Hai bản của cùng một mối quan hệ, không luật nào
+đối chiếu:</p>
+<ul style="margin-bottom:0">
+<li><code>m-contract</code> khai chữ là <code>"SmartCA + Account service"</code> — <b>không có
+dòng nguồn nào</b> mang tên đó trong danh sách 7 nguồn, nên quan hệ không nối tới được. Nói đúng
+phải là <i>“chỉ số khai nguồn bằng chữ nhưng không nối được vào nguồn nào trong danh sách hiện
+tại”</i>, chứ không phải “chỉ số không có nguồn”.</li>
+<li><code>m-ocr</code> khai chữ là <code>"Mobile SDK event registry"</code> nhưng quan hệ nối tới
+<code>src-ekyc</code> tên <code>"eKYC SDK"</code> — <b>hai hệ thống khác nhau</b>.</li>
+<li><code>m-completion</code> khai chữ <code>"Digital analytics + Core Account"</code> nhưng chỉ
+nối tới <code>src-ga</code>; <b>“Core Account” không có dòng nguồn nào</b>.</li>
+</ul></div>
+
+<div class="warn"><p><b>3 · Hai cờ <code>verified</code> / <code>observed</code> là bản sao
+của thứ đã suy được.</b> <code>validate.ts</code> nhóm 13 và 14 tồn tại <i>chỉ để</i> giữ hai bản
+khớp nhau — tức dự án đang trả phí bảo trì cho một trường không mang thông tin.</p></div>
+
+<div class="warn"><p><b>4 · <code>obs.cov</code> — một số gõ tay đang cầm quyền quyết định
+trạng thái.</b> <code>state.ts:20</code> cho nó đẩy một bước từ <i>Đang kiểm soát</i> sang
+<i>Cần theo dõi</i>. Sáu chỗ đang tiêu thụ nó: <code>state.ts:20</code> ·
+<code>JourneySpine.tsx:71,92,96</code> · <code>AtlasCoverageTab</code> ·
+<code>AtlasStepInspector:88</code> · <code>AtlasPage:114</code> ·
+<code>CoverageBlock.tsx</code> (<b>cả khối này là phân bố theo dải cov — bỏ tỉ lệ thì khối
+không còn nội dung</b>).</p></div>
+
+<h2>Sau khi phân loại, MVP còn lại gì</h2>
+
+<div class="kpi">
+  <div><b>25/32</b><span>flow có trích dẫn sơ đồ nguồn</span></div>
+  <div><b>6/32</b><span>flow đã chép được bước</span></div>
+  <div><b>19/32</b><span>flow kẹt giữa hai mốc trên</span></div>
+  <div><b>23/30</b><span>bước có khai ≥1 điểm đo</span></div>
+  <div><b>19/30</b><span>bước có ≥1 điểm đo đang chạy</span></div>
+  <div><b>3/6</b><span>chỉ số nói sai độ tươi của chính mình</span></div>
+</div>
+
+<div class="card">
+<h3 style="margin-top:0">Chỉ có ba loại số đứng vững để hiển thị</h3>
+<ul>
+<li><b>Đếm cấu trúc</b> — bao nhiêu flow có trích dẫn, bao nhiêu đã chép bước, bao nhiêu bước
+khai điểm đo. Kiểm được bằng cách đếm lại.</li>
+<li><b>Đếm độ tươi</b> — nguồn nào còn trong SLA riêng của nó, nguồn nào đứt, đứt mấy ngày.
+<code>domain/sources.ts</code> đã tính đúng, dùng lại được.</li>
+<li><b>Đếm chỗ lệch</b> — bao nhiêu chỉ số không nối được nguồn, bao nhiêu chỉ số nói sai độ
+tươi, bao nhiêu bước khai đo mà không có thiết bị chạy. Đây là loại số <i>chỉ MVP này mới có</i>,
+và là lý do nó tồn tại.</li>
+</ul>
+<p style="margin-bottom:0">Mọi thứ ngoài ba loại trên là lời khai của người. Lời khai vẫn được
+hiện — nhưng phải hiện <b>kèm tên người khai</b> và <b>không được đứng ở chỗ của một số đo</b>.</p>
+</div>
+
+<p class="small">Kiểm lại bất cứ số nào ở trên: <code>cd web &amp;&amp; npx vitest run</code> ·
+đếm cờ flow bằng <code>sed -n '48,150p' src/data/fixtures/seed.ts | grep -c "verified:true"</code> ·
+số nhóm luật hiện tại: <code>grep -cE "^\s*/\* ?[0-9]+\." src/data/validate.ts</code> → 23.</p>
+
+</div>
+</body>
+</html>
