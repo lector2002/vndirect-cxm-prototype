@@ -1,4 +1,5 @@
-import type { Flow, Group, Phase } from "../data/schema/index.ts";
+import type { Flow, Group, Phase, Step } from "../data/schema/index.ts";
+import { flowStepsCopied } from "./state.ts";
 
 /* PHẠM VI PILOT ĐANG TRÌNH BÀY — phase nào được mở, phase nào khoá mờ, và khoá thì nói lý do gì.
 
@@ -8,9 +9,9 @@ import type { Flow, Group, Phase } from "../data/schema/index.ts";
 
    Owner chốt 05/08: chỉ "Mở tài khoản" và "Dòng tiền". Đây là một QUYẾT ĐỊNH phạm vi, KHÔNG suy
    được từ dữ liệu — "04 Giao dịch" cũng đã có 1 flow được đo (1/16) mà owner vẫn để ngoài lượt này.
-   Nên ghim tường minh, không đoán bằng cờ `observed`: đoán thì Giao dịch sẽ tự mở khoá trở lại và
-   không ai biết vì sao. Ghim theo `code` của phase (chuỗi "02"/"03" hiện ngay trên rail, ổn định
-   hơn id fixture).
+   Nên ghim tường minh, không đoán bằng trục "đã chép bước" (`flowStepsCopied`, domain/state.ts):
+   đoán thì Giao dịch sẽ tự mở khoá trở lại và không ai biết vì sao. Ghim theo `code` của phase
+   (chuỗi "02"/"03" hiện ngay trên rail, ổn định hơn id fixture).
 
    NẰM Ở `domain/` chứ không nằm trong một màn (06/08): phạm vi pilot là luật của SẢN PHẨM, không
    phải của bản đồ hành trình. Từ lúc màn "VoC theo hành trình" cũng có rail phase, để mỗi màn giữ
@@ -54,8 +55,9 @@ export function lockReasonForPhase(
   phase: Phase,
   flows: readonly Flow[],
   groups: readonly Group[],
+  steps: readonly Step[],
 ): string | null {
   if (isPilotPhase(phase)) return null;
   const inPhase = flows.filter((f) => phaseIdOfFlow(f, groups) === phase.id);
-  return phaseLockReason(phase.name, inPhase.length, inPhase.filter((f) => f.observed).length);
+  return phaseLockReason(phase.name, inPhase.length, inPhase.filter((f) => flowStepsCopied(f, steps)).length);
 }

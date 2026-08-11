@@ -11,6 +11,7 @@ import { SourcesPage } from './features/sources/SourcesPage.tsx'
 import { TopicsPage } from './features/topics/TopicsPage.tsx'
 import { ThemeDetailPage } from './features/topic/ThemeDetailPage.tsx'
 import { RulesPage } from './features/rules/RulesPage.tsx'
+import { SignalsPage } from './features/signals/SignalsPage.tsx'
 import { SettingsPage } from './features/settings/SettingsPage.tsx'
 import { TourOverlay } from './features/tour/TourOverlay.tsx'
 import { DemoBanner } from './features/settings/DemoBanner.tsx'
@@ -147,6 +148,8 @@ function Shell() {
                     <TopicsPage />
                   ) : n.r === 'rules' ? (
                     <RulesPage />
+                  ) : n.r === 'signals' ? (
+                    <SignalsPage />
                   ) : n.r === 'settings' ? (
                     <SettingsPage />
                   ) : (

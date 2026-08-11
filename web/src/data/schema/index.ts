@@ -17,6 +17,12 @@ import type { QuantifyItem, DashSet, Agent } from './quantify.ts';
 import type { SigCount } from '../projectSignalCounts.ts';
 
 export type CxmData = {
+  /** MỐC SỐ LIỆU — ngày dữ liệu tính đến, dạng "dd/mm/yyyy". Trước đây tồn tại NGẦM: cả ba
+      `Period.range` (xem seed.ts) kết thúc cùng một ngày, gõ tay lặp lại ba lần trong chuỗi hiển
+      thị. Khai một lần ở đây để người xem biết số trên màn là của ngày nào, không đọc nhầm thành
+      "bây giờ" — đặc biệt quan trọng khi pipeline chạy T-1 (module-i-signal-registry-charter.md
+      §12.3, §13). KHÔNG có luật nào ép `Period.range` khớp trường này (cố ý — xem charter §13). */
+  asOf: string;
   periods: Period[];
   scopes: Scope[];
   phases: Phase[];

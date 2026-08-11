@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { dims, seed } from "../../data/fixtures/seed.ts";
 import { demoData } from "../../data/fixtures/demo.ts";
 import type { SigCount, Signal, Touchpoint } from "../../data/schema/index.ts";
-import { signalChart } from "../../domain/index.ts";
+import { flowStepsCopied, signalChart } from "../../domain/index.ts";
 import { nf } from "../../design-system/format.ts";
 import { AtlasSignalPanel } from "./AtlasSignalPanel.tsx";
 import { AtlasPage } from "./AtlasPage.tsx";
@@ -137,7 +137,7 @@ describe("AtlasSignalPanel — bảng signal (checkbox) + chart điểm đo + pa
   });
 
   it("tích hợp qua AtlasPage (KHÔNG chỉ prop cô lập): bấm bước s1 → chart điểm đo THẬT hiện ra qua đủ dây store → AtlasStepInspector → AtlasSignalPanel — nếu data.sigCounts từ store rỗng, nav sẽ hoá 'locked' và test này đỏ mà 9 test bên trên (truyền rows={demoData.sigCounts} trực tiếp) không phát hiện được", () => {
-    const pilotFlow = seed.flows.find((f) => f.observed)!;
+    const pilotFlow = seed.flows.find((f) => flowStepsCopied(f, seed.steps))!;
     render(<AtlasPage />);
 
     fireEvent.click(screen.getByTestId(`atlas-flow-${pilotFlow.id}`));

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { seed, cfgDefault } from "../data/fixtures/seed.ts";
-import { stepState, metricState, sourceHealth, laneOf } from "./state.ts";
+import { stepState, stepWhy, metricState, sourceHealth, laneOf } from "./state.ts";
 
 describe("stepState", () => {
   it("6 bước pilot (s1..s6) → ok watch crit ok watch ok", () => {
@@ -21,6 +21,24 @@ describe("stepState", () => {
 
   it("bước không có obs → unknown", () => {
     expect(stepState(undefined, cfgDefault)).toBe("unknown");
+  });
+});
+
+/* F9 (module-i-signal-registry-charter.md D4) — trường `cov` của Obs đã mất quyền đẩy trạng
+   thái/lý do bước. Quét TOÀN BỘ data.obs (không bốc một bước): state.ts:20 (cũ) chỉ cho `cov` đẩy
+   trạng thái khi bước đang 'ok' theo tỷ lệ thất bại — bốc một bước vốn đã watch/crit sẽ cho test
+   xanh trong khi logic cũ còn nguyên (test rỗng). stepWhy() kiểm RIÊNG vì dòng lý do coverage cũ
+   không phụ thuộc nhánh 'ok' — người dùng vẫn đọc thấy nó dù trạng thái không đổi. */
+describe("F9 — trường cov của Obs không còn quyền quyết định", () => {
+  it("mọi obs trong seed (30 bản ghi): stepState() và stepWhy() cho CÙNG kết quả ở cov=0 và cov=100", () => {
+    /* Chặn vòng lặp rỗng, KHÔNG ghim 30 — fixture thêm bước thì test phải vẫn xanh (§7). */
+    expect(seed.obs.length).toBeGreaterThan(0);
+    for (const o of seed.obs) {
+      const lo = { ...o, cov: 0 };
+      const hi = { ...o, cov: 100 };
+      expect(stepState(lo, cfgDefault)).toBe(stepState(hi, cfgDefault));
+      expect(stepWhy(lo, cfgDefault)).toBe(stepWhy(hi, cfgDefault));
+    }
   });
 });
 

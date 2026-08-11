@@ -12,7 +12,7 @@ import { NOT_IDENTIFIED, SIG_CUST_DIMS, SIG_FIRE_DIM } from "./projectSignalCoun
 
 const ROUTES = new Set([
   "cxm", "voc", "quantify", "assistant", "atlas", "work",
-  "sources", "topics", "topic", "vocjourney", "agents", "rules", "issue",
+  "sources", "topics", "topic", "vocjourney", "agents", "rules", "issue", "signals",
 ]);
 
 /* Ba unit mà `bandLabels` (data/bands.ts) biết định dạng. MỘT nguồn cho cả nhóm 19 (bỏ qua trục
@@ -308,43 +308,28 @@ export function validateFixture(
   for (const f of data.flows) {
     if (!lookup.groups.has(f.groupId)) e.push(`flow ${f.id}: group ${f.groupId} không tồn tại`);
   }
-
-  /* 13. PROVENANCE */
-  for (const f of data.flows) {
-    if ((f.verified === false && f.src !== "—") || (f.verified === true && f.src === "—")) {
-      e.push(`flow ${f.id}: verified=${f.verified} src="${f.src}" — sai khớp`);
-    }
-    if (f.verified) {
-      const isAJ = f.src.startsWith("Account Journey");
-      const isMJ = f.src.startsWith("Money Journey");
-      if (!isAJ && !isMJ) e.push(`flow ${f.id}: src "${f.src}" sai format`);
-      if (isAJ) {
-        const m = f.src.match(/Sơ đồ (\d+)/g);
-        if (m) for (const mm of m) {
-          if (parseInt(mm.replace("Sơ đồ ", ""), 10) > 13) e.push(`flow ${f.id}: AJ sơ đồ >13`);
-        }
-      }
-      if (isMJ) {
-        const m = f.src.match(/Sơ đồ (\d+)/g);
-        if (m) for (const mm of m) {
-          if (parseInt(mm.replace("Sơ đồ ", ""), 10) > 7) e.push(`flow ${f.id}: MJ sơ đồ >7`);
-        }
-      }
-    }
+  /* Obs mồ côi (trỏ bước không tồn tại) — lỗi dữ liệu thuần, không có cách đọc hợp lệ nào. Hướng này
+     trước 07/08 nằm trong nhóm 14, bỏ cùng `Flow.observed` ở lát I2; giữ lại TẠI NHÓM 12 thay vì mở
+     nhóm 24, vì đúng loại "toàn vẹn tham chiếu bản đồ" của nhóm này (bất biến 8 vẫn nguyên).
+     CỐ Ý KHÔNG khôi phục hướng ngược lại — "mỗi bước phải có obs": bước đã chép mà CHƯA ĐO là trạng
+     thái HỢP LỆ, `stepState()` trả "unknown" và UI đã nói đúng chuyện đó (xem JourneyStateBlock, ca
+     "flow đã khai bước mà chưa đo bước nào"). Nhóm 14 cũ cấm trạng thái đó, tức chặn một tình trạng
+     thật khỏi màn hình — cùng lý lẽ đã dùng để KHÔNG thêm luật ở D5. */
+  for (const o of data.obs) {
+    if (!lookup.steps.has(o.stepId)) e.push(`obs: step ${o.stepId} không tồn tại`);
   }
 
-  /* 14. Flow observed */
-  for (const f of data.flows) {
-    const fs = data.steps.filter((s: Step) => s.flowId === f.id);
-    if (f.observed) {
-      if (fs.length === 0) e.push(`flow ${f.id}: observed nhưng không có bước`);
-      for (const s of fs) {
-        if (!data.obs.some((o) => o.stepId === s.id)) e.push(`flow ${f.id} step ${s.id}: thiếu obs`);
-      }
-    } else {
-      if (fs.length > 0) e.push(`flow ${f.id}: !observed nhưng có ${fs.length} bước`);
-    }
-  }
+  /* 13, 14 — KHUYẾT VĨNH VIỄN, KHÔNG tái sử dụng số (bất biến 8, module-i-signal-registry-charter.md
+     §9). Hai nhóm cũ kiểm `Flow.verified` ⟺ `src !== "—"` và `Flow.observed` ⟺ có ≥1 `Step` — 07/08
+     (D2/F8 cùng charter) cả hai field bị xoá khỏi schema vì tự thân chỉ là biểu thức của `src`/
+     `steps`, không mang thêm thông tin nào (đếm khớp 25⟷25 và 6⟷6 trước khi xoá — suy tại chỗ đọc
+     luôn cho đúng kết quả, không cần validate giữ đồng bộ nữa). Nhóm luật mới trong tương lai vẫn là
+     24, KHÔNG lấp số 13/14 cho nhóm khác — người đọc log cũ sẽ hiểu sai luật nào đã fail.
+     LƯU Ý cho người đọc lại: nhóm 14 cũ, bên trong nhánh `f.observed`, còn kiểm mỗi bước của flow
+     phải có ≥1 `Obs` khớp ("thiếu obs") — kiểm này KHÔNG liên quan gì đến verified/observed, nhưng
+     nằm cùng nhóm nên mất theo. Bất biến đó vẫn đang được AtlasPage.test.tsx canh riêng (guard "mọi
+     step trong seed có đúng 1 obs khớp") cho `seed`, nhưng KHÔNG còn được validateFixture() canh
+     chung cho cả hai fixture — nếu cần lại, phải mở nhóm 24 mới, không phải lấp lại 13/14. */
 
   /* 15. Taxonomy ↔ map */
   {

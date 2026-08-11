@@ -6,12 +6,12 @@ import { JourneySpine, type SpineStep } from "./JourneySpine.tsx";
 const steps: SpineStep[] = [
   {
     id: "s1", code: "01", stationId: "JS-01", name: "Khởi tạo hồ sơ",
-    entered: 100, completed: 90, failed: 10, cov: 80, effort: 1.1,
+    entered: 100, completed: 90, failed: 10, effort: 1.1,
     state: "good", why: "trong ngưỡng",
   },
   {
     id: "s2", code: "02", stationId: "JS-02", name: "Xác thực CCCD",
-    entered: 90, completed: 60, failed: 30, cov: 40, effort: 1.6,
+    entered: 90, completed: 60, failed: 30, effort: 1.6,
     state: "crit", why: "fail vượt ngưỡng crit",
   },
 ];
@@ -60,9 +60,9 @@ describe("JourneySpine", () => {
     // Connector 1 (s1→s2): passPx = (10/1000)*112 = 1.12 → chặn ở sàn 4; lossPx = (2/1000)*112 =
     // 0.224 → chặn ở sàn 3.
     const geomSteps: SpineStep[] = [
-      { id: "g0", code: "01", stationId: "A", name: "Bước 1", entered: 1000, completed: 850, failed: 150, cov: 90, effort: 1, state: "good", why: "" },
-      { id: "g1", code: "02", stationId: "B", name: "Bước 2", entered: 850, completed: 848, failed: 2, cov: 90, effort: 1, state: "good", why: "" },
-      { id: "g2", code: "03", stationId: "C", name: "Bước 3", entered: 10, completed: 10, failed: 0, cov: 90, effort: 1, state: "good", why: "" },
+      { id: "g0", code: "01", stationId: "A", name: "Bước 1", entered: 1000, completed: 850, failed: 150, effort: 1, state: "good", why: "" },
+      { id: "g1", code: "02", stationId: "B", name: "Bước 2", entered: 850, completed: 848, failed: 2, effort: 1, state: "good", why: "" },
+      { id: "g2", code: "03", stationId: "C", name: "Bước 3", entered: 10, completed: 10, failed: 0, effort: 1, state: "good", why: "" },
     ];
 
     it("connector 0: passPx=95.2px, lossPx=16.8px (không chạm sàn)", () => {
@@ -112,8 +112,8 @@ describe("JourneySpine", () => {
 
   it("base=0 (bước đầu 0 khách vào): vẫn hiện thẻ, không vẽ dải nối, nói rõ lý do bằng chữ", () => {
     const zeroBase: SpineStep[] = [
-      { id: "z0", code: "01", stationId: "A", name: "Bước 1", entered: 0, completed: 0, failed: 0, cov: 0, effort: 1, state: "good", why: "" },
-      { id: "z1", code: "02", stationId: "B", name: "Bước 2", entered: 0, completed: 0, failed: 0, cov: 0, effort: 1, state: "good", why: "" },
+      { id: "z0", code: "01", stationId: "A", name: "Bước 1", entered: 0, completed: 0, failed: 0, effort: 1, state: "good", why: "" },
+      { id: "z1", code: "02", stationId: "B", name: "Bước 2", entered: 0, completed: 0, failed: 0, effort: 1, state: "good", why: "" },
     ];
     render(<JourneySpine steps={zeroBase} />);
     expect(screen.getByTestId("spine-step-z0")).toBeInTheDocument();

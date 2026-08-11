@@ -1,4 +1,4 @@
-import type { Obs, Metric, Source, Action, Cfg } from "../data/schema/index.ts";
+import type { Obs, Metric, Source, Action, Cfg, Flow, Step } from "../data/schema/index.ts";
 import { metricDirection } from "../data/metric-direction.ts";
 
 /* Trạng thái suy ra từ ngưỡng — port 1-1 từ prototype (output/cxm-platform-prototype.html).
@@ -10,18 +10,22 @@ export type LaneKey = "confirm" | "approve" | "fix" | "verify" | "off";
 
 const failRate = (o: Obs): number => (o.entered ? (o.failed / o.entered) * 100 : 0);
 
-/* Trạng thái một bước hành trình: tỷ lệ thất bại là tiêu chí chính; coverage thấp hoặc effort cao
-   thì ít nhất phải "Cần theo dõi" — thấy thất bại mà không biết vì sao cũng là vấn đề.
-   Port từ stepState() (~dòng 1513). */
+/* Trạng thái một bước hành trình: tỷ lệ thất bại là tiêu chí chính; effort cao thì ít nhất phải
+   "Cần theo dõi" — thấy thất bại mà không biết vì sao cũng là vấn đề.
+   Port từ stepState() (~dòng 1513).
+   07/08 (module-i-signal-registry-charter.md D4/F9): bỏ nhánh so trường `cov` với `cfg.step.covMin`
+   — `cov` là số gõ tay không đối chiếu được (không suy lại được từ đâu), không còn được cầm quyền
+   đẩy trạng thái. Trường `cov` của `Obs` VẪN Ở TRONG schema/fixture, chỉ mất quyền tiêu thụ ở đây. */
 export function stepState(o: Obs | undefined, cfg: Cfg): DerivedState {
   if (!o) return "unknown";
   const fr = failRate(o);
   let s: DerivedState = fr >= cfg.step.failCrit ? "crit" : fr >= cfg.step.failWatch ? "watch" : "ok";
-  if (s === "ok" && (o.cov < cfg.step.covMin || o.effort > cfg.step.effortMax)) s = "watch";
+  if (s === "ok" && o.effort > cfg.step.effortMax) s = "watch";
   return s;
 }
 
-/* Lý do bước bị gắn nhãn — để UI giải thích được, không chỉ tô màu. Port từ stepWhy() (~dòng 1521). */
+/* Lý do bước bị gắn nhãn — để UI giải thích được, không chỉ tô màu. Port từ stepWhy() (~dòng 1521).
+   07/08: bỏ dòng lý do "evidence coverage ... dưới ngưỡng" cùng lý do với stepState() ở trên. */
 export function stepWhy(o: Obs | undefined, cfg: Cfg): string {
   if (!o) return "Chưa có dữ liệu quan sát";
   const r: string[] = [];
@@ -31,7 +35,6 @@ export function stepWhy(o: Obs | undefined, cfg: Cfg): string {
   } else if (fr >= cfg.step.failWatch) {
     r.push(`thất bại ${fr.toFixed(1).replace(".", ",")}% ≥ ngưỡng theo dõi ${cfg.step.failWatch}%`);
   }
-  if (o.cov < cfg.step.covMin) r.push(`evidence coverage ${o.cov}% dưới ngưỡng ${cfg.step.covMin}%`);
   if (o.effort > cfg.step.effortMax) {
     r.push(`effort ${String(o.effort).replace(".", ",")} vượt ${String(cfg.step.effortMax).replace(".", ",")} lần thử`);
   }
@@ -59,6 +62,23 @@ export function sourceHealth(s: Source, cfg: Cfg): SourceHealth {
   if (s.lagH >= cfg.data.deadDays * 24) return "down";
   const sla = cfg.source[s.id] ?? 6;
   return s.lagH > sla ? "stale" : "ok";
+}
+
+/* Hai trục rời của một flow trên bản đồ hành trình — SUY TẠI CHỖ ĐỌC, không lưu thành field.
+   07/08 (module-i-signal-registry-charter.md D2/F8): `Flow.verified`/`Flow.observed` bị xoá khỏi
+   schema vì cả hai chỉ là biểu thức của trường khác — validate.ts nhóm 13/14 (cũ) đã tự chứng minh
+   khớp 25⟷25 và 6⟷6 trên seed, tức chưa từng có thông tin nào ở hai field đó ngoài `src` và `steps`.
+   Hai trục owner chốt (QĐ 3, module I): "có trích dẫn sơ đồ nguồn" và "đã chép bước". KHÔNG gộp lại
+   thành một nhãn, KHÔNG dùng lại chữ "đã xác minh" — owner đã bỏ hẳn chữ đó. */
+
+/** Trục 1 — flow có trích dẫn sơ đồ nguồn (Account/Money Journey) chưa. Thay `Flow.verified` cũ. */
+export function flowHasSourceCitation(flow: Flow): boolean {
+  return flow.src !== "—";
+}
+
+/** Trục 2 — flow đã chép bước (có ≥1 `Step` trỏ tới nó) chưa. Thay `Flow.observed` cũ. */
+export function flowStepsCopied(flow: Flow, steps: readonly Step[]): boolean {
+  return steps.some((s) => s.flowId === flow.id);
 }
 
 /* Làn xử lý của một action, suy từ cf/ap/dl/iv — không thêm field mới. Port từ LANES/laneOf()

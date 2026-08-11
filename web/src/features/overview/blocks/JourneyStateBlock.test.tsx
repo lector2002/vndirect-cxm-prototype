@@ -1,39 +1,59 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { cfgDefault, seed } from "../../../data/fixtures/seed.ts";
-import { stepState } from "../../../domain/index.ts";
+import { flowStepsCopied, stepState } from "../../../domain/index.ts";
 import { JourneyStateBlock } from "./JourneyStateBlock.tsx";
 
 /* Số suy từ seed + cfgDefault (đối chiếu độc lập với domain/state.test.ts đã có).
-   Ngưỡng: failCrit 15% · failWatch 5% · covMin 70 · effortMax 2,0.
+   Ngưỡng: failCrit 15% · failWatch 5% · effortMax 2,0. (`covMin` KHÔNG còn ảnh hưởng số này —
+   07/08, module-i-signal-registry-charter.md D4: trường cov của obs mất quyền đẩy trạng thái bước.)
    Mở tài khoản (s1..s6) = ok watch crit ok watch ok → crit 1 · watch 2 · ok 3.
    Pilot mở rộng 05/08 thêm 24 bước (mở TK phái sinh · nạp · tra soát · rút · chuyển nội bộ):
-     crit 1  = s-dvo-1 (190/1240 = 15,3% — chặn vì chưa có TK cơ sở / chưa xác thực CCCD)
-     watch 9 = s-dvo-3, s-tra-1, s-tra-3, s-tra-4, s-rut-1, s-rut-3, s-rut-4, s-rut-6, s-ctn-2
-     ok 14   = phần còn lại
-   → tổng crit 2 · watch 11 · ok 17 = 30 = steps.length.
-   flows.length=32, flows.filter(observed)=6 (f-open-2026 + 5 flow pilot mở rộng) → "flow chưa đo" = 26 */
+     crit 1 = s-dvo-1 (190/1240 = 15,3% — chặn vì chưa có TK cơ sở / chưa xác thực CCCD)
+     watch 8 = s-dvo-3, s-tra-1, s-tra-3, s-tra-4, s-rut-1, s-rut-3, s-rut-6, s-ctn-2
+       (mỗi bước watch vì fail rate ≥ 5% HOẶC effort > 2,0 — s-tra-1 fail 4,7% nhưng effort 2,6)
+     ok 15 = phần còn lại, GỒM s-rut-4 (fail 2,3%, effort 2,0 không > 2,0): trước 07/08 bước này
+       "watch" CHỈ vì cov=57 < covMin=70 — D4 gỡ quyền đó nên nay đúng luật là "ok"
+   → tổng crit 2 · watch 10 · ok 18 = 30 = steps.length.
+   flows.length=32, flows.filter(đã chép bước)=6 (f-open-2026 + 5 flow pilot mở rộng) → "flow chưa đo" = 26
+   (07/08, module-i-signal-registry-charter.md D2: `Flow.observed` bị xoá, suy lại bằng
+   `flowStepsCopied` — số không đổi) */
 
 const obsOf = (stepId: string) => seed.obs.find((o) => o.stepId === stepId)!;
 const flowsWithSteps = [...new Set(seed.steps.map((s) => s.flowId))];
 
 describe("JourneyStateBlock — bốn ô đếm", () => {
-  it("cnt(crit)+cnt(watch)+cnt(ok) = steps.length (30) — đọc đúng .t-num, không phải substring", () => {
+  it("ba ô trạng thái = ĐẾM LẠI stepState() trên seed; tổng = steps.length — đọc đúng .t-num", () => {
     render(<JourneyStateBlock data={seed} cfg={cfgDefault} />);
     const stats = screen.getAllByTestId("stat");
     const valueOf = (el: HTMLElement) => el.querySelector(".t-num")!.textContent;
-    expect(valueOf(stats[0]!)).toBe("2"); // Cần xử lý ngay = s3, s-dvo-1
-    expect(valueOf(stats[1]!)).toBe("11"); // Cần theo dõi
-    expect(valueOf(stats[2]!)).toBe("17"); // Đang kiểm soát
+    /* Kỳ vọng ĐẾM LẠI từ dữ liệu, KHÔNG gõ số. Trước 07/08 ba dòng này ghim "2"/"11"/"17", và khi
+       D4 gỡ quyền của `cov` thì cách sửa "đúng" hoá ra là gõ lại thành "2"/"10"/"18" — tức đóng dấu
+       phân bố mới thành hành vi đúng y như lần trước. Ghim số là cách một defect được chứng nhận
+       (module-i-signal-registry-charter.md §7 — dự án này đã bị hai lần). Dạng này: fixture đổi thì
+       test VẪN XANH, còn defect đổi phân bố thì test ĐỎ. */
+    const want: Record<string, number> = {};
+    for (const st of seed.steps) {
+      const s = stepState(
+        seed.obs.find((o) => o.stepId === st.id),
+        cfgDefault,
+      );
+      want[s] = (want[s] ?? 0) + 1;
+    }
+    expect(valueOf(stats[0]!)).toBe(String(want.crit ?? 0));
+    expect(valueOf(stats[1]!)).toBe(String(want.watch ?? 0));
+    expect(valueOf(stats[2]!)).toBe(String(want.ok ?? 0));
     const sum = [0, 1, 2].reduce((a, i) => a + Number(valueOf(stats[i]!)), 0);
     expect(sum).toBe(seed.steps.length);
   });
 
-  it("'Flow chưa đo' = 26 (32 flow map, 6 flow đã quan sát)", () => {
+  it("'Flow chưa đo' = ĐẾM LẠI (flow chưa chép bước / tổng flow), không ghim số", () => {
     render(<JourneyStateBlock data={seed} cfg={cfgDefault} />);
     const stats = screen.getAllByTestId("stat");
-    expect(stats[3]!.textContent).toContain("26");
-    expect(stats[3]!.textContent).toContain("trên 32 flow đã map");
+    /* Cùng lý do như ô trên: fixture đổi thì test phải VẪN XANH (§7). Trước đây ghim "26"/"32". */
+    const chuaChepBuoc = seed.flows.filter((f) => !flowStepsCopied(f, seed.steps)).length;
+    expect(stats[3]!.textContent).toContain(String(chuaChepBuoc));
+    expect(stats[3]!.textContent).toContain(`trên ${seed.flows.length} flow đã map`);
   });
 });
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Cfg, CxmData, Flow, Obs, Step } from "../../../data/schema/index.ts";
-import { BASE_FACTOR, stepState, stepWhy } from "../../../domain/index.ts";
+import { BASE_FACTOR, flowStepsCopied, stepState, stepWhy } from "../../../domain/index.ts";
 import type { DerivedState } from "../../../domain/index.ts";
 import { AxisLabel, Card, Stat } from "../../../design-system/index.ts";
 import { pv } from "../../../design-system/format.ts";
@@ -103,8 +103,8 @@ export function JourneyStateBlock({ data, cfg, onGo }: JourneyStateBlockProps) {
   const obsOf = (stepId: string): Obs | undefined => data.obs.find((o) => o.stepId === stepId);
 
   const cnt = (s: DerivedState) => data.steps.filter((x) => stepState(obsOf(x.id), cfg) === s).length;
-  const flowsObserved = data.flows.filter((f) => f.observed).length;
-  const flowsGap = data.flows.length - flowsObserved;
+  const flowsStepsCopiedCount = data.flows.filter((f) => flowStepsCopied(f, data.steps)).length;
+  const flowsGap = data.flows.length - flowsStepsCopiedCount;
 
   const rows = buildRows(data, cfg);
   const offTotal = rows.reduce((a, r) => a + r.offCount, 0);

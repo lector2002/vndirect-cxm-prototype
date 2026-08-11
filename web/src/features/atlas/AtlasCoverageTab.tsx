@@ -1,4 +1,4 @@
-import type { Cfg, Obs, Signal } from "../../data/schema/index.ts";
+import type { Signal } from "../../data/schema/index.ts";
 import { Badge, Note, Stat } from "../../design-system/index.ts";
 import { SIGNAL_STATUS } from "./signalStatus.ts";
 
@@ -7,17 +7,21 @@ import { SIGNAL_STATUS } from "./signalStatus.ts";
    tới đâu, và còn thiếu đo cái gì.
 
    Câu chốt của prototype giữ nguyên và giữ ĐÚNG chỗ: độ phủ là thuộc tính của BƯỚC, không phải một
-   màn riêng — nên nó sống cạnh chính bước đang xét. */
+   màn riêng — nên nó sống cạnh chính bước đang xét.
+
+   07/08 (module-i-signal-registry-charter.md D4): bỏ Stat "Evidence coverage" (đọc trường `cov`
+   của obs, số gõ tay không đối chiếu được, kèm `srcNote="Mobile SDK event registry"` hardcode
+   không có căn cứ dữ liệu) và câu chốt covWarn/không-covWarn suy từ nó. Không có số đếm được để
+   thay vào — hiện trạng thái rỗng TRUNG THỰC thay vì bịa số khác. `obs`/`cfg` không còn cần truyền
+   vào component này vì phần duy nhất dùng chúng đã bỏ; "Signal chưa hoạt động" (dưới) đọc
+   `signals`, KHÔNG đọc trường `cov` — không đổi. */
 
 export type AtlasCoverageTabProps = {
-  obs: Obs;
-  cfg: Cfg;
   /** Điểm đo của bước (đã lọc ở caller) — gồm cả gap/designed, vì tab này tồn tại để đếm đúng chúng. */
   signals: Signal[];
 };
 
-export function AtlasCoverageTab({ obs, cfg, signals }: AtlasCoverageTabProps) {
-  const covWarn = obs.cov < cfg.step.covMin;
+export function AtlasCoverageTab({ signals }: AtlasCoverageTabProps) {
   // "Chưa hoạt động" = gap (chưa instrument) HOẶC designed (mới có spec) — hai cách chưa chạy thật.
   const inactive = signals.filter((g) => g.st === "gap" || g.st === "designed");
   /* "Không có điểm đo nào chưa hoạt động" KHÁC "có điểm đo và đều đang chạy" — bước chưa khai điểm
@@ -28,14 +32,7 @@ export function AtlasCoverageTab({ obs, cfg, signals }: AtlasCoverageTabProps) {
 
   return (
     <div data-testid="atlas-cov">
-      <div className="grid grid-cols-2 gap-2.5 mb-3.5">
-        <Stat
-          label="Evidence coverage"
-          value={`${obs.cov}%`}
-          foot={`Ngưỡng tối thiểu ${cfg.step.covMin}%`}
-          srcNote="Mobile SDK event registry"
-          tone={covWarn ? "var(--watch)" : undefined}
-        />
+      <div className="mb-3.5">
         <Stat
           label="Signal chưa hoạt động"
           value={noSignal ? "—" : String(inactive.length)}
@@ -50,30 +47,19 @@ export function AtlasCoverageTab({ obs, cfg, signals }: AtlasCoverageTabProps) {
         />
       </div>
 
-
-      {covWarn ? (
-        /* Nói bằng HỆ QUẢ chứ không bằng con số suông: "58%" tự nó không nói cho ai biết đang thiếu
-           gì. Phần bù (100 − cov) mới là thứ người đọc cần — số ca rớt mà không đọc được lý do. */
+      <div data-testid="atlas-cov-empty">
         <Note tone="warn">
-          <b>{`Còn ${100 - obs.cov}% trường hợp thất bại chưa biết lý do.`}</b> Thấy được số người
-          rớt, nhưng không đọc được nguyên nhân cho phần lớn trong đó — nên mọi giả thuyết về bước
-          này còn yếu bằng chứng.
+          <b>Chưa có số đo được về độ phủ bằng chứng.</b> Tỉ lệ tự khai trước đây không đối chiếu
+          được với gì nên đã bỏ khỏi màn; số đếm được để thay nó (mã lý do rớt theo từng ca thất
+          bại) chưa có, đang nằm trong bản yêu cầu dữ liệu gửi team data.
         </Note>
-      ) : (
-        <Note>
-          <b>Độ phủ đạt ngưỡng.</b> Phần lớn trường hợp thất bại ở bước này có reason code đọc được.
-        </Note>
-      )}
+      </div>
 
-      {/* Caveat đứng SAU câu chốt về độ phủ, không đứng trước: nó bổ nghĩa cho câu đó ("con số trên
-          chưa kiểm được"), đặt trước thì câu trấn an đọc sau sẽ lấn mất — đã thấy đúng như vậy khi
-          xem trên màn, bước 04 flow nạp tiền: cov 98% "đạt ngưỡng" mà bước chưa hề có điểm đo. */}
       {noSignal ? (
         <div className="mt-2.5" data-testid="atlas-cov-nosignal">
           <Note tone="warn">
-            <b>Nhưng bước này chưa khai điểm đo nào.</b> Con số độ phủ ở trên đến từ log của bước,
-            trong khi không có điểm đo nào được khai để nói bước đang nghe những sự kiện gì — nên
-            chưa kiểm được độ phủ đó lấy từ đâu ra.
+            <b>Bước này chưa khai điểm đo nào.</b> Không có điểm đo nào được khai để nói bước đang
+            nghe những sự kiện gì.
           </Note>
         </div>
       ) : null}

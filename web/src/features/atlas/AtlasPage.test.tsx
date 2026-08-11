@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { cfgDefault, seed } from "../../data/fixtures/seed.ts";
-import { fx } from "../../domain/index.ts";
+import { flowHasSourceCitation, flowStepsCopied, fx } from "../../domain/index.ts";
 import { nf } from "../../design-system/format.ts";
 import { AtlasPage } from "./AtlasPage.tsx";
 
@@ -10,7 +10,7 @@ import { AtlasPage } from "./AtlasPage.tsx";
    được sinh thêm — xem data/fixtures/demo.ts dòng 687/695) nên mọi kỳ vọng suy từ `seed` ở đây khớp
    ĐÚNG những gì AtlasPage render từ singleton, không chép hằng tay. */
 
-const pilotFlow = seed.flows.find((f) => f.observed)!;
+const pilotFlow = seed.flows.find((f) => flowStepsCopied(f, seed.steps))!;
 const pilotGroup = seed.groups.find((g) => g.id === pilotFlow.groupId)!;
 const pilotPhase = seed.phases.find((p) => p.id === pilotGroup.phaseId)!;
 const pilotSteps = seed.steps.filter((s) => s.flowId === pilotFlow.id);
@@ -58,7 +58,7 @@ describe("AtlasPage — #/atlas", () => {
     render(<AtlasPage />);
     expect(screen.getByTestId(`atlas-phase-${pilotPhase.id}`)).toBeInTheDocument();
     expect(screen.getByTestId(`atlas-phase-${otherPhase.id}`)).toBeInTheDocument();
-    // Mặc định mở phase của flow đang observed (pilot) — chip flow của phase đó có mặt.
+    // Mặc định mở phase của flow đã chép bước (pilot) — chip flow của phase đó có mặt.
     expect(screen.getByTestId(`atlas-flow-${pilotFlow.id}`)).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId(`atlas-phase-${otherPhase.id}`));
@@ -67,11 +67,42 @@ describe("AtlasPage — #/atlas", () => {
     expect(screen.getByTestId(`atlas-flow-${otherPhaseFlow.id}`)).toBeInTheDocument();
   });
 
+  /* F8 (module-i-signal-registry-charter.md D2): sau khi bỏ `Flow.verified`/`Flow.observed`, chấm
+     trạng thái flow trên rail phải suy đúng từ hai trục còn lại — "có trích dẫn sơ đồ nguồn"
+     (flowHasSourceCitation) và "đã chép bước" (flowStepsCopied) — KHÔNG đổi trên bất kỳ flow nào.
+     Rail luôn dựng đủ MỘT chấm cho MỖI flow, ở đúng phase của nó, kể cả phase đang khoá (không cần
+     bấm mở phase) — nên đây là cách kiểm được cả 32 flow chứ không chỉ 6 flow pilot bấm tới được.
+     KHÔNG ghim phân bố: so màu render với màu suy từ hai hàm domain, không so với một số đếm. */
+  it("F8 — chấm trạng thái flow trên rail suy đúng từ 'có nguồn'/'đã chép bước', trên cả 32 flow", () => {
+    render(<AtlasPage />);
+    let checked = 0;
+    for (const p of seed.phases) {
+      const flowsOfP = seed.flows.filter((f) => phaseIdOfFlow(f) === p.id);
+      const dots = [...screen.getByTestId(`atlas-phase-${p.id}`).querySelectorAll("i")];
+      expect(dots).toHaveLength(flowsOfP.length); // guard: đúng 1 chấm mỗi flow trong phase, không lệch mảng
+      flowsOfP.forEach((f, i) => {
+        const stepsCopied = flowStepsCopied(f, seed.steps);
+        const hasSource = flowHasSourceCitation(f);
+        // jsdom chuẩn hoá màu hex đọc qua .style.background thành rgb() — "#D6D1CB" (chờ nguồn,
+        // AtlasPage.tsx) đọc lại thành "rgb(214, 209, 203)" (cùng cách CatChip.test.tsx đã canh).
+        const expectedColor = stepsCopied
+          ? "var(--primary)"
+          : hasSource
+            ? "var(--ink3)"
+            : "rgb(214, 209, 203)";
+        expect(dots[i]!.style.background).toBe(expectedColor);
+        checked++;
+      });
+    }
+    // Guard: mọi flow của seed đã được kiểm đúng một lần — không bỏ sót, không đếm trùng.
+    expect(checked).toBe(seed.flows.length);
+  });
+
   /* Cùng bất biến với #/vocjourney: phase màn tự chọn khi mới vào không được là phase khoá — đứng
      sẵn bên trong một phase mà màn báo là chưa mở thì màn đang tự cãi mình. Hai màn dùng biểu thức
-     chọn mặc định khác nhau (ở đây là flow observed đầu tiên; bên kia là flow có bằng chứng đầu
+     chọn mặc định khác nhau (ở đây là flow đã chép bước đầu tiên; bên kia là flow có bằng chứng đầu
      tiên), nên phải ghim riêng từng màn. Hôm nay cả hai đều rơi vào phase 02 — nhưng đó là thứ tự
-     mảng flow, không phải luật; thêm một flow observed ở phase khoá lên đầu là hỏng. */
+     mảng flow, không phải luật; thêm một flow đã chép bước ở phase khoá lên đầu là hỏng. */
   it("phase màn tự chọn khi mới vào không bao giờ là phase đang khoá", () => {
     const { container } = render(<AtlasPage />);
     const selected = [...container.querySelectorAll('[data-testid^="atlas-phase-"]')].filter(
@@ -128,12 +159,12 @@ describe("AtlasPage — #/atlas", () => {
     expect(screen.getByTestId(`atlas-phase-${lockedPhase.id}`)).toHaveAttribute(
       "title",
       `${lockedPhase.name} tạm khoá vì chưa nằm trong phạm vi pilot đang trình bày (mới ${
-        tx.filter((f) => f.observed).length
+        tx.filter((f) => flowStepsCopied(f, seed.steps)).length
       } trên ${tx.length} flow có dữ liệu quan sát).`,
     );
 
     const empty = flowsOf(emptyLockedPhase.id);
-    expect(empty.filter((f) => f.observed)).toHaveLength(0);
+    expect(empty.filter((f) => flowStepsCopied(f, seed.steps))).toHaveLength(0);
     expect(screen.getByTestId(`atlas-phase-${emptyLockedPhase.id}`)).toHaveAttribute(
       "title",
       `${emptyLockedPhase.name} tạm khoá vì chưa nằm trong phạm vi pilot đang trình bày (chưa flow nào trong ${empty.length} flow có dữ liệu quan sát).`,
@@ -300,7 +331,7 @@ describe("AtlasPage — #/atlas", () => {
     expect(screen.queryByTestId("atlas-met-list")).not.toBeInTheDocument();
   });
 
-  it("bước chưa khai điểm đo nào: tab 'Độ phủ dữ liệu' KHÔNG khen 'Đủ signal'", () => {
+  it("bước chưa khai điểm đo nào: tab 'Độ phủ dữ liệu' KHÔNG khen 'Đủ signal', và nói rõ chưa khai điểm đo nào", () => {
     render(<AtlasPage />);
     fireEvent.click(screen.getByTestId(`atlas-phase-${noSignalPhase.id}`));
     fireEvent.click(screen.getByTestId(`atlas-flow-${noSignalFlow.id}`));
@@ -310,31 +341,21 @@ describe("AtlasPage — #/atlas", () => {
     const cov = screen.getByTestId("atlas-cov");
     expect(cov).not.toHaveTextContent("Đủ signal");
     expect(cov).toHaveTextContent("Bước chưa khai signal nào");
-    expect(within(cov).getByTestId("atlas-cov-nosignal")).toHaveTextContent(
-      /chưa khai điểm đo nào.*chưa kiểm được độ phủ đó lấy từ đâu ra/is,
-    );
-    /* Caveat phải đọc được SAU câu chốt về độ phủ — đặt trước thì câu trấn an đọc sau lấn mất nó
-       (thấy đúng vậy khi xem trên màn). Canh bằng thứ tự chữ trong tab, không canh bằng class. */
-    const text = cov.textContent ?? "";
-    expect(text.indexOf("Độ phủ đạt ngưỡng")).toBeGreaterThan(-1);
-    expect(text.indexOf("chưa khai điểm đo nào")).toBeGreaterThan(text.indexOf("Độ phủ đạt ngưỡng"));
+    expect(within(cov).getByTestId("atlas-cov-nosignal")).toHaveTextContent(/chưa khai điểm đo nào/i);
     expect(screen.queryByTestId("atlas-cov-missing")).not.toBeInTheDocument();
   });
 
-  it("tab 'Độ phủ dữ liệu': bước dưới ngưỡng nói phần CHƯA biết lý do và liệt kê signal đang thiếu", () => {
-    /* Phải thoả CẢ HAI: dưới ngưỡng độ phủ VÀ có signal chưa hoạt động. Trên seed hai điều kiện này
-       KHÔNG trùng nhau (bước 03 cov 64 nhưng đủ signal; bước 05 cov 58 và thiếu 1) — lấy bước đầu
-       tiên dưới ngưỡng là canh nhầm bước. */
+  /* 07/08 (module-i-signal-registry-charter.md D4, F9): tab "Độ phủ dữ liệu" KHÔNG còn đọc trường
+     `cov` của obs — sửa lại hai test dưới đây (trước đây ghim câu chốt "Còn X% chưa biết lý
+     do"/"Độ phủ đạt ngưỡng." suy trực tiếp từ `cov`, đúng cái quyền quyết định D4 vừa gỡ). Giữ
+     nguyên phần vẫn đúng: liệt kê "Signal đang thiếu" là hành vi đọc từ `signals`, KHÔNG từ `cov`
+     — không đổi. */
+  it("tab 'Độ phủ dữ liệu': liệt kê đúng signal chưa hoạt động của bước, và nói thẳng chưa có số đo độ phủ", () => {
     const sigsOf = (stepId: string) => {
       const tps = seed.touchpoints.filter((t) => t.stepId === stepId);
       return seed.signals.filter((g) => tps.some((t) => t.id === g.tpId));
     };
-    const step = pilotSteps.find(
-      (s) =>
-        obsOf(s.id).cov < cfgDefault.step.covMin &&
-        sigsOf(s.id).some((g) => g.st === "gap" || g.st === "designed"),
-    )!;
-    const o = obsOf(step.id);
+    const step = pilotSteps.find((s) => sigsOf(s.id).some((g) => g.st === "gap" || g.st === "designed"))!;
     const inactive = sigsOf(step.id).filter((g) => g.st === "gap" || g.st === "designed");
 
     render(<AtlasPage />);
@@ -343,26 +364,22 @@ describe("AtlasPage — #/atlas", () => {
     fireEvent.click(screen.getByTestId("atlas-tab-cov"));
 
     const cov = screen.getByTestId("atlas-cov");
-    // Nói PHẦN BÙ (100 − cov), không phải nhắc lại con số cov.
-    expect(cov).toHaveTextContent(`Còn ${100 - o.cov}% trường hợp thất bại chưa biết lý do.`);
-    expect(cov).toHaveTextContent(`${o.cov}%`);
+    expect(within(cov).getByTestId("atlas-cov-empty")).toHaveTextContent(
+      "Chưa có số đo được về độ phủ bằng chứng.",
+    );
     expect(within(cov).getByTestId("atlas-cov-missing")).toBeInTheDocument();
     for (const g of inactive) {
       expect(within(cov).getByTestId(`atlas-cov-sig-${g.id}`)).toHaveTextContent(g.name);
     }
   });
 
-  it("tab 'Độ phủ dữ liệu': bước đạt ngưỡng nói đạt, và không dựng danh sách signal thiếu khi không thiếu", () => {
+  it("tab 'Độ phủ dữ liệu': bước đủ signal không dựng danh sách signal thiếu, nhưng vẫn nói thẳng chưa có số đo độ phủ", () => {
     const step = pilotSteps.find((s) => {
       const tps = seed.touchpoints.filter((t) => t.stepId === s.id);
       const sigs = seed.signals.filter((g) => tps.some((t) => t.id === g.tpId));
       // `sigs.length > 0`: bước không có điểm đo nào cũng thoả `every(...)` một cách rỗng — canh nhầm
-      // sang đúng ca mà hai test trên vừa tách ra.
-      return (
-        obsOf(s.id).cov >= cfgDefault.step.covMin &&
-        sigs.length > 0 &&
-        sigs.every((g) => g.st !== "gap" && g.st !== "designed")
-      );
+      // sang đúng ca mà test trên vừa tách ra.
+      return sigs.length > 0 && sigs.every((g) => g.st !== "gap" && g.st !== "designed");
     })!;
 
     render(<AtlasPage />);
@@ -370,7 +387,11 @@ describe("AtlasPage — #/atlas", () => {
     fireEvent.click(screen.getByTestId(`spine-step-${step.id}`));
     fireEvent.click(screen.getByTestId("atlas-tab-cov"));
 
-    expect(screen.getByTestId("atlas-cov")).toHaveTextContent("Độ phủ đạt ngưỡng.");
+    const cov = screen.getByTestId("atlas-cov");
+    expect(cov).toHaveTextContent("Đủ signal");
+    expect(within(cov).getByTestId("atlas-cov-empty")).toHaveTextContent(
+      "Chưa có số đo được về độ phủ bằng chứng.",
+    );
     expect(screen.queryByTestId("atlas-cov-missing")).not.toBeInTheDocument();
   });
 
@@ -385,7 +406,7 @@ describe("AtlasPage — #/atlas", () => {
 
     fireEvent.click(screen.getByTestId(`spine-step-${pilotSteps[1].id}`));
     expect(screen.getByTestId("atlas-tab-cov")).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByTestId("atlas-cov")).toHaveTextContent(`${obsOf(pilotSteps[1].id).cov}%`);
+    expect(screen.getByTestId("atlas-cov")).toHaveTextContent("Chưa có số đo được về độ phủ bằng chứng.");
   });
 
   it("hồ sơ liệt kê touchpoint của bước và signal của các touchpoint đó, gồm signal 'gap' hiện đúng trạng thái bằng chữ", () => {

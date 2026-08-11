@@ -159,7 +159,7 @@ export function coverageGapLine(data: CxmData, phaseId: string): string {
    Nên nói thẳng cả hai vế. KHÔNG sửa lý do dùng chung: bản đồ hành trình đo hành vi, thêm số bằng
    chứng vào đó là nhét đơn vị của màn này sang màn kia. */
 export function phaseLockNote(data: CxmData, phase: Phase): string | null {
-  const base = lockReasonForPhase(phase, data.flows, data.groups);
+  const base = lockReasonForPhase(phase, data.flows, data.groups, data.steps);
   if (!base) return null;
   const voice = voiceCountAtPhase(data, phase.id);
   if (voice === 0) return base;

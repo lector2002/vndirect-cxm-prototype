@@ -3,6 +3,7 @@ import type { Step } from "../../data/schema/index.ts";
 import {
   coverageGapLine,
   evidenceAtStep,
+  flowStepsCopied,
   phaseIdOfFlow,
   phaseLockNote,
   quietButVoicedSteps,
@@ -44,12 +45,12 @@ export function VocJourneyPage() {
   const data = useCxmStore((s) => s.data);
   const cfg = useCxmStore((s) => s.cfg);
 
-  /* Mặc định mở flow đầu tiên CÓ BẰNG CHỨNG, không phải flow đầu tiên `observed`: màn này đo tiếng
+  /* Mặc định mở flow đầu tiên CÓ BẰNG CHỨNG, không phải flow đầu tiên đã chép bước: màn này đo tiếng
      nói, mà một flow đo được hành vi vẫn có thể chưa có tiếng nói nào. Tra bằng dữ liệu thay vì
      hardcode id fixture. */
   const defaultFlow =
     data.flows.find((f) => data.steps.some((s) => s.flowId === f.id && evidenceAtStep(data, s.id).length > 0)) ??
-    data.flows.find((f) => f.observed) ??
+    data.flows.find((f) => flowStepsCopied(f, data.steps)) ??
     data.flows[0];
 
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>(() =>

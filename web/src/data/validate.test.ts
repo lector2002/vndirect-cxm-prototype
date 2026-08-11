@@ -118,7 +118,7 @@ describe("validateFixture", () => {
   /* Group 7: Signal dòng tiền */
   it("7: signal dòng tiền sai es", () => {
     const d = structuredClone(seed) as CxmData;
-    d.flows.push({ id: "f-test-m", groupId: "g-in", name: "t", owner: "x", version: "v1", src: "\u2014", verified: false, observed: false, note: "" });
+    d.flows.push({ id: "f-test-m", groupId: "g-in", name: "t", owner: "x", version: "v1", src: "\u2014", note: "" });
     d.steps.push({ id: "s-test", flowId: "f-test-m", code: "01", name: "t", stationId: "JS-TEST-01", owner: "x" });
     d.touchpoints.push({ id: "tp-test", stepId: "s-test", name: "t", channel: "app", owner: "x", users: 10, desc: "" });
     d.signals.push({ id: "sg-test", tpId: "tp-test", name: "deposit_test", st: "live", pf: [], es: "client", vol: 1, seen: null, metrics: [], desc: "", values: [] });
@@ -318,23 +318,10 @@ describe("validateFixture", () => {
     expect(r.some((e) => e.includes("phase"))).toBe(true);
   });
 
-  /* Group 13: PROVENANCE */
-  it("13: verified/sai src khớp", () => {
-    const d = structuredClone(seed) as CxmData;
-    const f = d.flows.find((fl) => fl.verified === true)!;
-    d.flows = d.flows.map((fl) => fl.id === f.id ? { ...fl, src: "\u2014" } : fl);
-    const r = validateFixture(d, dims, seedNav, seedTour);
-    expect(r.some((e) => e.includes("sai khớp"))).toBe(true);
-  });
-
-  /* Group 14: Flow observed */
-  it("14: !observed nhưng có bước", () => {
-    const d = structuredClone(seed) as CxmData;
-    const f = d.flows.find((fl) => fl.observed === true)!;
-    d.flows = d.flows.map((fl) => fl.id === f.id ? { ...fl, observed: false } : fl);
-    const r = validateFixture(d, dims, seedNav, seedTour);
-    expect(r.some((e) => e.includes("!observed"))).toBe(true);
-  });
+  /* Group 13, 14 — ĐÃ BỎ (07/08, module-i-signal-registry-charter.md D2/F8): kiểm
+     Flow.verified/Flow.observed, hai field đã xoá khỏi schema vì tự thân là biểu thức của
+     src/steps, không mang thêm thông tin. Số nhóm 13/14 để khuyết vĩnh viễn (bất biến 8) —
+     KHÔNG viết lại test dưới số cũ cho nhóm nào khác. */
 
   /* Group 15: Taxonomy ↔ map */
   it("15: tổng con > cha", () => {

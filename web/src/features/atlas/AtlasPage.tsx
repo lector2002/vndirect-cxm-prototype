@@ -1,6 +1,14 @@
 import { useState } from "react";
-import type { Flow, Obs } from "../../data/schema/index.ts";
-import { fx, lockReasonForPhase, phaseIdOfFlow, stepState, stepWhy } from "../../domain/index.ts";
+import type { Flow, Obs, Step } from "../../data/schema/index.ts";
+import {
+  flowHasSourceCitation,
+  flowStepsCopied,
+  fx,
+  lockReasonForPhase,
+  phaseIdOfFlow,
+  stepState,
+  stepWhy,
+} from "../../domain/index.ts";
 import { Badge, Card, JourneySpine, Note } from "../../design-system/index.ts";
 import type { SpineStep } from "../../design-system/index.ts";
 import { PageTitle } from "../../nav.tsx";
@@ -31,15 +39,22 @@ import { AtlasStepInspector } from "./AtlasStepInspector.tsx";
    ngoài pilot còn lại cũng đang hiện mờ, gỡ riêng một phase là hai luật trong cùng một hàng. */
 
 /** Màu chấm trạng thái flow trên rail/chip — port dotOf() (prototype dòng 3370). #D6D1CB port 1-1 từ
-    hex gốc (không phải hex tự bịa — xem tiền lệ JourneySpine.tsx dòng 55 dùng #8F2A23 cùng lý do). */
-function flowDotColor(f: Flow): string {
-  return f.observed ? "var(--primary)" : f.verified ? "var(--ink3)" : "#D6D1CB";
+    hex gốc (không phải hex tự bịa — xem tiền lệ JourneySpine.tsx dòng 55 dùng #8F2A23 cùng lý do).
+    07/08 (module-i-signal-registry-charter.md D2/F8): `Flow.observed`/`Flow.verified` bị xoá khỏi
+    schema — hai trục suy tại chỗ đọc qua `flowStepsCopied`/`flowHasSourceCitation`
+    (domain/state.ts), không đổi kết quả trên cả 32 flow. */
+function flowDotColor(f: Flow, steps: readonly Step[]): string {
+  return flowStepsCopied(f, steps) ? "var(--primary)" : flowHasSourceCitation(f) ? "var(--ink3)" : "#D6D1CB";
 }
 
 /** Tooltip chấm — port stateOf() (prototype dòng 3371); KHÁC câu chữ với legend cố định bên dưới
     (dòng 3401-3403) — đây là hai chỗ chữ khác nhau trong chính prototype, giữ đúng cả hai. */
-function flowDotTitle(f: Flow): string {
-  return f.observed ? "Có dữ liệu quan sát" : f.verified ? "Có nguồn · chưa có dữ liệu" : "Chờ nguồn";
+function flowDotTitle(f: Flow, steps: readonly Step[]): string {
+  return flowStepsCopied(f, steps)
+    ? "Có dữ liệu quan sát"
+    : flowHasSourceCitation(f)
+      ? "Có nguồn · chưa có dữ liệu"
+      : "Chờ nguồn";
 }
 
 /* Phạm vi pilot (phase nào mở, phase nào khoá, khoá thì nói lý do gì) đã DỜI sang
@@ -52,11 +67,11 @@ export function AtlasPage() {
   // Cần cho AtlasSignalPanel (chart điểm đo, domain/signalChart.ts) — nhãn/unit của năm chiều cố định.
   const dims = useCxmStore((s) => s.dims);
 
-  /* Mặc định mở flow ĐẦU TIÊN đang có dữ liệu quan sát — tra bằng `observed` thay vì hardcode id
-     fixture, để không gãy nếu seed đổi id. Từ pilot mở rộng 05/08 đã có 6 flow `observed` (mở TK, mở
-     TK phái sinh, nạp, tra soát nạp, rút, chuyển nội bộ) nên "flow pilot duy nhất" không còn đúng;
-     thứ tự mảng `flows` vẫn đưa f-open-2026 lên trước nên màn mặc định không đổi. */
-  const defaultFlow = data.flows.find((f) => f.observed) ?? data.flows[0];
+  /* Mặc định mở flow ĐẦU TIÊN đã chép bước — tra bằng `flowStepsCopied` (domain/state.ts) thay vì
+     hardcode id fixture, để không gãy nếu seed đổi id. Từ pilot mở rộng 05/08 đã có 6 flow đã chép
+     bước (mở TK, mở TK phái sinh, nạp, tra soát nạp, rút, chuyển nội bộ) nên "flow pilot duy nhất"
+     không còn đúng; thứ tự mảng `flows` vẫn đưa f-open-2026 lên trước nên màn mặc định không đổi. */
+  const defaultFlow = data.flows.find((f) => flowStepsCopied(f, data.steps)) ?? data.flows[0];
 
   const [selectedPhaseId, setSelectedPhaseId] = useState<string>(() => phaseIdOfFlow(defaultFlow, data.groups));
   const [selectedFlowId, setSelectedFlowId] = useState<string>(() => defaultFlow.id);
@@ -111,7 +126,6 @@ export function AtlasPage() {
       entered: fx(o.entered),
       completed: fx(o.completed),
       failed: fx(o.failed),
-      cov: o.cov,
       effort: o.effort,
       // stepState(o,...) với o luôn xác định (không phải undefined) không bao giờ trả 'unknown' —
       // nhánh 'unknown' ở đây chỉ để khớp kiểu, KHÔNG phải đường chạy thật.
@@ -170,7 +184,7 @@ export function AtlasPage() {
         {data.phases.map((p) => {
           const flowsOfP = data.flows.filter((f) => phaseIdOfFlow(f, data.groups) === p.id);
           const on = p.id === selectedPhaseId;
-          const lockReason = lockReasonForPhase(p, data.flows, data.groups) ?? undefined;
+          const lockReason = lockReasonForPhase(p, data.flows, data.groups, data.steps) ?? undefined;
           return (
             <button
               key={p.id}
@@ -208,7 +222,7 @@ export function AtlasPage() {
                     <i
                       key={f.id}
                       className="w-[7px] h-[7px] rounded-full flex-none"
-                      style={{ background: flowDotColor(f) }}
+                      style={{ background: flowDotColor(f, data.steps) }}
                     />
                   ))}
                 </div>
@@ -252,7 +266,7 @@ export function AtlasPage() {
                           key={f.id}
                           type="button"
                           data-testid={`atlas-flow-${f.id}`}
-                          title={flowDotTitle(f)}
+                          title={flowDotTitle(f, data.steps)}
                           aria-pressed={on}
                           onClick={() => selectFlow(f.id)}
                           /* Chip ĐANG CHỌN tô ĐẶC màu chính, chữ trắng (port .fchips button.on,
@@ -267,7 +281,7 @@ export function AtlasPage() {
                           <i
                             className="w-[7px] h-[7px] rounded-full flex-none"
                             style={{
-                              background: flowDotColor(f),
+                              background: flowDotColor(f, data.steps),
                               // Viền trắng để chấm không chìm vào nền cam của chip đang chọn.
                               boxShadow: on ? "0 0 0 2px rgba(255,255,255,.55)" : undefined,
                             }}
@@ -303,7 +317,7 @@ export function AtlasPage() {
         <Card
           title={currentFlow.name}
           subtitle={`${currentFlow.owner} · ${currentFlow.version} · ${
-            currentFlow.verified ? `Nguồn: ${currentFlow.src}` : "chưa có sơ đồ nguồn, cần xác minh"
+            flowHasSourceCitation(currentFlow) ? `Nguồn: ${currentFlow.src}` : "chưa có sơ đồ nguồn, cần xác minh"
           }`}
           /* Prototype in "N trên N bước" (dòng 3410) — luôn đầy, nên không nói gì. Ở đây mẫu số là
              số bước THẬT của flow, tử số là số bước lên được xương sống, để rule 2 (loại bước chưa
@@ -341,7 +355,6 @@ export function AtlasPage() {
                   steps={spineSteps}
                   selectedId={selectedStepId ?? undefined}
                   onSelect={setSelectedStepId}
-                  covMin={cfg.step.covMin}
                 />
               </div>
             </>

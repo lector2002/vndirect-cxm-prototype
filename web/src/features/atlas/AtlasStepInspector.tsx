@@ -66,7 +66,6 @@ export function AtlasStepInspector({
   const [tab, setTab] = useState<TabKey>("sig");
   const st = stepState(obs, cfg);
   const why = stepWhy(obs, cfg);
-  const covWarn = obs.cov < cfg.step.covMin;
 
   return (
     <Card
@@ -74,7 +73,9 @@ export function AtlasStepInspector({
       subtitle={`${step.stationId} · phụ trách ${step.owner}`}
       actions={<Badge state={st} />}
     >
-      <div className="grid grid-cols-4 gap-2.5">
+      {/* 07/08 (module-i-signal-registry-charter.md D4): bỏ Stat "Evidence coverage" — đọc trường
+          `cov` của obs, số gõ tay không đối chiếu được. Còn lại 3 Stat đếm được. */}
+      <div className="grid grid-cols-3 gap-2.5">
         <Stat label="Vào bước" value={nf(fx(obs.entered))} />
         <Stat label="Hoàn tất" value={nf(fx(obs.completed))} foot={`${pv(obs.completed, obs.entered)}%`} />
         <Stat
@@ -82,12 +83,6 @@ export function AtlasStepInspector({
           value={nf(fx(obs.failed))}
           foot={`${pv(obs.failed, obs.entered)}% người vào bước`}
           tone={st === "crit" ? "var(--crit)" : undefined}
-        />
-        <Stat
-          label="Evidence coverage"
-          value={`${obs.cov}%`}
-          foot={covWarn ? `Dưới ngưỡng ${cfg.step.covMin}%` : `Đạt ngưỡng ${cfg.step.covMin}%`}
-          tone={covWarn ? "var(--watch)" : undefined}
         />
       </div>
 
@@ -157,7 +152,7 @@ export function AtlasStepInspector({
         ) : tab === "met" ? (
           <AtlasMetricsTab signals={signals} metrics={metrics} cfg={cfg} />
         ) : (
-          <AtlasCoverageTab obs={obs} cfg={cfg} signals={signals} />
+          <AtlasCoverageTab signals={signals} />
         )}
       </div>
     </Card>

@@ -49,7 +49,7 @@ export {
 } from "./topics.ts";
 export type { TopicLine } from "./topics.ts";
 export { zScores, isAnomaly, countAnomalies } from "./stats.ts";
-export { stepState, stepWhy, metricState, sourceHealth, laneOf } from "./state.ts";
+export { stepState, stepWhy, metricState, sourceHealth, laneOf, flowHasSourceCitation, flowStepsCopied } from "./state.ts";
 export type { DerivedState, SourceHealth, LaneKey } from "./state.ts";
 export { getPrimaryAction, advanceAction, advanceBlockedReason } from "./loop.ts";
 export type { LoopStageKey, PrimaryAction } from "./loop.ts";
@@ -63,3 +63,15 @@ export { themeSegments, themeAxisOptions, themeLegend, SUBTHEME_AXIS } from "./t
 export type { ThemeAxis, ThemeSegment, ThemeAxisOption } from "./themeSegments.ts";
 export { cfgIssues } from "./cfgIssues.ts";
 export { resetCfgPatch } from "./resetCfg.ts";
+export {
+  isSignalRunning,
+  runningSignalCount,
+  notRunningSignals,
+  signalsOfStep,
+  stepsWithoutRunningSignal,
+  signalsWithoutMetric,
+  metricsWithoutSignal,
+  sigCountReliability,
+  SIG_COUNT_DIMS,
+} from "./signalRegistry.ts";
+export type { SignalCount, NotRunningSplit, StepRunningCoverage, DimReliability } from "./signalRegistry.ts";

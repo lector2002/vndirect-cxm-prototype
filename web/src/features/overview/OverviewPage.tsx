@@ -150,6 +150,14 @@ export function OverviewPage({ sec, useStore = useCxmStore }: OverviewPageProps)
         onSelect={(id) => navigate(`/${sec}/${id}`)}
         onManage={() => navigate("/quantify")}
       />
+      {/* Mốc số liệu (module-i-signal-registry-charter.md §12.3/§13) — data.asOf qua store, KHÔNG
+          gõ tay chuỗi ngày. Đặt ở màn Tổng quan (dùng chung cho #/cxm và #/voc) vì đây là nơi người
+          xem đọc số tổng hợp nhiều nhất; không rải sang màn khác trong lát này. */}
+      {data.asOf ? (
+        <p className="text-[12px] text-ink-3 mb-2" data-testid="overview-asof">
+          Số liệu tính đến {data.asOf}
+        </p>
+      ) : null}
       {custom ? <CustomBanner onReset={() => resetBoard(cur.id)} /> : <div className="h-3.5" />}
 
       {cur.qs.map((qq, qi) => {

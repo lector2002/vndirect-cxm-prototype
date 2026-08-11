@@ -41,6 +41,7 @@ export const NAV_GROUPS: { g: string; items: { r: string; l: string }[] }[] = [
     items: [
       { r: 'rules', l: 'Chỉ số & ngưỡng' },
       { r: 'agents', l: 'Agent & cảnh báo' },
+      { r: 'signals', l: 'Điểm đo' },
       { r: 'settings', l: 'Cài đặt' },
     ],
   },

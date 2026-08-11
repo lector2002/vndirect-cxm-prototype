@@ -30,8 +30,6 @@ export type Flow = {
   owner: string;
   version: string;
   src: string;
-  verified: boolean;
-  observed: boolean;
   note: string;
 };
 

@@ -9,11 +9,15 @@ import { nf, pv } from "./format.ts";
      khung co theo dữ liệu thì các nhãn lệch nhau, trông như lỗi trình bày chứ không như một phễu.
    - passPx/lossPx có sàn 4px/3px (dòng 3452-3453) để dải mỏng vẫn còn thấy được trên màn hình.
    - Thứ tự nội dung thẻ bước (dòng 3436-3442): mã·stationId, tên bước, số hoàn tất (to), số vào,
-     thanh coverage, "Evidence % · lần thử", rồi badge trạng thái.
+     ↻ lần thử, rồi badge trạng thái.
    - Hatch chéo cho dải rơi port 1-1 CSS .cxloss (dòng 307-308): màu đơn --crit không đủ phân biệt
      nếu chỉ nhìn màu, nên xen hai tông đỏ theo đường chéo.
    Component CHỈ trình bày: state/why đã được suy ở tầng gọi (không tự suy lại ở đây), và KHÔNG
-   import store/data/fixtures/domain — nhận dữ liệu đã chuẩn bị sẵn qua props, giống Bars/Donut. */
+   import store/data/fixtures/domain — nhận dữ liệu đã chuẩn bị sẵn qua props, giống Bars/Donut.
+
+   07/08 (module-i-signal-registry-charter.md D4): bỏ thanh "Evidence coverage" + prop `covMin` —
+   `cov` là số gõ tay không đối chiếu được, không còn được hiện lên màn (QĐ2: "chỉ hiện thứ đếm
+   được"). Field `cov` bỏ luôn khỏi SpineStep vì sau khi bỏ hiện thị nó không còn ai đọc ở đây. */
 
 /** Một bước trong journey spine — Step+Obs+state đã gộp sẵn ở tầng trên (xem SpineStep). */
 export type SpineStep = {
@@ -24,7 +28,6 @@ export type SpineStep = {
   entered: number;
   completed: number;
   failed: number;
-  cov: number;
   effort: number;
   /** Đã suy sẵn ở tầng trên (ngưỡng fail ở CFG.step), KHÔNG tự suy lại ở component này. */
   state: "good" | "watch" | "crit";
@@ -36,8 +39,6 @@ export type JourneySpineProps = {
   steps: readonly SpineStep[];
   selectedId?: string;
   onSelect?: (id: string) => void;
-  /** Ngưỡng tô cảnh báo thanh coverage; vắng thì thanh luôn giữ màu mặc định, không tô. */
-  covMin?: number;
 };
 
 /** Khung dải nối CỐ ĐỊNH — prototype dòng 3425/3446-3448. */
@@ -58,17 +59,14 @@ function StepCard({
   step,
   selected,
   onSelect,
-  covMin,
 }: {
   step: SpineStep;
   selected: boolean;
   onSelect?: (id: string) => void;
-  covMin?: number;
 }) {
   // Rule 4: onSelect vắng → không gán onClick (không có handler nào được đính) và không tô như
   // đang bấm được — clickable chỉ true khi caller thực sự truyền onSelect.
   const clickable = Boolean(onSelect);
-  const warnCov = covMin !== undefined && step.cov < covMin;
   return (
     <button
       type="button"
@@ -86,14 +84,8 @@ function StepCard({
       <div className="text-[12.5px] font-semibold leading-tight my-1.5 min-h-[33px]">{step.name}</div>
       <div className="text-[17px] font-bold tabular-nums">{nf(step.completed)}</div>
       <div className="text-[12px] text-ink-2 mt-0.5">hoàn tất / {nf(step.entered)} vào</div>
-      <div className="mt-2 h-[5px] rounded-[3px] bg-surface-2 overflow-hidden">
-        <div
-          className="h-full"
-          style={{ width: `${step.cov}%`, background: warnCov ? "var(--watch)" : "var(--ink3)" }}
-        />
-      </div>
-      <div className="text-[12px] text-ink-2 mt-0.5">
-        Evidence {step.cov}% · ↻ {String(step.effort).replace(".", ",")} lần thử
+      <div className="text-[12px] text-ink-2 mt-2">
+        ↻ {String(step.effort).replace(".", ",")} lần thử
       </div>
       <div className="mt-[9px]">
         {/* Badge dùng "ok" cho trạng thái tốt (BadgeState, Badge.tsx dòng 9-14) còn SpineStep khai
@@ -144,7 +136,7 @@ function Connector({ from, to, base }: { from: SpineStep; to: SpineStep; base: n
   );
 }
 
-export function JourneySpine({ steps, selectedId, onSelect, covMin }: JourneySpineProps): JSX.Element {
+export function JourneySpine({ steps, selectedId, onSelect }: JourneySpineProps): JSX.Element {
   // Rule 2: mảng rỗng → nói thẳng "chưa có bước nào", không dựng khung rỗng giả vờ có dữ liệu.
   if (steps.length === 0) {
     return (
@@ -162,7 +154,7 @@ export function JourneySpine({ steps, selectedId, onSelect, covMin }: JourneySpi
     <div data-testid="spine-steps-row" className="flex items-stretch overflow-x-auto py-1">
       {steps.map((s, i) => (
         <Fragment key={s.id}>
-          <StepCard step={s} selected={s.id === selectedId} onSelect={onSelect} covMin={covMin} />
+          <StepCard step={s} selected={s.id === selectedId} onSelect={onSelect} />
           {/* Rule 2: base=0 → không chia cho 0, không vẽ dải nối nào cả. */}
           {base > 0 && i < steps.length - 1 ? <Connector from={s} to={steps[i + 1]} base={base} /> : null}
         </Fragment>

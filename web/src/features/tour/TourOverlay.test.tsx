@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import App from "../../App.tsx";
 import { seed, seedTour } from "../../data/fixtures/seed.ts";
+import { flowStepsCopied } from "../../domain/index.ts";
 import { splitTour } from "./tourStops.ts";
 
 /* Chạy tour THẬT trong DOM qua <App/>: đây là chỗ duy nhất chứng được rằng mỗi chặng đi được có mốc
@@ -24,7 +25,7 @@ const spineStop = stopNo("atlas-spine");
 
 /* Flow chưa vào pilot (chưa khai bước), cùng phase mặc định nên bấm được ngay — cùng cách chọn với
    AtlasPage.test.tsx:20 để hai file không mô tả hai thứ khác nhau. */
-const pilotFlow = seed.flows.find((f) => f.observed)!;
+const pilotFlow = seed.flows.find((f) => flowStepsCopied(f, seed.steps))!;
 const pilotPhaseId = seed.groups.find((g) => g.id === pilotFlow.groupId)!.phaseId;
 const noStepFlow = seed.flows.find(
   (f) => f.id !== pilotFlow.id && seed.groups.find((g) => g.id === f.groupId)?.phaseId === pilotPhaseId,
