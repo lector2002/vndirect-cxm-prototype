@@ -12,7 +12,11 @@ import { SignalProfile } from "./SignalProfile.tsx";
    hệ: hôm nay muốn xem MỘT điểm đo phải vào #/atlas → chọn phase → flow → bước → mở tab — phải BIẾT
    TRƯỚC cần bước nào. Màn này trả lời ở mức TOÀN HỆ: hệ đang đo những gì, cái nào chưa chạy, cái nào
    không dùng vào việc gì. Hồ sơ chi tiết một điểm đo ở I4b (SignalProfile.tsx), chart giá trị + khối
-   năm tình trạng phải trưng ở I5 (SignalProfile.tsx mặt 4 · SignalGovernanceBlock.tsx).
+   bản-khai-không-khớp ở I5 (SignalProfile.tsx mặt 4 · SignalGovernanceBlock.tsx).
+
+   Năm tình trạng charter §6 buộc trưng nằm ở HAI khối, không một: T4·T5·T7 ở khối ① phía trên
+   (kiểm kê), T1·T3 ở khối sau bảng (bản khai lệch thực tế). Đừng dồn cả năm vào một khối cho "gọn" —
+   làm thế là hiện T4/T5/T7 hai lần trên cùng màn, đúng bug đã cắt ở I5.
 
    Bất biến 9 (charter §9) — màn KHÔNG khai độ phủ so với thực tế: dữ liệu chỉ đến từ một nguồn ghi
    duy nhất nên "đo được bao nhiêu % của thực tế" KHÔNG TỒN TẠI, không phải "chưa tính được". Câu
