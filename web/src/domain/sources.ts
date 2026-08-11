@@ -153,9 +153,16 @@ const HEALTH_WORD: Record<SourceHealth, string> = {
 
 /** Chuỗi độ tươi của một chỉ số — SINH từ `Source.metrics[]` (quan hệ thật), KHÔNG đọc
     `Metric.freshness` (chuỗi gõ tay, D1 charter: 3/6 lệch số, 1/6 đúng số mà che trạng thái).
-    Nhiều nguồn ⇒ kể nguồn XẤU NHẤT (`worstSource`, F7). Số giờ/ngày lấy từ `lagText(worst.lagH)`,
-    LUÔN kèm hạng sức khoẻ — ca `m-ces` là lý do: số đúng (khớp `src-survey`) nhưng nguồn đó đang
-    "đang trễ", nói con số một mình là nói dối bằng cách im chuyện đó.
+    Nhiều nguồn ⇒ kể nguồn XẤU NHẤT (`worstSource`, F7). LUÔN kèm hạng sức khoẻ — ca `m-ces` là lý
+    do: số đúng (khớp `src-survey`) nhưng nguồn đó đang "đang trễ", nói con số một mình là nói dối
+    bằng cách im chuyện đó.
+
+    BA ĐOẠN, mỗi đoạn tự gọi tên trục của nó. Từ 07/08 (I3) hạng chấm bằng SỐ NGÀY THIẾU, không còn
+    bằng `lagH`, nên KHÔNG được để `lagText(lagH)` đứng trần cạnh chữ hạng: `m-ces` từng đọc thành
+    "trễ 12 giờ · đang trễ", người xem sẽ tưởng 12 giờ là thứ làm nên chữ "đang trễ", trong khi thật
+    ra là thiếu 1 ngày dữ liệu. Số đứng cạnh chữ phải là số chấm ra chữ đó — đây đúng là bệnh
+    `Metric.freshness` mà module này sinh ra để chữa, không được tái lập ở chuỗi thay thế.
+    Vẫn giữ `lagH` ở đoạn đầu vì nó là sự thật riêng (tuổi lần giao cuối), chỉ cần gọi đúng tên.
 
     0 nguồn nối tới (ca `m-contract`, khai `Metric.source` bằng chữ nhưng không nguồn nào trong
     `data.sources` liệt `metric.id` trong `metrics[]`) KHÔNG được nói "chỉ số này không có nguồn" —
@@ -166,7 +173,12 @@ export function metricFreshnessText(metric: Metric, data: CxmData, cfg: Cfg): st
     return `"${metric.source}" — khai nguồn bằng chữ nhưng không nối được vào nguồn nào trong danh sách hiện tại.`;
   }
   const worst = worstSource(feeders, cfg, data.asOf)!;
-  return `${lagText(worst.lagH)} · ${HEALTH_WORD[sourceHealth(worst, cfg, data.asOf)]}`;
+  const missing = sourceDaysMissing(worst, data.asOf);
+  const doPhu =
+    missing === 0
+      ? `đã giao đủ đến ${data.asOf}`
+      : `thiếu ${missing} ngày dữ liệu`;
+  return `${lagText(worst.lagH)} kể từ lần giao cuối · ${doPhu} · ${HEALTH_WORD[sourceHealth(worst, cfg, data.asOf)]}`;
 }
 
 /** Bằng chứng mẫu đến từ một nguồn. */

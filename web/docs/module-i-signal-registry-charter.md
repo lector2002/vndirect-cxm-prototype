@@ -68,6 +68,7 @@ load OK = ngày yên tĩnh; load lỗi = hỏng biết chắc; không có dòng 
 | **C1** | `AtlasStepInspector` sau I1 bỏ hẳn ô "Evidence coverage" (grid 4→3 cột). Muốn giữ 4 cột với **một ô trống tường minh** thì nói, sửa nhanh |
 | **C2** | Dòng mốc số liệu hiện ở Tổng quan (sau `SetChips`). Có cần hiện thêm ở màn nào nữa không |
 | **C3** | **Demo Mode có cần hiện mốc rõ ràng là giả** để không nhầm demo với thật? Tôi cố ý **chưa** làm ở I1 để không tự bịa cách thể hiện |
+| **C5** | **Nhóm SLA nguồn ở `#/rules` giờ ghi được mà không quyết định gì** — I3 đã lấy quyền chấm hạng khỏi `cfg.source[id]` (chấm theo số ngày thiếu so với mốc số liệu). Ô cấu hình gõ vào mà không đổi được gì chính là **loại bẫy module này đang dọn**. Hai đường: **bỏ nhóm đó**, hoặc **đổi sang ngưỡng theo NGÀY** để nó có quyền trở lại. Tôi **không tự quyết** vì đó là màn của Module G |
 | **C4** | **Bước đã chép mà chưa đo — hợp lệ hay lỗi dữ liệu?** Nhóm luật 14 cũ **cấm** trạng thái đó, nhưng UI **đã hỗ trợ** nó (`stepState()` trả *"unknown"*, khối Tổng quan nói *"chưa đo bước nào"*). Hai chỗ mâu thuẫn nhau **từ trước** module này. Ở I2 tôi chọn **hợp lệ** — cấm là chặn một tình trạng thật khỏi màn hình, cùng lý lẽ đã dùng để không thêm luật ở D5. Nếu anh muốn ngược lại thì nói, nhưng khi đó phải bỏ ca *"chưa đo"* khỏi UI cho khỏi nói hai giọng |
 
 ### D · GIAO NGƯỜI — không tốn dòng code nào, nhưng không giao thì lát 2 lại tắc
@@ -266,11 +267,11 @@ ghi ngay trên dòng — **không phải vì hết quan trọng**, mà vì trưn
 |---|---|---|
 | F1 | Bảng liệt kê đủ điểm đo | Số dòng bảng **bằng** `data.signals.length`, không phụ thuộc bước/flow nào đang chọn |
 | F2 | Hồ sơ một điểm đo đi hết đường allocate | Với **mọi** signal, hồ sơ hiện đúng chuỗi điểm chạm → bước → flow → phase suy từ `tpId`; signal có `metrics` rỗng phải nói *"chưa nuôi chỉ số nào"*, **không** để trống |
-| F3 | Mặt "xử lý" | Trạng thái hiện đúng `Signal.st`; độ tươi của nguồn chở nó suy từ `lagH` so với `cfg.source[id]`, **không** đọc `Metric.freshness`. ⚠️ **Chặn bởi §12.1** — dưới pipeline T-1 thì 5/7 nguồn `stale` vĩnh viễn do kiến trúc. Tiêu chí này **chỉ nghiệm thu được sau khi owner quyết** canh lại SLA hay đổi cách chấm |
+| F3 | Mặt "xử lý" | Trạng thái hiện đúng `Signal.st`; độ tươi của nguồn chở nó suy từ **số ngày thiếu so với mốc số liệu** `sourceHealth(s, cfg, asOf)`, **không** đọc `Metric.freshness`, **không** đọc `cfg.source[id]`. ~~Chặn bởi §12.1~~ **GỠ CHẶN 07/08 (I3)** — owner chọn đổi cách chấm sang mốc số liệu. Phần còn treo trên hồ sơ điểm đo là **nối signal → nguồn**: chưa có trường nào nối, không phải chưa có cách chấm |
 | F4 | Mặt "đo ở đâu trên app" | Hiện đúng 4 trường đang có; **ba ô Bảng D** (tên screen kỹ thuật · route/deeplink · id element) hiện **ô chờ có tên người nợ**, không hiện giá trị bịa. Test chỉ soi **ba ô đó**: không ô nào trong ba ô lấy chuỗi từ `Signal.desc`, `Signal.name`, `Touchpoint.name` hay `stationId` |
 | F5 | Chart giá trị | Dùng lại `signalChart` nguyên trạng. Signal `values` rỗng ⇒ **từ chối vẽ kèm lý do**, không vẽ rỗng |
 | F6 | Đếm cộng lên | Mọi con số tổng **kèm mẫu số**; flow chưa chép bước **không nằm trong mẫu số** của bất kỳ tỉ lệ nào — test: thêm một flow không bước thì mọi tỉ lệ **không đổi**, chỉ ô "chưa đánh giá được" tăng 1. **Thêm vào BẢN SAO trong test, KHÔNG thêm vào fixture đang ship** — một flow không bước phải kéo theo `observed:false` + `src`/`verified` khớp nhau (luật 13, 14) trên **cả hai** fixture, sửa thật là mở một mặt trận không cần thiết |
-| F7 | D1 — độ tươi chỉ số | *"Nguồn xấu nhất"* = xấu nhất theo **hạng sức khoẻ** `sourceHealth()`: `down` > `stale` > `ok`, **đồng hạng thì `lagH` lớn hơn thắng**. KHÔNG phải `max(lagH)` — `state.ts:59-61` chấm theo **SLA riêng** `cfg.source[id]`, nên nguồn trễ 24h/SLA 24h là `ok` còn nguồn trễ 8h/SLA 4h là `stale`. Chuỗi độ tươi **bằng** `lagText()` của nguồn thắng. **Test phải TỰ DỰNG input, không đọc fixture** — đo 07/08: **chỉ 1/6 chỉ số có >1 nguồn** (`m-repeat`), và nguồn xấu nhất của nó **cũng là** nguồn `lagH` cao nhất, nên fixture **không chứa ca phân biệt** "hạng sức khoẻ" với "max lagH". Test dựng hai `Source` giả: một `lagH` 24 / SLA 36 (`ok`) và một `lagH` 8 / SLA 4 (`stale`) ⇒ phải hiện cái `lagH` **8** |
+| F7 | D1 — độ tươi chỉ số | *"Nguồn xấu nhất"* = xấu nhất theo **hạng sức khoẻ** `sourceHealth(s, cfg, asOf)`: `down` > `stale` > `silent` > `ok`, **đồng hạng thì thiếu nhiều ngày hơn thắng**. KHÔNG phải `max(lagH)`. **Test phải TỰ DỰNG input, không đọc fixture** — đo 07/08: **chỉ 1/6 chỉ số có >1 nguồn** (`m-repeat`), và nguồn xấu nhất của nó **cũng là** nguồn thiếu nhiều ngày nhất, nên fixture **không chứa ca phân biệt** hai luật. Chuỗi có **ba đoạn, mỗi đoạn gọi tên trục của nó**: tuổi lần giao cuối (`lagText(lagH)`) · độ phủ ngày · hạng. ⚠️ **`lagH` KHÔNG được đứng trần cạnh chữ hạng** — hạng chấm bằng ngày thiếu, để `"trễ 12 giờ · đang trễ"` là dựng lại đúng bệnh `Metric.freshness` mà module này sinh ra để chữa (`m-ces`: 12 giờ nhưng thiếu 1 ngày). Test quét **mọi** chỉ số có nguồn, không bốc một ca |
 | F8 | D2 — bỏ hai cờ | Sau khi bỏ, ba trạng thái flow trên Atlas **không đổi một pixel nào** so với trước. Test: so nhãn suy ra với nhãn cũ trên cả 32 flow |
 | F9 | D4 — gỡ `obs.cov` | Không chỗ nào trong `src/` (trừ schema + fixtures) đọc `obs.cov`. Test phải quét **cả 30 obs**, không chọn một dòng: với **mọi** obs, `stepState()` **và** `stepWhy()` cho **cùng kết quả** ở `cov = 0` và `cov = 100`. Lý do bắt buộc quét hết: `state.ts:20` chỉ cho `cov` đẩy trạng thái khi `s === 'ok'`, nên nếu test bốc một bước vốn đã `watch`/`crit` theo tỉ lệ thất bại thì **test xanh trong khi logic cov còn nguyên** — đó là test rỗng. `stepWhy()` phải kiểm riêng vì `state.ts:34` đẩy chuỗi lý do `cov` **không phụ thuộc** nhánh `ok`, tức người dùng vẫn đọc thấy nó |
 | ~~F10~~ | ~~Khối ở Tổng quan~~ — **HOÃN sang lát 2** | Thay `CoverageBlock` bằng khối dẫn vào màn mới. Đây là tiêu chí **duy nhất nằm ngoài màn mới**, và nó sinh từ QĐ 7 — thứ mà **chính QĐ 9 đã hạ xuống làm nền đỡ**. Nếu phải bỏ một tiêu chí để MVP còn tối giản thì bỏ cái này. `CoverageBlock` sau D4 sẽ **rỗng nhưng không vỡ** — chấp nhận được trong một lát |
@@ -450,7 +451,7 @@ Theo khuôn Module G: mỗi lát một khối việc + tiêu chí ghim. **Một 
 |---|---|---|---|
 | **I1** | **Mốc số liệu + gỡ số gõ tay khỏi quyền quyết định** | `asOf` (§13) · D4 (gỡ 6 chỗ tiêu thụ `obs.cov`) · D3 (chết theo D4) · F9 | — **làm đầu tiên**: không có mốc thì mọi con số sau đều đọc sai thành "bây giờ" |
 | **I2** | **Bỏ hai cờ không mang thông tin** | D2 · F8 · nhóm luật 13/14 thành **khuyết** (bất biến 8) | Độc lập với I1 |
-| **I3** | **Phả hệ nguồn + độ tươi chỉ số** | D1 (4 ca, gồm `m-ces` đúng số mà che trạng thái) · F7 · ca `m-contract` (T2 cũ) | ⚠️ **ĐANG CHẶN** — xem dưới |
+| **I3** | **Phả hệ nguồn + độ tươi chỉ số** | D1 (4 ca, gồm `m-ces` đúng số mà che trạng thái) · F7 · ca `m-contract` (T2 cũ) | ✅ **XONG 07/08** — gỡ chặn, xem dưới |
 | **I4a** | **Màn Điểm đo: route + bảng 30 điểm + hai khối tầng ①/②** | F1 · bất biến 9 (câu giới hạn IN TRÊN MÀN) · khối kiểm kê · khối độ tin cậy (1 số thật + 5 ô chờ) · nav vào nhóm Quản trị | I1 (mốc số liệu) |
 | **I4b** | **Hồ sơ một điểm đo — bốn mặt** | F2 · F4 · D5 · D6 | I4a. **F3 phần độ tươi nguồn HOÃN** — chặn bởi A1 |
 | **I5** | **Chart giá trị + khối đếm + 5 tình trạng trưng** | F5 · F6 · T1 · T3 · T4 · T5 · T7 | I3 (T3 cần phả hệ nguồn) · I4 (màn phải có trước) |
@@ -458,22 +459,52 @@ Theo khuôn Module G: mỗi lát một khối việc + tiêu chí ghim. **Một 
 **Hoãn sang lát 2:** F10 (khối ở Tổng quan) · mọi việc cần pipeline thật (Bảng D, mã lý do rớt, mốc
 thấy cuối máy sinh, lưu lượng theo cửa sổ, tách trễ-pipeline khỏi trễ-nguồn — §10 và §12).
 
-### I3 đang bị chặn bởi một quyết định của owner
+### I3 — XONG 07/08, đã tự kiểm độc lập
 
-`sourceHealth()` chấm theo SLA **giờ**, mà pipeline T-1 làm **5/7 nguồn `stale` vĩnh viễn** (§12.1).
-I3 không nghiệm thu được trước khi owner chọn: **canh lại 5 số SLA theo ngày**, hay **đổi cách chấm
-sang so với mốc số liệu**.
+**Owner chọn: đổi cách chấm sang so với mốc số liệu** (không canh lại 5 số SLA). `sourceHealth(s,
+cfg, asOf)` nay so `Source.last` với `CxmData.asOf` theo **NGÀY**; `cfg.source[id]` **mất quyền
+quyết định hạng**. Thêm hạng thứ tư **`silent`** cho nguồn do người gửi (`chat`/`case`/`broker-note`/
+`store-review`/`survey`): im lặng chưa phân định được là đứt hay không ai gửi. Nguồn theo lưu lượng
+(`event`) im lặng vẫn là bất thường ⇒ `stale`. Commit `3849afa`.
 
-**Tiền lệ có lợi:** `module-g-rules-charter.md` §3 đã tuyên **nhóm SLA nguồn là BẢN TẠM** (owner
-06/08), số dòng sinh từ `data.sources`, không gõ tay. Nên **sửa 5 con số đó không phải phá phạm vi
-Module G** — nó nằm trong đúng phần đã khai là tạm. Cái cần owner quyết vẫn là **cách chấm**, không
-phải quyền sửa số.
+`tsc -b` exit 0 · `vitest run` **102 file / 1175 test xanh** · `validateFixture()` **0 lỗi trên CẢ
+HAI** fixture.
 
-Module G cũng đã ghi sẵn câu cảnh báo tự-lừa cho đúng ca này: *nới SLA một nguồn thì nhãn nguồn đó
-chuyển sang "Đang nhận" ngay, nhưng độ trễ thật không đổi.* **Giữ nguyên tinh thần đó ở I3** — nếu
-canh lại SLA theo ngày, màn phải nói rõ đây là **đổi thước**, không phải nguồn khoẻ lên.
+**Bốn thứ tôi tự đo lại, không tin báo cáo worker:**
 
-**I1, I2, I4 không bị chặn** — chạy được ngay.
+1. **Bảy nhãn nguồn KHÔNG đổi cái nào** (`ok`×5 · `src-survey` `stale` · `src-zalo` `down`) — đổi
+   thước mà giữ nguyên kết luận, nên bật được ngay. Đúng tinh thần cảnh báo tự-lừa của Module G:
+   đây là **đổi thước**, không phải nguồn khoẻ lên.
+2. **`cfg.source` mất quyền thật** — đặt cả 7 ngưỡng thành `999999`, hạng không đổi cái nào.
+3. **Loại nguồn có quyền thật** — cùng dữ liệu (`vol` 0, thiếu 1 ngày), `kind: "chat"` ⇒ `silent`,
+   `kind: "event"` ⇒ `stale`.
+4. **Im lặng 1 ngày không bị đẩy oan thành `down`** (`deadDays` = 2).
+
+**Hai chỗ tôi phải sửa sau worker:**
+
+- **Sáu chuỗi UI còn nói "Trễ hơn SLA"** sau khi SLA mất quyền — chính là bệnh `Metric.freshness`
+  mà module này sinh ra để chữa, chỉ khác chỗ đứng. Đổi hết sang *"Thiếu ngày dữ liệu"*
+  (`SrcMatrix.tsx` · `rules/groups/SourceGroup.tsx` + test · `sources/SourceProfile.tsx` ·
+  `sources/SourcesPage.tsx`), và chân trang `SourcesPage` *"còn trong SLA độ trễ của chính nó"* →
+  *"đã giao đủ dữ liệu đến mốc số liệu"*.
+- **`metricFreshnessText` in `lagH` (giờ) cạnh chữ hạng chấm bằng NGÀY** — `m-ces` đọc thành
+  *"trễ 12 giờ · đang trễ"*, người xem tưởng 12 giờ làm nên chữ đó, thật ra là thiếu 1 ngày. Tách
+  thành ba đoạn có tên trục (F7). Đây là cùng một bệnh với gạch đầu dòng trên, tái lập ngay trong
+  chuỗi thay thế — đáng ghi lại.
+
+**Một sai phạm vi tôi CHẤP NHẬN, không phải bỏ qua:** worker tràn ra **17 file**, gồm Module G và
+`#/sources` mà contract đã loại trừ. Không tránh được về mặt cấu trúc — đổi chữ ký `sourceHealth()`
+thì mọi chỗ gọi phải đổi theo. Đã kiểm test Module G bị lật vẫn **giữ nguyên chủ ý** (khẳng định
+`cfg` vẫn ghi được, chỉ là nhãn không đổi theo nữa) và có chốt chống rỗng.
+
+**Còn treo, KHÔNG thuộc I3:** hồ sơ điểm đo vẫn chưa hiện độ tươi nguồn — vì **chưa có trường nào
+nối `Signal` → `Source`**, không phải vì chưa có cách chấm. Đó là việc dữ liệu, đã nằm ở §10.
+
+**Món nợ I3 để lại cho Module G — phải trả, không được quên:** nhóm SLA nguồn ở `#/rules` **vẫn ghi
+được** nhưng **không còn quyết định gì**. `module-g-rules-charter.md` §3 đã tuyên nhóm này là **BẢN
+TẠM** nên nó không phá phạm vi Module G, nhưng một ô cấu hình gõ vào mà không đổi được gì là **đúng
+loại bẫy** module này đang dọn. Đưa thành **C5** ở §0: hoặc bỏ nhóm đó, hoặc đổi nó thành ngưỡng
+**theo ngày** để có quyền trở lại. Không tự quyết ở I5.
 
 ### I1 — XONG 07/08, đã tự kiểm độc lập
 
