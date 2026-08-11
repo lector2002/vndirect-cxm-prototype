@@ -7,6 +7,16 @@ bố cục chỉ-nhìn-mới-thấy, và **lỗi thứ năm nằm ngay trong b�
 Owner chốt 06/08 qua hộp hỏi: dựng màn này trước; nhóm SLA nguồn *dựng, sinh từ dữ liệu + nhãn bản
 tạm*.
 
+**Hai việc treo trên màn này, chốt sau khi Module G xong — đọc trước khi sửa `#/rules`:**
+- **11/08, luật thiết kế:** bỏ câu ngắn giải thích dưới title lớn, và bỏ đoạn luận giải *"Hướng so
+  sánh suy ra từ dấu trong mục tiêu…"* ở chân bảng chỉ số (`MetricGroup.tsx`). Đã ghi luật + phân
+  loại 34 chỗ `subtitle` + ranh giới không được xoá sang diện "thừa nhận giới hạn":
+  `docs/DB-FIRST-HANDOFF.md` §"Bỏ câu giải thích dưới title". **Chưa thi hành.**
+- **07/08 (C5 của Module I):** nhóm SLA nguồn giờ **ghi được mà không quyết định gì** — `sourceHealth()`
+  đã chuyển sang chấm theo số ngày thiếu so với mốc số liệu, `cfg.source[id]` mất quyền. Bỏ nhóm đó
+  hay đổi sang ngưỡng theo NGÀY là quyết định của owner: `web/docs/module-i-signal-registry-charter.md`
+  §0 mục C5.
+
 **Ba chỗ charter này SAI so với code/dữ liệu thật, đã đo lại:**
 - "pilot mở rộng: 30 bước, chỉ một phần có quan sát" — **sai**, 30/30 bước đều có `obs`.
 - Danh sách chạm thiếu `data/bands.ts` (thêm `formatBound`) và `features/rules/NumField.tsx`

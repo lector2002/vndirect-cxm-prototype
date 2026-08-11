@@ -757,6 +757,89 @@ Bốn test cũ ghim "không còn `<h1>` nào" hoặc đọc câu mở đầu đ�
 
 `tsc -b` sạch, **1047 test xanh / 89 file**.
 
+# Bỏ câu giải thích dưới title, và khối luận giải trong bảng chỉ số — luật chung, chốt 11/08
+
+Nối tiếp luật 06/08 (*"đầu màn chỉ còn tên tab"*) xuống một cấp: luật đó dọn phần mở đầu của **màn**,
+luật này dọn phần mở đầu của từng **khối** và các đoạn luận giải nằm trong thân khối. Owner chốt
+11/08: **bỏ toàn bộ câu ngắn giải thích ở dưới title lớn**, và **bỏ các đoạn giải thích cách đọc kiểu
+như đoạn dưới đây ở phần chỉ số theo dõi**:
+
+> Hướng so sánh suy ra từ dấu trong mục tiêu: ≥ là càng cao càng tốt, ≤ là càng thấp càng tốt. Repeat
+> contact dùng ≤ nên ngưỡng đọc theo chiều "vượt". **Cố ý không có một ngưỡng chung cho mọi chỉ số:**
+> Liveness completion 83,3% so mục tiêu ≥ 90% là cần xử lý ngay, còn Evidence coverage bước OCR 71,0%
+> so cùng mục tiêu ≥ 90% chỉ là cần theo dõi — chỉ số chạm khách và chỉ số chất lượng dữ liệu không
+> đọc cùng một cách.
+
+Chỗ đó là `features/rules/groups/MetricGroup.tsx` (chân bảng chỉ số). Cả đoạn là **lý lẽ thiết kế** —
+đúng loại nội dung đã chuyển vào tài liệu này ở luật 06/08 (câu luận đề của `#/vocjourney`), không
+phải thứ người dùng phải đọc lại mỗi lần mở màn.
+
+## Đo trước khi xoá: 34 chỗ có câu dưới title, KHÔNG cùng một loại
+
+Grep `subtitle=` cho **34 chỗ** (không tính test) = **13 bỏ thẳng + 19 chở dữ liệu + 2 ca đặc biệt**.
+**Chỉ nhóm 1 rơi vào luật này**:
+
+**Nhóm 1 — câu giải thích thiết kế, ĐÚNG diện phải bỏ (13 chỗ).**
+`rules/groups/AlertGroup.tsx:51` · `rules/groups/SourceGroup.tsx:46` · `rules/groups/SubGroup.tsx:37` ·
+`rules/groups/WeightGroup.tsx:33` · `rules/groups/SegmentGroup.tsx:278` ·
+`signals/SignalInventoryBlock.tsx:31` · `signals/SignalReliabilityBlock.tsx:46` ·
+`signals/SignalGovernanceBlock.tsx:39` · `work/WorkCreateForm.tsx:54` ·
+`quantify/QuantifyBuilder.tsx:283,347` · `atlas/AtlasPage.tsx:250` ·
+`vocjourney/VocJourneyPage.tsx:154`.
+
+Hai chỗ cuối (*"Chọn một flow để mở chuỗi bước"* / *"…chuỗi điểm chạm"*) là **câu chỉ dẫn hành động**,
+không phải giải thích — bỏ thì mất một lời mời bấm, nhưng danh sách flow bấm được vốn đã tự nói ra
+điều đó. Xếp vào nhóm 1, nếu owner muốn giữ thì nói.
+
+**Nhóm 2 — subtitle đang chở DỮ LIỆU, không phải lời giải thích (19 chỗ). KHÔNG bỏ theo luật này.**
+
+Bảy khối Tổng quan mang `Ảnh chụp · <kỳ số liệu>`; hồ sơ bước và điểm chạm mang `stationId · người phụ
+trách`; Atlas mang `owner · version`; `QuantifyWidget` mang kỳ; `SourceProfile` mang `source.note`;
+`ThemeDetailPage` mang `theme.why`; `WorkConfirmForm` mang tiêu đề điểm gãy; `SegmentGroup:122` mang
+dữ kiện cắt + đơn vị. Xoá những chỗ này là **mất thông tin thật**, cùng lý lẽ đã dùng cho `#/work` ở
+luật 06/08 (hai phép đếm không có ở đâu khác nên phải dời chứ không xoá). Nếu owner muốn màn phẳng
+hơn nữa thì đây là một quyết định **khác**, phải bàn riêng.
+
+**Nhóm 3 — hai ca đặc biệt, đừng xử theo phản xạ.**
+
+- `sources/SourceProfile.tsx:82` — `subtitle={source.note}` chở dữ liệu (nhóm 2) nhưng dữ liệu đó là
+  **prose gõ tay**, và Module I đã đo được là **không dòng code nào khác đọc `Source.note`**: bằng
+  chứng duy nhất cho việc `src-zalo` đang đứt là một câu người gõ. Đừng bỏ theo luật này, nhưng cũng
+  đừng coi nó là dữ liệu đáng tin.
+- `vocjourney/VocJourneyPage.tsx:201` — **một prop, hai nghĩa tuỳ dữ liệu**: có bước thì hiện *"Chuỗi
+  điểm chạm — mỗi thẻ hiện tiếng nói tại đó"* (giải thích, nhóm 1), không có bước thì hiện *"Flow này
+  chưa nằm trong pilot"* (**sự thật về trạng thái**, nhóm 2). Bỏ cả prop là **giết luôn nhánh thứ
+  hai** — mất câu duy nhất nói vì sao khối trống. Phải giữ nhánh `chưa nằm trong pilot`, chỉ bỏ nhánh
+  giải thích.
+
+## Ranh giới phải giữ: 98 khối `<Note>` trong app KHÔNG cùng một diện
+
+Luật này **không phải** giấy phép quét sạch `<Note>`. Đếm được **98 khối** (không tính test), và phần
+lớn trong đó là **nghĩa vụ nói thật** mà chính các module trước đã cố ý in ra màn, không phải lời
+giảng bài:
+
+- câu giới hạn ở đầu `#/signals` (**bất biến 9** của Module I — màn không được khai độ phủ so với thực
+  tế; charter ghi rõ câu này phải **in trên màn**, ai muốn thêm lại cột "% độ phủ" phải xoá nó trước);
+- `▨ = ô trống thật, chưa có dữ liệu — KHÔNG lấp bằng mô tả nghiệp vụ` ở hồ sơ điểm đo;
+- cảnh báo *bảng đếm sinh từ chính bản khai này* — thứ ngăn người đọc hiểu "0 giá trị ngoài khai báo"
+  thành bằng chứng dữ liệu sạch;
+- các câu nói rõ vì sao một số **chưa hiện được** (độ tươi nguồn chưa nối được `Signal` → `Source`).
+
+Phân biệt: **bỏ câu dạy cách đọc, giữ câu thừa nhận giới hạn.** Câu thứ nhất người dùng học một lần
+là xong; câu thứ hai mà mất thì màn bắt đầu nói dối bằng cách im lặng. Ai áp luật này về sau mà xoá
+sang diện thứ hai thì đang tháo bất biến, không phải dọn giao diện.
+
+Tám khối `<Note>` chân nhóm ở `#/rules` (`AlertGroup` 2 · `MetricGroup` 1 · `SegmentGroup` 2 ·
+`SourceGroup` 1 · `StepGroup` 1 · `WeightGroup` 1) cùng diện với đoạn owner chỉ tên — nhưng **chỉ
+đoạn ở `MetricGroup` là được chỉ tên đích danh**. Bảy khối kia phải đọc từng cái theo phân biệt trên
+trước khi bỏ, không bỏ cả loạt.
+
+## Chưa thi hành — đây là ghi luật, chưa sửa code
+
+Ghi ngày 11/08 theo yêu cầu *"note lại vào thiết kế"*. Chưa xoá dòng nào. Khi thi hành: `Card` có
+`subtitle` optional nên bỏ prop là đủ, không cần sửa `design-system/Card`; và **test nào đang đọc
+những câu này phải viết lại để canh chỗ mới, không xoá** — cùng luật đã áp ở 06/08.
+
 # Màn "Chỉ số & ngưỡng" `#/rules` — dựng mới 06/08, ĐỦ 7 NHÓM
 
 Charter: `web/docs/module-g-rules-charter.md`. Owner chốt 06/08 (hộp hỏi): dựng màn này trước, và
