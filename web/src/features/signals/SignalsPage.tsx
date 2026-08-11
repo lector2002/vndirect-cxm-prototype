@@ -4,13 +4,15 @@ import { Note } from "../../design-system/index.ts";
 import { useCxmStore } from "../../store/store.ts";
 import { SignalInventoryBlock } from "./SignalInventoryBlock.tsx";
 import { SignalReliabilityBlock } from "./SignalReliabilityBlock.tsx";
+import { SignalGovernanceBlock } from "./SignalGovernanceBlock.tsx";
 import { SignalTable } from "./SignalTable.tsx";
 import { SignalProfile } from "./SignalProfile.tsx";
 
 /* #/signals — màn Điểm đo (module-i-signal-registry-charter.md §2, §14 lát I4a). Phần KIỂM KÊ toàn
    hệ: hôm nay muốn xem MỘT điểm đo phải vào #/atlas → chọn phase → flow → bước → mở tab — phải BIẾT
    TRƯỚC cần bước nào. Màn này trả lời ở mức TOÀN HỆ: hệ đang đo những gì, cái nào chưa chạy, cái nào
-   không dùng vào việc gì. KHÔNG làm hồ sơ chi tiết một điểm đo (I4b) và KHÔNG làm chart giá trị (I5).
+   không dùng vào việc gì. Hồ sơ chi tiết một điểm đo ở I4b (SignalProfile.tsx), chart giá trị + khối
+   năm tình trạng phải trưng ở I5 (SignalProfile.tsx mặt 4 · SignalGovernanceBlock.tsx).
 
    Bất biến 9 (charter §9) — màn KHÔNG khai độ phủ so với thực tế: dữ liệu chỉ đến từ một nguồn ghi
    duy nhất nên "đo được bao nhiêu % của thực tế" KHÔNG TỒN TẠI, không phải "chưa tính được". Câu
@@ -31,6 +33,7 @@ export type SignalsPageProps = {
 export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
   const data = useStore((s) => s.data);
   const dims = useStore((s) => s.dims);
+  const cfg = useStore((s) => s.cfg);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
   const selectedSignal = selectedSignalId ? data.signals.find((s) => s.id === selectedSignalId) : undefined;
 
@@ -52,7 +55,7 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
       </div>
 
       {selectedSignal ? (
-        <SignalProfile data={data} signal={selectedSignal} onBack={() => setSelectedSignalId(null)} />
+        <SignalProfile data={data} signal={selectedSignal} onBack={() => setSelectedSignalId(null)} dims={dims} />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-4 items-start mb-6">
@@ -61,6 +64,10 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
           </div>
 
           <SignalTable data={data} onSelect={setSelectedSignalId} />
+
+          <div className="mt-4">
+            <SignalGovernanceBlock data={data} cfg={cfg} />
+          </div>
         </>
       )}
     </div>

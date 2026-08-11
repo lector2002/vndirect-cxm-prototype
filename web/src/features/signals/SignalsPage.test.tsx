@@ -172,6 +172,38 @@ describe("I4b tiêu chí 8 — mở hồ sơ từ bảng, đóng lại được 
   });
 });
 
+describe("I5 — khối bản-khai-không-khớp (T1·T3), chỉ hiện ở nhánh danh sách", () => {
+  /* T4/T5/T7 KHÔNG ở khối này: chúng đã trưng ở khối ① phía trên, hiện lại là trưng một tình trạng
+     hai lần trên cùng một màn (xem docblock SignalGovernanceBlock.tsx). Bản đầu lát I5 quét cả năm
+     testid ở đây — đã sửa theo. */
+  it("khối hiện đủ hai dòng khi đang ở bảng danh sách", () => {
+    render(<SignalsPage useStore={demoStore()} />);
+    for (const testId of ["gov-t1", "gov-t3"]) {
+      expect(screen.getByTestId(testId)).toBeInTheDocument();
+    }
+  });
+
+  it("khối KHÔNG hiện khi đang mở hồ sơ một điểm đo", () => {
+    const store = demoStore();
+    render(<SignalsPage useStore={store} />);
+    const { data } = store.getState();
+    fireEvent.click(screen.getByTestId(`signal-row-${data.signals[0].id}`));
+    expect(screen.getByTestId("signal-profile")).toBeInTheDocument();
+    for (const testId of ["gov-t1", "gov-t3"]) {
+      expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+    }
+  });
+
+  it("đóng hồ sơ lại thì khối hiện trở lại", () => {
+    const store = demoStore();
+    render(<SignalsPage useStore={store} />);
+    const { data } = store.getState();
+    fireEvent.click(screen.getByTestId(`signal-row-${data.signals[0].id}`));
+    fireEvent.click(screen.getByTestId("signal-profile-back"));
+    expect(screen.getByTestId("gov-t1")).toBeInTheDocument();
+  });
+});
+
 describe("asOf — mốc số liệu đọc qua store, không gõ tay", () => {
   it("hiện đúng data.asOf khi có, không hiện dòng đó khi rỗng", () => {
     const store = demoStore();

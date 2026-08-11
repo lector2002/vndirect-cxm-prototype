@@ -1,4 +1,5 @@
-import type { CxmData, Signal } from "../../data/schema/index.ts";
+import { useState } from "react";
+import type { CxmData, Dim, Signal } from "../../data/schema/index.ts";
 import {
   PF_LABEL,
   declaredStateLabel,
@@ -6,10 +7,13 @@ import {
   runningNotTrusted,
   seenAfterAsOf,
   signalAllocationChain,
+  signalChart,
   signalsWithoutMetric,
   signalsWithoutValues,
 } from "../../domain/index.ts";
-import { Badge, Card, Note } from "../../design-system/index.ts";
+import type { DimState, SigCol, SigGroup, SigSlice } from "../../domain/index.ts";
+import { Badge, Card, Note, SignalColumns } from "../../design-system/index.ts";
+import type { SigColBar, SigColGroup, SigColSlice } from "../../design-system/index.ts";
 import { nf } from "../../design-system/format.ts";
 import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
 
@@ -21,8 +25,11 @@ import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
    thân thiện, khác với ASCII gốc vốn đặt tên event lên breadcrumb (contract lát này ghi đè điểm
    này một cách tường minh). `signal.name` vẫn xuất hiện hợp lệ ở mặt 1 ("Tên event").
 
-   KHÔNG dựng chart giá trị ở đây (I5, ngoài phạm vi lát này) — mặt 4 chỉ liệt kê `values[]` đã
-   khai. KHÔNG đọc `Metric.freshness` (D1: chuỗi gõ tay sai số ở 3/6 chỉ số).
+   Mặt 4 dựng chart phân bố giá trị từ 07/08 (I5) — DÙNG LẠI NGUYÊN `domain/signalChart.ts` +
+   `design-system/SignalColumns`, cùng đường gọi với `features/atlas/AtlasSignalPanel.tsx`
+   (`toColGroups`/`ValueDimButtons` dưới đây là bản COPY cục bộ của các hàm module-local cùng tên ở
+   đó — không export/sửa file kia, tránh phụ thuộc chéo giữa hai feature). KHÔNG đọc
+   `Metric.freshness` (D1: chuỗi gõ tay sai số ở 3/6 chỉ số).
 
    Độ tươi nguồn vẫn chưa hiện, nhưng LÝ DO ĐÃ ĐỔI từ 07/08 (I3): cách chấm đã chốt —
    `sourceHealth(s, cfg, asOf)` theo số ngày thiếu. Cái còn thiếu là **không có trường nào nối
@@ -43,7 +50,133 @@ function DRow({ label, testId }: { label: string; testId: string }) {
   );
 }
 
-export function SignalProfile({ data, signal, onBack }: { data: CxmData; signal: Signal; onBack: () => void }) {
+/* ---- Chart phân bố giá trị (F5, I5) — bản COPY cục bộ của các adapter module-local ở
+   features/atlas/AtlasSignalPanel.tsx:44-63,132-171 (không export file kia, xem docblock đầu file). */
+
+function toColSlice(s: SigSlice, dimId: string): SigColSlice {
+  // Rule 7 (signalChart.ts): label giữ VERBATIM `band`, TRỪ chiều sigpf — hiện tên đẹp qua PF_LABEL.
+  const label = dimId === "sigpf" ? (PF_LABEL[s.band] ?? s.band) : s.band;
+  return { label, n: s.n, unknown: s.unknown };
+}
+
+function toColBar(col: SigCol, dimId: string): SigColBar {
+  return { val: col.val, declared: col.declared, total: col.total, slices: col.slices.map((s) => toColSlice(s, dimId)) };
+}
+
+function toColGroups(groups: readonly SigGroup[], dimId: string): SigColGroup[] {
+  return groups.map((g) => ({
+    sigId: g.sigId,
+    title: g.sigName,
+    vol: g.vol,
+    bars: g.cols.map((c) => toColBar(c, dimId)),
+    notIdentified: g.notIdentified,
+    notIdentifiedPct: g.notIdentifiedPct,
+  }));
+}
+
+function ValueDimButtons({
+  dimStates,
+  selectedDimId,
+  dims,
+  onSelect,
+}: {
+  dimStates: readonly DimState[];
+  selectedDimId: string;
+  dims: Record<string, Dim>;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5" role="group" aria-label="Chọn chiều để nhìn">
+      {dimStates.map((ds) => {
+        const unit = dims[ds.id].unit;
+        const locked = ds.state === "locked";
+        const selected = ds.id === selectedDimId;
+        return (
+          <button
+            key={ds.id}
+            type="button"
+            data-testid={`signal-profile-dim-${ds.id}`}
+            disabled={locked}
+            aria-pressed={selected}
+            onClick={() => onSelect(ds.id)}
+            className={`text-left px-2.5 py-1.5 rounded-[8px] border text-[12.5px] ${
+              selected ? "border-primary bg-primary-soft" : "border-line bg-surface"
+            } ${locked ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <div className="font-semibold">{ds.label}</div>
+            {ds.state === "partial" ? (
+              <div className="text-[11px] text-ink-2">{`${Math.round(ds.missingPct * 100)}% dữ liệu không gán được ${unit}`}</div>
+            ) : null}
+            {locked ? <div className="text-[11px] text-ink-2">{`nguồn này không ghi ${unit}`}</div> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Chart phân bố giá trị của MỘT signal — chỉ gọi khi `signal.values.length > 0` (refusal #1 xử lý
+    ở caller). Refusal #2 (F5): KHÔNG có dòng `sigCounts` nào của CHÍNH signal này (ở bất kỳ chiều
+    nào) ⇒ từ chối vẽ kèm lý do RIÊNG, khác hẳn lý do #1 ("chưa chạy nên chưa có giá trị nào"). Kiểm
+    tra bằng `sigCounts.some(...)` TRƯỚC khi gọi `signalChart` — không suy từ `dimStates.every(locked)`
+    vì `expected===0` (vol=0) trả `dimStates: []`, và `[].every(...)` đúng TRUE một cách vô nghĩa
+    (bẫy chực chờ nếu đảo thứ tự hai kiểm tra). */
+function SignalValueChart({ data, signal, dims }: { data: CxmData; signal: Signal; dims: Record<string, Dim> }) {
+  // Rule 6 (AtlasSignalPanel.tsx:229): mặc định LUÔN 'nav', không tự chọn hộ chiều khác.
+  const [dimId, setDimId] = useState("nav");
+
+  const hasRows = data.sigCounts.some((r) => r.sig === signal.id);
+  if (!hasRows) {
+    return (
+      <div data-testid="signal-profile-values-no-counts">
+        <Note tone="warn">
+          Điểm đo này đã khai giá trị nhưng chưa có dòng đếm nào trong bảng đếm (sigCounts) — chưa
+          vẽ được chart, không phải vẽ ra một chart rỗng.
+        </Note>
+      </div>
+    );
+  }
+
+  const chart = signalChart(data.sigCounts, [signal], dims, [signal.id], dimId);
+  // Phòng thủ giống AtlasSignalPanel.tsx: signal có giá trị + có dòng đếm ở dimId khác nhưng
+  // vol=0 (chưa gặp trên seed/demoData hôm nay, nhưng hàm domain không giả định điều đó).
+  if (chart.groups.length === 0) {
+    return (
+      <div className="space-y-2" data-testid="signal-profile-values-vol-zero">
+        {chart.notes.map((note) => (
+          <Note key={note.sigId}>{note.reason}</Note>
+        ))}
+      </div>
+    );
+  }
+
+  const curDimState = chart.dimStates.find((d) => d.id === dimId);
+
+  return (
+    <div data-testid="signal-profile-value-chart">
+      <ValueDimButtons dimStates={chart.dimStates} selectedDimId={dimId} dims={dims} onSelect={setDimId} />
+      <div className="mt-2">
+        {curDimState?.state === "locked" ? (
+          <Note tone="warn">{`Chiều "${curDimState.label}" không ghi được cho điểm đo này — chọn một chiều khác ở trên để xem chart.`}</Note>
+        ) : (
+          <SignalColumns groups={toColGroups(chart.groups, dimId)} dimLabel={dims[dimId].label} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function SignalProfile({
+  data,
+  signal,
+  onBack,
+  dims,
+}: {
+  data: CxmData;
+  signal: Signal;
+  onBack: () => void;
+  dims: Record<string, Dim>;
+}) {
   const chain = signalAllocationChain(data, signal);
   const running = isSignalRunning(signal);
   const noMetricCount = signalsWithoutMetric(data).length;
@@ -222,7 +355,7 @@ export function SignalProfile({ data, signal, onBack }: { data: CxmData; signal:
           </div>
         </Card>
 
-        {/* Mặt 4 — các giá trị nó phát ra (KHÔNG chart, đó là I5) */}
+        {/* Mặt 4 — các giá trị nó phát ra, kèm chart phân bố (F5, I5) */}
         <Card title="Các giá trị nó phát ra">
           <div className="flex flex-col gap-2">
             {signal.values.length === 0 ? (
@@ -232,16 +365,19 @@ export function SignalProfile({ data, signal, onBack }: { data: CxmData; signal:
                 </Note>
               </div>
             ) : (
-              <div className="flex flex-wrap gap-1.5" data-testid="signal-profile-values">
-                {signal.values.map((v) => (
-                  <code
-                    key={v}
-                    className="px-1.5 py-0.5 rounded-[6px] text-[12px] bg-surface-2 border border-line font-mono"
-                  >
-                    {v}
-                  </code>
-                ))}
-              </div>
+              <>
+                <div className="flex flex-wrap gap-1.5" data-testid="signal-profile-values">
+                  {signal.values.map((v) => (
+                    <code
+                      key={v}
+                      className="px-1.5 py-0.5 rounded-[6px] text-[12px] bg-surface-2 border border-line font-mono"
+                    >
+                      {v}
+                    </code>
+                  ))}
+                </div>
+                <SignalValueChart data={data} signal={signal} dims={dims} />
+              </>
             )}
             <Note tone="warn">
               Chưa kiểm được giá trị lạ: bảng đếm (sigCounts) hiện sinh từ chính bản khai này, nên

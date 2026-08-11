@@ -239,7 +239,7 @@ Test biên của cả hai vẫn chỉ một điều: **màn hình không đổi*
 
 | # | Tình trạng | Số neo |
 |---|---|---|
-| T1 | Flow đã trích dẫn sơ đồ mà chưa chép bước | 19/32 |
+| T1 | Flow đã trích dẫn sơ đồ mà chưa chép bước | ~~19/32~~ → **19/25**, cộng **7 flow chưa đánh giá được đếm riêng** (I5 sửa mẫu số, số 19 không đổi). Mẫu số 32 là **trộn *chưa-biết* với *thiếu***: flow chưa trích dẫn **và** chưa chép bước thì chưa có thông tin nào để xếp loại, khác hẳn flow **đã** trích dẫn mà chưa chép bước. Để chung mẫu số thì thêm một flow vừa map xong sẽ **pha loãng tỉ lệ** dù chẳng có gì đổi — đúng ca F6 cấm. Đã đếm lại độc lập: 25 + 7 = 32, khớp tổng flow. ⚠️ Hôm nay *"đã đánh giá được"* (có trích dẫn **hoặc** đã chép bước) **tình cờ bằng** *"có trích dẫn"* = 25, vì **0 flow** chép bước mà không trích dẫn; hai định nghĩa sẽ tách nhau khi dữ liệu đổi, đừng đọc 25 thành "số flow có trích dẫn" |
 | ~~T2~~ | ~~Chỉ số khai nguồn bằng chữ mà không nối được vào nguồn nào~~ — **gộp vào D1, một gốc chứ không hai dòng** | Đúng **1 ca**: `m-contract` (`Metric.source = "SmartCA + Account service"`, không dòng nguồn nào tên đó). Nhưng đây **cùng một gốc** với ô D1 *"`m-contract` khai trễ 4 giờ mà 0 nguồn"* — một sự thật, đang kể ở hai chỗ. Giữ **câu nói** ở dưới, bỏ dòng đếm |
 | T3 | Nguồn đứt mà vẫn khai nuôi chỉ số | `src-zalo` vol 0, trễ 8 ngày, khai nuôi `m-repeat` — và `m-repeat` đang neo `CXI-028` |
 | T4 | Bước không có thiết bị đo nào chạy — **các số LỒNG nhau, không cộng được** | **9/30** bước không có điểm đo nào **đang chạy** (số không phụ thuộc định nghĩa) — **trong đó 7 không có điểm đo nào cả**, 2 có nhưng im (`s-tra-4`, `s-rut-4`). ~~Trong 9 đó, 8 vẫn khai `cov ≥ 70`~~ — **GẠCH sau I1: `obs.cov` đã gỡ khỏi mọi chỗ đọc trong `src/` (F9), trưng lại ở I5 là phá chính tiêu chí vừa nghiệm thu.** Phần còn lại của dòng đủ mang thông điệp T4. Con số 11/30 là **cùng một tình trạng đếm theo nhãn tin dùng**; chênh đúng 2 bước (`s-nap-3`, `s-rut-3`) vì signal của chúng là `validating` mà chở **9.510** và **236** lượt/ngày. ⚠️ **Không viết 7 và 9 cạnh nhau như hai nhóm rời** — người đọc sẽ cộng thành 16 |
@@ -455,7 +455,7 @@ Theo khuôn Module G: mỗi lát một khối việc + tiêu chí ghim. **Một 
 | **I3** | **Phả hệ nguồn + độ tươi chỉ số** | D1 (4 ca, gồm `m-ces` đúng số mà che trạng thái) · F7 · ca `m-contract` (T2 cũ) | ✅ **XONG 07/08** — gỡ chặn, xem dưới |
 | **I4a** | **Màn Điểm đo: route + bảng 30 điểm + hai khối tầng ①/②** | F1 · bất biến 9 (câu giới hạn IN TRÊN MÀN) · khối kiểm kê · khối độ tin cậy (1 số thật + 5 ô chờ) · nav vào nhóm Quản trị | I1 (mốc số liệu) |
 | **I4b** | **Hồ sơ một điểm đo — bốn mặt** | F2 · F4 · D5 · D6 | I4a. **F3 phần độ tươi nguồn HOÃN** — chặn bởi A1 |
-| **I5** | **Chart giá trị + khối đếm + 5 tình trạng trưng** | F5 · F6 · T1 · T3 · T4 · T5 · T7 | I3 (T3 cần phả hệ nguồn) · I4 (màn phải có trước) |
+| **I5** | **Chart giá trị + khối đếm + 5 tình trạng trưng** | F5 · F6 · T1 · T3 · T4 · T5 · T7 | ✅ **XONG 07/08** — xem cuối §14 |
 
 **Hoãn sang lát 2:** F10 (khối ở Tổng quan) · mọi việc cần pipeline thật (Bảng D, mã lý do rớt, mốc
 thấy cuối máy sinh, lưu lượng theo cửa sổ, tách trễ-pipeline khỏi trễ-nguồn — §10 và §12).
@@ -559,6 +559,41 @@ Cách xử lý:
 trạng thái, và một trong hai (`s-tra-1`) bị đẩy bởi **`effort` 2,6**, không phải `cov`. ⇒ **`cov` chỉ
 từng ảnh hưởng ĐÚNG MỘT bước** (`s-rut-4`). Một test F9 viết theo lối bốc một bước có **29/30 xác suất
 xanh rỗng**. Đây là bằng chứng số cho luật *"quét hết, đừng bốc mẫu"* ở §7.
+
+---
+
+### I5 — XONG 07/08, đã tự kiểm độc lập. **Module I đóng.**
+
+`tsc -b` exit 0 · `vitest run` **103 file / 1192 test xanh** · `validateFixture()` **0 lỗi trên CẢ HAI**
+fixture. Worker đụng đúng **6 file**, tất cả trong `features/signals/`, **không tràn** (kiểm bằng
+mtime, không bằng git).
+
+**Năm số tôi tự đếm lại từ field thô** (không dùng hàm domain mà component dùng — nếu hàm sai thì
+test dùng chính nó vẫn xanh), **khớp cả trên `seed` và `demoData`:**
+T1 **19/25** (+7 riêng) · T3 **1/7** (`src-zalo` → `m-repeat`) · T4 **9/30, trong đó 7** ·
+T5 **20/30** · T7 **2/6** (`m-ces`, `m-repeat`).
+
+**Hai đường từ chối vẽ của F5 đều có ca thật, không phải nhánh chết:** 5 điểm đo `values` rỗng ⇒ từ
+chối #1; và trên `seed` (`sigCounts` rỗng) cả 25 điểm đo có `values` đều rơi vào từ chối #2, còn
+`demoData` (1.791 dòng) thì 0 ca. Tức Demo Mode tắt/bật đi hai đường khác nhau và cả hai đều chạy.
+
+**Một bug tôi cắt sau worker — cùng loại với thứ §6 đã gạch T2/T6/T8:** bản đầu trưng cả năm dòng
+T1·T3·T4·T5·T7 ở khối mới, trong khi **T4, T5, T7 ĐÃ hiện ở khối ①** ngay phía trên, cùng hàm, cùng
+mẫu số, cùng câu chữ. Số không thể lệch (chung hàm) nên **đây không phải bug số mà là bug đọc**:
+người xem đếm hai lần một chuyện. Cắt còn **T1 + T3**, đổi tên khối thành *"Bản khai không khớp thực
+tế"*. Hai điều đáng ghi: (1) *"phải thấy được"* là yêu cầu về **MÀN**, không phải về **KHỐI**;
+(2) test cho T5/T7 **không xoá theo** mà chuyển sang soi `inv-*` — trước lát này **chưa có test nào**
+chạm hai dòng đó ở khối ①, xoá đi là mất phủ chứ không phải dọn trùng. Đã thêm một test **chống tái
+phát**: `gov-t4/t5/t7` không được có mặt, kèm chốt chống rỗng.
+
+**Mẫu số T1 worker sửa, tôi CHẤP NHẬN** (chi tiết ở dòng T1 §6): 19/32 → 19/25 + 7 đếm riêng. Đây
+là sửa đúng, không phải lách để test xanh — 32 trộn *chưa-biết* vào mẫu số.
+
+**Còn hở, tôi không lấp và nói rõ vì sao:** nhánh *"chiều đang chọn bị khoá"* ở chart giá trị **không
+có ca thật nào** trên hai fixture hôm nay (`sigpf` luôn mở vì `projectSignalCounts` ghi dòng `sigpf`
+cho mọi lần bắn). Dựng dữ liệu giả để phủ nhánh này là test một tình huống chưa ai chứng minh xảy ra
+được — để dữ liệu thật quyết. Nhánh này thừa hưởng độ tin cậy từ cùng pattern đã chạy ở
+`AtlasSignalPanel`.
 
 ---
 
