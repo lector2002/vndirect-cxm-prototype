@@ -9,7 +9,11 @@ import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
    (features/atlas/signalStatus.ts) cho cột trạng thái tin dùng — KHÔNG viết lại câu chữ.
 
    D6 (charter): `Signal.seen` là chuỗi NGƯỜI GÕ, không có năm — hiện NGUYÊN VĂN kèm nhãn "mốc do
-   người khai", KHÔNG suy tuổi/số ngày im lặng từ nó. */
+   người khai", KHÔNG suy tuổi/số ngày im lặng từ nó.
+
+   Lát I4b: mỗi dòng bấm được để mở hồ sơ một điểm đo (`onSelect`, cùng khuôn `src-row-*` của
+   SourcesPage.tsx) — caller (SignalsPage) quyết định hiện gì khi bấm, bảng này không tự biết về
+   hồ sơ. */
 const HEADERS = [
   "Tên event",
   "Phía đo",
@@ -25,7 +29,7 @@ function metricNames(data: CxmData, sig: Signal): string {
   return sig.metrics.map((id) => data.metrics.find((m) => m.id === id)?.name ?? id).join(", ");
 }
 
-export function SignalTable({ data }: { data: CxmData }) {
+export function SignalTable({ data, onSelect }: { data: CxmData; onSelect: (id: string) => void }) {
   const asOfNote = data.asOf ? ` — mốc ${data.asOf}` : "";
   return (
     <div className="overflow-x-auto">
@@ -48,7 +52,12 @@ export function SignalTable({ data }: { data: CxmData }) {
             const status = SIGNAL_STATUS[sig.st];
             const noMetric = sig.metrics.length === 0;
             return (
-              <tr key={sig.id} data-testid={`signal-row-${sig.id}`}>
+              <tr
+                key={sig.id}
+                data-testid={`signal-row-${sig.id}`}
+                onClick={() => onSelect(sig.id)}
+                className="cursor-pointer hover:bg-surface-2"
+              >
                 <td className="px-2.5 py-1.5 border-b border-line">
                   <code className="font-mono text-[12px] text-primary">{sig.name}</code>
                   <div className="t-meta text-[12px] mt-0.5">{sig.desc}</div>

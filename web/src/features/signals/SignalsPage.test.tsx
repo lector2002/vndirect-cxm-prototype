@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { MockRepository } from "../../data/mock-repository.ts";
 import { demoData, recountDemoSignals } from "../../data/fixtures/demo.ts";
@@ -42,6 +42,17 @@ describe("Bất biến 9 — câu giới hạn phải in trên màn, và màn KH
   it("không chuỗi nào trên màn chứa chữ 'độ phủ' (không phân biệt hoa/thường), trên cả hai fixture", () => {
     for (const store of [seedStore(), demoStore()]) {
       const { container, unmount } = render(<SignalsPage useStore={store} />);
+      expect(container.textContent ?? "").not.toMatch(/độ phủ/i);
+      unmount();
+    }
+  });
+
+  it("mở hồ sơ một điểm đo (I4b) cũng không chuỗi nào chứa 'độ phủ' — sweep phải theo cả mặt màn mới", () => {
+    for (const store of [seedStore(), demoStore()]) {
+      const { container, unmount } = render(<SignalsPage useStore={store} />);
+      const { data } = store.getState();
+      fireEvent.click(screen.getByTestId(`signal-row-${data.signals[0].id}`));
+      expect(screen.getByTestId("signal-profile")).toBeInTheDocument();
       expect(container.textContent ?? "").not.toMatch(/độ phủ/i);
       unmount();
     }
@@ -133,6 +144,31 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
   it("không chỗ nào trên màn hiện cụm kiểu '<số> ngày/giờ' suy ra từ seen (mẫu 'X ngày'/'X giờ' đứng cạnh im lặng)", () => {
     render(<SignalsPage useStore={demoStore()} />);
     expect(screen.queryByText(/im lặng \d+ (ngày|giờ)/)).not.toBeInTheDocument();
+  });
+});
+
+describe("I4b tiêu chí 8 — mở hồ sơ từ bảng, đóng lại được về bảng", () => {
+  it("bấm một dòng bảng mở hồ sơ đúng signal đó; bấm '← Điểm đo' quay lại đúng bảng cũ", () => {
+    const store = demoStore();
+    render(<SignalsPage useStore={store} />);
+    const { data } = store.getState();
+    const target = data.signals[0];
+
+    expect(screen.getByTestId("signal-table")).toBeInTheDocument();
+    expect(screen.queryByTestId("signal-profile")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId(`signal-row-${target.id}`));
+
+    expect(screen.queryByTestId("signal-table")).not.toBeInTheDocument();
+    expect(screen.getByTestId("signal-profile")).toBeInTheDocument();
+    expect(screen.getByTestId("signal-profile-title").textContent).toBe(target.desc);
+
+    fireEvent.click(screen.getByTestId("signal-profile-back"));
+
+    expect(screen.queryByTestId("signal-profile")).not.toBeInTheDocument();
+    expect(screen.getByTestId("signal-table")).toBeInTheDocument();
+    // Bảng vẫn đủ mọi dòng sau khi đóng hồ sơ — không mất trạng thái (F1 vẫn đúng).
+    expect(screen.getAllByTestId(/^signal-row-/).length).toBe(data.signals.length);
   });
 });
 

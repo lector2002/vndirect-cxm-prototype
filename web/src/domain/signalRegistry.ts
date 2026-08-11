@@ -1,4 +1,4 @@
-import type { CxmData, Metric, Signal, Step } from "../data/schema/index.ts";
+import type { CxmData, Flow, Group, Metric, Phase, Signal, Step, Touchpoint } from "../data/schema/index.ts";
 import { MISSING, UNKNOWN_YET } from "../data/segment.ts";
 import { NOT_IDENTIFIED, SIG_CUST_DIMS, SIG_FIRE_DIM } from "../data/projectSignalCounts.ts";
 
@@ -38,6 +38,71 @@ export function notRunningSignals(data: CxmData): NotRunningSplit {
 export function signalsOfStep(data: CxmData, stepId: string): Signal[] {
   const tpIds = new Set(data.touchpoints.filter((t) => t.stepId === stepId).map((t) => t.id));
   return data.signals.filter((s) => tpIds.has(s.tpId));
+}
+
+/* ---- Hồ sơ một điểm đo (module-i-signal-registry-charter.md §3, §14 lát I4b) ---- */
+
+/** Chuỗi allocate ĐI HẾT `Signal.tpId → Touchpoint.stepId → Step.flowId → Flow.groupId →
+    Group.phaseId` (charter §3 mặt 2). `ok:false` nêu rõ ĐỨT Ở ĐÂU — không render rỗng khi một
+    tham chiếu không tìm thấy bản ghi tương ứng (F2 charter). Dữ liệu hôm nay đi hết chuỗi cho cả
+    30 signal, nhưng hàm không giả định điều đó — test F2 phải quét MỌI signal, không chỉ ca đẹp. */
+export type SignalAllocation =
+  | { ok: true; touchpoint: Touchpoint; step: Step; flow: Flow; group: Group; phase: Phase }
+  | { ok: false; brokenAt: "touchpoint" | "step" | "flow" | "group" | "phase" };
+
+export function signalAllocationChain(data: CxmData, signal: Signal): SignalAllocation {
+  const touchpoint = data.touchpoints.find((t) => t.id === signal.tpId);
+  if (!touchpoint) return { ok: false, brokenAt: "touchpoint" };
+  const step = data.steps.find((s) => s.id === touchpoint.stepId);
+  if (!step) return { ok: false, brokenAt: "step" };
+  const flow = data.flows.find((f) => f.id === step.flowId);
+  if (!flow) return { ok: false, brokenAt: "flow" };
+  const group = data.groups.find((g) => g.id === flow.groupId);
+  if (!group) return { ok: false, brokenAt: "group" };
+  const phase = data.phases.find((p) => p.id === group.phaseId);
+  if (!phase) return { ok: false, brokenAt: "phase" };
+  return { ok: true, touchpoint, step, flow, group, phase };
+}
+
+/** Trục 2 D5 — "có tin dùng" suy TỪ NGƯỜI KHAI (`Signal.st`), KHÔNG suy từ lưu lượng. Bốn nhãn
+    RỜI với trục 1 (`isSignalRunning`, suy từ `vol`) — hai trục không được gộp lại (charter D5). */
+const DECLARED_STATE_LABEL: Record<Signal["st"], string> = {
+  live: "tin dùng",
+  validating: "đang kiểm chứng",
+  designed: "dự định làm",
+  gap: "biết thiếu chưa làm",
+};
+export function declaredStateLabel(s: Signal): string {
+  return DECLARED_STATE_LABEL[s.st];
+}
+
+/** Điểm đo đang CHỞ LƯU LƯỢNG THẬT (trục 1, suy từ `vol`) mà CHƯA được đánh dấu tin dùng (trục 2,
+    `st !== 'live'`) — tình trạng phải THẤY ĐƯỢC (charter §14 I4b), không phải lỗi phải chặn. Hôm
+    nay đúng là tập `validating ∧ vol>0` (charter T8/§4), nhưng hàm không giả định quan hệ đó —
+    dựng `st='designed'` mà `vol>0` (D5 test) cũng phải rơi vào đây. */
+export function runningNotTrusted(s: Signal): boolean {
+  return isSignalRunning(s) && s.st !== "live";
+}
+
+/** D6/§13 — so `Signal.seen` ("dd/mm · hh:mm", KHÔNG có năm) với mốc số liệu `asOf` ("dd/mm/yyyy")
+    CHỈ theo tháng/ngày, trả lời ĐÚNG một câu hỏi: mốc khai có nằm NGOÀI cửa sổ dữ liệu không.
+    TUYỆT ĐỐI không suy ra số ngày/giờ đã trôi — đó là việc D6 cấm (seen không có năm, cả fixture
+    chỉ 2 ngày phân biệt, tính tuổi sẽ báo sai "hầu hết điểm đo đã chết"). `false` khi thiếu một
+    trong hai chuỗi hoặc không đọc được khuôn dd/mm. */
+export function seenAfterAsOf(seen: string | null, asOf: string): boolean {
+  if (!seen) return false;
+  const seenMatch = /^(\d{2})\/(\d{2})/.exec(seen);
+  const asOfMatch = /^(\d{2})\/(\d{2})/.exec(asOf);
+  if (!seenMatch || !asOfMatch) return false;
+  const [, sd, sm] = seenMatch;
+  const [, ad, am] = asOfMatch;
+  return Number(sm) > Number(am) || (Number(sm) === Number(am) && Number(sd) > Number(ad));
+}
+
+/** Điểm đo chưa có giá trị nào đã khai (mặt 4, `Signal.values` rỗng) — luôn đi cùng `vol === 0`
+    theo thiết kế của trường (journey.ts:77-82: chưa instrument/implement thì mảng rỗng). */
+export function signalsWithoutValues(data: CxmData): Signal[] {
+  return data.signals.filter((s) => s.values.length === 0);
 }
 
 /** Bước không có điểm đo nào ĐANG CHẠY (T4 charter) — HAI SỐ LỒNG NHAU, không cộng được: `none`

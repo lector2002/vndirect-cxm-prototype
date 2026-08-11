@@ -68,10 +68,21 @@ export {
   runningSignalCount,
   notRunningSignals,
   signalsOfStep,
+  signalAllocationChain,
+  declaredStateLabel,
+  runningNotTrusted,
+  seenAfterAsOf,
+  signalsWithoutValues,
   stepsWithoutRunningSignal,
   signalsWithoutMetric,
   metricsWithoutSignal,
   sigCountReliability,
   SIG_COUNT_DIMS,
 } from "./signalRegistry.ts";
-export type { SignalCount, NotRunningSplit, StepRunningCoverage, DimReliability } from "./signalRegistry.ts";
+export type {
+  SignalCount,
+  SignalAllocation,
+  NotRunningSplit,
+  StepRunningCoverage,
+  DimReliability,
+} from "./signalRegistry.ts";
