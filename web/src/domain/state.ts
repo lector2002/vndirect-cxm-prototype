@@ -84,28 +84,46 @@ export function sourceDaysMissing(s: Source, asOf: string): number {
   return Math.max(0, Math.round((refTs - lastTs) / 86_400_000));
 }
 
-/* Sức khoẻ một nguồn dữ liệu — chấm theo MỐC SỐ LIỆU (`asOf`), KHÔNG theo `now` và KHÔNG theo SLA
-   giờ riêng từng nguồn nữa. Port cũ (~dòng 1546, `lagH` so `cfg.source[id]`) THAY THẾ 07/08 theo
-   quyết định owner ở charter §0 mục A — lý do và số đo ở §12.1: dưới pipeline T+1, `lagH` không bao
-   giờ < 24h vì kiến trúc, nên 5/7 nguồn khai SLA < 24h đọc thành "stale" vĩnh viễn.
+/** Nhịp giao mặc định khi `cfg.source[id]` chưa khai: 0 ngày — "phải giao đủ dữ liệu của mốc số
+    liệu". MỌI chỗ hiện lại giá trị này (ô nhập nhóm 3 ở #/rules, hai màn Nguồn dữ liệu) PHẢI đọc
+    CHÍNH hằng này, không gõ lại con số: ô nhập hiện một mặc định khác cái engine đang chấm là đúng
+    loại lỗi "màn nói sai về chính nó" mà dự án này đã bắt được ba lần (bản cũ ô nhập hiện `?? 6`
+    trong khi engine không đọc `cfg.source` chút nào). */
+export const SOURCE_ALLOW_DAYS_DEFAULT = 0;
 
-   Bậc thang MỚI (charter I3 Việc 1), dùng `cfg.data.deadDays` (đã tính bằng NGÀY):
-     1. thiếu ≥ deadDays ngày            → "down"  (bất kể loại nguồn)
-     2. thiếu ≥ 1 ngày, có giao (vol > 0) → "stale" (đang trễ — rõ ràng, có giao chỉ chậm)
-     3. thiếu ≥ 1 ngày, KHÔNG giao gì     → "stale" nếu `kind:'event'` (app có người dùng thì có
+/* Sức khoẻ một nguồn dữ liệu — chấm theo MỐC SỐ LIỆU (`asOf`), KHÔNG theo `now`. Port cũ (~dòng
+   1546, `lagH` so `cfg.source[id]` tính bằng GIỜ) THAY THẾ 07/08 theo quyết định owner ở charter §0
+   mục A — lý do và số đo ở §12.1: dưới pipeline T+1, `lagH` không bao giờ < 24h vì kiến trúc, nên
+   5/7 nguồn khai SLA < 24h đọc thành "stale" vĩnh viễn.
+
+   11/08 (owner, giải C5): `cfg.source[id]` ĐỔI ĐƠN VỊ sang NGÀY và ĐƯỢC ĐỌC LẠI Ở ĐÂY. Từ 07/08 đến
+   11/08 nó là control mồ côi — gõ vào được ở #/rules mà không đổi được nhãn nào; owner chọn đổi đơn
+   vị thay vì bỏ nhóm, nên nhịp giao riêng từng nguồn lấy lại thẩm quyền chấm.
+
+   Bậc thang (mọi số tính bằng NGÀY), `allow` = `cfg.source[id] ?? SOURCE_ALLOW_DAYS_DEFAULT`:
+     1. thiếu ≤ allow                        → "ok"    (nguồn giao đúng nhịp của chính nó)
+     2. thiếu ≥ allow + deadDays              → "down"  (bất kể loại nguồn)
+     3. còn lại, có giao (vol > 0)            → "stale" (đang trễ — rõ ràng, có giao chỉ chậm)
+     4. còn lại, KHÔNG giao gì                → "stale" nếu `kind:'event'` (app có người dùng thì có
         event ⇒ im lặng đáng ngờ), ngược lại "silent" (do người chủ động gửi, im lặng là chuyện
         thường — charter §0 mục A, I3 Việc 2)
-     4. thiếu 0 ngày                      → "ok"
 
-   ⚠ HỆ QUẢ: `cfg.source[id]` (SLA giờ riêng từng nguồn) THÔI ĐƯỢC ĐỌC Ở ĐÂY. KHÔNG xoá khỏi
-   `Cfg`/fixture — Module G (`module-g-rules-charter.md` §3) đã tuyên nhóm đó là BẢN TẠM; nó thành
-   control mồ côi giống `cfg.step.covMin` sau I1 (vẫn hiện, sửa được ở #/rules, chỉ mất quyền quyết
-   định sức khoẻ nguồn). Đo được: cách chấm mới cho ĐÚNG BẢY nhãn như cách chấm cũ trên fixture hôm
-   nay (5 "ok" · 1 "stale" (`src-survey`) · 1 "down" (`src-zalo`)) — xem `sources.test.ts`. */
+   VÌ SAO `allow + deadDays` chứ không phải `deadDays` phẳng: `deadDays` giờ đọc là "quá nhịp giao
+   bao nhiêu ngày thì coi là ngừng gửi". Để phẳng thì nguồn khai nhịp ≥ deadDays nhảy thẳng
+   "ok" → "down", BỎ QUA hẳn bậc "stale" — một nguồn giao hằng tuần sẽ không bao giờ được báo "đang
+   trễ", chỉ im lặng rồi bị tuyên chết. Bậc thang không được nhảy bậc.
+
+   VÌ SAO xét "ok" TRƯỚC "down": chỉ khác thứ tự cũ khi `deadDays` = 0 — bản cũ tuyên "down" cho cả
+   nguồn vừa giao đủ hôm nay. Không luật nào chặn người vận hành gõ 0 vào ô đó (xem handoff: dải số
+   của cfg chưa có luật nào kiểm), nên bậc "ok" đứng trước là bậc an toàn hơn.
+
+   Đo được: bậc thang này cho ĐÚNG BẢY nhãn như bản 07/08 trên CẢ HAI fixture — xem `state.test.ts`
+   (đối chiếu bằng chính công thức 07/08 viết tại chỗ, không ghim số). */
 export function sourceHealth(s: Source, cfg: Cfg, asOf: string): SourceHealth {
   const missing = sourceDaysMissing(s, asOf);
-  if (missing >= cfg.data.deadDays) return "down";
-  if (missing < 1) return "ok";
+  const allow = cfg.source[s.id] ?? SOURCE_ALLOW_DAYS_DEFAULT;
+  if (missing <= allow) return "ok";
+  if (missing >= allow + cfg.data.deadDays) return "down";
   if (s.vol > 0) return "stale";
   return s.kind === "event" ? "stale" : "silent";
 }

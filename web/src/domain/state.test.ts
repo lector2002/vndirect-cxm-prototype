@@ -3,6 +3,7 @@ import type { Cfg, Source } from "../data/schema/index.ts";
 import { seed, cfgDefault } from "../data/fixtures/seed.ts";
 import { demoData } from "../data/fixtures/demo.ts";
 import { stepState, stepWhy, metricState, sourceHealth, sourceDaysMissing, laneOf } from "./state.ts";
+import type { SourceHealth } from "./state.ts";
 
 describe("stepState", () => {
   it("6 bước pilot (s1..s6) → ok watch crit ok watch ok", () => {
@@ -59,7 +60,11 @@ describe("metricState", () => {
 /* 07/08 (module-i-signal-registry-charter.md §0 mục A, I3 Việc 1-2) — chấm sức khoẻ nguồn đổi từ
    "chậm hơn BÂY GIỜ mấy tiếng" (đọc `lagH` so SLA `cfg.source[id]`) sang "đã giao đủ dữ liệu của
    ngày cần chưa" (đọc `Source.last` so `CxmData.asOf`, theo NGÀY). Factory dựng Source tối giản —
-   test nào cần `last` khác mặc định thì override tường minh, không dựa vào `lagH`. */
+   test nào cần `last` khác mặc định thì override tường minh, không dựa vào `lagH`.
+
+   11/08 (owner, giải C5): `cfg.source[id]` đổi đơn vị GIỜ → NGÀY và được đọc lại làm NHỊP GIAO riêng
+   từng nguồn. Factory để `id` không nằm trong `cfgDefault.source`, nên nhịp mặc định
+   (`SOURCE_ALLOW_DAYS_DEFAULT` = 0) áp cho mọi test không khai nhịp tường minh. */
 const src = (over: Partial<Source> & Pick<Source, "id">): Source => ({
   name: over.id,
   kind: "chat",
@@ -73,7 +78,7 @@ const src = (over: Partial<Source> & Pick<Source, "id">): Source => ({
   ...over,
 });
 
-describe("sourceHealth — chấm theo MỐC SỐ LIỆU (asOf), không theo now/SLA giờ", () => {
+describe("sourceHealth — chấm theo MỐC SỐ LIỆU (asOf) và nhịp giao tính bằng NGÀY, không theo now", () => {
   it("thiếu 0 ngày (Source.last = asOf) → 'ok', dù cfg.source không khai gì cho id đó", () => {
     const s = src({ id: "s1", last: "10/08 · 09:00" });
     expect(sourceHealth(s, cfgDefault, "10/08/2026")).toBe("ok");
@@ -104,25 +109,54 @@ describe("sourceHealth — chấm theo MỐC SỐ LIỆU (asOf), không theo now
     expect(sourceHealth(s, cfgDefault, "10/08/2026")).toBe("stale");
   });
 
-  it("cfg.source[id] KHÔNG còn được đọc — đổi sang giá trị bất kỳ, hạng nguồn không đổi", () => {
+  /* 11/08 (owner, giải C5) — ĐÂY LÀ ĐIỀU KHOẢN OWNER MUA. Từ 07/08 đến 11/08 test này khẳng định
+     điều NGƯỢC LẠI ("cfg.source[id] KHÔNG còn được đọc") vì ô nhập nhóm 3 ở #/rules là control mồ
+     côi. Owner chọn đổi đơn vị sang NGÀY thay vì bỏ nhóm, nên nhịp giao riêng lấy lại thẩm quyền —
+     cùng một nguồn thiếu đúng 1 ngày, nhịp 0 thì "đang trễ", nhịp 1 thì "đang nhận". Không có phép
+     kiểm nào khác chứng minh được ô đó còn cầm quyền hay không. */
+  it("nhịp giao riêng CẦM QUYỀN chấm: cùng nguồn thiếu 1 ngày, nhịp 0 ⇒ stale, nhịp 1 ⇒ ok", () => {
     const s = src({ id: "s1", last: "09/08 · 09:00", vol: 500 });
-    const before = sourceHealth(s, cfgDefault, "10/08/2026");
-    const changed: Cfg = { ...cfgDefault, source: { ...cfgDefault.source, s1: 999_999 } };
-    expect(sourceHealth(s, changed, "10/08/2026")).toBe(before);
+    const withAllow = (d: number): Cfg => ({ ...cfgDefault, source: { ...cfgDefault.source, s1: d } });
+    expect(sourceHealth(s, withAllow(0), "10/08/2026")).toBe("stale");
+    expect(sourceHealth(s, withAllow(1), "10/08/2026")).toBe("ok");
   });
 
-  /* §12.1/§0 mục A — điều kiện chốt của cả module: cách chấm MỚI phải cho ĐÚNG BẢY nhãn như cách
-     chấm CŨ (`lagH >= deadDays*24 → down`; `lagH > (cfg.source[id] ?? 6) → stale`; else 'ok') trên
-     fixture hôm nay, CẢ HAI fixture. Đếm lại bằng công thức cũ tại chỗ — không ghim số 5/1/1. */
-  it("bảy nhãn nguồn KHÔNG ĐỔI trên cả hai fixture — đối chiếu công thức cũ, đếm lại từ data", () => {
-    const legacyHealth = (s: Source, cfg: Cfg): "ok" | "stale" | "down" => {
-      if (s.lagH >= cfg.data.deadDays * 24) return "down";
-      const sla = cfg.source[s.id] ?? 6;
-      return s.lagH > sla ? "stale" : "ok";
+  /* Nới nhịp giao KHÔNG được biến nguồn đứt hẳn thành nguồn khoẻ mà bỏ qua bậc "đang trễ": mốc chết
+     là `nhịp + deadDays`, nên nhịp nới thêm 1 ngày thì mốc chết cũng đẩy đúng 1 ngày, không mất bậc.
+     Đếm lại từ chính công thức, không ghim ngày nào. */
+  it("mốc chết đi THEO nhịp giao — nới nhịp 1 ngày thì đẩy mốc chết đúng 1 ngày, không nhảy bậc", () => {
+    const deadDays = cfgDefault.data.deadDays;
+    // Nguồn im hẳn (vol 0, kind survey) để bậc giữa là "silent" — phân biệt được với "down"/"ok".
+    const at = (missingDays: number, allow: number) =>
+      sourceHealth(
+        src({ id: "s1", kind: "survey", vol: 0, last: `${String(10 - missingDays).padStart(2, "0")}/08 · 09:00` }),
+        { ...cfgDefault, source: { ...cfgDefault.source, s1: allow } },
+        "10/08/2026",
+      );
+    for (const allow of [0, 1]) {
+      expect(at(allow, allow)).toBe("ok");
+      expect(at(allow + 1, allow)).toBe("silent");
+      expect(at(allow + deadDays, allow)).toBe("down");
+    }
+  });
+
+  /* §12.1/§0 mục A — điều kiện chốt của cả module: BẢY nhãn không được đổi. Bậc thang 11/08 đối
+     chiếu với bậc thang 07/08 (bản ngay trước khi nhịp giao lấy lại thẩm quyền) viết tại chỗ. Vì sao
+     KHÔNG đối chiếu với công thức GIỜ nguyên bản nữa: `cfg.source` đã đổi đơn vị, nên công thức giờ
+     không còn cfg nào hợp lệ để chạy — muốn giữ nó phải đóng băng bộ giờ cũ vào test, tức một hoá
+     thạch mà người sau sẽ "sửa cho đúng". Chuỗi nghiệm thu giờ là: giờ→ngày đã chứng ở git history
+     (07/08), ngày→ngày-có-nhịp chứng ở đây. Cả hai công thức đều tính lại từ `data.sources`. */
+  it("bảy nhãn nguồn KHÔNG ĐỔI trên cả hai fixture — đối chiếu bậc thang 07/08, đếm lại từ data", () => {
+    const health0708 = (s: Source, cfg: Cfg, asOf: string): SourceHealth => {
+      const missing = sourceDaysMissing(s, asOf);
+      if (missing >= cfg.data.deadDays) return "down";
+      if (missing < 1) return "ok";
+      if (s.vol > 0) return "stale";
+      return s.kind === "event" ? "stale" : "silent";
     };
     for (const data of [seed, demoData]) {
       for (const s of data.sources) {
-        expect(sourceHealth(s, cfgDefault, data.asOf)).toBe(legacyHealth(s, cfgDefault));
+        expect(sourceHealth(s, cfgDefault, data.asOf)).toBe(health0708(s, cfgDefault, data.asOf));
       }
     }
   });

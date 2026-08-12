@@ -1,5 +1,5 @@
 import { Badge, Card, Note } from "../../../design-system/index.ts";
-import { lagText, sourceHealth } from "../../../domain/index.ts";
+import { SOURCE_ALLOW_DAYS_DEFAULT, lagText, sourceHealth } from "../../../domain/index.ts";
 import type { SourceHealth } from "../../../domain/index.ts";
 import { useCxmStore } from "../../../store/store.ts";
 import { NumField } from "../NumField.tsx";
@@ -13,10 +13,13 @@ import { useCfgWrite } from "../useCfgWrite.ts";
    ở bất cứ đâu trong file này — chốt kiểm kê xong thì bảng tự đổi mà không cần sửa code ở đây. */
 
 /* 07/08 (module-i-signal-registry-charter.md I3): "silent" thêm vào SourceHealth — chấm sức khoẻ
-   giờ theo `asOf` (domain/state.ts), KHÔNG còn đọc `cfg.source[id]` — cột "SLA cho phép" dưới đây
-   thành control MỒ CÔI, giống `cfg.step.covMin` sau I1 (vẫn sửa được, không còn đổi được nhãn cột
-   "Trạng thái suy ra"). Thêm nhánh "silent" ở đây CHỈ để hai Record còn EXHAUSTIVE — không nguồn nào
-   trong fixture hôm nay rơi vào nhánh đó. */
+   theo `asOf` (domain/state.ts). Thêm nhánh "silent" ở đây CHỈ để hai Record còn EXHAUSTIVE — không
+   nguồn nào trong fixture hôm nay rơi vào nhánh đó.
+
+   11/08 (owner, giải C5): cột "SLA cho phép" dưới đây HẾT MỒ CÔI. Từ 07/08 nó gõ được mà không đổi
+   được nhãn cột "Trạng thái suy ra" — owner chọn ĐỔI ĐƠN VỊ SANG NGÀY thay vì bỏ nhóm, nên ô này
+   lại cầm quyền chấm sức khoẻ nguồn (`sourceHealth()` đọc `cfg.source[id]` làm nhịp giao). Mặc định
+   khi nguồn chưa khai lấy từ `SOURCE_ALLOW_DAYS_DEFAULT` — KHÔNG gõ lại con số ở đây. */
 const HEALTH_LABEL: Record<SourceHealth, string> = {
   ok: "Đang nhận",
   stale: "Thiếu ngày dữ liệu",
@@ -81,10 +84,10 @@ export function SourceGroup() {
           <tbody>
             {data.sources.map((s) => {
               const h = sourceHealth(s, cfg, data.asOf);
-              // Nguồn mới chưa có SLA riêng trong cfg (kiểm kê mở thêm nguồn) không được để ô nhập
-              // hiện "undefined" — dùng đúng SLA nền 6 giờ mà `sourceHealth()` (domain/state.ts) đã
-              // tự áp khi thiếu cấu hình, để ô nhập và badge không nói khác nhau ngay lần hiện đầu.
-              const sla = cfg.source[s.id] ?? 6;
+              // Nguồn mới chưa khai nhịp giao (kiểm kê mở thêm nguồn) không được để ô nhập hiện
+              // "undefined" — lấy ĐÚNG hằng mặc định mà `sourceHealth()` áp khi thiếu cấu hình, để ô
+              // nhập và badge không nói khác nhau ngay lần hiện đầu.
+              const sla = cfg.source[s.id] ?? SOURCE_ALLOW_DAYS_DEFAULT;
               return (
                 <tr key={s.id} data-testid={`rules-source-row-${s.id}`} className="border-t border-line">
                   <td className="py-1.5 px-1">
@@ -98,7 +101,7 @@ export function SourceGroup() {
                     <NumField
                       value={sla}
                       onCommit={(v) => write({ source: { ...cfg.source, [s.id]: v } })}
-                      suffix="giờ"
+                      suffix="ngày"
                       label={`SLA ${s.name}`}
                     />
                   </td>
@@ -127,16 +130,12 @@ export function SourceGroup() {
       </div>
 
       <div className="mt-3.5">
+        {/* 11/08: bỏ đoạn "sửa ô SLA không còn đổi được nhãn" — đoạn đó vừa NÓI SAI sau khi ô lấy
+            lại thẩm quyền (owner giải C5), vừa là luận giải mà luật giao diện 11/08 đã cấm. */}
         <Note tone={badCount ? "crit" : "default"}>
           <b>
             {badCount} trong {data.sources.length} nguồn không ở trạng thái "Đang nhận".
           </b>
-          <div className="mt-2">
-            07/08: cách chấm đổi sang so ngày nhận dữ liệu với mốc số liệu, không còn so giờ trễ với
-            SLA — sửa ô "SLA cho phép" ở đây <b>không còn đổi được</b> nhãn ở cột "Trạng thái suy ra".
-            Ô này giữ lại để ghi nhịp giao dự kiến của từng nguồn, không còn cầm quyền quyết định sức
-            khoẻ nguồn.
-          </div>
         </Note>
       </div>
     </Card>

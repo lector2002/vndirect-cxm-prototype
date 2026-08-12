@@ -16,6 +16,15 @@ tạm*.
   đã chuyển sang chấm theo số ngày thiếu so với mốc số liệu, `cfg.source[id]` mất quyền. Bỏ nhóm đó
   hay đổi sang ngưỡng theo NGÀY là quyết định của owner: `web/docs/module-i-signal-registry-charter.md`
   §0 mục C5.
+- **11/08 — owner CHỐT C5: đổi sang NGÀY, không bỏ nhóm.** Ba thứ của Module G đổi theo, chi tiết ở
+  `web/docs/module-i-signal-registry-charter.md` §12.1 mục *"Đã làm gì"*:
+  1. **`cfg.source[id]` đổi đơn vị GIỜ → NGÀY** (nhịp giao: số ngày dữ liệu nguồn được phép còn
+     thiếu). 7 con số quy đổi bằng `floor(giờ/24)`. Bảng ở §"Bảy nhóm" dưới đây phải đọc là `(ngày)`.
+  2. **Nhóm 3 HẾT MỒ CÔI** — ô nhập cầm quyền chấm hạng nguồn trở lại. Test chứng minh:
+     `SourceGroup.test.tsx` (nới nhịp vừa đủ ⇒ badge đổi) + `domain/state.test.ts`.
+  3. **`cfg.data.deadDays` (nhóm 4) ĐỔI NGHĨA** — *"quá **nhịp giao của chính nguồn đó** bao nhiêu
+     ngày thì Ngừng gửi"*, mốc chết là `nhịp + deadDays`. Nhãn ô nhập nhóm 4 và câu "Áp ngay lúc này"
+     đã sửa theo; `#/sources` cũng sửa (`srcNote` của bảng nguồn).
 
 **Ba chỗ charter này SAI so với code/dữ liệu thật, đã đo lại:**
 - "pilot mở rộng: 30 bước, chỉ một phần có quan sát" — **sai**, 30/30 bước đều có `obs`.
@@ -65,7 +74,7 @@ không có.
 |---|---|---|---|---|
 | 1 | Bước hành trình | `step` (4 số) | có | kèm khối "áp ngay lúc này" trên các bước có quan sát |
 | 2 | Chỉ số theo dõi | `metric[id]` (`on`/`watch`/`crit`) | có | band RIÊNG từng chỉ số — **không** ngưỡng chung |
-| 3 | SLA từng nguồn | `source[id]` (giờ) | có | **bản tạm** — xem mục riêng bên dưới |
+| 3 | SLA từng nguồn | `source[id]` (**ngày** — đổi 11/08, trước là giờ) | có | **bản tạm** — xem mục riêng bên dưới |
 | 4 | Cảnh báo & khảo sát | `anomaly.z` + `data` (6 số) | có | |
 | 5 | Bản tin định kỳ | `sub[setId]` (`f`/`ch`) | có | |
 | 6 | Trọng số ưu tiên | — | **CHỈ ĐỌC** | lý do ở mục "Vì sao nhóm 6 chỉ đọc" |
@@ -114,6 +123,39 @@ thì màn tự đổi. Kèm một `Note` nói rõ đây là bản tạm cùng l�
 
 Câu cảnh báo tự-lừa của prototype **giữ nguyên tinh thần**: nới SLA một nguồn thì nhãn nguồn đó
 chuyển sang "Đang nhận" ngay, nhưng độ trễ thật không đổi.
+
+**11/08 — hai đổi ở mục này.** (a) Đơn vị là **NGÀY**, không còn giờ (C5, xem đầu file). (b) *Câu*
+cảnh báo tự-lừa **đã bỏ khỏi màn** theo luật giao diện 11/08 — hệ thống không viết luận giải nữa. Cơ
+chế tự-lừa thì **vẫn thật** và vẫn phải nhớ: nới nhịp giao là đổi ngưỡng, không phải sửa nguồn. Chỗ
+giữ điều đó bây giờ là charter này chứ không phải màn hình.
+
+### 4. 12/08 — dải số của cfg là LỖI CỨNG (nhóm luật 24); thứ tự ngưỡng vẫn là cảnh báo mềm
+
+Trước 12/08, mọi ô của màn này ghi được **bất cứ** con số nào: `deadDays` = 0 xoá hẳn hai bậc *đang
+trễ*/*im lặng* khỏi `sourceHealth()`, nhịp giao âm làm không nguồn nào đạt nhịp, nhịp giao thập phân
+làm nhãn *"SLA N ngày"* nói khác con số engine đang chấm — tất cả trong im lặng. `validate.ts` **nhóm
+24** (mới, bất biến 8: không lấp 13/14) đóng chỗ hở đó cho **toàn bộ** mặt cfg.
+
+**Hai surface, ranh giới rõ — đừng dời luật qua nhau:**
+
+| | Kiểm gì | Hạng |
+|---|---|---|
+| `validate.ts` nhóm 24 | **miền xác định**: hữu hạn · dấu · nguyên với ô đếm bằng ngày/lần/khách · trần 100 với ô phần trăm. Cộng đúng một ca suy biến owner nêu tên (`deadDays` ≥ 1) | **lỗi cứng**, `setCfg` ném |
+| `domain/cfgIssues.ts` (G1) | **thứ tự** giữa hai ngưỡng (`crit` vs `watch`) | cảnh báo mềm |
+
+Cấu hình **suy biến mà đúng dạng** (vd `failWatch` = 0, `effortMax` = 0) thuộc cfgIssues, **không**
+thuộc nhóm 24 — và có test canh đúng ranh giới này (`validate.test.ts`, ca *"effortMax = 0 và
+failWatch = 0 KHÔNG bị chặn"*).
+
+Bảng dải nằm ở **một chỗ duy nhất** (`NUM_RANGE` trong nhóm 24), khoá là đường dẫn trong cfg với `*`
+cho tầng khoá động. Thêm field số vào `Cfg` mà quên khai dải thì **luật cuối khối báo thẳng** — không
+để lọt thêm một ô cấu hình ghi được mà không bất biến nào canh.
+
+**Đi kèm, một lỗi thật lộ ra khi rejection trở nên thường xuyên:** `NumField` chỉ kéo ô về theo cfg
+qua `useEffect([value])`, nên khi seam ghi **từ chối** (`value` y nguyên) ô đứng lại ở con số vừa gõ
+trong khi cfg giữ số cũ — đúng "màn nói sai về chính nó" mà docblock của chính nó đã hứa không để xảy
+ra. `commit()` giờ kéo ô về `value` sau khi gọi `onCommit`; ghi được thì hai lần `setText` cùng một
+batch và effect chốt ở số mới.
 
 ## Vì sao nhóm 6 chỉ đọc
 

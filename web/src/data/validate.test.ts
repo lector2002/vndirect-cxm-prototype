@@ -6,7 +6,7 @@ import { NOT_IDENTIFIED } from "./projectSignalCounts.ts";
 import type { CxmData, Signal, SigCount } from "./schema/index.ts";
 
 describe("validateFixture", () => {
-  it("positive: seed passes all 19 groups", () => {
+  it("positive: seed passes all 24 groups", () => {
     expect(validateFixture(seed, dims, seedNav, seedTour, cfgDefault)).toEqual([]);
   });
 
@@ -754,5 +754,108 @@ describe("validateFixture", () => {
 
   it("23: seed.hist là mảng rỗng — fixture thật không mang số minh hoạ", () => {
     expect(seed.hist).toEqual([]);
+  });
+
+  /* Group 24: dải số của cfg (module-i-signal-registry-charter.md §12.1). Ba ca owner nêu tên
+     (`deadDays` = 0 · nhịp giao âm · nhịp giao thập phân) cộng biên của từng dạng dải, cộng HAI ca
+     canh RANH GIỚI với cfgIssues(): cấu hình suy biến-mà-đúng-dạng KHÔNG bị nhóm này chặn. */
+  const chk = (cfg: Parameters<typeof validateFixture>[4]) => validateFixture(seed, dims, seedNav, seedTour, cfg);
+
+  it("24: deadDays = 0 bị chặn — 0 xoá hẳn hai bậc đang trễ/im lặng", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.data.deadDays = 0;
+    expect(chk(cfg).some((e) => e.includes("cfg.data.deadDays = 0") && e.includes("số NGUYÊN ≥ 1"))).toBe(true);
+  });
+
+  it("24: nhịp giao ÂM bị chặn", () => {
+    const cfg = structuredClone(cfgDefault);
+    const id = Object.keys(cfg.source)[0];
+    cfg.source[id] = -1;
+    expect(chk(cfg).some((e) => e.includes(`cfg.source["${id}"] = -1`) && e.includes("số NGUYÊN ≥ 0"))).toBe(true);
+  });
+
+  it("24: nhịp giao THẬP PHÂN bị chặn — nhãn \"SLA N ngày\" không nói lại được 1,5", () => {
+    const cfg = structuredClone(cfgDefault);
+    const id = Object.keys(cfg.source)[0];
+    cfg.source[id] = 1.5;
+    expect(chk(cfg).some((e) => e.includes(`cfg.source["${id}"]`) && e.includes("số NGUYÊN"))).toBe(true);
+  });
+
+  it("24: ngưỡng phần trăm vượt 100 bị chặn — tỷ lệ thất bại không bao giờ tới đó", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.step.failCrit = 120;
+    expect(chk(cfg).some((e) => e.includes("cfg.step.failCrit = 120") && e.includes("≤ 100"))).toBe(true);
+  });
+
+  it("24: ngưỡng Z = 0 bị chặn (biên MỞ) — |z| ≥ 0 làm mọi điểm đều bất thường", () => {
+    const cfg = structuredClone(cfgDefault);
+    cfg.anomaly.z = 0;
+    expect(chk(cfg).some((e) => e.includes("cfg.anomaly.z = 0") && e.includes("> 0"))).toBe(true);
+  });
+
+  it("24: band chỉ số chỉ đòi HỮU HẠN — NaN bị chặn, còn số âm/lớn thì không (đơn vị theo từng chỉ số)", () => {
+    const id = Object.keys(cfgDefault.metric)[0];
+    const nan = structuredClone(cfgDefault);
+    nan.metric[id].watch = Number.NaN;
+    expect(chk(nan).some((e) => e.includes(`cfg.metric["${id}"].watch`) && e.includes("hữu hạn"))).toBe(true);
+
+    const negative = structuredClone(cfgDefault);
+    negative.metric[id].watch = -5;
+    expect(chk(negative).some((e) => e.includes(`cfg.metric["${id}"].watch`))).toBe(false);
+  });
+
+  /* RANH GIỚI với cfgIssues(): nhóm này kiểm miền xác định, không kiểm "suy biến mà đúng dạng".
+     `effortMax` = 0 vẫn phân biệt được bước (effort 0 ⇒ vẫn `ok`), `failWatch` = 0 thì không — nhưng
+     cả hai đều là số phần trăm/lần thử ĐÚNG DẠNG, nên chỗ nói về chúng là cảnh báo mềm của màn
+     #/rules, không phải lỗi cứng ở đây. Chỉ dấu ÂM mới bị chặn. */
+  it("24: effortMax = 0 và failWatch = 0 KHÔNG bị chặn (việc của cfgIssues), effortMax âm thì bị", () => {
+    const zero = structuredClone(cfgDefault);
+    zero.step.effortMax = 0;
+    zero.step.failWatch = 0;
+    expect(chk(zero).some((e) => e.includes("cfg.step."))).toBe(false);
+
+    const negative = structuredClone(cfgDefault);
+    negative.step.effortMax = -1;
+    expect(chk(negative).some((e) => e.includes("cfg.step.effortMax = -1") && e.includes("≥ 0"))).toBe(true);
+  });
+
+  it("24: field số MỚI trong cfg mà chưa khai dải thì bị đòi ngay — không lặng lẽ nằm ngoài bất biến", () => {
+    const cfg = structuredClone(cfgDefault) as unknown as { data: Record<string, number> };
+    cfg.data.soLanThuLai = 3;
+    const r = chk(cfg as unknown as Parameters<typeof validateFixture>[4]);
+    expect(r.some((e) => e.includes("cfg.data.soLanThuLai") && e.includes("chưa khai dải"))).toBe(true);
+  });
+
+  /* Phép ĐẾM LẠI TỪ CFG, không ghim danh sách field: mọi leaf số của `cfgDefault` (trừ `segment` —
+     nhóm 20 sở hữu mặt đó) phải có entry trong bảng dải. Đặt NaN vào từng leaf rồi đòi đúng một câu
+     lỗi trỏ đúng đường dẫn đó: leaf nào chưa khai dải sẽ ra câu "chưa khai dải", leaf nào đã khai ra
+     câu "không hợp lệ" — cả hai đều chứa đường dẫn, nên test này xanh CHỈ KHI mọi leaf được canh.
+     Owner thêm field số vào Cfg mà quên khai dải ⇒ test này đỏ, không phải chờ ai nhớ ra. */
+  it("24: MỌI leaf số của cfgDefault đều được canh dải (đếm lại từ cfg, không ghim danh sách)", () => {
+    const leaves: string[][] = [];
+    const walk = (node: unknown, path: string[]): void => {
+      if (typeof node === "number") { leaves.push(path); return; }
+      if (!node || typeof node !== "object") return;
+      for (const [k, v] of Object.entries(node)) walk(v, [...path, k]);
+    };
+    for (const [k, v] of Object.entries(cfgDefault)) {
+      if (k === "segment") continue;
+      walk(v, [k]);
+    }
+    expect(leaves.length).toBeGreaterThan(0);
+
+    for (const path of leaves) {
+      const cfg = structuredClone(cfgDefault) as unknown as Record<string, unknown>;
+      let node = cfg;
+      for (const seg of path.slice(0, -1)) node = node[seg] as Record<string, unknown>;
+      node[path[path.length - 1]] = Number.NaN;
+      const r = chk(cfg as unknown as Parameters<typeof validateFixture>[4]);
+      const tail = path[path.length - 1];
+      expect(r.some((e) => e.startsWith("cfg.") && e.includes(tail) && e.includes("NaN")), path.join(".")).toBe(true);
+    }
+  });
+
+  it("24: cfgDefault không vi phạm dải nào", () => {
+    expect(chk(cfgDefault).some((e) => e.startsWith("cfg.step") || e.startsWith("cfg.data") || e.startsWith("cfg.source") || e.startsWith("cfg.metric") || e.startsWith("cfg.anomaly"))).toBe(false);
   });
 });

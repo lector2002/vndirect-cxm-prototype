@@ -970,7 +970,12 @@ export const cfgDefault: Cfg = {
     "m-ces": { on: true, watch: 4.2, crit: 3.5 },
     "m-repeat": { on: true, watch: 15, crit: 20 },
   },
-  source: { "src-ga": 6, "src-ekyc": 8, "src-case": 4, "src-survey": 6, "src-store": 36, "src-broker": 36, "src-zalo": 6 },
+  /* Nhịp giao từng nguồn, tính bằng NGÀY (schema/config.ts `Cfg.source`). Đổi đơn vị 11/08 từ bộ
+     giờ cũ {ga 6, ekyc 8, case 4, survey 6, store 36, broker 36, zalo 6} — quy đổi bằng SỐ NGÀY DỮ
+     LIỆU TRỌN VẸN mà giờ SLA cũ cho phép trễ (`floor(giờ/24)`): nguồn nào thoả thuận trong ngày thì
+     nhịp là 0, hai nguồn 36 giờ (crawl 1 lần/ngày, nhập tay trong CRM) thì nhịp là 1. Không làm
+     tròn lên: 6 giờ thành 1 ngày là nới thoả thuận gấp bốn lần sau lưng bên dữ liệu. */
+  source: { "src-ga": 0, "src-ekyc": 0, "src-case": 0, "src-survey": 0, "src-store": 1, "src-broker": 1, "src-zalo": 0 },
   data: { deadDays: 2, anomalyX: 2.0, cooldown: 14, repeatMin: 2, repeatWarn: 20, churnWarn: 50 },
   /* z=2,5 — owner chốt 02/08 cùng cửa sổ tối thiểu i>=3 (domain/stats.ts). Ở 1,5 chart gắn cờ
      19/20 điểm chấm được của q15, tức gần như mọi điểm, nên vòng tròn mất hết ý nghĩa. */

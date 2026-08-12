@@ -11,8 +11,11 @@ import { useCfgWrite } from "../useCfgWrite.ts";
    KHỐI "ÁP NGAY LÚC NÀY" CHỈ GIỮ NHỮNG CÂU TÍNH ĐƯỢC THẬT TỪ STORE:
    - Nguồn bị coi Ngừng gửi: dùng lại `sourceHealth(s, cfg, data.asOf) === 'down'` — tái dùng seam
      chung thay vì chép lại phép tính. 07/08 (module-i-signal-registry-charter.md I3): công thức đổi
-     sang so ngày `Source.last` với `data.asOf`, không còn so `lagH` với `deadDays*24` — số ngày im
-     lặng ở ô nhập dưới đây (`data.deadDays`) vẫn đúng nghĩa cũ, chỉ đơn vị đã LUÔN là ngày.
+     sang so ngày `Source.last` với `data.asOf`, không còn so `lagH` với `deadDays*24`.
+     11/08 (owner, giải C5): `data.deadDays` ĐỔI NGHĨA — không còn là "im lặng bao nhiêu ngày" tính
+     từ 0, mà là "quá NHỊP GIAO của chính nguồn đó bao nhiêu ngày" (`cfg.source[id]`, cũng tính bằng
+     ngày, do nhóm 3 ở màn này giữ). Nhãn ô nhập dưới đây phải nói đúng nghĩa mới: với nguồn khai
+     nhịp 1 ngày thì `deadDays` = 2 nghĩa là chết ở ngày thiếu thứ BA, không phải thứ hai.
    - Điểm gãy bị tô đỏ theo repeat/churn: lọc thẳng trên `data.iss[].imp`.
    - Số điểm bất thường theo ngưỡng Z: tìm chart `kind:'series', chart:'anomaly'` trong `data.qt`
      (seed hôm nay là "Bất thường theo tháng"), chạy `countAnomalies` (domain/stats.ts) trên từng
@@ -71,11 +74,11 @@ export function AlertGroup() {
 
         <div className={ROW}>
           <div>
-            <b className="block text-[13px]">Nguồn im lặng bao lâu thì coi là Ngừng gửi</b>
+            <b className="block text-[13px]">Quá nhịp giao bao nhiêu ngày thì coi là Ngừng gửi</b>
             <span className="t-meta block text-[12px]">Quality Monitor dùng ngưỡng này</span>
           </div>
           <NumField
-            label="Số ngày im lặng thì coi là Ngừng gửi"
+            label="Số ngày quá nhịp giao thì coi là Ngừng gửi"
             value={cfg.data.deadDays}
             suffix="ngày"
             onCommit={(v) => write({ data: { ...cfg.data, deadDays: v } })}
@@ -154,7 +157,7 @@ export function AlertGroup() {
         <div className="t-lbl mb-2">Áp ngay lúc này</div>
         <div className="grid gap-2.5" data-testid="alert-apply-now">
           <Note tone={dead.length ? "crit" : "default"}>
-            Im lặng từ <b>{cfg.data.deadDays} ngày</b> là Ngừng gửi → <b>{dead.length} nguồn</b> bị coi
+            Quá nhịp giao <b>{cfg.data.deadDays} ngày</b> là Ngừng gửi → <b>{dead.length} nguồn</b> bị coi
             là ngừng gửi{dead.length ? `: ${dead.map((s) => s.name).join(", ")}` : ""}.
           </Note>
 

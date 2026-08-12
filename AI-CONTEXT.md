@@ -1,8 +1,14 @@
 # AI Context
 
-> Updated: 2026-08-07
+> Updated: 2026-08-07 · **chỗ vào của phiên mới: `docs/SESSION-HANDOFF-11-08.md`**
 > Level: Small
 > Status: active · đang dựng lại bằng React trong `web/`
+
+> 🟢 **PHIÊN MỚI ĐỌC `docs/SESSION-HANDOFF-11-08.md` TRƯỚC MỌI THỨ KHÁC.** File đó giữ luật vận hành
+> của owner (nguyên văn), trạng thái nhánh + cái gì chưa commit, cách tự kiểm bốn bước, và việc còn
+> treo. Mọi mục trong AI-CONTEXT này dừng ở **07/08** — bốn luật chốt sau đó (đầu màn chỉ còn tên tab
+> 06/08 · **app hiển thị dữ liệu, không luận giải 11/08** · Module I đóng · `cfg.source` đổi sang ngày
+> 11/08) **không có ở đây**.
 
 > 🔴 **CÔNG VIỆC HIỆN TẠI NẰM Ở `web/`. ĐỔI HƯỚNG 07/08/2026 — ĐỌC
 > `web/docs/HANDOFF-MVP-FLOW-COVERAGE.md` TRƯỚC, rồi mới tới `web/docs/REBUILD-STATUS.md`.**

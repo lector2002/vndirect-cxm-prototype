@@ -68,7 +68,7 @@ load OK = ngày yên tĩnh; load lỗi = hỏng biết chắc; không có dòng 
 | **C1** | `AtlasStepInspector` sau I1 bỏ hẳn ô "Evidence coverage" (grid 4→3 cột). Muốn giữ 4 cột với **một ô trống tường minh** thì nói, sửa nhanh |
 | **C2** | Dòng mốc số liệu hiện ở Tổng quan (sau `SetChips`). Có cần hiện thêm ở màn nào nữa không |
 | **C3** | **Demo Mode có cần hiện mốc rõ ràng là giả** để không nhầm demo với thật? Tôi cố ý **chưa** làm ở I1 để không tự bịa cách thể hiện |
-| **C5** | **Nhóm SLA nguồn ở `#/rules` giờ ghi được mà không quyết định gì** — I3 đã lấy quyền chấm hạng khỏi `cfg.source[id]` (chấm theo số ngày thiếu so với mốc số liệu). Ô cấu hình gõ vào mà không đổi được gì chính là **loại bẫy module này đang dọn**. Hai đường: **bỏ nhóm đó**, hoặc **đổi sang ngưỡng theo NGÀY** để nó có quyền trở lại. Tôi **không tự quyết** vì đó là màn của Module G |
+| ~~**C5**~~ | **CHỐT 11/08 — owner chọn ĐỔI SANG NGÀY, không bỏ nhóm.** `cfg.source[id]` giờ là **nhịp giao tính bằng NGÀY** và `sourceHealth()` **đọc lại nó**, nên ô nhập nhóm 3 ở `#/rules` cầm quyền chấm hạng nguồn trở lại. Ba hệ quả ghi ở §12.1 (mục "Đã làm gì 11/08"): quy đổi giờ→ngày bằng `floor(giờ/24)`, `cfg.data.deadDays` **đổi nghĩa** thành *"quá nhịp giao bao nhiêu ngày"*, và mốc chết thành `nhịp + deadDays` để bậc thang **không nhảy bậc** |
 | ~~**C7**~~ | **XONG 11/08 — không còn là việc chờ owner.** Luật giao diện 11/08 đã áp cho màn Điểm đo: bỏ ba câu dưới title khối, bỏ legend ba nghĩa *chưa định danh / chưa-biết / thiếu* (owner cấm **định nghĩa**), và **bỏ cả câu giới hạn đầu màn** — tức **vế 2 của bất biến 9 bị gỡ**, xem mục 9 §9. Vế 1 (màn không được khai độ phủ so với thực tế) **còn nguyên**. Luật + ba phép thử giữ/bỏ: `docs/DB-FIRST-HANDOFF.md` §"App hiển thị dữ liệu, không luận giải" |
 | **C6** | **Tab "Chỉ số liên kết" trong Atlas đã BỎ dòng độ tươi, chưa thay bằng dòng sinh ra.** Chuỗi thay thế cần `data.sources` + `data.asOf`, mà `AtlasMetricsTab` chỉ nhận `signals`/`metrics`/`cfg` — luồn thêm hai prop qua `AtlasStepInspector` là **việc của Atlas**, tôi không tự làm trong module I. Hiện tại chỗ đó **thiếu một dòng** chứ không **sai một dòng**; ở `#/rules` thì đã hiện đầy đủ. Nói một câu là tôi luồn prop |
 | **C4** | **Bước đã chép mà chưa đo — hợp lệ hay lỗi dữ liệu?** Nhóm luật 14 cũ **cấm** trạng thái đó, nhưng UI **đã hỗ trợ** nó (`stepState()` trả *"unknown"*, khối Tổng quan nói *"chưa đo bước nào"*). Hai chỗ mâu thuẫn nhau **từ trước** module này. Ở I2 tôi chọn **hợp lệ** — cấm là chặn một tình trạng thật khỏi màn hình, cùng lý lẽ đã dùng để không thêm luật ở D5. Nếu anh muốn ngược lại thì nói, nhưng khi đó phải bỏ ca *"chưa đo"* khỏi UI cho khỏi nói hai giọng |
@@ -417,6 +417,42 @@ pipeline T-1 là nguồn *"có đủ dữ liệu của ngày D-1"*, không phả
 Cách này sống sót khi nhịp đổi. **Việc owner phải quyết:** 5 con số SLA kia canh lại theo ngày, hay
 giữ nguyên và đổi cách chấm. Không tự quyết được — nó là số của Module G.
 
+#### Đã làm gì — 07/08 nửa việc, 11/08 nốt nửa còn lại
+
+07/08 làm **một nửa**: đổi cách chấm sang mốc số liệu, nhưng **để nguyên 7 con số giờ** và thôi đọc
+chúng. Nửa việc đó tự sinh ra C5 — một nhóm cấu hình gõ được mà không quyết định gì, đúng loại bẫy
+module này đang dọn.
+
+11/08 owner chốt **đổi 7 con số sang NGÀY** (không bỏ nhóm). Ba việc đi kèm, cả ba đều là quyết định
+chứ không phải dịch máy:
+
+| | Việc | Vì sao thế, không phải cách khác |
+|---|---|---|
+| 1 | **Quy đổi `floor(giờ/24)`**: ga 0 · ekyc 0 · case 0 · survey 0 · store 1 · broker 1 · zalo 0 | Đơn vị mới hỏi *"được phép thiếu bao nhiêu NGÀY DỮ LIỆU TRỌN VẸN"*. Làm tròn LÊN (6 giờ → 1 ngày) là **nới thoả thuận gấp bốn lần sau lưng bên dữ liệu**; 5 nguồn thoả thuận trong ngày phải ra nhịp 0 |
+| 2 | **`cfg.data.deadDays` ĐỔI NGHĨA** — từ *"im lặng bao nhiêu ngày"* thành *"quá **nhịp giao của chính nguồn đó** bao nhiêu ngày"*. Nhãn ô nhập ở nhóm 4 `#/rules` sửa theo | Không sửa nhãn thì với nguồn khai nhịp 1 ngày, ô ghi "im lặng 2 ngày là ngừng gửi" trong khi engine tuyên chết ở ngày thứ **ba**. Một nhãn sai về chính nó |
+| 3 | **Mốc chết = `nhịp + deadDays`**, không phải `deadDays` phẳng | Để phẳng thì nguồn khai nhịp ≥ `deadDays` nhảy thẳng `ok` → `down`, **bỏ qua hẳn bậc `stale`** — nguồn giao hằng tuần sẽ không bao giờ được báo *"đang trễ"*, chỉ im lặng rồi bị tuyên chết. **Bậc thang không được nhảy bậc** |
+
+**Bảy nhãn KHÔNG ĐỔI** sau khi làm cả ba (đo trên cả hai fixture): 5 `ok` · 1 `stale` (`src-survey`,
+thiếu 1 ngày, nhịp 0) · 1 `down` (`src-zalo`, thiếu 8 ngày). Hai nguồn khai nhịp 1 ngày đều đang
+thiếu 0 ngày nên nhịp mới chưa đổi nhãn nào — **thẩm quyền** thì có thật: cùng nguồn `src-survey`,
+nhịp 0 ra `stale`, nhịp 1 ra `ok` (`state.test.ts`, `SourceGroup.test.tsx`).
+
+**Còn hở, ghi để không quên:** dải số của `cfg` **không có luật nào kiểm** — gõ `deadDays` = 0 hay
+nhịp giao âm/thập phân đều ghi được và cho ra nhãn vô nghĩa trong im lặng. Đây là chuyện của **toàn
+bộ** mặt cfg, không riêng field này, nên không vá một field lẻ ở đây; muốn chặn thì làm một nhóm luật
+**mới số 24** trong `validate.ts` (bất biến 8: **không dùng lại** số 13/14 đã vĩnh viễn trống).
+
+> ✅ **ĐÃ ĐÓNG 12/08** — owner chốt làm. `validate.ts` **nhóm 24** kiểm dải số của **toàn bộ** mặt cfg
+> (số 24 như đã ghi, 13/14 vẫn trống; nhóm mới trong tương lai là **25**). Kiểm **miền xác định** —
+> hữu hạn · dấu · nguyên với ô đếm bằng ngày/lần/khách · trần 100 với ô phần trăm — cộng đúng một ca
+> suy biến nêu tên ở đây: `deadDays` ≥ 1. Bảng dải `NUM_RANGE` là chỗ khai duy nhất, khoá là đường dẫn
+> trong cfg (`*` cho tầng khoá động), và **field số mới không khai dải thì bị đòi ngay** — không lọt
+> thêm một ô cấu hình ghi được mà không bất biến nào canh. `cfg.segment` vẫn thuộc nhóm 20. Thứ tự
+> `crit`/`watch` và cấu hình suy biến-mà-đúng-dạng (`failWatch` = 0) **vẫn là cảnh báo mềm** của
+> `cfgIssues()`, không chuyển sang lỗi cứng — ranh giới hai surface ghi ở
+> `module-g-rules-charter.md` §4. Lên thẳng màn không cần sửa UI: `setCfg` chạy lại `validateFixture`
+> với cfg ứng viên rồi ném, `useCfgWrite` in nguyên văn vào ô của đúng nhóm vừa sửa.
+
 ### 12.2 Ba trường đổi nghĩa dưới pipeline
 
 | Trường | Nghĩa hôm nay | Nghĩa dưới T-1 | Phải làm gì |
@@ -522,7 +558,8 @@ nối `Signal` → `Source`**, không phải vì chưa có cách chấm. Đó l�
 được** nhưng **không còn quyết định gì**. `module-g-rules-charter.md` §3 đã tuyên nhóm này là **BẢN
 TẠM** nên nó không phá phạm vi Module G, nhưng một ô cấu hình gõ vào mà không đổi được gì là **đúng
 loại bẫy** module này đang dọn. Đưa thành **C5** ở §0: hoặc bỏ nhóm đó, hoặc đổi nó thành ngưỡng
-**theo ngày** để có quyền trở lại. Không tự quyết ở I5.
+**theo ngày** để có quyền trở lại. Không tự quyết ở I5. → **owner chốt 11/08: đổi sang ngày.** Việc đã
+làm và ba quyết định đi kèm ghi ở §12.1, mục *"Đã làm gì"*.
 
 ### I1 — XONG 07/08, đã tự kiểm độc lập
 

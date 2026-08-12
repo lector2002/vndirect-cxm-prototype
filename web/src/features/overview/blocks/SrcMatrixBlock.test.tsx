@@ -4,8 +4,10 @@ import { cfgDefault, seed } from "../../../data/fixtures/seed.ts";
 import { SrcMatrixBlock } from "./SrcMatrixBlock.tsx";
 
 /* 07/08 (module-i-signal-registry-charter.md I3): số suy từ seed qua sourceHealth(), giờ so
-   `Source.last` với `seed.asOf` ("27/07/2026"), theo NGÀY — không còn so `lagH` với SLA riêng
-   (`cfg.source`). src-ga/ekyc/case/store/broker: last = 27/07 → thiếu 0 ngày → ok. src-survey:
+   `Source.last` với `seed.asOf` ("27/07/2026"), theo NGÀY — không còn so `lagH` với SLA riêng tính
+   bằng giờ. 11/08 (owner, giải C5): `cfg.source[id]` được đọc lại làm NHỊP GIAO tính bằng NGÀY; hai
+   nguồn khai nhịp 1 ngày (store, broker) đều đang thiếu 0 ngày nên bảy nhãn dưới đây không đổi.
+   src-ga/ekyc/case/store/broker: last = 27/07 → thiếu 0 ngày → ok. src-survey:
    last = 26/07 → thiếu 1 ngày, vol=612>0 → stale. src-zalo: last = 19/07 → thiếu 8 ngày ≥
    deadDays 2 → down. → CÙNG kết luận như cách chấm cũ: 2 nguồn có vấn đề — "In-app survey
    (CES/CSAT/NPS)" (stale) và "Zalo OA inbox" (down). Metric bị ảnh hưởng: src-survey→['m-ces'],

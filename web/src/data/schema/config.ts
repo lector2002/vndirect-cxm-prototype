@@ -64,6 +64,12 @@ export type CfgSegment = {
 export type Cfg = {
   step: CfgStep;
   metric: Record<string, CfgMetricBand>;
+  /** Nhịp giao của từng nguồn, keyed theo id nguồn: SỐ NGÀY dữ liệu nguồn được phép còn thiếu so
+      với mốc số liệu `asOf` mà vẫn coi là "đang nhận". ĐƠN VỊ LÀ NGÀY — đổi 11/08 (owner, giải C5);
+      trước đó là GIỜ và không ai đọc (`sourceHealth()` bỏ đọc field này 07/08 khi chuyển sang thước
+      ngày, nên ô nhập ở #/rules gõ được mà không đổi được nhãn nào). Thiếu entry là HỢP LỆ — engine
+      áp `SOURCE_ALLOW_DAYS_DEFAULT` (domain/state.ts), vì danh sách nguồn còn là bản tạm và một
+      nguồn mới mở không được kéo theo lỗi khai báo. */
   source: Record<string, number>;
   data: CfgData;
   anomaly: CfgAnomaly;

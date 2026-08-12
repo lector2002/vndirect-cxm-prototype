@@ -123,9 +123,11 @@ function mk(over: Partial<CxmData>): CxmData {
   return { ...seed, sources: [], metrics: [], surveys: [], signals: [], ev: [], tax: [], ...over };
 }
 
-/* `cfgWith(source)` (SLA riêng từng id tổng hợp) BỎ 07/08 — `sourceHealth()` không còn đọc
-   `cfg.source[id]` (I3 Việc 1), nên nó thành hàm không mang thông tin nào; mọi test dưới đây dùng
-   thẳng `cfgDefault`. */
+/* `cfgWith(source)` (SLA riêng từng id tổng hợp) BỎ 07/08 khi `sourceHealth()` thôi đọc
+   `cfg.source[id]` (I3 Việc 1). 11/08 field đó được đọc lại (đơn vị NGÀY, owner giải C5) nhưng helper
+   KHÔNG dựng lại: mọi id dưới đây do factory `src()` sinh, không nằm trong `cfgDefault.source`, nên
+   nhịp mặc định 0 áp cho tất cả — đúng thứ các test này cần. Test chứng minh nhịp giao cầm quyền nằm
+   ở `state.test.ts`, cùng chỗ với `sourceHealth`. */
 
 describe("sourcesByProblem — nguồn hỏng lên đầu, phần còn lại giữ nguyên thứ tự khai", () => {
   it("xếp nguồn trễ lên trước nguồn đang nhận", () => {

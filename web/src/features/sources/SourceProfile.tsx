@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Cfg, CxmData, Source } from "../../data/schema/index.ts";
 import {
+  SOURCE_ALLOW_DAYS_DEFAULT,
   distByIntent,
   distByPhase,
   distByPlatform,
@@ -112,7 +113,13 @@ export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps
           <Stat
             label="Độ tươi"
             value={lagText(source.lagH)}
-            foot={sla === undefined ? "chưa đặt SLA riêng cho nguồn này" : `SLA riêng của nguồn này: ${sla} giờ`}
+            /* 11/08: đơn vị NGÀY, và nguồn chưa khai riêng thì hiện đúng mặc định engine đang chấm
+               (`SOURCE_ALLOW_DAYS_DEFAULT`) — xem SourcesPage.tsx cùng lý do. */
+            foot={
+              sla === undefined
+                ? `SLA nguồn này: ${SOURCE_ALLOW_DAYS_DEFAULT} ngày (mặc định)`
+                : `SLA riêng của nguồn này: ${sla} ngày`
+            }
             srcNote={`Nhận lần cuối ${source.last}`}
             tone={
               health === "ok" || health === "silent"

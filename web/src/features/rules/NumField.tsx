@@ -70,6 +70,12 @@ export function NumField({ value, onCommit, suffix, label, tone, wide, hint, dis
       return;
     }
     if (v !== value) onCommit(v);
+    /* Rồi KÉO Ô VỀ THEO `value` — không phải dư thừa với useEffect ở trên: effect chỉ chạy khi `value`
+       ĐỔI, còn ca seam ghi TỪ CHỐI thì `value` y nguyên nên effect không chạy, và ô đứng lại ở con số
+       vừa gõ trong khi cfg giữ số cũ. Đó đúng là "màn nói sai về chính nó" mà docblock trên đã hứa
+       không để xảy ra (đo được từ nhóm luật 24, data/validate.ts: gõ deadDays = 0 bị chặn mà ô vẫn
+       hiện 0). Ghi ĐƯỢC thì hai lần setText nằm cùng một batch, effect chạy sau và chốt ở số mới. */
+    setText(toText(value));
   };
 
   return (

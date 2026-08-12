@@ -7,8 +7,9 @@ import { isSegUnknown } from "./segment.ts";
 import { bandLabels, bandOf } from "./bands.ts";
 import { NOT_IDENTIFIED, SIG_CUST_DIMS, SIG_FIRE_DIM } from "./projectSignalCounts.ts";
 
-/* validateFixture — 23 nhóm bất biến (port từ prototype; nhóm 19 thêm 02/08 cho phân khúc khách;
-   nhóm 23 thêm 07/08 cho chuỗi lịch sử chỉ số `hist`, module-b-issue-charter.md section B1) */
+/* validateFixture — 24 nhóm bất biến (port từ prototype; nhóm 19 thêm 02/08 cho phân khúc khách;
+   nhóm 23 thêm 07/08 cho chuỗi lịch sử chỉ số `hist`, module-b-issue-charter.md section B1; nhóm 24
+   thêm 12/08 cho dải số của cfg, module-i-signal-registry-charter.md §12.1) */
 
 const ROUTES = new Set([
   "cxm", "voc", "quantify", "assistant", "atlas", "work",
@@ -323,8 +324,9 @@ export function validateFixture(
      §9). Hai nhóm cũ kiểm `Flow.verified` ⟺ `src !== "—"` và `Flow.observed` ⟺ có ≥1 `Step` — 07/08
      (D2/F8 cùng charter) cả hai field bị xoá khỏi schema vì tự thân chỉ là biểu thức của `src`/
      `steps`, không mang thêm thông tin nào (đếm khớp 25⟷25 và 6⟷6 trước khi xoá — suy tại chỗ đọc
-     luôn cho đúng kết quả, không cần validate giữ đồng bộ nữa). Nhóm luật mới trong tương lai vẫn là
-     24, KHÔNG lấp số 13/14 cho nhóm khác — người đọc log cũ sẽ hiểu sai luật nào đã fail.
+     luôn cho đúng kết quả, không cần validate giữ đồng bộ nữa). Nhóm luật mới trong tương lai là
+     25 — số 24 ĐÃ DÙNG (dải số của cfg, thêm 12/08), và vẫn KHÔNG lấp số 13/14 cho nhóm khác:
+     người đọc log cũ sẽ hiểu sai luật nào đã fail.
      LƯU Ý cho người đọc lại: nhóm 14 cũ, bên trong nhánh `f.observed`, còn kiểm mỗi bước của flow
      phải có ≥1 `Obs` khớp ("thiếu obs") — kiểm này KHÔNG liên quan gì đến verified/observed, nhưng
      nằm cùng nhóm nên mất theo. Bất biến đó vẫn đang được AtlasPage.test.tsx canh riêng (guard "mọi
@@ -755,6 +757,141 @@ export function validateFixture(
 
       // 5. Không có snapshot ⇒ lỗi — không có mốc đóng băng thì chuỗi không có điểm neo.
       if (!snap) e.push(`hist ${h.iss}: không có snapshot cho issue này — chuỗi lịch sử không có điểm neo`);
+    }
+  }
+
+  /* 24. DẢI SỐ CỦA CFG (thêm 12/08 — module-i-signal-registry-charter.md §12.1 "Còn hở"; bất biến 8:
+     số 24 là nhóm mới, KHÔNG lấp 13/14 đã vĩnh viễn trống). Trước nhóm này, mọi ô ở #/rules ghi được
+     bất cứ con số nào: `deadDays` = 0 xoá hẳn hai bậc "đang trễ"/"im lặng" khỏi sourceHealth(), nhịp
+     giao âm làm không nguồn nào đạt nhịp, nhịp thập phân làm nhãn "SLA N ngày" nói khác con số engine
+     đang chấm — tất cả trong IM LẶNG, không nhãn nào báo.
+
+     RANH GIỚI VỚI cfgIssues() (domain/cfgIssues.ts) — hai surface, đừng dời luật qua nhau:
+     - Nhóm này kiểm MIỀN XÁC ĐỊNH: hữu hạn · dấu · nguyên với ô đếm bằng ngày/lần/khách · trần 100
+       với ô phần trăm. Cộng ĐÚNG MỘT ca suy biến owner đã nêu tên (`deadDays` ≥ 1). Là lỗi CỨNG.
+     - cfgIssues() kiểm THỨ TỰ giữa hai ngưỡng (crit vs watch) — đặt ngược vẫn là cấu hình đúng dạng,
+       nên chỉ cảnh báo mềm để owner tự sửa. Cấu hình suy biến-mà-đúng-dạng (vd `failWatch` = 0) thuộc
+       về cfgIssues, KHÔNG thuộc về đây.
+
+     LÊN THẲNG MÀN HÌNH, không cần sửa UI: MockRepository.setCfg() chạy chính validateFixture với cfg
+     ứng viên và NÉM nếu có lỗi mới, useCfgWrite() in nguyên văn câu lỗi vào ô "Không ghi được cấu
+     hình" của đúng nhóm vừa sửa. Vì thế mọi câu lỗi dưới đây MỞ ĐẦU BẰNG ĐƯỜNG DẪN cfg — đó là thứ
+     nói cho người vận hành biết ô nào.
+
+     `cfg.segment` KHÔNG đi qua đây: nhóm 20 sở hữu mặt đó (cuts tăng dần, min, unit, nhãn trùng).
+     Chỉ kiểm LEAF SỐ — chuỗi (`cfg.sub`) và boolean (`metric[].on`) không có dải nào để nói. */
+  if (cfg) {
+    type NumRange = {
+      /** Sàn. Thiếu ⇒ không có sàn (chỉ đòi hữu hạn). */
+      min?: number;
+      /** true ⇒ sàn là biên MỞ (phải LỚN HƠN `min`, không được bằng). */
+      minOpen?: true;
+      /** Trần. Chỉ đặt khi con số ĐƯỢC SO VỚI có trần thật (tỷ lệ % không vượt 100). */
+      max?: number;
+      /** true ⇒ phải nguyên. Đặt cho ô đếm bằng ngày/lần/khách: engine đếm nguyên đơn vị VÀ nhãn in
+          ra cũng nguyên đơn vị, nên 1,5 ngày là con số không màn nào nói lại được. */
+      int?: true;
+      unit?: string;
+      /** Vì sao dải là thế — đi vào câu lỗi, vì câu đó lên thẳng #/rules. */
+      why: string;
+    };
+
+    /* Khoá là ĐƯỜNG DẪN trong cfg; `*` khớp một tầng khoá động (id chỉ số, id nguồn). Bảng này là
+       chỗ DUY NHẤT khai dải — thêm field số vào Cfg mà quên khai ở đây thì luật cuối khối báo thẳng,
+       không để một ô cấu hình mới lặng lẽ không được canh dải nào (đúng bẫy "ô cấu hình mồ côi" đã
+       trả giá ba lần). */
+    const NUM_RANGE: Record<string, NumRange> = {
+      "step.failWatch": { min: 0, max: 100, unit: "%", why: "so với tỷ lệ thất bại của bước, luôn nằm trong 0–100%" },
+      "step.failCrit": { min: 0, max: 100, unit: "%", why: "so với tỷ lệ thất bại của bước, luôn nằm trong 0–100%" },
+      /* `covMin` KHÔNG còn ai đọc từ 07/08 (stepState bỏ nhánh so `obs.cov` — D4/F9): đây là ô cấu
+         hình mồ côi đã ghi nhận, không phải phát hiện mới. Vẫn khai dải vì #/rules còn GHI ĐƯỢC vào
+         nó, và một ô ghi được thì phải có dải — bỏ trống ở đây là để dành một chỗ cho số vô nghĩa. */
+      "step.covMin": { min: 0, max: 100, unit: "%", why: "phần trăm độ phủ bằng chứng" },
+      "step.effortMax": { min: 0, unit: "lần thử", why: "số lần thử; âm thì mọi bước đều vượt ngưỡng bất kể dữ liệu" },
+      /* Band của chỉ số: đơn vị THEO TỪNG chỉ số (% hoàn tất, điểm CES, giây…) nên không có dải chung
+         nào nói đúng cho cả sáu — chỉ đòi hữu hạn. Quan hệ crit/watch là việc của cfgIssues(). */
+      "metric.*.watch": { why: "đơn vị theo từng chỉ số nên không có dải chung; chỉ đòi số hữu hạn" },
+      "metric.*.crit": { why: "đơn vị theo từng chỉ số nên không có dải chung; chỉ đòi số hữu hạn" },
+      "source.*": {
+        int: true,
+        min: 0,
+        unit: "ngày",
+        why: "so với số ngày nguồn còn thiếu (luôn nguyên ≥ 0); âm thì không nguồn nào đạt nhịp, thập phân thì nhãn \"SLA N ngày\" nói khác con số đang chấm",
+      },
+      "data.deadDays": {
+        int: true,
+        min: 1,
+        unit: "ngày",
+        why: "0 làm hai bậc \"đang trễ\" và \"im lặng\" không bao giờ tới được — nguồn vừa quá nhịp một ngày đã bị tuyên Ngừng gửi",
+      },
+      "data.anomalyX": { minOpen: true, min: 0, unit: "lần", why: "số lần vượt baseline" },
+      "data.cooldown": { int: true, min: 0, unit: "ngày", why: "số ngày, hiện nguyên văn trên màn Nguồn dữ liệu" },
+      "data.repeatMin": { int: true, min: 1, unit: "lần", why: "số lần liên hệ" },
+      "data.repeatWarn": { min: 0, max: 100, unit: "%", why: "so với repeat contact của điểm gãy, tính bằng %" },
+      "data.churnWarn": { int: true, min: 0, unit: "khách", why: "số khách" },
+      "anomaly.z": { minOpen: true, min: 0, unit: "σ", why: "điểm bất thường khi |z| ≥ ngưỡng; ở 0 thì mọi điểm tính được đều là bất thường" },
+    };
+
+    const specFor = (path: string[]): { key: string; spec: NumRange } | null => {
+      for (const [key, spec] of Object.entries(NUM_RANGE)) {
+        const segs = key.split(".");
+        if (segs.length === path.length && segs.every((s, i) => s === "*" || s === path[i])) {
+          return { key, spec };
+        }
+      }
+      return null;
+    };
+
+    /* Đường dẫn để in: tầng khoá động hiện dạng ["id"] như nhóm 20 làm với cfg.segment.band["nav"] —
+       cùng một màn đọc cả hai câu, hai lối viết khác nhau là mời đọc nhầm. */
+    const pathLabel = (path: string[], key: string | null): string => {
+      const segs = key ? key.split(".") : [];
+      return "cfg" + path.map((p, i) => (segs[i] === "*" ? `["${p}"]` : `.${p}`)).join("");
+    };
+
+    const describe = (s: NumRange): string =>
+      [
+        s.int ? "số NGUYÊN" : "số",
+        s.min === undefined ? "hữu hạn" : s.minOpen ? `> ${s.min}` : `≥ ${s.min}`,
+        s.max === undefined ? null : `và ≤ ${s.max}`,
+        s.unit ? `(${s.unit})` : null,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+    /* Lặn vào NHỮNG GÌ CFG ĐANG CÓ, không trên danh sách field viết tay — cùng lý lẽ nhóm 19/20:
+       field owner mới thêm phải bị ĐÒI khai dải, chứ không lặng lẽ nằm ngoài mọi bất biến. */
+    const numLeaves: Array<{ path: string[]; v: number }> = [];
+    const walk = (node: unknown, path: string[]): void => {
+      if (typeof node === "number") {
+        numLeaves.push({ path, v: node });
+        return;
+      }
+      if (!node || typeof node !== "object") return;
+      for (const [k, v] of Object.entries(node)) walk(v, [...path, k]);
+    };
+    for (const [k, v] of Object.entries(cfg)) {
+      if (k === "segment") continue;
+      walk(v, [k]);
+    }
+
+    for (const { path, v } of numLeaves) {
+      const hit = specFor(path);
+      if (!hit) {
+        e.push(
+          `${pathLabel(path, null)} = ${String(v)}: field số này chưa khai dải hợp lệ ở nhóm 24 (data/validate.ts) — khai vào bảng NUM_RANGE, đừng để một ô cấu hình ghi được mà không bất biến nào canh`,
+        );
+        continue;
+      }
+      const { key, spec } = hit;
+      const bad =
+        !Number.isFinite(v) ||
+        (spec.int === true && !Number.isInteger(v)) ||
+        (spec.min !== undefined && (spec.minOpen ? v <= spec.min : v < spec.min)) ||
+        (spec.max !== undefined && v > spec.max);
+      if (bad) {
+        e.push(`${pathLabel(path, key)} = ${String(v)} không hợp lệ: phải là ${describe(spec)} — ${spec.why}`);
+      }
     }
   }
 

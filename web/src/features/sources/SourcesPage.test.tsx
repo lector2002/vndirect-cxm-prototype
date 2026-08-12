@@ -27,10 +27,11 @@ import { SourcesPage } from "./SourcesPage.tsx";
 
 const cfg0 = useCxmStore.getState().cfg;
 
-/* 07/08 (module-i-signal-registry-charter.md I3 Việc 1): `sourceHealth()` không còn đọc
-   `cfg.source[id]`, và "thiếu ≥ 1 ngày, có giao ⇒ đang trễ" là NGƯỠNG CỐ ĐỊNH — không cfg hoá được
-   qua `deadDays` (nới `deadDays` chỉ nâng mốc "chết", không xoá được mốc "đang trễ"). Ca "không
-   nguồn nào hỏng" giờ dựng bằng cách đưa `Source.last` của mọi nguồn về đúng `asOf`.
+/* 07/08 (module-i-signal-registry-charter.md I3 Việc 1): mốc "đang trễ" KHÔNG nới được qua
+   `deadDays` — nới `deadDays` chỉ đẩy mốc "chết". 11/08 (owner, giải C5): mốc "đang trễ" nới được
+   qua `cfg.source[id]` (nhịp giao riêng, tính bằng NGÀY), nhưng ca "không nguồn nào hỏng" dưới đây
+   VẪN dựng bằng cách đưa `Source.last` của mọi nguồn về đúng `asOf` — dựng qua dữ liệu thì không phụ
+   thuộc bảy nhịp giao trong cfg, nên cfg đổi cách nào test cũng còn nói đúng một chuyện.
 
    Store singleton clone `demoData` vào `MockRepository` lúc dựng (`structuredClone(fixture)`) — sửa
    `demoData.sources` trực tiếp KHÔNG chạm gì tới cái màn đang render. `repo.data` là field TypeScript

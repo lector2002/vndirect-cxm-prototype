@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Source } from "../../data/schema/index.ts";
 import {
+  SOURCE_ALLOW_DAYS_DEFAULT,
   brokenImpacts,
   continuityCount,
   freshnessCount,
@@ -116,7 +117,10 @@ export function SourcesPage() {
           label="Tính liên tục"
           value={countText(cont)}
           foot="chưa đứt"
-          srcNote={`Đứt = không nhận gì quá ${cfg.data.deadDays} ngày`}
+          /* 11/08: mốc đứt là `nhịp giao + deadDays`, không phải `deadDays` phẳng — câu cũ ("không
+             nhận gì quá 2 ngày") nói SAI với hai nguồn khai nhịp 1 ngày: chúng chết ở ngày thiếu thứ
+             BA. Cùng cách nói với nhóm 4 ở #/rules, một vốn từ cho một ngưỡng. */
+          srcNote={`Đứt = quá nhịp giao ${cfg.data.deadDays} ngày không nhận gì`}
           tone={cont.n < cont.of ? "var(--crit)" : undefined}
         />
         <Stat
@@ -206,7 +210,12 @@ export function SourcesPage() {
                         <td className="py-1.5 px-1 t-meta">
                           <b className={h === "ok" ? "text-ink-2" : "text-crit"}>{lagText(s.lagH)}</b>
                           <div className="text-[11.5px]">
-                            {sla === undefined ? "chưa đặt SLA riêng" : `SLA ${sla} giờ`}
+                            {/* 11/08: `cfg.source[id]` đổi đơn vị sang NGÀY và được engine đọc lại
+                                (domain/state.ts) — nguồn chưa khai riêng thì phải hiện ĐÚNG mặc định
+                                engine đang chấm, không hiện "chưa đặt" như thể không có ngưỡng nào. */}
+                            {sla === undefined
+                              ? `SLA ${SOURCE_ALLOW_DAYS_DEFAULT} ngày (mặc định)`
+                              : `SLA ${sla} ngày`}
                           </div>
                         </td>
                         <td className="py-1.5 px-1 t-meta">{s.last}</td>

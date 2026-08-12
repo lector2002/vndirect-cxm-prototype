@@ -56,6 +56,7 @@ export {
   metricState,
   sourceHealth,
   sourceDaysMissing,
+  SOURCE_ALLOW_DAYS_DEFAULT,
   laneOf,
   flowHasSourceCitation,
   flowStepsCopied,

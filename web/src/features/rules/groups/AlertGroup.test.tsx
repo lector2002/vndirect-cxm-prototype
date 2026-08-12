@@ -33,13 +33,13 @@ describe("AlertGroup — bảy ngưỡng cảnh báo + áp ngay lúc này", () =
     const before = deadCount();
     expect(before).toBeGreaterThan(0);
 
-    const field = screen.getByLabelText("Số ngày im lặng thì coi là Ngừng gửi");
+    const field = screen.getByLabelText("Số ngày quá nhịp giao thì coi là Ngừng gửi");
     fireEvent.change(field, { target: { value: "30" } });
     fireEvent.blur(field);
 
     expect(cfg().data.deadDays).toBe(30);
     const after = deadCount();
-    expect(after).toBe(0); // nới SLA lên 30 ngày thì không nguồn nào còn bị coi là ngừng gửi
+    expect(after).toBe(0); // nới lên 30 ngày quá nhịp giao thì không nguồn nào còn bị coi là ngừng gửi
     expect(screen.getAllByText(/0 nguồn/).length).toBeGreaterThan(0);
   });
 
@@ -51,6 +51,24 @@ describe("AlertGroup — bảy ngưỡng cảnh báo + áp ngay lúc này", () =
 
     const expectRep = useCxmStore.getState().data.iss.filter((i) => i.imp.rep > 0).length;
     expect(screen.getAllByText(new RegExp(`${expectRep} điểm gãy`)).length).toBeGreaterThan(0);
+  });
+
+  /* Nhóm luật 24 (data/validate.ts, thêm 12/08) đi HẾT đường tới màn: setCfg chạy lại validateFixture
+     với cfg ứng viên và ném, useCfgWrite in nguyên văn vào ô "Không ghi được cấu hình" của đúng nhóm
+     này. Phép kiểm là "gõ ô này có đổi được gì không" theo chiều NGƯỢC: số vô nghĩa thì KHÔNG được đổi
+     gì, và người gõ phải thấy lý do — ô lặng lẽ trả về số cũ là chỗ người vận hành tin mình đã sửa. */
+  it("gõ deadDays = 0 ⇒ bị chặn, cfg giữ số cũ, và màn nói lý do", () => {
+    render(<AlertGroup />);
+    const before = cfg().data.deadDays;
+
+    const field = screen.getByLabelText("Số ngày quá nhịp giao thì coi là Ngừng gửi");
+    fireEvent.change(field, { target: { value: "0" } });
+    fireEvent.blur(field);
+
+    expect(cfg().data.deadDays).toBe(before);
+    expect(screen.getByText("Không ghi được cấu hình.")).toBeTruthy();
+    expect(screen.getAllByText(/cfg\.data\.deadDays = 0/).length).toBeGreaterThan(0);
+    expect((field as HTMLInputElement).value).toBe(String(before));
   });
 
   it("bảy ô số đều ghi đúng khoá cfg tương ứng", () => {
