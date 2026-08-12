@@ -1,4 +1,8 @@
-# Handoff — đọc file này TRƯỚC khi làm gì, phiên 11/08/2026
+# Handoff — phiên 11/08/2026 · ĐÃ BỊ THAY THẾ
+
+> ⛔ **KHÔNG phải chỗ vào nữa.** Chỗ vào của phiên mới là **`docs/SESSION-HANDOFF-12-08.md`**. File này
+> giữ làm lịch sử: nó mô tả cây làm việc **trước** commit `e8060cb` (C5 + nhóm luật 24), nên mục
+> *"Chưa commit"* ở §2 nay đã sai — mọi thứ trong đó đã commit và push.
 
 Session trước hết context. File này là **chỗ vào**: luật vận hành, trạng thái nhánh, cách tự kiểm, và
 việc còn treo. Không phải bản tóm tắt dự án — dự án ở `web/docs/*-charter.md` và
