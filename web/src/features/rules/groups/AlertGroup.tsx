@@ -3,10 +3,11 @@ import { Card, Note } from "../../../design-system/index.ts";
 import { countAnomalies, sourceHealth } from "../../../domain/index.ts";
 import { useCxmStore } from "../../../store/store.ts";
 import { NumField } from "../NumField.tsx";
+import { ApplySection, FieldRow } from "../RuleLayout.tsx";
 import { useCfgWrite } from "../useCfgWrite.ts";
 
 /* Nhóm 4 — Cảnh báo & khảo sát. Port tinh thần V.rules nhánh g==='alert' (prototype dòng 4230-4277):
-   bảy ngưỡng nền dùng cho agent, chart bất thường, khảo sát, và cách tô đỏ trên hồ sơ điểm gãy.
+   các ngưỡng nền dùng cho chart bất thường, khảo sát, và cách tô đỏ trên hồ sơ điểm gãy.
 
    KHỐI "ÁP NGAY LÚC NÀY" CHỈ GIỮ NHỮNG CÂU TÍNH ĐƯỢC THẬT TỪ STORE:
    - Nguồn bị coi Ngừng gửi: dùng lại `sourceHealth(s, cfg, data.asOf) === 'down'` — tái dùng seam
@@ -25,14 +26,16 @@ import { useCfgWrite } from "../useCfgWrite.ts";
    của prototype — nó so `data.anomalyX` với tỷ lệ CỨNG 1.180/490 (dòng 4254), không có chuỗi volume
    thật nào trong `CxmData` để tính lại con số đó. Và câu "Cooldown/repeatMin đang hiện nguyên văn
    trên #/agents" — route đó chưa tồn tại trong app thật (chỉ #/sources có, và chỉ cooldown xuất
-   hiện ở đó, không phải repeatMin). */
+   hiện ở đó, không phải repeatMin).
+
+   12/08 (owner quyết, handoff §6): HAI Ô NHẬP `anomalyX` và `repeatMin` cũng đã bỏ khỏi nhóm này,
+   cùng field trong `CfgData`. Chúng ở lại sau đợt trên như hai ô gõ được mà không đổi được nhãn
+   nào — đúng bẫy "ô cấu hình mồ côi". Không thêm lại ô nhập nào trước khi có chỗ tiêu thụ: phép
+   kiểm để thêm là "sửa ô này có đổi được nhãn nào trên màn không". */
 
 function isAnomalySeries(q: QuantifyItem): q is QuantifySeries {
   return q.kind === "series" && q.chart === "anomaly";
 }
-
-const ROW =
-  "grid grid-cols-[minmax(0,1fr)_150px] items-center gap-x-3 gap-y-1 py-2.5 border-t border-line first:border-t-0";
 
 export function AlertGroup() {
   const data = useCxmStore((s) => s.data);
@@ -59,76 +62,38 @@ export function AlertGroup() {
       ) : null}
 
       <div>
-        <div className={ROW}>
-          <div>
-            <b className="block text-[13px]">Ngưỡng Z-score đánh dấu bất thường trên chart</b>
-            {/* luật 11/08 (bổ sung): bỏ hẳn định nghĩa đơn vị z-score */}
-          </div>
+        {/* luật 11/08 (bổ sung): bỏ hẳn định nghĩa đơn vị z-score */}
+        <FieldRow label="Ngưỡng Z-score đánh dấu bất thường trên chart">
           <NumField
             label="Ngưỡng Z-score đánh dấu bất thường"
             value={cfg.anomaly.z}
             suffix="σ"
             onCommit={(v) => write({ anomaly: { ...cfg.anomaly, z: v } })}
           />
-        </div>
+        </FieldRow>
 
-        <div className={ROW}>
-          <div>
-            <b className="block text-[13px]">Quá nhịp giao bao nhiêu ngày thì coi là Ngừng gửi</b>
-            <span className="t-meta block text-[12px]">Quality Monitor dùng ngưỡng này</span>
-          </div>
+        {/* luật 12/08: bỏ hết dòng phụ dưới nhãn ô nhập — "Quality Monitor dùng ngưỡng này" nói
+            màn nào tiêu thụ, "mỗi khách tối đa 1 khảo sát trong khoảng này" và "hiển thị trên tab
+            Ảnh hưởng" dạy cách đọc. Không cái nào nói về dữ liệu của chính ô. */}
+        <FieldRow label="Ngưỡng Ngừng gửi (ngày quá nhịp giao)">
           <NumField
-            label="Số ngày quá nhịp giao thì coi là Ngừng gửi"
+            label="Ngưỡng Ngừng gửi (ngày quá nhịp giao)"
             value={cfg.data.deadDays}
             suffix="ngày"
             onCommit={(v) => write({ data: { ...cfg.data, deadDays: v } })}
           />
-        </div>
+        </FieldRow>
 
-        <div className={ROW}>
-          <div>
-            <b className="block text-[13px]">Volume vượt baseline bao nhiêu lần thì cảnh báo</b>
-            <span className="t-meta block text-[12px]">baseline tính trên 30 ngày</span>
-          </div>
-          <NumField
-            label="Số lần vượt baseline thì cảnh báo"
-            value={cfg.data.anomalyX}
-            suffix="lần"
-            onCommit={(v) => write({ data: { ...cfg.data, anomalyX: v } })}
-          />
-        </div>
-
-        <div className={ROW}>
-          <div>
-            <b className="block text-[13px]">Cooldown khảo sát toàn cục</b>
-            <span className="t-meta block text-[12px]">mỗi khách tối đa 1 khảo sát trong khoảng này</span>
-          </div>
+        <FieldRow label="Cooldown khảo sát toàn cục">
           <NumField
             label="Cooldown khảo sát toàn cục"
             value={cfg.data.cooldown}
             suffix="ngày"
             onCommit={(v) => write({ data: { ...cfg.data, cooldown: v } })}
           />
-        </div>
+        </FieldRow>
 
-        <div className={ROW}>
-          <div>
-            <b className="block text-[13px]">Từ bao nhiêu lần liên hệ thì tính là repeat contact</b>
-            <span className="t-meta block text-[12px]">cùng một chủ đề, trong 7 ngày</span>
-          </div>
-          <NumField
-            label="Số lần liên hệ tính là repeat contact"
-            value={cfg.data.repeatMin}
-            suffix="lần"
-            onCommit={(v) => write({ data: { ...cfg.data, repeatMin: v } })}
-          />
-        </div>
-
-        <div className={ROW}>
-          <div>
-            <b className="block text-[13px]">Repeat contact của điểm gãy vượt mức nào thì tô đỏ</b>
-            <span className="t-meta block text-[12px]">hiển thị trên tab Ảnh hưởng</span>
-          </div>
+        <FieldRow label="Ngưỡng tô đỏ repeat contact">
           <NumField
             label="Ngưỡng tô đỏ repeat contact"
             value={cfg.data.repeatWarn}
@@ -136,13 +101,9 @@ export function AlertGroup() {
             tone="crit"
             onCommit={(v) => write({ data: { ...cfg.data, repeatWarn: v } })}
           />
-        </div>
+        </FieldRow>
 
-        <div className={ROW}>
-          <div>
-            <b className="block text-[13px]">Số khách có tín hiệu churn vượt mức nào thì tô đỏ</b>
-            <span className="t-meta block text-[12px]">hiển thị trên tab Ảnh hưởng</span>
-          </div>
+        <FieldRow label="Ngưỡng tô đỏ số khách có tín hiệu churn">
           <NumField
             label="Ngưỡng tô đỏ số khách có tín hiệu churn"
             value={cfg.data.churnWarn}
@@ -150,12 +111,11 @@ export function AlertGroup() {
             tone="crit"
             onCommit={(v) => write({ data: { ...cfg.data, churnWarn: v } })}
           />
-        </div>
+        </FieldRow>
       </div>
 
-      <div className="mt-4 border-t border-line pt-4">
-        <div className="t-lbl mb-2">Áp ngay lúc này</div>
-        <div className="grid gap-2.5" data-testid="alert-apply-now">
+      <ApplySection title="Kết quả áp ngay lúc này">
+        <div className="flex flex-col gap-2.5" data-testid="alert-apply-now">
           <Note tone={dead.length ? "crit" : "default"}>
             Quá nhịp giao <b>{cfg.data.deadDays} ngày</b> là Ngừng gửi → <b>{dead.length} nguồn</b> bị coi
             là ngừng gửi{dead.length ? `: ${dead.map((s) => s.name).join(", ")}` : ""}.
@@ -176,12 +136,12 @@ export function AlertGroup() {
             </Note>
           ) : null}
 
-          <Note>
-            Cooldown <b>{cfg.data.cooldown} ngày</b> đang hiện nguyên văn trên{" "}
-            <a href="#/sources">Nguồn dữ liệu</a>.
-          </Note>
+          {/* luật 12/08: bỏ Note "Cooldown N ngày đang hiện nguyên văn trên Nguồn dữ liệu" — chỉ
+              đường sang màn khác, cùng diện với "hiển thị trên tab Ảnh hưởng". Ba Note còn lại ở
+              khối này GIỮ: chúng đếm ra số thật (nguồn ngừng gửi, điểm gãy bị tô, điểm bất thường
+              đang khoanh), tức báo dữ liệu lệch hướng — đúng phép thử 2. */}
         </div>
-      </div>
+      </ApplySection>
     </Card>
   );
 }

@@ -82,11 +82,13 @@ export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps
         title={`Hồ sơ dữ liệu · ${source.name}`}
         subtitle={source.note}
         denomStrip={
-          <span data-testid="src-profile-denom">
-            {/* luật 11/08: bỏ "KHÔNG phải toàn bộ N bản ghi nguồn này khai" */}
+          <span data-testid="src-profile-denom" title="Năm phân bố bên dưới đếm trên tập bằng chứng mẫu">
+            {/* luật 11/08: bỏ "KHÔNG phải toàn bộ N bản ghi nguồn này khai"
+                luật 12/08: cơ sở đếm ("Năm phân bố bên dưới đếm trên N đó") XUỐNG TOOLTIP, cùng cách
+                xử với công thức failed ÷ entered ở #/rules. */}
             {evs.length === 0
               ? `Chưa có bằng chứng mẫu nào từ nguồn này · volume tổng hợp trong kỳ ${nf(source.vol)}`
-              : `${nf(evs.length)} bằng chứng mẫu đọc được từng cái. Năm phân bố bên dưới đếm trên ${nf(evs.length)} đó.`}
+              : `${nf(evs.length)} bằng chứng mẫu đọc được từng cái`}
           </span>
         }
         actions={
@@ -129,11 +131,12 @@ export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps
                   : "var(--crit)"
             }
           />
+          {/* luật 12/08: bỏ srcNote "Nền tảng thiếu là chỗ có khách nhưng ta không nghe được"
+              (định nghĩa) và đuôi "— nhập tay hoặc webhook" của foot (chú giải) */}
           <Stat
             label="Nền tảng phủ"
             value={source.pf.length ? String(source.pf.length) : "—"}
-            foot={source.pf.length ? source.pf.join(" · ") : "không gắn nền tảng — nhập tay hoặc webhook"}
-            srcNote="Nền tảng thiếu là chỗ có khách nhưng ta không nghe được"
+            foot={source.pf.length ? source.pf.join(" · ") : "không gắn nền tảng"}
           />
           <Stat
             label="Chỉ số phụ thuộc"
@@ -157,16 +160,13 @@ export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps
                       {i < metrics.length - 1 ? " và " : " "}
                     </span>
                   ))}
-                  {/* luật 11/08: bỏ "nguồn mất có thể nằm ở cả tử lẫn mẫu..." và "trước khi dùng con số kỳ này" — giữ giá trị chủ chỉ số */}
-                  đang tính trên dữ liệu thiếu phần của nguồn này. Dữ liệu <b>không nói được</b> con
-                  số đang cao hơn hay thấp hơn thực tế. Chủ chỉ số:{" "}
+                  {/* luật 11/08: bỏ "nguồn mất có thể nằm ở cả tử lẫn mẫu..." và "trước khi dùng con số kỳ này" — giữ giá trị chủ chỉ số
+                      luật 12/08: bỏ nốt hai vế luận giải, y hệt bản sao của chúng ở SourcesPage */}
+                  đang tính trên dữ liệu thiếu phần của nguồn này. Chủ chỉ số:{" "}
                   {[...new Set(metrics.map((m) => m.owner))].join(" · ")}.
                 </>
               ) : (
-                <>
-                  Nguồn chưa nối vào chỉ số nào nên không làm lệch con số nào, nhưng đang mất tiếng
-                  nói của khách đến từ kênh này.
-                </>
+                <>Chưa nối vào chỉ số nào.</>
               )}
             </Note>
           </div>

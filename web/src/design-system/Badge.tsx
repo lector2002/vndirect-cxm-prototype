@@ -2,7 +2,7 @@
    .st.crit/.st.unknown (dòng 168-172). "ok" cố ý KHÔNG có màu riêng (spec: trạng thái được suy ra,
    "Đang kiểm soát" không phải màu tốt mặc định) — chỉ badge nền trắng viền line như .st gốc.
    `.st.unknown` gốc dùng border-color:#A8A29E — hex này KHÔNG có trong token (không phải
-   --ink3/#8c8681, không phải --line/#e5e1db). Theo constraint "không bịa hex mới", dùng --ink3
+   --ink3/#7e756a, không phải --line/#ddd6ca). Theo constraint "không bịa hex mới", dùng --ink3
    (gần nhất về tông xám ấm) cho viền chấm — lệch nhẹ so với hex gốc, ghi rõ trong báo cáo. */
 
 /** Nhãn mặc định theo trạng thái — port ST_LABEL. */

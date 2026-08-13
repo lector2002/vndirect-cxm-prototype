@@ -105,29 +105,27 @@ export function SourcesPage() {
           sống vì `ownersAtRisk` gọi nó. */}
       <PageTitle route="sources" />
 
+      {/* luật 12/08: bỏ cả bốn `srcNote` của dải Stat này. `Stat.srcNote` render THÀNH CHỮ dưới ô,
+          và cả bốn chuỗi đều dạy cách đọc ("đếm ở ô Tính liên tục, không đếm hai lần" · định nghĩa
+          Đứt · "Đơn vị KHÁC hai ô bên trái" · "Khảo sát là nguồn duy nhất ta tự tạo ra"), không nói
+          gì về dữ liệu của chính ô. `foot` GIỮ — nó là mẫu số/đơn vị của con số ngay trên nó. */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 mb-4" data-testid="src-stats">
         <Stat
           label="Độ tươi"
           value={countText(fresh)}
           foot="đã giao đủ dữ liệu đến mốc số liệu"
-          srcNote="Nguồn đứt hẳn đếm ở ô Tính liên tục, không đếm hai lần"
           tone={fresh.n < fresh.of ? "var(--watch)" : undefined}
         />
         <Stat
           label="Tính liên tục"
           value={countText(cont)}
           foot="chưa đứt"
-          /* 11/08: mốc đứt là `nhịp giao + deadDays`, không phải `deadDays` phẳng — câu cũ ("không
-             nhận gì quá 2 ngày") nói SAI với hai nguồn khai nhịp 1 ngày: chúng chết ở ngày thiếu thứ
-             BA. Cùng cách nói với nhóm 4 ở #/rules, một vốn từ cho một ngưỡng. */
-          srcNote={`Đứt = quá nhịp giao ${cfg.data.deadDays} ngày không nhận gì`}
           tone={cont.n < cont.of ? "var(--crit)" : undefined}
         />
         <Stat
           label="Độ phủ đo lường"
           value={countText(instr)}
           foot="đã instrument và đang bắn"
-          srcNote="Đơn vị KHÁC hai ô bên trái — đếm điểm đo, không đếm nguồn"
           tone={instr.n < instr.of ? "var(--watch)" : undefined}
         />
         <Stat
@@ -138,7 +136,6 @@ export function SourcesPage() {
               ? "chưa có nguồn khảo sát nào — không có mẫu số để so"
               : `${nf(passive)} tín hiệu nghe được / ${nf(active)} mẫu hỏi chủ động`
           }
-          srcNote="Khảo sát là nguồn duy nhất ta tự tạo ra"
         />
       </div>
 
@@ -164,7 +161,8 @@ export function SourcesPage() {
         <>
           <div className="bg-surface border border-line rounded shadow-card p-4">
             <div className="t-lbl mb-2.5">
-              Sức khỏe từng nguồn — nguồn có vấn đề xếp lên đầu
+              {/* luật 12/08: bỏ "— nguồn có vấn đề xếp lên đầu", tả cách sắp xếp của màn */}
+              Sức khỏe từng nguồn
               {ordered.length > TOP_ROWS ? ` · đang hiện ${shownSources.length} trên ${ordered.length}` : ""}
             </div>
             <div className={srcAll ? "max-h-[520px] overflow-y-auto pr-1" : ""}>
@@ -254,7 +252,7 @@ export function SourcesPage() {
                 {srcAll ? "Thu gọn" : `Xem hết ${ordered.length} nguồn (+${ordered.length - TOP_ROWS} nữa)`}
               </button>
             ) : null}
-            <div className="t-meta text-[12px] mt-2.5">Bấm một dòng để mở hồ sơ dữ liệu của nguồn đó.</div>
+            {/* luật 12/08: bỏ "Bấm một dòng để mở hồ sơ dữ liệu của nguồn đó." — hướng dẫn thao tác */}
           </div>
           {openSrc ? (
             <SourceProfile source={openSrc} data={data} cfg={cfg} onClose={() => setOpenSrcId(null)} />
@@ -265,7 +263,9 @@ export function SourcesPage() {
       {tab === "matrix" ? (
         <div className="bg-surface border border-line rounded shadow-card p-4">
           <div className="t-lbl mb-2.5">
-            Độ toàn vẹn theo nền tảng — một nguồn có thể khỏe trên nền tảng này và chết trên nền tảng khác
+            {/* luật 12/08: bỏ đuôi "— một nguồn có thể khỏe trên nền tảng này và chết trên nền tảng
+                khác", dạy cách đọc ma trận */}
+            Độ toàn vẹn theo nền tảng
           </div>
           <SrcMatrix sources={ordered} metrics={data.metrics} cfg={cfg} asOf={data.asOf} />
         </div>
@@ -341,20 +341,24 @@ export function SourcesPage() {
           ) : null}
 
           <div className="mt-3.5 grid gap-2.5">
-            <Note>
-              {/* luật 11/08: bỏ "Đây là ràng buộc trong tracking plan..." và hướng dẫn "Đổi số ngày ở ..." */}
-              <b>Quy tắc cooldown toàn cục:</b> mỗi khách chịu tối đa 1 khảo sát trong{" "}
-              <b>{cfg.data.cooldown} ngày</b>, và luôn được phép bỏ qua.
-            </Note>
+            {/* luật 12/08: bỏ câu quy tắc ("mỗi khách chịu tối đa 1 khảo sát trong N ngày, và luôn
+                được phép bỏ qua") nhưng GIỮ con số — bỏ cả khối thì `cfg.data.cooldown` thành ô mồ
+                côi thứ sáu của dự án: gõ được ở #/rules mà không đổi được nhãn nào. Dòng dưới là
+                giá trị + đơn vị, không phải câu giải thích. Test "cooldown đọc từ cấu hình" canh
+                đúng chỗ này. */}
+            <div className="t-meta text-[12px]" data-testid="src-cooldown">
+              Cooldown toàn cục {cfg.data.cooldown} ngày
+            </div>
             {/* Câu này SINH TỪ DỮ LIỆU: khảo sát nào đang dừng thì tự nêu tên. Prototype đóng cứng
                 tên "NPS" vào câu chữ — đổi trạng thái trong dữ liệu là câu nói sai ngay. */}
             {svOrdered
               .filter((s) => s.status === "paused")
               .map((s) => (
                 <Note key={s.id} tone="warn">
-                  {/* luật 11/08: bỏ "con số trông vẫn chính xác nhưng không còn nói về hôm nay" */}
-                  <b>{s.name} đang tạm dừng.</b> Mọi xếp hạng dựa trên khảo sát này đều đang đọc số
-                  của lần chạy cuối ({s.latest} trên n = {nf(s.n)}), không phải số của kỳ hiện tại.
+                  {/* luật 12/08: cắt đuôi diễn giải "Mọi xếp hạng dựa trên khảo sát này đều đang đọc
+                      số… không phải số của kỳ hiện tại". Giữ trạng thái + hai số của lần chạy cuối,
+                      tức vẫn đủ để thấy số đang cũ mà không phải giảng vì sao. */}
+                  <b>{s.name} đang tạm dừng.</b> Lần chạy cuối {s.latest}, n = {nf(s.n)}.
                 </Note>
               ))}
           </div>
@@ -372,17 +376,18 @@ export function SourcesPage() {
                 <li key={b.source.id}>
                   <b>{b.source.name}</b> {b.health === "down" ? "đã ngừng gửi" : "đang thiếu ngày dữ liệu"}{" "}
                   {lagText(b.source.lagH).replace(/^trễ /, "")} (nhận lần cuối {b.source.last}).{" "}
+                  {/* luật 12/08: bỏ hai vế luận giải — "Dữ liệu không nói được con số đang cao hơn
+                      hay thấp hơn thực tế" và "…không làm lệch con số nào, nhưng tiếng nói của khách
+                      qua kênh này đang mất". Vế đầu là suy đoán về giới hạn, vế sau là bình luận;
+                      cái đáng nói (chỉ số nào đang tính trên dữ liệu thiếu / không có chỉ số nào)
+                      thì giữ. */}
                   {b.metrics.length ? (
                     <>
-                      {/* luật 11/08: bỏ "hỏi {owner} trước khi dùng" */}
                       {b.metrics.map((m) => m.name).join(" và ")} đang tính trên dữ liệu thiếu quãng
-                      đó. Dữ liệu <b>không nói được</b> con số đang cao hơn hay thấp hơn thực tế.
+                      đó.
                     </>
                   ) : (
-                    <>
-                      Nguồn này chưa nối chỉ số nào nên không làm lệch con số nào, nhưng tiếng nói
-                      của khách qua kênh này đang mất.
-                    </>
+                    <>Chưa nối chỉ số nào.</>
                   )}
                 </li>
               ))}

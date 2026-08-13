@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { CxmData, Dim, Signal } from "../../data/schema/index.ts";
+import type { ReactNode } from "react";
+import type { Cfg, CxmData, Dim, Signal } from "../../data/schema/index.ts";
 import {
   PF_LABEL,
   declaredStateLabel,
@@ -8,12 +9,13 @@ import {
   seenAfterAsOf,
   signalAllocationChain,
   signalChart,
+  signalFeedHealth,
   signalsWithoutMetric,
   signalsWithoutValues,
 } from "../../domain/index.ts";
-import type { DimState, SigCol, SigGroup, SigSlice } from "../../domain/index.ts";
+import type { DimState, SigCol, SigGroup, SigSlice, SignalFeedHealth } from "../../domain/index.ts";
 import { Badge, Card, Note, SignalColumns } from "../../design-system/index.ts";
-import type { SigColBar, SigColGroup, SigColSlice } from "../../design-system/index.ts";
+import type { BadgeState, SigColBar, SigColGroup, SigColSlice } from "../../design-system/index.ts";
 import { nf } from "../../design-system/format.ts";
 import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
 
@@ -31,22 +33,61 @@ import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
    đó — không export/sửa file kia, tránh phụ thuộc chéo giữa hai feature). KHÔNG đọc
    `Metric.freshness` (D1: chuỗi gõ tay sai số ở 3/6 chỉ số).
 
-   Độ tươi nguồn vẫn chưa hiện, nhưng LÝ DO ĐÃ ĐỔI từ 07/08 (I3): cách chấm đã chốt —
-   `sourceHealth(s, cfg, asOf)` theo số ngày thiếu. Cái còn thiếu là **không có trường nào nối
-   `Signal` → `Source`**, tức việc dữ liệu (charter §10), không phải việc quyết định. */
+   Độ tươi nguồn ĐÃ HIỆN từ 12/08 chiều (owner chốt lối (i) của handoff §10c): `Signal.srcId` nối
+   điểm đo vào nguồn giao nó, và mặt 1 hiện tên nguồn + nhãn độ tươi lấy nguyên `signalFeedHealth`
+   (bậc thang `sourceHealth` cũ, không dựng cái thứ hai). Điểm đo chưa nối nguồn hiện "chưa nối
+   nguồn" — KHÔNG rơi về "đang nhận". Mốc máy sinh cho RIÊNG từng điểm đo (`lastRecordAt`, charter
+   §10) vẫn là việc của đội dữ liệu và không bị field này thay thế.
+
+   12/08 (owner) — TÊN BỐN KHỐI THEO QUY ƯỚC CỤM DANH TỪ, không còn dạng câu hỏi/mệnh đề: "Đo như
+   thế nào trên hệ thống" → "Cách đo trên hệ thống", "Được allocate thế nào" → "Cách allocate",
+   "Xử lý thế nào" → "Cách xử lý", "Các giá trị nó phát ra" → "Giá trị phát ra". BỐN MẶT và THỨ TỰ
+   của QĐ 9 không đổi — chỉ đổi tên gọi. */
 
 const PLACEHOLDER_D = "▨ chờ Bảng D — team data/mobile, chưa có dữ liệu";
+
+/* Nhãn + tông của độ tươi nguồn giao. Bốn nhãn đầu CHÉP NGUYÊN VĂN từ SourcesPage.tsx — cùng một
+   tình trạng của cùng một nguồn thì hai màn không được nói hai kiểu. Nhánh "unknown" là của riêng
+   điểm đo (chưa nối nguồn ⇒ không có gì để chấm), và nó KHÔNG được mượn nhãn "Im lặng, chưa phân
+   định": im lặng là nguồn có mà không giao, còn đây là chưa biết nguồn nào. */
+const FEED_LABEL: Record<SignalFeedHealth, string> = {
+  ok: "Đang nhận",
+  stale: "Thiếu ngày dữ liệu",
+  down: "Ngừng gửi",
+  silent: "Im lặng, chưa phân định",
+  unknown: "Chưa nối nguồn",
+};
+const FEED_BADGE: Record<SignalFeedHealth, BadgeState> = {
+  ok: "ok",
+  stale: "watch",
+  down: "crit",
+  silent: "unknown",
+  unknown: "unknown",
+};
 
 function metricNamesOf(data: CxmData, signal: Signal): string {
   return signal.metrics.map((id) => data.metrics.find((m) => m.id === id)?.name ?? id).join(", ");
 }
 
+/* Nhãn ĐỨNG TRÊN giá trị, không đứng cạnh trong một cột 120px cố định (bản trước): mặt 1 và mặt 2
+   nay ở cột rail hẹp, mà giá trị ở đây là chuỗi dài (câu chờ Bảng D, mã trạm, danh sách nền tảng) —
+   cột nhãn cố định ăn mất một phần ba bề ngang rồi ép mọi giá trị xuống ba dòng chữ. Xếp dọc thì
+   nhãn ngắn không tranh chỗ với giá trị dài, và bảy hàng của mặt 1 đọc thành một danh sách thuộc
+   tính chứ không phải một bảng hai cột lệch. */
+function Field({ label, testId, children }: { label: string; testId: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5 text-[13px]" data-testid={testId}>
+      <span className="t-lbl">{label}</span>
+      <span className="min-w-0 break-words">{children}</span>
+    </div>
+  );
+}
+
 function DRow({ label, testId }: { label: string; testId: string }) {
   return (
-    <div className="flex items-baseline gap-2 text-[13px]" data-testid={testId}>
-      <span className="t-lbl w-[120px] flex-none">{label}</span>
+    <Field label={label} testId={testId}>
       <span className="text-ink-3 italic">{PLACEHOLDER_D}</span>
-    </div>
+    </Field>
   );
 }
 
@@ -165,16 +206,30 @@ function SignalValueChart({ data, signal, dims }: { data: CxmData; signal: Signa
   );
 }
 
+/** Đi tới/lui trong hồ sơ theo ĐÚNG thứ tự đang thấy trên bảng (caller quyết định thứ tự đó).
+    Không có `nav` (test dựng hồ sơ độc lập) thì chỉ còn nút quay lại — hồ sơ không tự biết bảng. */
+export type SignalProfileNav = {
+  index: number;
+  total: number;
+  onPrev?: () => void;
+  onNext?: () => void;
+};
+
 export function SignalProfile({
   data,
   signal,
   onBack,
   dims,
+  cfg,
+  nav,
 }: {
   data: CxmData;
   signal: Signal;
   onBack: () => void;
   dims: Record<string, Dim>;
+  /** Ngưỡng đang đặt — chỉ dùng để chấm độ tươi nguồn giao, cùng đường với màn Nguồn dữ liệu. */
+  cfg: Cfg;
+  nav?: SignalProfileNav;
 }) {
   const chain = signalAllocationChain(data, signal);
   const running = isSignalRunning(signal);
@@ -182,56 +237,107 @@ export function SignalProfile({
   const noValuesCount = signalsWithoutValues(data).length;
   const es = signal.es === "server" ? "server" : "client";
   const seenLate = seenAfterAsOf(signal.seen, data.asOf);
+  const feedSource = data.sources.find((s) => s.id === signal.srcId);
+  const feedHealth = signalFeedHealth(signal, data.sources, cfg, data.asOf);
 
   return (
     <div data-testid="signal-profile">
-      <div className="flex items-center gap-2 mb-1">
-        <button
-          type="button"
-          data-testid="signal-profile-back"
-          onClick={onBack}
-          className="text-[13px] font-semibold text-primary hover:underline"
-        >
-          ← Điểm đo
-        </button>
-        <span className="text-ink-3">/</span>
-        <h2 className="text-[15px] font-semibold" data-testid="signal-profile-title">
-          {signal.desc}
-        </h2>
-        {data.asOf ? (
-          <span className="ml-auto text-[12px] text-ink-3">Số liệu tính đến {data.asOf}</span>
-        ) : null}
+      {/* Thanh đầu hồ sơ DÍNH mép trên khi cuộn: bốn mặt dài hơn một màn, mà đường về bảng và nút
+          sang điểm đo kế tiếp là hai thao tác hay dùng nhất ở đây — trôi mất chúng là phải cuộn
+          ngược lên mỗi lần. `-mx-8 px-8` để dải nền phủ hết bề ngang khung `p-8` của màn, không để
+          lộ chữ chạy phía sau hai mép. KHÔNG kéo `-mt-8`: tiêu đề màn và mốc số liệu vẫn đứng phía
+          trên hồ sơ, kéo lên là đè lên chúng. */}
+      <div className="sticky top-0 z-20 -mx-8 px-8 py-2 mb-2 bg-bg border-b border-line">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            data-testid="signal-profile-back"
+            onClick={onBack}
+            className="rounded-lg border border-line bg-surface px-2.5 py-1 text-[13px] font-semibold text-primary hover:border-primary-line hover:bg-primary-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+          >
+            ← Điểm đo
+          </button>
+          <h2 className="text-[15px] font-semibold truncate" data-testid="signal-profile-title">
+            {signal.desc}
+          </h2>
+
+          <div className="ml-auto flex items-center gap-2">
+            {data.asOf ? <span className="text-[12px] text-ink-3">Số liệu tính đến {data.asOf}</span> : null}
+            {nav ? (
+              <div className="flex items-center gap-1.5" data-testid="signal-profile-nav">
+                <span className="text-[12px] text-ink-3 tabular-nums">
+                  {nav.index + 1} / {nav.total}
+                </span>
+                <button
+                  type="button"
+                  data-testid="signal-profile-prev"
+                  onClick={nav.onPrev}
+                  disabled={!nav.onPrev}
+                  aria-label="Điểm đo phía trên"
+                  className="rounded-lg border border-line bg-surface px-2 py-1 text-[13px] text-ink-2 hover:border-primary-line hover:text-ink disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  data-testid="signal-profile-next"
+                  onClick={nav.onNext}
+                  disabled={!nav.onNext}
+                  aria-label="Điểm đo phía dưới"
+                  className="rounded-lg border border-line bg-surface px-2 py-1 text-[13px] text-ink-2 hover:border-primary-line hover:text-ink disabled:opacity-40 disabled:hover:border-line disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+                >
+                  ↓
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        {/* Mặt 1 — đo như thế nào trên hệ thống */}
-        <Card title="Đo như thế nào trên hệ thống">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-baseline gap-2 text-[13px]" data-testid="signal-profile-name">
-              <span className="t-lbl w-[120px] flex-none">Tên event</span>
+      {/* HAI CỘT, không phải bốn khối xếp dọc/hai-hai như bản trước.
+          · Rail trái (mặt 1 + mặt 2) là BẢN KHAI TĨNH của điểm đo: tên event, phía, nền tảng, mã
+            trạm, chuỗi allocate. Toàn thuộc tính ngắn, đọc một lần rồi để đó — đúng thứ chịu được
+            cột hẹp.
+          · Cột phải (mặt 3 + mặt 4) là HÀNH VI THẬT: trạng thái, lưu lượng, cảnh báo, và chart phân
+            bố giá trị. Đây là thứ người dùng mở hồ sơ để xem, nên nó lấy phần rộng và bắt đầu ngay
+            cạnh mép trên, thay vì nằm sau hai card thuộc tính như trước.
+          Thứ tự đọc vẫn 1→2 (dọc cột trái) rồi 3→4 (dọc cột phải) — đúng thứ tự owner nêu, không
+          đảo. Rail 340px vì chart của mặt 4 rộng ~510px: chia đôi màn thì chart phải cuộn ngang
+          ngay ở bề rộng 1280px tối thiểu của app. */}
+      <div className="grid grid-cols-[340px_minmax(0,1fr)] items-start gap-4">
+        <div className="flex flex-col gap-4">
+          {/* Mặt 1 — đo như thế nào trên hệ thống */}
+          <Card title="Cách đo trên hệ thống">
+          <div className="flex flex-col gap-2.5">
+            <Field label="Tên event" testId="signal-profile-name">
               <code className="font-mono text-primary">{signal.name}</code>
-            </div>
-            <div className="flex flex-col gap-1" data-testid="signal-profile-es">
-              <div className="flex items-baseline gap-2 text-[13px]">
-                <span className="t-lbl w-[120px] flex-none">Phía</span>
-                <span>{es}</span>
-              </div>
-            </div>
-            <div className="flex items-baseline gap-2 text-[13px]" data-testid="signal-profile-pf">
-              <span className="t-lbl w-[120px] flex-none">Nền tảng</span>
-              <span>{signal.pf.map((p) => PF_LABEL[p] ?? p).join(" · ")}</span>
-            </div>
-            <div className="flex flex-col gap-1" data-testid="signal-profile-station">
-              <div className="flex items-baseline gap-2 text-[13px]">
-                <span className="t-lbl w-[120px] flex-none">Mã trạm</span>
-                <span>
-                  {chain.ok ? chain.step.stationId : "không tra được — chuỗi allocate đứt trước bước"}
-                </span>
-              </div>
+            </Field>
+            <Field label="Phía" testId="signal-profile-es">
+              {es}
+            </Field>
+            <Field label="Nền tảng" testId="signal-profile-pf">
+              {signal.pf.map((p) => PF_LABEL[p] ?? p).join(" · ")}
+            </Field>
+            <Field label="Mã trạm" testId="signal-profile-station">
+              {chain.ok ? chain.step.stationId : "không tra được — chuỗi allocate đứt trước bước"}
               {/* luật 11/08 (bổ sung): bỏ "Chưa ai đối chiếu mã trạm này với tracking plan thật." */}
-            </div>
+            </Field>
+            {/* 12/08 chiều (owner, §10c lối (i)): nguồn GIAO bản ghi của điểm đo. Đứng ở mặt 1 vì
+                đây là thuộc tính "đo thế nào trên hệ thống", không phải một con số đo được. Trạng
+                thái lấy nguyên `signalFeedHealth` — cùng bậc thang và cùng câu chữ với màn Nguồn dữ
+                liệu, không dựng nhãn thứ hai cho cùng một tình trạng. */}
+            <Field label="Nguồn giao" testId="signal-profile-src">
+              {feedSource ? (
+                <span className="flex flex-wrap items-center gap-1.5">
+                  {feedSource.name}
+                  <Badge state={FEED_BADGE[feedHealth]} text={FEED_LABEL[feedHealth]} />
+                </span>
+              ) : (
+                <span className="text-ink-3">chưa nối nguồn</span>
+              )}
+            </Field>
 
-            <div className="border-t border-line mt-2 pt-2 flex flex-col gap-2" data-testid="signal-profile-bang-d">
+            <div className="border-t border-line mt-1 pt-2.5 flex flex-col gap-2.5" data-testid="signal-profile-bang-d">
               <DRow label="Tên screen" testId="signal-profile-screen" />
               <DRow label="Route/deeplink" testId="signal-profile-route" />
               <DRow label="ID element" testId="signal-profile-element" />
@@ -240,19 +346,21 @@ export function SignalProfile({
           </div>
         </Card>
 
-        {/* Mặt 2 — được allocate thế nào */}
-        <Card title="Được allocate thế nào">
-          <div className="flex flex-col gap-2">
+          {/* Mặt 2 — được allocate thế nào */}
+          <Card title="Cách allocate">
+          <div className="flex flex-col gap-3">
             {chain.ok ? (
-              <div className="text-[13px] space-y-1" data-testid="signal-profile-chain">
+              /* Bậc thụt vào NHỎ LẠI (2/4/6 thay vì 3/6/9) và mỗi bậc là một dòng riêng: ở cột
+                 340px, bậc cũ ăn 36px cho dòng cuối rồi đẩy tên nhóm/phase xuống ba dòng chữ. */
+              <div className="flex flex-col gap-1 text-[13px]" data-testid="signal-profile-chain">
                 <div>
                   Điểm chạm: <b>{chain.touchpoint.name}</b> (kênh {chain.touchpoint.channel})
                 </div>
-                <div className="ml-3">
+                <div className="ml-2">
                   ↳ Bước: {chain.step.code} · {chain.step.name}
                 </div>
-                <div className="ml-6">↳ Hành trình: {chain.flow.name}</div>
-                <div className="ml-9">
+                <div className="ml-4">↳ Hành trình: {chain.flow.name}</div>
+                <div className="ml-6">
                   ↳ Nhóm: {chain.group.name} · Phase: {chain.phase.name}
                 </div>
               </div>
@@ -287,12 +395,14 @@ export function SignalProfile({
               )}
             </div>
           </div>
-        </Card>
+          </Card>
+        </div>
 
+        <div className="flex flex-col gap-4">
         {/* Mặt 3 — xử lý thế nào */}
-        <Card title="Xử lý thế nào">
-          <div className="flex flex-col gap-2">
-            <div className="text-[13px]" data-testid="signal-profile-running">
+        <Card title="Cách xử lý">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]" data-testid="signal-profile-running">
               <Badge state={running ? "ok" : "unknown"} text={running ? "ĐANG CHẠY" : "CHƯA CHẠY"} />{" "}
               <span className="t-meta">(suy từ lưu lượng)</span> ·{" "}
               <Badge state={SIGNAL_STATUS[signal.st].badge} text={declaredStateLabel(signal)} />{" "}
@@ -305,20 +415,26 @@ export function SignalProfile({
               </div>
             ) : null}
 
+            {/* Lưu lượng và Mốc thấy cuối đứng CẠNH NHAU: hai con số của cùng một câu hỏi "nó còn
+                sống không", và cột phải đủ rộng để không phải xếp dọc. */}
+            <div className="grid grid-cols-2 items-start gap-x-4 gap-y-2 border-y border-line-soft py-2.5">
             <div className="text-[13px]" data-testid="signal-profile-vol">
               Lưu lượng: <b className="tabular-nums">{signal.vol ? `${nf(signal.vol)}/ngày` : "—"}</b>
             </div>
 
             <div className="text-[13px]" data-testid="signal-profile-seen">
-              Thấy lần cuối:{" "}
+              Mốc thấy cuối (người khai):{" "}
               <b>{signal.seen ?? <span className="text-ink-3">chưa từng</span>}</b>
               {seenLate ? (
                 <div data-testid="signal-profile-seen-late">
                   <Note tone="warn">
-                    {`Mốc "${signal.seen}" muộn hơn mốc số liệu (${data.asOf}) — tức nằm ngoài cửa sổ dữ liệu hiện có.`}
+                    {/* luật 12/08: bỏ đuôi "— tức nằm ngoài cửa sổ dữ liệu hiện có", nó diễn giải
+                        lại đúng vế trước bằng chữ khác. Vế trước đã là hai mốc so nhau. */}
+                    {`Mốc "${signal.seen}" muộn hơn mốc số liệu (${data.asOf}).`}
                   </Note>
                 </div>
               ) : null}
+            </div>
             </div>
 
             <div className="text-[13px]" data-testid="signal-profile-source">
@@ -334,7 +450,7 @@ export function SignalProfile({
         </Card>
 
         {/* Mặt 4 — các giá trị nó phát ra, kèm chart phân bố (F5, I5) */}
-        <Card title="Các giá trị nó phát ra">
+        <Card title="Giá trị phát ra">
           <div className="flex flex-col gap-2">
             {signal.values.length === 0 ? (
               <div data-testid="signal-profile-values-empty">
@@ -360,6 +476,7 @@ export function SignalProfile({
             {/* luật 11/08: bỏ luận giải */}
           </div>
         </Card>
+        </div>
       </div>
     </div>
   );

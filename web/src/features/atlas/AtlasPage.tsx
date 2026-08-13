@@ -38,13 +38,20 @@ import { AtlasStepInspector } from "./AtlasStepInspector.tsx";
    lý do, không biến mất — bản đồ hành trình mà thiếu hẳn một giai đoạn thì bản đồ sai, và ba phase
    ngoài pilot còn lại cũng đang hiện mờ, gỡ riêng một phase là hai luật trong cùng một hàng. */
 
-/** Màu chấm trạng thái flow trên rail/chip — port dotOf() (prototype dòng 3370). #D6D1CB port 1-1 từ
-    hex gốc (không phải hex tự bịa — xem tiền lệ JourneySpine.tsx dòng 55 dùng #8F2A23 cùng lý do).
+/** Xám "chờ nguồn" của chấm flow — không có token nào mang đúng nghĩa này (nhạt hơn `--ink3`, đậm
+    hơn `--line`), nên nó là hằng ở đây. XUẤT RA để test và chú giải cùng đọc MỘT chỗ: bản trước gõ
+    lại mã màu này trong test, nên đổi bảng màu là test đỏ vì một con số bị ghim chứ không phải vì
+    luật nào gãy. 12/08 tối: #D6D1CB → #CFC6B6 theo bảng màu "Giấy đậm". */
+export const FLOW_DOT_PENDING = "#CFC6B6";
+
+/** Màu chấm trạng thái flow trên rail/chip — port dotOf() (prototype dòng 3370). PHÉP SUY ba nhánh là
+    port 1-1; hex xám chờ nguồn thì KHÔNG còn: 12\08 tối #D6D1CB (hex prototype) được kéo về "Giấy đậm"
+    thành #CFC6B6 — cùng đợt, cùng lý do với hatch #8F2A23 → #7D1A12 ở JourneySpine.tsx.
     07/08 (module-i-signal-registry-charter.md D2/F8): `Flow.observed`/`Flow.verified` bị xoá khỏi
     schema — hai trục suy tại chỗ đọc qua `flowStepsCopied`/`flowHasSourceCitation`
     (domain/state.ts), không đổi kết quả trên cả 32 flow. */
 function flowDotColor(f: Flow, steps: readonly Step[]): string {
-  return flowStepsCopied(f, steps) ? "var(--primary)" : flowHasSourceCitation(f) ? "var(--ink3)" : "#D6D1CB";
+  return flowStepsCopied(f, steps) ? "var(--primary)" : flowHasSourceCitation(f) ? "var(--ink3)" : FLOW_DOT_PENDING;
 }
 
 /** Tooltip chấm — port stateOf() (prototype dòng 3371); KHÁC câu chữ với legend cố định bên dưới
@@ -304,7 +311,7 @@ export function AtlasPage() {
               có sơ đồ nguồn, chưa đo
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <i className="w-[7px] h-[7px] rounded-full flex-none" style={{ background: "#D6D1CB" }} />
+              <i className="w-[7px] h-[7px] rounded-full flex-none" style={{ background: FLOW_DOT_PENDING }} />
               chờ nguồn
             </span>
           </div>

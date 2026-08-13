@@ -29,7 +29,22 @@ import { WeightGroup } from "./groups/WeightGroup.tsx";
    3. LỖI GHI KHÔNG GOM LÊN ĐẦU MÀN. Xem docblock `useCfgWrite.ts`.
 
    4. `rules` KHÔNG vào TIMEFRAME_ROUTES (App.tsx) — màn cấu hình, không có chart theo kỳ. Giữ nguyên
-      quyết định E7. */
+      quyết định E7.
+
+   12/08 (redesign layout) — BA quyết định:
+
+   a. NÚT "TRẢ VỀ MẶC ĐỊNH" LÊN HÀNG TÊN MÀN, không còn nằm trong một khung `Note` riêng. Luật 12/08
+      bắt màn IM LẶNG khi cfg chưa bị sửa; nhưng khung Note vẫn vẽ ra một hộp có viền, có nền, cao
+      44px và rỗng ruột — im lặng bằng chữ mà vẫn nói bằng hình. Nút là một control toàn màn, chỗ
+      của nó là cạnh tên màn. Khi cfg đã sửa thì câu "Đang dùng ngưỡng đã sửa trong phiên này." hiện
+      ra ngay cạnh nút, tô nền primary-soft — nó là dữ liệu lệch khỏi mặc định, đúng phép thử 2.
+
+   b. MENU NHÓM DÍNH MÉP TRÊN khi cuộn. Thân nhóm dài (bảng 30 bước, bảng 6 chỉ số, bảng dải phân
+      khúc) nên cuộn tới cuối là menu trôi mất; muốn sang nhóm khác phải cuộn ngược lên hết. Menu là
+      đường đi duy nhất giữa bảy nhóm, nó phải luôn ở trong tầm mắt.
+
+   c. HAI KHỐI CẢNH BÁO (ghi hỏng · ngưỡng đặt ngược) ĐỨNG TRÊN CÙNG, trước cả menu và thân — chúng
+      nói về cấu hình ĐANG có chứ không riêng nhóm đang mở, nên không được cuộn theo thân nhóm. */
 
 type GroupKey = "step" | "metric" | "source" | "alert" | "segment" | "sub" | "weight";
 
@@ -119,35 +134,30 @@ export function RulesPage() {
 
   return (
     <div className="p-8">
-      <PageTitle route="rules" />
-
-      <div className="mb-4">
-        <Note tone={dirty ? "bd" : "default"}>
-          <div className="flex items-center gap-3">
-            <div className="min-w-0">
-              {dirty ? (
-                <>
-                  {/* luật 11/08: bỏ câu trùng "Cấu hình không lưu xuống đâu cả — refresh trình duyệt là về mặc định." */}
-                  <b>Đang dùng ngưỡng đã sửa trong phiên này.</b>
-                </>
-              ) : (
-                <>
-                  <b>Đang dùng ngưỡng mặc định.</b> Sửa bất kỳ ô nào bên dưới để xem toàn app đổi
-                  theo. Cấu hình chỉ tồn tại trong phiên, không lưu xuống đâu cả.
-                </>
-              )}
-            </div>
-            <button
-              type="button"
-              data-testid="rules-reset"
-              disabled={!dirty}
-              onClick={() => write(resetCfgPatch(cfg, cfgDefault))}
-              className="ml-auto flex-none rounded-lg border border-line bg-surface px-2.5 py-1 text-[12.5px] font-semibold text-ink-2 disabled:cursor-default disabled:opacity-45 enabled:hover:border-primary-line enabled:hover:bg-primary-soft enabled:hover:text-ink"
-            >
-              ↺ Trả về mặc định
-            </button>
-          </div>
-        </Note>
+      {/* Không dirty thì hàng này KHÔNG NÓI GÌ — luật 12/08 (owner): bỏ cả ba vế của câu cũ ("Đang
+          dùng ngưỡng mặc định" · "Sửa bất kỳ ô nào bên dưới để xem toàn app đổi theo" · "Cấu hình
+          chỉ tồn tại trong phiên, không lưu xuống đâu cả") — vế 2 là hướng dẫn bấm, vế 3 là lý lẽ
+          thiết kế, và vế 1 nói một trạng thái KHÔNG lệch hướng. Vế còn lại chỉ hiện khi cfg đã bị
+          sửa: đó mới là dữ liệu lệch khỏi mặc định, đúng phép thử 2. Nút ở lại và LUÔN hiện (khoá
+          khi chưa sửa) — nó là control, không phải câu giải thích. */}
+      <div className="flex flex-wrap items-end gap-x-3">
+        <PageTitle route="rules" />
+        <div className="mb-4 ml-auto flex items-center gap-2.5">
+          {dirty ? (
+            <b className="rounded-lg border border-primary-line bg-primary-soft px-2.5 py-1 text-[12.5px] text-ink-2">
+              Đang dùng ngưỡng đã sửa trong phiên này.
+            </b>
+          ) : null}
+          <button
+            type="button"
+            data-testid="rules-reset"
+            disabled={!dirty}
+            onClick={() => write(resetCfgPatch(cfg, cfgDefault))}
+            className="flex-none rounded-lg border border-line bg-surface px-2.5 py-1 text-[12.5px] font-semibold text-ink-2 disabled:cursor-default disabled:opacity-45 enabled:hover:border-primary-line enabled:hover:bg-primary-soft enabled:hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+          >
+            ↺ Trả về mặc định
+          </button>
+        </div>
       </div>
 
       {error ? (
@@ -163,48 +173,47 @@ export function RulesPage() {
           <Note tone="crit">
             {/* luật 11/08: bỏ "vẫn chạy được nhưng nhãn trạng thái sẽ vô nghĩa" */}
             <b>⚠ {warns.length} ngưỡng đang đặt ngược nhau</b>
-            <ul className="mt-2 list-disc pl-5">
+            <ul className="mt-2 flex list-disc flex-col gap-1 pl-5">
               {warns.map((w) => (
-                <li key={w} className="my-0.5">
-                  {w}
-                </li>
+                <li key={w}>{w}</li>
               ))}
             </ul>
           </Note>
         </div>
       ) : null}
 
-      <div className="grid grid-cols-[250px_minmax(0,1fr)] items-start gap-4">
-        <div className="rounded border border-line bg-surface shadow-card">
-          <div className="py-2">
-            {menu.map((grp) => (
-              <div key={grp.g}>
-                <div className="t-lbl px-[18px] pb-1.5 pt-3.5">{grp.g}</div>
-                {grp.items.map((it) => (
-                  <button
-                    key={it.k}
-                    type="button"
-                    onClick={() => setGroup(it.k)}
-                    aria-pressed={group === it.k}
-                    className={`mx-2 my-0.5 flex w-[calc(100%-16px)] items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] ${
-                      group === it.k
-                        ? "bg-primary-soft font-semibold text-ink"
-                        : "text-ink-2 hover:bg-surface-2 hover:text-ink"
-                    }`}
-                  >
-                    <i
-                      aria-hidden
-                      className={`h-1.5 w-1.5 flex-none rounded-full ${it.bad ? "bg-crit" : "bg-line"}`}
-                    />
-                    <span className="min-w-0 truncate">{it.l}</span>
-                    <span className="t-meta ml-auto flex-none text-[12px] tabular-nums">{it.n}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
+      <div className="grid grid-cols-[232px_minmax(0,1fr)] items-start gap-5">
+        <nav
+          aria-label="Nhóm ngưỡng"
+          className="sticky top-4 flex flex-col gap-3 rounded border border-line bg-surface py-3 shadow-card"
+        >
+          {menu.map((grp) => (
+            <div key={grp.g} className="flex flex-col gap-0.5">
+              <div className="t-lbl px-4 pb-1">{grp.g}</div>
+              {grp.items.map((it) => (
+                <button
+                  key={it.k}
+                  type="button"
+                  onClick={() => setGroup(it.k)}
+                  aria-pressed={group === it.k}
+                  className={`mx-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${
+                    group === it.k
+                      ? "bg-primary-soft font-semibold text-ink"
+                      : "text-ink-2 hover:bg-surface-2 hover:text-ink"
+                  }`}
+                >
+                  <i
+                    aria-hidden
+                    className={`h-1.5 w-1.5 flex-none rounded-full ${it.bad ? "bg-crit" : "bg-line"}`}
+                  />
+                  <span className="min-w-0 truncate">{it.l}</span>
+                  <span className="t-meta ml-auto flex-none text-[12px] tabular-nums">{it.n}</span>
+                </button>
+              ))}
+            </div>
+          ))}
           {/* luật 11/08: bỏ giải thích chấm đỏ */}
-        </div>
+        </nav>
 
         <div className="min-w-0">
           <Body />

@@ -74,7 +74,9 @@ export function AtlasStepInspector({
       actions={<Badge state={st} />}
     >
       {/* 07/08 (module-i-signal-registry-charter.md D4): bỏ Stat "Evidence coverage" — đọc trường
-          `cov` của obs, số gõ tay không đối chiếu được. Còn lại 3 Stat đếm được. */}
+          `cov` của obs, số gõ tay không đối chiếu được. Còn lại 3 Stat đếm được.
+          C1 CHỐT 12/08 (owner): GIỮ 3 cột, không dựng lại ô thứ tư ở dạng trống. Một ô trống chỉ nói
+          được nghĩa của nó bằng một câu giải thích, mà luật giao diện 11/08 cấm đúng câu đó. */}
       <div className="grid grid-cols-3 gap-2.5">
         <Stat label="Vào bước" value={nf(fx(obs.entered))} />
         <Stat label="Hoàn tất" value={nf(fx(obs.completed))} foot={`${pv(obs.completed, obs.entered)}%`} />

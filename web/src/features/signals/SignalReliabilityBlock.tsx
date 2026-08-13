@@ -9,7 +9,17 @@ import { pv } from "../../design-system/format.ts";
    "chưa-biết" hiện RIÊNG, không trộn vào số lỗi (bất biến cứng của dự án — ba nghĩa khác nhau).
 
    `data.sigCounts` RỖNG (Demo Mode tắt) là trạng thái TRUNG THỰC "chưa nhận số đếm từ bên dữ liệu",
-   KHÔNG được vẽ thành 0% — hai nhánh render dưới đây tách bạch đúng ca đó. */
+   KHÔNG được vẽ thành 0% — hai nhánh render dưới đây tách bạch đúng ca đó.
+
+   12/08 (redesign layout): bốn cột số căn PHẢI và tiêu đề cột căn theo cùng mép — ba cột cuối là ba
+   nghĩa "không biết" khác nhau, việc duy nhất người đọc làm ở đây là so chúng với nhau theo chiều
+   dọc, mà so số thì mép phải phải thẳng hàng. Năm ô chờ pipeline xếp thành hai cột: chúng là danh
+   sách việc đi đòi bên dữ liệu, xếp một cột dọc thì khối này cao gấp đôi bảng số nằm ngay trên nó
+   và nhìn như phần chính.
+
+   12/08 (owner) — TÊN KHỐI THEO QUY ƯỚC CỤM DANH TỪ: "② Dữ liệu đã nhận có tin được không?" →
+   "② Độ tin của dữ liệu đã nhận". Chỉ đổi TÊN; phạm vi "đã nhận" giữ nguyên trong tên vì nó là mẫu
+   số của cả khối (bất biến 9 vế 1), bỏ đi là mở đường cho người đọc hiểu thành so với thực tế. */
 
 const PENDING_CELLS: { label: string; waiting: string }[] = [
   {
@@ -41,7 +51,7 @@ export function SignalReliabilityBlock({ data, dims }: { data: CxmData; dims: Re
   const hasCounts = data.sigCounts.length > 0;
 
   return (
-    <Card title="② Dữ liệu đã nhận có tin được không?">
+    <Card title="② Độ tin của dữ liệu đã nhận">
       {!hasCounts ? (
         <div data-testid="reliability-empty">
           {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
@@ -52,10 +62,12 @@ export function SignalReliabilityBlock({ data, dims }: { data: CxmData; dims: Re
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr>
-                {["Chiều", "Mẫu số", "Lỗi đo (thiếu)", "Chưa định danh", "Chưa-biết"].map((h) => (
+                {["Chiều", "Mẫu số", "Lỗi đo (thiếu)", "Chưa định danh", "Chưa-biết"].map((h, i) => (
                   <th
                     key={h}
-                    className="text-left px-2.5 py-1.5 border-b-2 border-line font-semibold text-ink-2 text-xs whitespace-nowrap"
+                    className={`border-b-2 border-line px-2.5 py-1.5 text-xs font-semibold text-ink-2 whitespace-nowrap ${
+                      i === 0 ? "text-left" : "text-right"
+                    }`}
                   >
                     {h}
                   </th>
@@ -65,15 +77,15 @@ export function SignalReliabilityBlock({ data, dims }: { data: CxmData; dims: Re
             <tbody>
               {rows.map((r) => (
                 <tr key={r.dim} data-testid={`reliability-row-${r.dim}`}>
-                  <td className="px-2.5 py-1.5 border-b border-line">{dims[r.dim]?.label ?? r.dim}</td>
-                  <td className="px-2.5 py-1.5 border-b border-line tabular-nums">{r.total}</td>
-                  <td className="px-2.5 py-1.5 border-b border-line tabular-nums">
+                  <td className="border-b border-line px-2.5 py-1.5">{dims[r.dim]?.label ?? r.dim}</td>
+                  <td className="border-b border-line px-2.5 py-1.5 text-right tabular-nums">{r.total}</td>
+                  <td className="border-b border-line px-2.5 py-1.5 text-right tabular-nums">
                     {r.missing} ({pv(r.missing, r.total)}%)
                   </td>
-                  <td className="px-2.5 py-1.5 border-b border-line tabular-nums text-ink-2">
+                  <td className="border-b border-line px-2.5 py-1.5 text-right tabular-nums text-ink-2">
                     {r.notIdentified} ({pv(r.notIdentified, r.total)}%)
                   </td>
-                  <td className="px-2.5 py-1.5 border-b border-line tabular-nums text-ink-2">
+                  <td className="border-b border-line px-2.5 py-1.5 text-right tabular-nums text-ink-2">
                     {r.unknownYet} ({pv(r.unknownYet, r.total)}%)
                   </td>
                 </tr>
@@ -84,12 +96,20 @@ export function SignalReliabilityBlock({ data, dims }: { data: CxmData; dims: Re
         </div>
       )}
 
-      <div className="mt-4">
+      <div className="mt-4 border-t border-line-soft pt-3">
         <div className="t-lbl mb-2">Năm ô đang chờ pipeline</div>
-        <ul className="space-y-1.5 text-[12.5px]" data-testid="reliability-pending">
+        <ul
+          className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-[12.5px] text-ink-2 lg:grid-cols-2"
+          data-testid="reliability-pending"
+        >
           {PENDING_CELLS.map((c) => (
-            <li key={c.label}>
-              <span aria-hidden="true">▨</span> <b>{c.label}</b> — {c.waiting}
+            <li key={c.label} className="flex gap-1.5">
+              <span aria-hidden="true" className="flex-none text-ink-3">
+                ▨
+              </span>
+              <span className="min-w-0">
+                <b className="text-ink">{c.label}</b> — {c.waiting}
+              </span>
             </li>
           ))}
         </ul>

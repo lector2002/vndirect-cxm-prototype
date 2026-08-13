@@ -5,6 +5,7 @@ import { stepState, stepWhy } from "../../../domain/index.ts";
 import { useCxmStore } from "../../../store/store.ts";
 import type { Step } from "../../../data/schema/index.ts";
 import { NumField } from "../NumField.tsx";
+import { ApplySection, FieldRow } from "../RuleLayout.tsx";
 import { useCfgWrite } from "../useCfgWrite.ts";
 
 /* Nhóm 1 — "Bước hành trình" (`cfg.step`, 4 số). Port tinh thần `g === 'step'` của prototype
@@ -68,52 +69,60 @@ export function StepGroup() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-[minmax(0,1fr)_150px] items-center gap-x-4 gap-y-3.5">
-        <div>
-          <b className="block text-[13px] font-semibold text-ink">Cần theo dõi khi tỷ lệ thất bại đạt</b>
-          <span className="t-meta text-[12px]">failed ÷ entered của bước</span>
-        </div>
-        <NumField
-          value={cfg.step.failWatch}
-          onCommit={setStep("failWatch")}
-          suffix="%"
-          tone="watch"
-          label="Ngưỡng theo dõi tỷ lệ thất bại"
-        />
+      {/* Công thức XUỐNG TOOLTIP, không còn dòng chữ dưới nhãn — luật 12/08 (owner): dòng phụ dạy
+          cách đọc màn thì bỏ, riêng CÔNG THỨC được giữ ở dạng tooltip. `title` là đường rẻ nhất và
+          screen reader đọc được; không dựng popover cho một chuỗi bảy ký tự. */}
+      <div>
+        <FieldRow label="Ngưỡng theo dõi tỷ lệ thất bại" formula="failed ÷ entered của bước">
+          <NumField
+            value={cfg.step.failWatch}
+            onCommit={setStep("failWatch")}
+            suffix="%"
+            tone="watch"
+            label="Ngưỡng theo dõi tỷ lệ thất bại"
+          />
+        </FieldRow>
 
-        <div>
-          <b className="block text-[13px] font-semibold text-ink">Cần xử lý ngay khi tỷ lệ thất bại đạt</b>
-          <span className="t-meta text-[12px]">phải cao hơn ngưỡng theo dõi</span>
-        </div>
-        <NumField
-          value={cfg.step.failCrit}
-          onCommit={setStep("failCrit")}
-          suffix="%"
-          tone="crit"
-          label="Ngưỡng xử lý ngay tỷ lệ thất bại"
-        />
+        {/* luật 12/08: bỏ "phải cao hơn ngưỡng theo dõi" — đó là RÀNG BUỘC, không phải dữ liệu.
+            Gõ sai thứ tự thì `cfgIssues()` báo bằng câu lỗi thật, không cần dặn trước. */}
+        <FieldRow label="Ngưỡng xử lý ngay tỷ lệ thất bại" formula="failed ÷ entered của bước">
+          <NumField
+            value={cfg.step.failCrit}
+            onCommit={setStep("failCrit")}
+            suffix="%"
+            tone="crit"
+            label="Ngưỡng xử lý ngay tỷ lệ thất bại"
+          />
+        </FieldRow>
 
-        <div>
-          <b className="block text-[13px] font-semibold text-ink">Evidence coverage tối thiểu</b>
-          {/* luật 11/08: bỏ giải thích */}
-        </div>
-        <NumField value={cfg.step.covMin} onCommit={setStep("covMin")} suffix="%" label="Evidence coverage tối thiểu" />
+        {/* luật 11/08: bỏ giải thích */}
+        <FieldRow label="Evidence coverage tối thiểu">
+          <NumField
+            value={cfg.step.covMin}
+            onCommit={setStep("covMin")}
+            suffix="%"
+            label="Evidence coverage tối thiểu"
+          />
+        </FieldRow>
 
-        <div>
-          <b className="block text-[13px] font-semibold text-ink">Effort tối đa cho phép</b>
-          {/* luật 11/08 (bổ sung): bỏ hẳn định nghĩa đơn vị */}
-        </div>
-        <NumField value={cfg.step.effortMax} onCommit={setStep("effortMax")} suffix="lần" label="Effort tối đa cho phép" />
+        {/* luật 11/08 (bổ sung): bỏ hẳn định nghĩa đơn vị */}
+        <FieldRow label="Effort tối đa cho phép">
+          <NumField
+            value={cfg.step.effortMax}
+            onCommit={setStep("effortMax")}
+            suffix="lần"
+            label="Effort tối đa cho phép"
+          />
+        </FieldRow>
       </div>
 
-      <div className="mt-4 border-t border-line pt-3.5">
-        <div className="t-lbl mb-2.5">
-          Kết quả áp lên các bước ngay lúc này
-          {rows.length > TOP_N ? ` · đang hiện ${shown.length} trên ${rows.length}` : ""}
-        </div>
-
+      <ApplySection
+        title={`Kết quả áp lên các bước ngay lúc này${
+          rows.length > TOP_N ? ` · đang hiện ${shown.length} trên ${rows.length}` : ""
+        }`}
+      >
         {excluded > 0 ? (
-          <div className="mb-3" data-testid="step-excluded-note">
+          <div data-testid="step-excluded-note">
             {/* luật 11/08 (bổ sung): bỏ vế 2 "không tự gán trạng thái đang ổn cho bước chưa đo" */}
             <Note>{`${excluded} bước chưa có dữ liệu quan sát nên không chấm được.`}</Note>
           </div>
@@ -151,12 +160,12 @@ export function StepGroup() {
             type="button"
             data-testid="step-apply-more"
             onClick={() => setExpanded((v) => !v)}
-            className="mt-2.5 text-[12px] font-semibold text-primary hover:underline"
+            className="self-start text-[12px] font-semibold text-primary hover:underline"
           >
             {expanded ? "Thu gọn" : `Xem hết ${rows.length} bước (+${hidden} nữa)`}
           </button>
         ) : null}
-      </div>
+      </ApplySection>
     </Card>
   );
 }

@@ -84,8 +84,11 @@ describe("SourcesPage — khối hệ quả nói đúng thứ dữ liệu chứn
   it("KHÔNG nói nguồn hỏng 'làm sai' chỉ số — dữ liệu không chứng minh được điều đó", () => {
     render(<SourcesPage />);
     const impact = screen.getByTestId("src-impact");
+    /* luật 12/08 bỏ câu "Dữ liệu không nói được con số đang cao hơn hay thấp hơn thực tế" (luận
+       giải) nên assertion ghim nó đi theo. Bất biến CANH ở đây không đổi và là vế phủ định: màn
+       không được KHẲNG ĐỊNH chiều lệch — dữ liệu không chứng minh được điều đó. */
     expect(impact).not.toHaveTextContent("làm sai");
-    expect(impact).toHaveTextContent("không nói được");
+    expect(impact).not.toHaveTextContent("bị đếm thiếu");
   });
 
   it("đầu màn chỉ có tên tab, không còn câu mở đầu", () => {
@@ -202,10 +205,8 @@ describe("SourceProfile — hai mẫu số không được gộp", () => {
       expect(box).toHaveTextContent(m.name);
       expect(box).toHaveTextContent(m.owner);
     }
-    /* Canh cụm PHỦ ĐỊNH đầy đủ, không canh riêng chữ "thấp hơn thực tế": chính câu đúng cũng chứa
-       cụm đó ("không nói được con số đang cao hơn hay thấp hơn thực tế"). Thứ phải vắng là lời
-       KHẲNG ĐỊNH chiều lệch mà prototype đóng cứng — "bị đếm thiếu". */
-    expect(box).toHaveTextContent("không nói được con số đang cao hơn hay thấp hơn thực tế");
+    /* luật 12/08 bỏ câu "không nói được con số đang cao hơn hay thấp hơn thực tế" nên chỉ còn vế
+       phủ định — thứ phải vắng là lời KHẲNG ĐỊNH chiều lệch mà prototype đóng cứng. */
     expect(box).not.toHaveTextContent("bị đếm thiếu");
   });
 
@@ -231,10 +232,8 @@ describe("SourcesPage — khối hệ quả sinh từ dữ liệu", () => {
   it("không phán con số đang cao hơn hay thấp hơn thực tế", () => {
     render(<SourcesPage />);
     const box = screen.getByTestId("src-impact");
-    /* Canh cụm PHỦ ĐỊNH đầy đủ, không canh riêng chữ "thấp hơn thực tế": chính câu đúng cũng chứa
-       cụm đó ("không nói được con số đang cao hơn hay thấp hơn thực tế"). Thứ phải vắng là lời
-       KHẲNG ĐỊNH chiều lệch mà prototype đóng cứng — "bị đếm thiếu". */
-    expect(box).toHaveTextContent("không nói được con số đang cao hơn hay thấp hơn thực tế");
+    /* luật 12/08 bỏ câu "không nói được con số đang cao hơn hay thấp hơn thực tế" nên chỉ còn vế
+       phủ định — thứ phải vắng là lời KHẲNG ĐỊNH chiều lệch mà prototype đóng cứng. */
     expect(box).not.toHaveTextContent("bị đếm thiếu");
   });
 });
@@ -261,9 +260,10 @@ describe("SourcesPage — tab nguồn chủ động", () => {
     render(<SourcesPage />);
     fireEvent.click(screen.getByTestId("src-tab-active"));
     /* "14 ngày" xuất hiện nhiều chỗ — cột Cooldown của từng khảo sát cũng in số ngày. Chốt đúng ô
-       ghi chú quy tắc toàn cục, không bắt chuỗi trần trên cả màn. */
-    const rule = screen.getByText(/Quy tắc cooldown toàn cục/).closest('[data-testid="note"]');
-    expect(rule).toHaveTextContent(`${cfg().data.cooldown} ngày`);
+       ghi chú quy tắc toàn cục, không bắt chuỗi trần trên cả màn.
+       luật 12/08: câu quy tắc đã bỏ, còn lại dòng dữ liệu `src-cooldown`. Test GIỮ NGUYÊN mục đích —
+       nó chính là phép kiểm "sửa ô này có đổi được nhãn nào không" cho `cfg.data.cooldown`. */
+    expect(screen.getByTestId("src-cooldown")).toHaveTextContent(`${cfg().data.cooldown} ngày`);
   });
 
   it("khảo sát đã dừng xếp lên đầu bảng", () => {

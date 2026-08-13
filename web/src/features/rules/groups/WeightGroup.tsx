@@ -11,13 +11,17 @@ import { useCxmStore } from "../../../store/store.ts";
 
 type PriKey = "sev" | "aff" | "jc" | "rep" | "tr" | "reg";
 
-const ROWS: readonly { k: PriKey; name: string; q: string }[] = [
-  { k: "sev", name: "Mức nghiêm trọng", q: "Hậu quả với khách nặng tới đâu" },
-  { k: "aff", name: "Số khách bị ảnh hưởng", q: "Bao nhiêu khách unique gặp phải" },
-  { k: "jc", name: "Mức quan trọng của bước", q: "Bước này chặn cả hành trình hay không" },
-  { k: "rep", name: "Liên hệ lặp lại", q: "Khách phải hỏi lại bao nhiêu lần" },
-  { k: "tr", name: "Xu hướng", q: "Đang xấu đi hay đang cải thiện" },
-  { k: "reg", name: "Rủi ro pháp lý / tuân thủ", q: "Có hệ quả với cơ quan quản lý hay không" },
+/* Cột "Trả lời câu hỏi gì" ĐÃ BỎ 12/08 (owner quyết) cùng sáu chuỗi của nó — chúng là ĐỊNH NGHĨA
+   từng thành phần ưu tiên ("Bao nhiêu khách unique gặp phải"…), đúng diện luật giao diện cấm. Bảng
+   còn tên thành phần + điểm cao nhất đang ghi nhận, tức chỉ còn dữ liệu. Nghĩa của sáu thành phần
+   nằm ở tài liệu, không nằm trên màn. */
+const ROWS: readonly { k: PriKey; name: string }[] = [
+  { k: "sev", name: "Mức nghiêm trọng" },
+  { k: "aff", name: "Số khách bị ảnh hưởng" },
+  { k: "jc", name: "Mức quan trọng của bước" },
+  { k: "rep", name: "Liên hệ lặp lại" },
+  { k: "tr", name: "Xu hướng" },
+  { k: "reg", name: "Rủi ro pháp lý / tuân thủ" },
 ];
 
 const TH = "text-left font-medium text-ink-3 text-[11px] uppercase tracking-[0.04em] pb-[7px] px-1";
@@ -33,7 +37,6 @@ export function WeightGroup() {
         <thead>
           <tr>
             <th className={TH}>Thành phần</th>
-            <th className={TH}>Trả lời câu hỏi gì</th>
             <th className={TH}>Điểm cao nhất đang ghi nhận</th>
           </tr>
         </thead>
@@ -43,7 +46,6 @@ export function WeightGroup() {
               <td className="px-1 py-1.5">
                 <b className="text-[13.5px]">{r.name}</b>
               </td>
-              <td className="t-meta px-1 py-1.5">{r.q}</td>
               <td className="px-1 py-1.5">
                 <b className="font-mono">{priMax(r.k)}</b>
               </td>

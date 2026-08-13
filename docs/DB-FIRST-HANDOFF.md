@@ -781,7 +781,7 @@ Phép thử 2 là chỗ dễ hiểu sai nhất: *"Đang chở lưu lượng th�
 giữ** — đó là **báo lệch hướng**. Nhưng câu đi kèm nó, *"Tình trạng này phải thấy được, không phải
 lỗi"*, **bị bỏ** — đó là trấn an người đọc, tức luận giải. Cùng một khối `<Note>`, hai vế hai số phận.
 
-## Hai đợt bỏ, ghi lại vì đợt sau nuốt đợt trước
+## Ba đợt bỏ, ghi lại vì đợt sau nuốt đợt trước
 
 **Đợt 1 (sáng 11/08)** — owner nêu hai diện: *"bỏ toàn bộ câu ngắn giải thích ở dưới title lớn"* và bỏ
 đoạn luận giải ở phần chỉ số theo dõi:
@@ -806,22 +806,77 @@ chứng khoán…"* và *"Vì sao nhóm này chỉ đọc: fixture lưu điểm 
 Chuỗi đó là kết quả của D1 (Module I) — sinh ra để thay chuỗi gõ tay `Metric.freshness` vốn **sai số ở
 3/6 chỉ số**. Nó đúng, nhưng **ba đoạn nói quanh một việc**, nên vẫn rơi vào luật. Bảng chỉ số giờ
 **không khai gì về độ tươi**: thà không nói còn hơn nói dài hoặc nói sai. Độ tươi thật của từng nguồn
-ở `#/sources`. `metricFreshnessText()` **giữ nguyên trong `domain/`**, chưa có chỗ hiện — đây là một
-export chết có chủ ý, lý do và chỗ dùng tương lai ở C6/C7 charter Module I.
+ở `#/sources`. `metricFreshnessText()` **ĐÃ XOÁ khỏi `domain/` cùng ngày 11/08** — giữ lại một hàm
+sinh ra chuỗi vừa bị cấm là để sẵn một cái bẫy cho lần sau. **Hệ quả 12/08: C6 của charter Module I
+đóng như MOOT** — nó định luồn `data.sources` + `data.asOf` xuống tab "Chỉ số liên kết" để gọi đúng
+hàm này, mà hàm không còn. Muốn mở lại thì phải quyết trước *hiện DỮ LIỆU gì*, không phải dựng lại
+câu văn.
 
 **Đợt 2 quét 45 chỗ luận giải tĩnh** (lọc bằng nguyên tắc: chuỗi **không nội suy `{...}`** thì gần
 chắc là văn giải thích, vì dòng chở dữ liệu luôn phải nội suy). Kết quả từng chỗ ghi ở bảng quyết định
 của lát; phần lớn là **cắt vế** chứ không xoá cả khối — giữ câu trạng thái, bỏ câu bình luận.
 
-## Ba chỗ CỐ Ý giữ, kèm lý do — đừng dọn tiếp mà không hỏi
+## Đợt 3 (12/08) — owner siết thêm hai diện, và cho công thức một lối thoát
 
-- **Câu giới hạn đầu `#/signals`** (*"Màn này không nói được đang đo bao nhiêu phần của thực tế…"*) là
-  **bất biến 9** của `web/docs/module-i-signal-registry-charter.md`, owner đã duyệt bằng văn bản là
-  phải **in trên màn**, đặt **trước** khi người đọc thấy số, để ai muốn thêm lại một cột *"% độ phủ"*
-  thì phải xoá câu này trước. Bỏ nó là **tháo một bất biến**, không phải dọn giao diện.
-- **Legend ba nghĩa "không biết"** ở khối độ tin cậy `#/signals`: *chưa định danh* / *chưa-biết* /
-  *thiếu*. Luật dự án cấm trộn ba nghĩa này; bỏ legend thì ba cột cạnh nhau không phân biệt được.
-- **Cảnh báo trước nút "Xác nhận điểm gãy"** (đóng băng mốc, không sửa lại được) — phép thử 2.
+Owner chỉ đích danh hai chỗ rồi mở rộng: *"bỏ toàn bộ các câu giải thích tương tự trong toàn web"*.
+
+**Hai diện MỚI bị cấm** (đợt 11/08 chưa chạm):
+
+1. **Dòng phụ dưới nhãn ô nhập.** Ví dụ owner nêu: `failed ÷ entered của bước` · *"mỗi khách tối đa
+   1 khảo sát trong khoảng này"* · *"hiển thị trên tab Ảnh hưởng"* · *"Quality Monitor dùng ngưỡng
+   này"*. Nhãn ô đứng một mình.
+2. **Câu trạng thái mặc định ở đầu màn.** *"Đang dùng ngưỡng mặc định. Sửa bất kỳ ô nào bên dưới để
+   xem toàn app đổi theo. Cấu hình chỉ tồn tại trong phiên, không lưu xuống đâu cả."* — bỏ cả ba vế.
+   Màn **im lặng khi mọi thứ đang mặc định**, chỉ lên tiếng khi có thứ lệch khỏi mặc định.
+
+**Lối thoát duy nhất — TOOLTIP, và chỉ cho CÔNG THỨC / CƠ SỞ ĐẾM.** Owner: *"có thể để tooltip công
+thức hiện tại"*. Mang `title` trên chính phần tử nhãn, không dựng popover. Ba chỗ đang dùng:
+`StepGroup` (`failed ÷ entered`), `AtlasMetricsTab` (`metric.formula`), `CrossTable` + `SourceProfile`
+(cơ sở đếm). **Không được** đẩy văn giải thích vào tooltip để lách — tooltip không phải chỗ giấu câu
+đã bị cấm.
+
+**Ranh giới đã xử, ghi lại vì đây là chỗ tốn thời gian nhất:**
+
+- **GIỮ** — khối *"áp ngay lúc này"* (đếm ra số thật từ ngưỡng đang đặt: bao nhiêu nguồn ngừng gửi,
+  bao nhiêu điểm gãy bị tô) · năm dòng *"chờ … từ team data"* ở màn Điểm đo (**owner chốt 12/08**: đó
+  là **trạng thái dữ liệu**, không phải dạy đọc) · câu lỗi khai báo hỏng · cảnh báo hệ quả trước một
+  nút bấm (`SettingsPage`) · **module Tour** (**owner chốt 12/08: MIỄN TRỪ** — luật áp cho màn làm
+  việc, tour là thứ người dùng tự bật).
+- **BỎ** — 23 dòng, gồm cả cột *"Trả lời câu hỏi gì"* của nhóm Trọng số ưu tiên (owner chốt bỏ cả
+  cột: sáu chuỗi đó là định nghĩa thành phần).
+- **Cắt vế, không xoá khối** ở các câu *"lõi số liệu + đuôi diễn giải"*: giữ lõi, cắt đuôi.
+
+⚠ **Bẫy của chính đợt dọn này — đã vấp và đã chặn.** Bỏ khối *"Quy tắc cooldown toàn cục"* ở
+`#/sources` làm `cfg.data.cooldown` **mất chỗ hiện duy nhất** ⇒ nó thành **ô cấu hình mồ côi thứ
+sáu**, đúng bẫy số 1 vừa dọn cùng ngày. Đã giữ lại **con số** ở dạng dữ liệu trần
+(`Cooldown toàn cục N ngày`, testid `src-cooldown`) và bỏ **câu quy tắc**. **Luật rút ra: trước khi
+bỏ một câu, kiểm xem nó có phải chỗ hiện duy nhất của một ô cấu hình không.** Hai luật này kéo ngược
+chiều nhau và luật ô-mồ-côi thắng — nhưng chỉ con số được ở lại, không phải câu văn.
+
+## Chỗ CỐ Ý giữ, kèm lý do — đừng dọn tiếp mà không hỏi
+
+⚠️ **Hai mục đầu của mục này ĐÃ HẾT HIỆU LỰC** — owner tự gỡ cả hai ngày 11/08 theo luật giao diện
+chung. Giữ lại phần chữ để ai đọc lại không tưởng là bị dọn nhầm, và để ghi cái **còn sống** thay
+chỗ chúng:
+
+- ~~**Câu giới hạn đầu `#/signals`**~~ (*"Màn này không nói được đang đo bao nhiêu phần của thực
+  tế…"*) — **ĐÃ BỎ 11/08**, `SignalsPage.tsx:55` ghi chỗ bỏ, test ghim `signals-scope-note` **không
+  còn** trên màn. Bất biến 9 của `web/docs/module-i-signal-registry-charter.md` mất **vế 2** (câu
+  phải in ra màn) nhưng **vế 1 CÒN NGUYÊN**: màn không được có cột/tỉ lệ nào lấy *thực tế* làm mẫu
+  số, và **không chuỗi nào trên màn được chứa chữ "độ phủ"** — kể cả khi đang mở hồ sơ một điểm đo
+  (test quét cả hai fixture ở cả hai nhánh màn). Hàng rào giờ nằm ở **test + charter**, không còn
+  trên màn.
+- ~~**Legend ba nghĩa "không biết"**~~ ở khối độ tin cậy — **ĐÃ BỎ 11/08**
+  (`SignalReliabilityBlock.tsx:83`). Cái thay nó: **ba nghĩa phải là BA CỘT tách rời**, test ghim
+  đúng ba chuỗi tiêu đề *Lỗi đo (thiếu)* · *Chưa định danh* · *Chưa-biết*. Cấm gộp vẫn còn, chỉ là
+  nó được giữ bằng cấu trúc bảng chứ không bằng câu văn.
+- **Cảnh báo trước nút "Xác nhận điểm gãy"** (đóng băng mốc, không sửa lại được) — phép thử 2. Mục
+  duy nhất của danh sách này còn hiệu lực nguyên vẹn.
+
+Hai chỗ khác ở `#/signals` vẫn phải giữ, không phải vì là lời giảng mà vì **test ghim đúng chúng**:
+nhãn cột *"(mốc do người khai)"* của `seen`, và dòng bước ở khối ① phải là **một câu lồng nhau**
+(`… / … bước không có điểm đo nào đang chạy, **trong đó** … không có điểm đo nào cả`) — tách thành
+hai ô là người đọc cộng lại.
 
 Hai chỗ giữ vì là **đơn vị của ô nhập**, không phải lời giảng: *"Số độ lệch chuẩn"* ở ô z-score, và
 *"số lần thử trung bình mỗi khách tại một bước"* ở ô effort. Bỏ thì con số trong ô mất nghĩa.
@@ -991,7 +1046,10 @@ không quay lại. Vá lỗi hiển thị xong thì hỏi tiếp: *phần vừa 
    baseline N lần" — prototype so với tỷ lệ **cứng** `1.180/490`, không có chuỗi volume nào trong
    `CxmData` để tính lại; (b) "cooldown và mốc repeat đang hiện nguyên văn trên `#/agents`" — màn
    `#/agents` chưa dựng, và `repeatMin` không hiện ở màn nào. Bỏ hẳn, không thay bằng số khác.
-   Hệ quả: `data.anomalyX` là field **sửa được mà chưa có bằng chứng "áp ngay"** đi kèm.
+   Hệ quả lúc đó: `data.anomalyX` là field **sửa được mà chưa có bằng chứng "áp ngay"** đi kèm.
+   **12/08 (owner quyết): `data.anomalyX` và `data.repeatMin` BỎ HẲN khỏi `Cfg`** — một ô sửa được mà
+   không đổi được nhãn nào là màn hứa thứ nó không làm. Khai lại **cùng lượt** với chỗ tiêu thụ khi có
+   dữ liệu (chuỗi volume theo ngày · log liên hệ theo chủ đề). Xem `docs/SESSION-HANDOFF-12-08.md` §6.
 3. **`cfg.segment.values` (danh sách giá trị hợp lệ của chiều `acq`) để CHỈ ĐỌC** — bỏ một giá trị
    đang có khách mang nó không phải "đổi cách chia" mà là tuyên bố dữ liệu đang có là sai, tức một
    quyết định về dữ liệu chứ không phải một ô ngưỡng vận hành. Đây là **suy luận của tôi, owner chưa

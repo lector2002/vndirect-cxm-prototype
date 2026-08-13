@@ -1,5 +1,6 @@
 import { Card, Note } from "../../../design-system/index.ts";
 import { useCxmStore } from "../../../store/store.ts";
+import { ApplySection } from "../RuleLayout.tsx";
 import { useCfgWrite } from "../useCfgWrite.ts";
 
 /* Nhóm 5 — Bản tin định kỳ. Port tinh thần V.rules nhánh g==='sub' (prototype dòng 4278-4301): ai
@@ -101,8 +102,7 @@ export function SubGroup() {
         </tbody>
       </table>
 
-      <div className="mt-4 border-t border-line pt-4">
-        <div className="t-lbl mb-2">Áp ngay lúc này</div>
+      <ApplySection title="Kết quả áp ngay lúc này">
         <Note tone={on.length ? "default" : "warn"}>
           {on.length ? (
             <>
@@ -114,11 +114,12 @@ export function SubGroup() {
             </>
           ) : (
             <>
-              <b>Không có bản tin nào đang bật.</b> Không ai nhận được gì nếu không tự vào xem.
+              {/* luật 12/08: bỏ "Không ai nhận được gì nếu không tự vào xem" — hệ quả luận giải */}
+              <b>Không có bản tin nào đang bật.</b>
             </>
           )}
         </Note>
-      </div>
+      </ApplySection>
     </Card>
   );
 }

@@ -8,7 +8,8 @@ import { useCfgWrite } from "../useCfgWrite.ts";
 /* Nhóm 2 — "Chỉ số theo dõi" (`cfg.metric[id]`, một bảng). Port tinh thần `g === 'metric'` của
    prototype (dòng 4182-4206), không port HTML thô.
 
-   BAND RIÊNG TỪNG CHỈ SỐ, KHÔNG NGƯỠNG CHUNG: cột "Cần theo dõi khi"/"Cần xử lý khi" đọc
+   BAND RIÊNG TỪNG CHỈ SỐ, KHÔNG NGƯỠNG CHUNG: cột "Ngưỡng theo dõi"/"Ngưỡng xử lý" (12/08 đổi tên
+   theo quy ước cụm danh từ ở `../RuleLayout.tsx`, trước là "Cần theo dõi khi"/"Cần xử lý khi") đọc
    `cfg.metric[m.id]`, mỗi chỉ số một cặp watch/crit của riêng nó — không có một % lệch mục tiêu
    chung nào áp được cho cả sáu chỉ số hôm nay.
 
@@ -36,10 +37,12 @@ export function MetricGroup() {
   };
 
 
+  /* luật 12/08: cắt đuôi "— bảng dưới vẫn hiện đủ cả N" của denomStrip. Vế đó tả HÀNH VI của màn,
+     không tả dữ liệu; số bên trái đã là dữ liệu đủ. */
   return (
     <Card
       title="Chỉ số đang theo dõi"
-      denomStrip={`${watched} trên ${data.metrics.length} chỉ số đang bật theo dõi — bảng dưới vẫn hiện đủ cả ${data.metrics.length}`}
+      denomStrip={`${watched} trên ${data.metrics.length} chỉ số đang bật theo dõi`}
     >
       {/* luật 11/08: bỏ nửa còn lại của đoạn giải thích band riêng từng chỉ số */}
 
@@ -66,8 +69,8 @@ export function MetricGroup() {
               <th className={TH}>Theo dõi</th>
               <th className={TH}>Giá trị</th>
               <th className={TH}>Mục tiêu</th>
-              <th className={TH}>Cần theo dõi khi</th>
-              <th className={TH}>Cần xử lý khi</th>
+              <th className={TH}>Ngưỡng theo dõi</th>
+              <th className={TH}>Ngưỡng xử lý</th>
               <th className={TH}>Trạng thái</th>
             </tr>
           </thead>
@@ -93,8 +96,9 @@ export function MetricGroup() {
                           cuối · đã giao đủ đến 27/07/2026 · đang nhận" là ba đoạn nói quanh một việc,
                           đúng diện luật thiết kế 11/08 (docs/DB-FIRST-HANDOFF.md).
                         Bảng này giờ KHÔNG khai gì về độ tươi — thà không nói còn hơn nói dài hoặc nói
-                        sai. Độ tươi thật của từng nguồn ở `#/sources`. `metricFreshnessText()` giữ
-                        nguyên trong domain, chưa có chỗ hiện (xem C6/C7 charter Module I). */}
+                        sai. Độ tươi thật của từng nguồn ở `#/sources`. `metricFreshnessText()` ĐÃ XOÁ
+                        khỏi domain cùng ngày 11/08 (sources.ts) — không còn hàm nào chờ chỗ hiện, và
+                        C6 đóng 12/08 vì lý do đó. */}
                   </td>
                   <td className="py-1.5 px-1">
                     <label className="inline-flex items-center">

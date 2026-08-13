@@ -232,8 +232,9 @@ export function VocTouchpointInspector({ step, evs, ins, data, evTotal }: VocTou
                 <>Chưa có insight nào cho điểm chạm này, và cũng chưa có bằng chứng mẫu nào ở đây.</>
               ) : (
                 <>
+                  {/* luật 12/08: bỏ vế định nghĩa "Insight là bước tổng hợp riêng từ các bằng chứng
+                      đó, chưa chạy cho điểm chạm này" — vế trước đã nói đủ tình trạng dữ liệu */}
                   Chưa có insight nào cho điểm chạm này, dù đã có {nf(evs.length)} bằng chứng mẫu.
-                  Insight là bước tổng hợp riêng từ các bằng chứng đó, chưa chạy cho điểm chạm này.
                 </>
               )}
             </Note>

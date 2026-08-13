@@ -147,11 +147,13 @@ describe("VocJourneyPage — chuỗi điểm chạm", () => {
     const steps = demoData.steps.filter((s) => s.flowId === busiestFlow.id);
     const quiet = quietButVoicedSteps(demoData, cfgDefault, steps);
     const note = screen.getByTestId("voc-two-layer");
+    /* luật 12/08 cắt hai đuôi kết luận nên hai assertion ghim chúng đi theo. Điều test canh KHÔNG
+       đổi: nhánh nào đang đúng thì khối phải kể ĐÚNG các bước của nhánh đó, suy từ dữ liệu. */
     if (quiet.length > 0) {
-      expect(note).toHaveTextContent("Hành vi im lặng không có nghĩa là không có vấn đề");
+      expect(note).toHaveTextContent("trong ngưỡng");
       for (const s of quiet) expect(note).toHaveTextContent(s.name);
     } else {
-      expect(note).toHaveTextContent("hai lớp đang nói cùng một điều");
+      expect(note).toHaveTextContent("đều đã vượt ngưỡng theo dõi");
     }
   });
 });

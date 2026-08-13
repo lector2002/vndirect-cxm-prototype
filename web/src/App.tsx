@@ -16,7 +16,7 @@ import { SettingsPage } from './features/settings/SettingsPage.tsx'
 import { TourOverlay } from './features/tour/TourOverlay.tsx'
 import { DemoBanner } from './features/settings/DemoBanner.tsx'
 import { useCxmStore } from './store/store.ts'
-import { NAV_GROUPS, NAV_ITEMS } from './nav.tsx'
+import { NAV_GROUPS, NAV_ITEMS, navIcon } from './nav.tsx'
 
 /* Route (segment đầu URL) hiện có dữ liệu/chart thật trong src/ hiện nay — TimeframeBar chỉ mount
    trên các route này. 'topics' vào set này ngày 06/08 khi TopicsPage thật được dựng: màn đó vẽ
@@ -65,56 +65,147 @@ function FilterToolbarContainer() {
   return <GlobalToolbar />
 }
 
+/* Mũi tên của nút thu gọn sidebar — chỉ HƯỚNG dải sẽ chạy về khi bấm, nên nó lật theo trạng thái. */
+function SidebarChevron({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className={`h-3.5 w-3.5 ${collapsed ? '' : 'rotate-180'}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m6 3.5 5 4.5-5 4.5" />
+    </svg>
+  )
+}
+
+/* Dấu "?" trong vòng tròn cho nút bản giới thiệu (owner chốt 13/08) — khuôn icon "trợ giúp" quen mắt,
+   thay ký tự ▶ vốn hứa một video sẽ chạy. Viewbox 24 chứ không 16 như `navIcon`: dấu hỏi cần nhiều
+   điểm neo hơn một hình khối, ở lưới 16 nét cong bị bẹt. */
+function HelpCircle() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4 flex-none"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="9.25" />
+      <path d="M9.2 9.2a2.9 2.9 0 0 1 5.64.97c0 1.93-2.9 2.9-2.9 2.9" />
+      <path d="M12 17.1h.01" />
+    </svg>
+  )
+}
+
 function Shell() {
   /* Tour là state của SHELL, không vào store: store cố ý không giữ UI-selection (docblock store.ts
      dòng 10-11) và "đang xem chặng nào" đúng là loại đó. Prototype để ở ST.tour toàn cục vì nó
      không có chỗ nào khác để cất. */
   const [tourOpen, setTourOpen] = useState(false)
+  /* Sidebar thu gọn (owner chốt 12/08 tối). Cùng loại state với `tourOpen`: một trạng thái NHÌN của
+     shell, không phải dữ liệu — không vào store, không nhớ qua lần mở app sau (chưa ai yêu cầu).
+     Thu gọn còn lại dải icon 56px chứ không ẩn hẳn: owner chọn giữ đường chuyển màn, ẩn hẳn thì
+     muốn sang màn khác phải bung sidebar ra trước. */
+  const [navCollapsed, setNavCollapsed] = useState(false)
   const tour = useCxmStore((s) => s.tour)
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <aside className="w-[246px] flex-none bg-surface border-r border-line flex flex-col">
-        <div className="flex items-center gap-3 p-4 border-b border-line">
-          <div className="w-9 h-9 rounded-[10px] bg-primary text-white grid place-items-center font-extrabold">
+      <aside
+        data-testid="sidebar"
+        data-collapsed={navCollapsed ? 'true' : 'false'}
+        className={`flex-none bg-surface border-r border-line flex flex-col ${
+          navCollapsed ? 'w-[56px]' : 'w-[246px]'
+        }`}
+      >
+        <div
+          className={`flex items-center gap-3 border-b border-line ${
+            navCollapsed ? 'justify-center px-2 py-3' : 'p-4'
+          }`}
+        >
+          <div className="w-9 h-9 flex-none rounded-[10px] bg-primary text-white grid place-items-center font-extrabold">
             V
           </div>
-          <div>
-            <div className="text-sm font-bold tracking-tight">VNDIRECT CXM</div>
-            <div className="t-lbl mt-0.5">Control Tower</div>
-          </div>
+          {navCollapsed ? null : (
+            <div className="min-w-0">
+              <div className="text-sm font-bold tracking-tight">VNDIRECT CXM</div>
+              <div className="t-lbl mt-0.5">Control Tower</div>
+            </div>
+          )}
         </div>
-        <nav className="flex-1 overflow-y-auto py-2">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2">
           {NAV_GROUPS.map((grp) => (
             <div key={grp.g}>
-              <div className="t-lbl px-[18px] pt-3.5 pb-1.5">{grp.g}</div>
+              {/* Thu gọn thì tên nhóm nhường chỗ cho một vạch: bốn nhãn chữ hoa dài 20+ ký tự không
+                  nhét vào dải 56px, mà bỏ hẳn thì bốn nhóm dính liền thành một danh sách 13 icon. */}
+              {navCollapsed ? (
+                <div className="mx-3 my-2 border-t border-line-soft" />
+              ) : (
+                <div className="t-lbl px-[18px] pt-3.5 pb-1.5">{grp.g}</div>
+              )}
               {grp.items.map((n) => (
                 <NavLink
                   key={n.r}
                   to={`/${n.r}`}
+                  /* Thu gọn thì nhãn chữ rời màn, nên `title` là chỗ duy nhất còn nói được mục này
+                     là gì — đây không phải câu hướng dẫn (luật giao diện 12/08) mà là chính cái
+                     nhãn đang bị dải hẹp cắt mất. */
+                  title={navCollapsed ? n.l : undefined}
                   className={({ isActive }) =>
-                    `block mx-2 my-0.5 px-2.5 py-1.5 rounded-lg text-[13.5px] ${
+                    `my-0.5 flex items-center gap-2.5 rounded-lg text-[13.5px] ${
+                      navCollapsed ? 'mx-2 justify-center px-0 py-2' : 'mx-2 px-2.5 py-1.5'
+                    } ${
                       isActive
                         ? 'bg-primary text-white font-semibold'
                         : 'text-ink-2 hover:bg-surface-2 hover:text-ink'
                     }`
                   }
                 >
-                  {n.l}
+                  {navIcon(n.r)}
+                  {navCollapsed ? null : <span className="truncate">{n.l}</span>}
                 </NavLink>
               ))}
             </div>
           ))}
         </nav>
-        {/* Nút mở bản giới thiệu — cùng chỗ prototype đặt (cuối sidebar, dòng 450). */}
-        <div className="p-2 border-t border-line">
+        {/* Chân sidebar: bản giới thiệu + nút thu gọn. Nút thu gọn xuống đây 13/08 theo owner — nó là
+            việc của cả dải chứ không của khối logo, và ở chân thì tay không phải rời chuột khỏi vùng
+            nav để bấm. Thu gọn thì hai nút xếp dọc, vì 56px không đủ cho hai ô cạnh nhau. */}
+        <div
+          className={`flex gap-2 border-t border-line p-2 ${
+            navCollapsed ? 'flex-col items-center' : 'items-center'
+          }`}
+        >
           <button
             type="button"
             data-testid="tour-start"
             onClick={() => setTourOpen(true)}
-            className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] font-semibold text-ink-2 hover:border-primary-line hover:bg-primary-soft hover:text-ink"
+            title={navCollapsed ? 'Chạy bản giới thiệu' : undefined}
+            className={`flex items-center justify-center gap-1.5 rounded-lg border border-line bg-surface py-1.5 text-[12.5px] font-semibold text-ink-2 hover:border-primary-line hover:bg-primary-soft hover:text-ink ${
+              navCollapsed ? 'h-7 w-7 flex-none px-0' : 'min-w-0 flex-1 px-2.5'
+            }`}
           >
-            ▶ Chạy bản giới thiệu
+            <HelpCircle />
+            {navCollapsed ? null : <span className="truncate">Chạy bản giới thiệu</span>}
+          </button>
+          <button
+            type="button"
+            data-testid="sidebar-toggle"
+            aria-expanded={!navCollapsed}
+            aria-label={navCollapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
+            title={navCollapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
+            onClick={() => setNavCollapsed((v) => !v)}
+            className="grid h-7 w-7 flex-none place-items-center rounded-lg border border-line text-ink-3 hover:border-primary-line hover:bg-primary-soft hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+          >
+            <SidebarChevron collapsed={navCollapsed} />
           </button>
         </div>
       </aside>

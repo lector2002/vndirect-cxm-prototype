@@ -67,7 +67,7 @@ describe("T5 — điểm đo không nuôi chỉ số nào (trưng ở khối ①
   it("N/M đếm lại đúng bằng signalsWithoutMetric", () => {
     const withoutMetric = seed.signals.filter((s) => s.metrics.length === 0);
     expect(withoutMetric.length).toBeGreaterThan(0);
-    render(<SignalInventoryBlock data={seed} />);
+    render(<SignalInventoryBlock data={seed} facet={null} onFacet={() => {}} />);
     expect(screen.getByTestId("inv-signal-no-metric").textContent).toContain(
       `${withoutMetric.length} / ${seed.signals.length}`,
     );
@@ -79,7 +79,7 @@ describe("T7 — chỉ số không có điểm đo nào nuôi (trưng ở khối
     const fed = new Set(seed.signals.flatMap((s) => s.metrics));
     const withoutSignal = seed.metrics.filter((m) => !fed.has(m.id));
     expect(withoutSignal.length).toBeGreaterThan(0); // m-ces, m-repeat (charter §6 T7)
-    render(<SignalInventoryBlock data={seed} />);
+    render(<SignalInventoryBlock data={seed} facet={null} onFacet={() => {}} />);
     expect(screen.getByTestId("inv-metric-no-signal").textContent).toContain(
       `${withoutSignal.length} / ${seed.metrics.length}`,
     );
@@ -110,7 +110,7 @@ describe("F6 — flow chưa chép bước KHÔNG vào mẫu số của bất k�
        ba tỉ lệ ở khối ① — chỗ T4/T5/T7 thật sự đang hiện sau khi cắt trùng lặp. */
     const Man = ({ d }: { d: typeof seed }) => (
       <>
-        <SignalInventoryBlock data={d} />
+        <SignalInventoryBlock data={d} facet={null} onFacet={() => {}} />
         <SignalGovernanceBlock data={d} cfg={cfgDefault} />
       </>
     );

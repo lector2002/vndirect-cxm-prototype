@@ -3,41 +3,54 @@
 @tailwind utilities;
 
 /* ===================== DESIGN TOKENS (port từ prototype) =====================
-   Cam VNDIRECT — chỉ dùng cho TƯƠNG TÁC và ĐỊNH DANH, không bao giờ làm màu trạng thái. */
-:root {
-  --primary: #d9531e;
-  --primary-hover: #b84415;
-  --primary-soft: #fdf3ee;
-  --primary-line: #f3d5c4;
-  --primary-ring: rgba(217, 83, 30, 0.22);
+   Cam VNDIRECT — chỉ dùng cho TƯƠNG TÁC và ĐỊNH DANH, không bao giờ làm màu trạng thái.
 
-  /* Xám ấm — ~90% giao diện */
-  --bg: #faf9f7;
+   12/08 tối — OWNER ĐỔI BẢNG MÀU CHUNG, chọn phương án "Giấy đậm" sau khi xem ba hướng dựng thành
+   ba bản màn Điểm đo thu nhỏ ở `output/palette-options.html`. Vẫn là THEME SÁNG và vẫn là tông giấy
+   ấm của hệ cũ, nhưng đậm hơn hẳn một nấc: nền ngả be thay vì gần trắng, viền rõ ra, chữ nâu-đen,
+   cam trầm xuống cho hợp nền. Kèm theo owner chốt BỎ NỀN LƯỚI 38px (xem @layer base bên dưới).
+
+   Đổi màu ở dự án này là đổi ĐÚNG BẢNG TOKEN NÀY, không đụng một dòng component nào — mọi lớp
+   Tailwind màu trong TSX đều trỏ về đây qua `tailwind.config.js`. Ba ràng buộc phải giữ khi sửa
+   tiếp bảng này, cả ba đều đã tính lại cho bộ màu mới:
+   · `--surface` PHẢI ở lại `#ffffff` — mọi tỉ lệ tương phản ghi trong file này đo trên nền đó;
+   · bốn màu trạng thái phải giữ hue tách rời (đỏ ~5° · cam ~15° · hổ phách ~40° · ô-liu ~75°), nếu
+     không một trạng thái sẽ đọc nhầm thành mức báo động khác;
+   · bốn sắc xám của bốn nghĩa "không biết" phải còn phân biệt được bằng mắt. */
+:root {
+  --primary: #c9491a;
+  --primary-hover: #a63c13;
+  --primary-soft: #fbeee6;
+  --primary-line: #e9c6ae;
+  --primary-ring: rgba(201, 73, 26, 0.22);
+
+  /* Giấy ấm đậm — ~90% giao diện */
+  --bg: #f3f0ea;
   --surface: #ffffff;
-  --surface2: #f4f2ef;
-  --line: #e5e1db;
-  --line-soft: #f0ede8;
-  --ink-dark: #292420;
-  --ink: #1c1917;
-  --ink2: #57534e;
-  --ink3: #8c8681;
+  --surface2: #efebe3;
+  --line: #ddd6ca;
+  --line-soft: #ebe6dc;
+  --ink-dark: #241d18;
+  --ink: #171310;
+  --ink2: #4c443c;
+  --ink3: #7e756a;
 
   /* 4 trạng thái. "Đang kiểm soát" KHÔNG có màu riêng — chủ ý. */
-  --watch: #a16207;
-  --watch-bg: #fdfbeb;
-  --watch-line: #eadda0;
-  --crit: #b3261e;
-  --crit-bg: #fdf1f0;
-  --crit-line: #f3c9c4;
-  --unk: #8c8681;
+  --watch: #8a5a04;
+  --watch-bg: #fbf6e6;
+  --watch-line: #e4d59a;
+  --crit: #a52218;
+  --crit-bg: #fbeeec;
+  --crit-line: #eec4bd;
+  --unk: #7e756a;
   /* Thang riêng cho 4 nghĩa "không biết" của chart theme (module-f-charter.md, F1) — `--unk` và
-     `--ink3` hôm nay TRÙNG mã màu #8c8681, nên nếu chỉ dùng `--unk` cho mọi đoạn "không biết" thì
+     `--ink3` hôm nay TRÙNG mã màu #7e756a, nên nếu chỉ dùng `--unk` cho mọi đoạn "không biết" thì
      chưa-biết/thiếu/Ẩn danh/Chưa đối chiếu được sẽ ra CÙNG MÀU, người xem không phân biệt được bốn
      nghĩa khác nhau (data/segment.ts cấm gộp chưa-biết/thiếu; F1 charter cấm gộp Ẩn danh/Chưa đối
      chiếu được). `--unk` giữ nguyên cho "chưa-biết"; ba token dưới cho ba nghĩa còn lại. */
-  --unk-gap: #6b655e;
-  --unk-anon: #a9a39c;
-  --unk-join: #c5bfb7;
+  --unk-gap: #625a4f;
+  --unk-anon: #a1978a;
+  --unk-join: #c0b6a7;
   /* Owner chốt 05/08 sau khi xem trên màn: ở ĐUÔI THANH của chart chia màu, các sắc xám trên đứng
      cạnh nhau đọc gần như một màu. Nên ở đó chúng GỘP LÀM MỘT KHỐI mang token này (nhãn "Chưa xếp
      được nhóm"), từng số tách ra ở tooltip. Token RIÊNG chứ không mượn `--unk-anon`: ở kia nghĩa là
@@ -46,18 +59,18 @@
      Áp cho: chart chia màu ở Quantify + chart theme (Tổng quan CXM). KHÔNG áp cho chart điểm đo
      (SignalColumns) — owner chốt riêng 05/08: ở đó việc tách ba nghĩa CHÍNH LÀ nội dung của chart,
      nó là danh sách việc phải đi đòi bên data, gộp là xoá mất danh sách đó. */
-  --unk-nocust: #a9a39c;
-  --rem: #ded9d2;
-  --good: #3f6212;
-  --good-bg: #f8faf1;
-  --good-line: #dde8c4;
+  --unk-nocust: #a1978a;
+  --rem: #d8d0c3;
+  --good: #3a5c10;
+  --good-bg: #f5f8ec;
+  --good-line: #d7e2bc;
 
   /* Tone thứ 5 — THÔNG TIN / CHƯA HOÀN THIỆN. Không phải trạng thái sức khỏe: dùng cho
      Note tone="info" và nhãn in-development/placeholder (REDESIGN-PLAN-HANDOFF.md:28 chốt
      Atlas phải show rõ placeholder, trước đây không có token nào cho đúng việc đó). */
-  --info: #2c5f8a;
-  --info-bg: #f2f7fb;
-  --info-line: #cfe0ee;
+  --info: #28587f;
+  --info-bg: #eff5fa;
+  --info-line: #c9dced;
 
   /* ---- Thang màu PHÂN LOẠI (categorical) ----
      Việc duy nhất: phân biệt CHUỖI/LÁT dữ liệu và intent (CxmData.cats). TUYỆT ĐỐI KHÔNG
@@ -66,15 +79,18 @@
      là 14 lát xám giống nhau, và cats phải đi vay --crit/--good làm màu phân loại — khiến
      mọi chart intent trông như báo động và đỏ mất nghĩa "cần xử lý ngay".
      Hue tách hẳn khỏi 4 màu đã dùng (primary cam ~15°, crit đỏ ~5°, watch hổ phách ~40°,
-     good ô-liu ~75°). Cả 5 đạt contrast >= 4,9:1 trên --surface nên dùng làm CHỮ được. */
-  --cat-1: #3b5ea8; /* indigo   6,3:1 */
-  --cat-2: #6f4a9c; /* tím      6,7:1 */
-  --cat-3: #a3436b; /* hồng đất 5,9:1 */
-  --cat-4: #2f7d6a; /* lục lam  4,9:1 */
-  --cat-5: #5a6570; /* xám lam  5,9:1 */
+     good ô-liu ~75°). Cả 5 đạt contrast >= 5,9:1 trên --surface nên dùng làm CHỮ được.
+     12/08 tối: cả 5 hạ một nấc theo bảng màu "Giấy đậm" — nền be đậm hơn nên bản cũ đứng trên card
+     trắng trông nhạt hơn hẳn phần còn lại của màn. Tỉ lệ dưới đây ĐO LẠI trên `--surface: #ffffff`
+     sau khi đổi, không chép lại số cũ. */
+  --cat-1: #35558f; /* indigo   7,4:1 */
+  --cat-2: #654389; /* tím      7,7:1 */
+  --cat-3: #953d61; /* hồng đất 6,7:1 */
+  --cat-4: #2b6f5e; /* lục lam  5,9:1 */
+  --cat-5: #565f68; /* xám lam  6,5:1 */
   /* Nhóm "Khác (+N)" — chủ ý nhạt để lùi về sau. CHỈ làm nền thanh/lát, KHÔNG dùng cho chữ
      (contrast ~2,2:1, không đạt AA). */
-  --cat-other: #b8b2ac;
+  --cat-other: #b5aa99;
 
   /* Thang TUẦN TỰ — dùng cho chiều CÓ THỨ TỰ (độ tuổi, phân khúc NAV: Dim.cut.kind === 'band'),
      thay cho --cat-* ở đúng những chiều đó. Lý do: --cat-* là năm màu KHÔNG hơn kém nhau, đúng cho
@@ -92,7 +108,7 @@
   --seq-5: #1c4780;
 
   --radius: 12px;
-  --shadow: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.05);
+  --shadow: 0 1px 2px rgba(23, 19, 16, 0.05), 0 10px 26px rgba(23, 19, 16, 0.07);
 }
 
 @layer base {
@@ -105,10 +121,10 @@
     min-width: 1280px;
     font: 15.5px/1.55 -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: var(--ink);
+    /* 12/08 tối (owner chốt, tách riêng khỏi phương án màu): BỎ NỀN LƯỚI 38px. Lý do owner nêu khi
+       chọn: bảng vài trăm dòng đứng trên nền kẻ ô thì hai hệ đường ngang chồng nhau. Nền nay phẳng,
+       việc phân tầng dồn hết cho `--surface` + viền + `--shadow`. */
     background: var(--bg);
-    background-image: linear-gradient(var(--line) 1px, transparent 1px),
-      linear-gradient(90deg, var(--line) 1px, transparent 1px);
-    background-size: 38px 38px;
     -webkit-font-smoothing: antialiased;
   }
   a {

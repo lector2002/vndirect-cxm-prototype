@@ -22,7 +22,7 @@ import { nf } from "./format.ts";
       thời gian và số kỳ — khi dữ liệu thật có nhãn kỳ thì thêm vào, không đoán trước. */
 
 /** Bảng màu theo thứ tự đường — port 1-1 LINE_PAL (prototype dòng 3798). */
-const PAL = ["#D9531E", "#2563EB", "#16A34A", "#9333EA", "#0891B2", "#CA8A04", "#DB2777", "#475569"];
+const PAL = ["#C9491A", "#2563EB", "#16A34A", "#9333EA", "#0891B2", "#CA8A04", "#DB2777", "#475569"];
 
 const W = 760;
 const H = 300;

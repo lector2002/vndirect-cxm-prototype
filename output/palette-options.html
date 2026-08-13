@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ba hướng màu — VNDIRECT CXM (theme sáng)</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 28px 64px;
+    font: 15px/1.55 -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #f2f2f0; color: #1c1917;
+  }
+  h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; }
+  h2 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
+  .lede { color: #57534e; max-width: 78ch; margin: 0 0 28px; }
+  .opt { background: #fff; border: 1px solid #e0ddd8; border-radius: 14px; margin-bottom: 26px; overflow: hidden; }
+  .opt > header { padding: 14px 18px; border-bottom: 1px solid #eceae6; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .tag { font: 700 11px/1 ui-monospace, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase;
+         background: #1c1917; color: #fff; padding: 5px 8px; border-radius: 6px; }
+  .note { color: #57534e; font-size: 13.5px; margin: 0; }
+  .swatches { display: flex; gap: 0; padding: 12px 18px 0; flex-wrap: wrap; }
+  .sw { width: 62px; }
+  .sw i { display: block; height: 30px; border: 1px solid rgba(0,0,0,.10); border-right: 0; }
+  .sw:last-child i { border-right: 1px solid rgba(0,0,0,.10); }
+  .sw span { display: block; font: 10.5px/1.4 ui-monospace, Menlo, monospace; color: #8c8681; padding-top: 4px; }
+
+  /* ============ MINI-UI: bản thu nhỏ của #/signals, dùng token của từng phương án ============ */
+  .demo { padding: 18px; }
+  .app { display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+         background: var(--bg); background-image: var(--grid); background-size: 38px 38px; min-height: 340px; }
+  .side { width: 178px; flex: none; background: var(--surface); border-right: 1px solid var(--line);
+          padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .brand { display: flex; align-items: center; gap: 8px; padding: 4px 6px 10px; }
+  .logo { width: 26px; height: 26px; border-radius: 8px; background: var(--primary); color: #fff;
+          display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+  .brand b { font-size: 12.5px; letter-spacing: -.01em; color: var(--ink); }
+  .grp { font: 700 9.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .11em; text-transform: uppercase;
+         color: var(--ink3); padding: 10px 8px 4px; }
+  .nav { font-size: 12px; color: var(--ink2); padding: 5px 8px; border-radius: 7px; }
+  .nav.on { background: var(--primary); color: #fff; font-weight: 600; }
+  .main { flex: 1; min-width: 0; padding: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; flex-wrap: wrap; }
+  .inp { flex: 1; min-width: 130px; border: 1px solid var(--line); background: var(--surface); border-radius: 7px;
+         padding: 5px 8px; font-size: 11.5px; color: var(--ink3); }
+  .sel { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 5px 8px;
+         font-size: 11.5px; color: var(--ink2); }
+  .sel.on { border-color: var(--primary-line); background: var(--primary-soft); color: var(--ink); }
+  .cnt { border: 1px solid var(--primary-line); background: var(--primary-soft); color: var(--ink2);
+         border-radius: 6px; padding: 3px 7px; font-size: 11px; }
+  table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  th.col { background: var(--surface); color: var(--ink2); font-weight: 600; text-align: left;
+           padding: 6px 10px; box-shadow: inset 0 -2px 0 var(--line); font-size: 11px; }
+  th.grpr { background: var(--surface2); color: var(--ink2); font-weight: 600; text-align: left;
+            padding: 5px 10px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 11px; }
+  th.grpr em { font-style: normal; color: var(--ink3); font-weight: 400; }
+  td { padding: 6px 10px; border-bottom: 1px solid var(--line); color: var(--ink); }
+  td.mono { font-family: ui-monospace, Menlo, monospace; color: var(--primary); font-size: 11px; }
+  td .sub { color: var(--ink2); font-size: 10.5px; }
+  tr.dim { opacity: .45; }
+  tr.sel-row { background: var(--primary-soft); }
+  .bdg { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 10.5px; font-weight: 600;
+         border: 1px solid; white-space: nowrap; }
+  .b-ok   { color: var(--good);  background: var(--good-bg);  border-color: var(--good-line); }
+  .b-wa   { color: var(--watch); background: var(--watch-bg); border-color: var(--watch-line); }
+  .b-cr   { color: var(--crit);  background: var(--crit-bg);  border-color: var(--crit-line); }
+  .b-un   { color: var(--unk);   background: var(--surface2); border-color: var(--line); }
+  .b-in   { color: var(--info);  background: var(--info-bg);  border-color: var(--info-line); }
+  .btn { background: var(--primary); color: #fff; border: 0; border-radius: 7px; padding: 5px 10px;
+         font-size: 11.5px; font-weight: 600; }
+  .btn2 { background: var(--surface); color: var(--ink2); border: 1px solid var(--line); border-radius: 7px;
+          padding: 5px 10px; font-size: 11.5px; }
+  .row2 { display: flex; gap: 10px; margin-top: 10px; }
+  .kpi { flex: 1; padding: 10px; }
+  .kpi .lbl { font: 700 9.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .11em; text-transform: uppercase; color: var(--ink3); }
+  .kpi .num { font-size: 22px; font-weight: 700; letter-spacing: -.01em; color: var(--ink); margin-top: 5px; }
+  .kpi .sub { font-size: 11px; color: var(--ink2); margin-top: 2px; }
+  .cats { display: flex; gap: 5px; margin-top: 9px; align-items: flex-end; height: 34px; }
+  .cats i { flex: 1; border-radius: 3px 3px 0 0; }
+
+  /* ---------- A · Xám nguội ---------- */
+  .pA {
+    --primary:#d9531e; --primary-hover:#b84415; --primary-soft:#fff1e9; --primary-line:#f6d2be;
+    --bg:#f5f6f8; --surface:#ffffff; --surface2:#eef0f4; --line:#dde1e8; --line-soft:#eef0f4;
+    --ink:#141a22; --ink2:#4d5765; --ink3:#8a93a1;
+    --watch:#a16207; --watch-bg:#fdfaeb; --watch-line:#eadda0;
+    --crit:#b3261e; --crit-bg:#fdf1f0; --crit-line:#f3c9c4;
+    --good:#3f6212; --good-bg:#f7faf1; --good-line:#dde8c4;
+    --info:#2c5f8a; --info-bg:#f1f6fb; --info-line:#cfe0ee; --unk:#8a93a1;
+    --grid: linear-gradient(#dde1e8 1px, transparent 1px), linear-gradient(90deg,#dde1e8 1px, transparent 1px);
+    --shadow: 0 1px 2px rgba(20,26,34,.05), 0 8px 24px rgba(20,26,34,.06);
+    --c1:#3b5ea8; --c2:#6f4a9c; --c3:#a3436b; --c4:#2f7d6a; --c5:#5a6570;
+  }
+  /* ---------- B · Trắng phẳng ---------- */
+  .pB {
+    --primary:#d9531e; --primary-hover:#b84415; --primary-soft:#fdf2ec; --primary-line:#f0cdb8;
+    --bg:#ffffff; --surface:#ffffff; --surface2:#f6f6f7; --line:#e6e6e8; --line-soft:#f1f1f2;
+    --ink:#111113; --ink2:#5b5b62; --ink3:#94949c;
+    --watch:#8f5a06; --watch-bg:#fdf8ec; --watch-line:#ebdcb4;
+    --crit:#b3261e; --crit-bg:#fdf1f0; --crit-line:#f2cac6;
+    --good:#3d6117; --good-bg:#f6faf2; --good-line:#dbe7c9;
+    --info:#2c5f8a; --info-bg:#f1f6fb; --info-line:#d3e1ed; --unk:#94949c;
+    --grid: none;
+    --shadow: 0 1px 2px rgba(17,17,19,.04), 0 6px 16px rgba(17,17,19,.05);
+    --c1:#3b5ea8; --c2:#6f4a9c; --c3:#a3436b; --c4:#2f7d6a; --c5:#5a6570;
+  }
+  /* ---------- C · Giấy đậm ---------- */
+  .pC {
+    --primary:#c9491a; --primary-hover:#a63c13; --primary-soft:#fbeee6; --primary-line:#e9c6ae;
+    --bg:#f3f0ea; --surface:#ffffff; --surface2:#efebe3; --line:#ddd6ca; --line-soft:#ebe6dc;
+    --ink:#171310; --ink2:#4c443c; --ink3:#7e756a;
+    --watch:#8a5a04; --watch-bg:#fbf6e6; --watch-line:#e4d59a;
+    --crit:#a52218; --crit-bg:#fbeeec; --crit-line:#eec4bd;
+    --good:#3a5c10; --good-bg:#f5f8ec; --good-line:#d7e2bc;
+    --info:#28587f; --info-bg:#eff5fa; --info-line:#c9dced; --unk:#7e756a;
+    --grid: none;
+    --shadow: 0 1px 2px rgba(23,19,16,.05), 0 10px 26px rgba(23,19,16,.07);
+    --c1:#35558f; --c2:#654389; --c3:#953d61; --c4:#2b6f5e; --c5:#565f68;
+  }
+  .foot { max-width: 82ch; color: #57534e; font-size: 14px; }
+  .foot code { background: #eceae6; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+  .foot h3 { font-size: 16px; margin: 22px 0 6px; color: #1c1917; }
+</style>
+</head>
+<body>
+
+<h1>Ba hướng màu cho theme sáng</h1>
+<p class="lede">
+  Mỗi khối dưới đây là bản thu nhỏ của màn <b>Điểm đo</b> đang chạy — sidebar, thanh lọc, bảng chia
+  nhóm theo phase, năm badge trạng thái, thang màu phân loại — vẽ bằng đúng bộ token của phương án đó.
+  Nhìn cả khối, đừng nhìn từng ô màu rời: cái phải quyết là <i>cả màn trông thế nào</i>.
+  Cả ba đều giữ <b>theme sáng</b>, giữ <code>--surface: #ffffff</code> (nên mọi tỉ lệ tương phản đã ghi
+  trong <code>index.css</code> còn nguyên hiệu lực), và giữ luật <b>cam chỉ dùng cho tương tác/định
+  danh, không bao giờ làm màu trạng thái</b>.
+</p>
+
+<!-- ================= A ================= -->
+<section class="opt">
+  <header>
+    <span class="tag">A</span>
+    <h2>Xám nguội</h2>
+    <p class="note">Đúng cấu trúc hôm nay, chỉ đảo nhiệt độ xám ấm → xám lam. Nền lưới 38px giữ lại. Đổi ít nhất, rủi ro thấp nhất.</p>
+  </header>
+  <div class="swatches pA">
+    <div class="sw"><i style="background:var(--bg)"></i><span>bg</span></div>
+    <div class="sw"><i style="background:var(--surface2)"></i><span>surf2</span></div>
+    <div class="sw"><i style="background:var(--line)"></i><span>line</span></div>
+    <div class="sw"><i style="background:var(--ink3)"></i><span>ink3</span></div>
+    <div class="sw"><i style="background:var(--ink2)"></i><span>ink2</span></div>
+    <div class="sw"><i style="background:var(--ink)"></i><span>ink</span></div>
+    <div class="sw"><i style="background:var(--primary)"></i><span>primary</span></div>
+  </div>
+  <div class="demo pA">
+    <div class="app">
+      <aside class="side">
+        <div class="brand"><span class="logo">V</span><b>VNDIRECT CXM</b></div>
+        <div class="grp">Vận hành</div>
+        <div class="nav">Tổng quan CXM</div>
+        <div class="nav">Bản đồ hành trình</div>
+        <div class="grp">Quản trị</div>
+        <div class="nav on">Điểm đo</div>
+        <div class="nav">Chỉ số &amp; ngưỡng</div>
+        <div class="nav">Nguồn dữ liệu</div>
+      </aside>
+      <div class="main">
+        <div class="card">
+          <div class="bar">
+            <div class="inp">Tên event, nhãn, chỉ số, bước, phase</div>
+            <div class="sel on">P02 Mở tài khoản</div>
+            <div class="sel">Mọi chỉ số</div>
+            <button class="btn2">Thu gọn mọi nhóm</button>
+            <span class="cnt">Đang tô 8 / 30</span>
+          </div>
+          <table>
+            <tr><th class="col">Tên event</th><th class="col">Lưu lượng /ngày</th><th class="col">Mốc thấy cuối</th><th class="col">Trạng thái tin dùng</th></tr>
+            <tr><th class="grpr" colspan="4">P02 Mở tài khoản &nbsp;<em>5 / 11 khớp</em></th></tr>
+            <tr class="sel-row"><td class="mono">ekyc_started<div class="sub">Bắt đầu định danh</div></td><td>12.480</td><td>07/08<div class="sub">máy · nguồn giao</div></td><td><span class="bdg b-ok">Tin dùng được</span></td></tr>
+            <tr><td class="mono">ekyc_ocr_done<div class="sub">Đọc giấy tờ xong</div></td><td>11.902</td><td>07/08<div class="sub">máy · nguồn giao</div></td><td><span class="bdg b-wa">Cần soát lại</span></td></tr>
+            <tr class="dim"><td class="mono">account_info_edited<div class="sub">Sửa thông tin</div></td><td>3.115</td><td>tuần trước<div class="sub">người khai</div></td><td><span class="bdg b-cr">Không tin được</span></td></tr>
+            <tr class="dim"><td class="mono">contract_signed<div class="sub">Ký hợp đồng</div></td><td>—</td><td>chưa từng</td><td><span class="bdg b-un">Chưa phân định</span></td></tr>
+            <tr><th class="grpr" colspan="4">P03 Nạp tiền &nbsp;<em>3 / 7 khớp</em></th></tr>
+            <tr><td class="mono">deposit_submitted<div class="sub">Gửi lệnh nạp</div></td><td>9.640</td><td>07/08<div class="sub">máy · nguồn giao</div></td><td><span class="bdg b-in">Đang dựng</span></td></tr>
+          </table>
+        </div>
+        <div class="row2">
+          <div class="card kpi"><div class="lbl">Đang chạy</div><div class="num">23 / 30</div><div class="sub">7 điểm đo chưa có dữ liệu về</div></div>
+          <div class="card kpi"><div class="lbl">Chia theo nền tảng</div>
+            <div class="cats">
+              <i style="background:var(--c1);height:100%"></i><i style="background:var(--c2);height:74%"></i>
+              <i style="background:var(--c3);height:55%"></i><i style="background:var(--c4);height:38%"></i>
+              <i style="background:var(--c5);height:22%"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= B ================= -->
+<section class="opt">
+  <header>
+    <span class="tag">B</span>
+    <h2>Trắng phẳng</h2>
+    <p class="note">Nền trắng hẳn, <b>bỏ lưới</b>, phân tầng bằng viền mảnh + bóng nhẹ. Xám trung tính, chữ đen sâu hơn. Trông hiện đại và “rộng” nhất; đổi cảm giác màn nhiều nhất.</p>
+  </header>
+  <div class="swatches pB">
+    <div class="sw"><i style="background:var(--bg)"></i><span>bg</span></div>
+    <div class="sw"><i style="background:var(--surface2)"></i><span>surf2</span></div>
+    <div class="sw"><i style="background:var(--line)"></i><span>line</span></div>
+    <div class="sw"><i style="background:var(--ink3)"></i><span>ink3</span></div>
+    <div class="sw"><i style="background:var(--ink2)"></i><span>ink2</span></div>
+    <div class="sw"><i style="background:var(--ink)"></i><span>ink</span></div>
+    <div class="sw"><i style="background:var(--primary)"></i><span>primary</span></div>
+  </div>
+  <div class="demo pB">
+    <div class="app">
+      <aside class="side">
+        <div class="brand"><span class="logo">V</span><b>VNDIRECT CXM</b></div>
+        <div class="grp">Vận hành</div>
+        <div class="nav">Tổng quan CXM</div>
+        <div class="nav">Bản đồ hành trình</div>
+        <div class="grp">Quản trị</div>
+        <div class="nav on">Điểm đo</div>
+        <div class="nav">Chỉ số &amp; ngưỡng</div>
+        <div class="nav">Nguồn dữ liệu</div>
+      </aside>
+      <div class="main">
+        <div class="card">
+          <div class="bar">
+            <div class="inp">Tên event, nhãn, chỉ số, bước, phase</div>
+            <div class="sel on">P02 Mở tài khoản</div>
+            <div class="sel">Mọi chỉ số</div>
+            <button class="btn2">Thu gọn mọi nhóm</button>
+            <span class="cnt">Đang tô 8 / 30</span>
+          </div>
+          <table>
+            <tr><th class="col">Tên event</th><th class="col">Lưu lượng /ngày</th><th class="col">Mốc thấy cuối</th><th class="col">Trạng thái tin dùng</th></tr>
+            <tr><th class="grpr" colspan="4">P02 Mở tài khoản &nbsp;<em>5 / 11 khớp</em></th></tr>
+            <tr class="sel-row"><td class="mono">ekyc_started<div class="sub">Bắt đầu định danh</div></td><td>12.480</td><td>07/08<div class="sub">máy · nguồn giao</div></td><td><span class="bdg b-ok">Tin dùng được</span></td></tr>
+            <tr><td class="mono">ekyc_ocr_done<div class="sub">Đọc giấy tờ xong</div></td><td>11.902</td><td>07/08<div class="sub">máy · nguồn giao</div></td><td><span class="bdg b-wa">Cần soát lại</span></td></tr>
+            <tr class="dim"><td class="mono">account_info_edited<div class="sub">Sửa thông tin</div></td><td>3.115</td><td>tuần trước<div class="sub">người khai</div></td><td><span class="bdg b-cr">Không tin được</span></td></tr>
+            <tr class="dim"><td class="mono">contract_signed<div class="sub">Ký hợp đồng</div></td><td>—</td><td>chưa từng</td><td><span class="bdg b-un">Chưa phân định</span></td></tr>
+            <tr><th class="grpr" colspan="4">P03 Nạp tiền &nbsp;<em>3 / 7 khớp</em></th></tr>
+            <tr><td class="mono">deposit_submitted<div class="sub">Gửi lệnh nạp</div></td><td>9.640</td><td>07/08<div class="sub">máy · nguồn giao</div></td><td><span class="bdg b-in">Đang dựng</span></td></tr>
+          </table>
+        </div>
+        <div class="row2">
+          <div class="card kpi"><div class="lbl">Đang chạy</div><div class="num">23 / 30</div><div class="sub">7 điểm đo chưa có dữ liệu về</div></div>
+          <div class="card kpi"><div class="lbl">Chia theo nền tảng</div>
+            <div class="cats">
+              <i style="background:var(--c1);height:100%"></i><i style="background:var(--c2);height:74%"></i>
+              <i style="background:var(--c3);height:55%"></i><i style="background:var(--c4);height:38%"></i>
+              <i style="background:var(--c5);height:22%"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= C ================= -->
+<section class="opt">
+  <header>
+    <span class="tag">C</span>
+    <h2>Giấy đậm</h2>
+    <p class="note">Giữ tông giấy ấm của hệ hiện tại nhưng <b>đậm hơn hẳn</b>: nền ngả be, viền rõ, chữ nâu-đen, cam trầm xuống một nấc. Bỏ lưới. Ấm và “tài liệu” nhất.</p>
+  </header>
+  <div class="swatches pC">
+    <div class="sw"><i style="background:var(--bg)"></i><span>bg</span></div>
+    <div class="sw"><i style="background:var(--surface2)"></i><span>surf2</span></div>
+    <div class="sw"><i style="background:var(--line)"></i><span>line</span></div>
+    <div class="sw"><i style="background:var(--ink3)"></i><span>ink3</span></div>
+    <div class="sw"><i style="background:var(--ink2)"></i><span>ink2</span></div>
+    <div class="sw"><i style="background:var(--ink)"></i><span>ink</span></div>
+    <div class="sw"><i style="background:var(--primary)"></i><span>primary</span></div>
+  </div>
+  <div class="demo pC">
+    <div class="app">
+      <aside class="side">
+        <div class="brand"><span class="logo">V</span><b>VNDIRECT CXM</b></div>
+        <div class="grp">Vận hành</div>
+        <div class="nav">Tổng quan CXM</div>
+        <div class="nav">Bản đồ hành trình</div>
+        <div class="grp">Quản trị</div>
+        <div class="nav on">Điểm đo</div>
+        <div class="nav">Chỉ số &amp; ngưỡng</div>
+        <div class="nav">Nguồn dữ liệu</div>
+      </aside>
+      <div class="main">
+        <div class="card">
+          <div class="bar">
+            <div class="inp">Tên event, nhãn, chỉ số, bước, phase</div>
+            <div class="sel on">P02 Mở tài khoản</div>
+            <div class="sel">Mọi chỉ số</div>
+            <button class="btn2">Thu gọn mọi nhóm</button>
+            <span class="cnt">Đang tô 8 / 30</span>
+          </div>
+          <table>
+            <tr><th class="col">Tên event</th><th class="col">Lưu lượng /ngày</th><th class="col">Mốc thấy cuối</th><th class="col">Trạng thái tin dùng</th></tr>
+            <tr><th class="grpr" colspan="4">P02 Mở tài khoản &nbsp;<em>5 / 11 khớp</em></th></tr>
+            <tr class="sel-row"><td class="mono">ekyc_started<div class="sub">Bắt đầu định danh</div></td><td>12.480</td><td>07/08<div class="sub">máy · nguồn giao</div></td><td><span class="bdg b-ok">Tin dùng được</span></td></tr>
+            <tr><td class="mono">ekyc_ocr_done<div class="sub">Đọc giấy tờ xong</div></td><td>11.902</td><td>07/08<div class="sub">máy · nguồn giao</div></td><td><span class="bdg b-wa">Cần soát lại</span></td></tr>
+            <tr class="dim"><td class="mono">account_info_edited<div class="sub">Sửa thông tin</div></td><td>3.115</td><td>tuần trước<div class="sub">người khai</div></td><td><span class="bdg b-cr">Không tin được</span></td></tr>
+            <tr class="dim"><td class="mono">contract_signed<div class="sub">Ký hợp đồng</div></td><td>—</td><td>chưa từng</td><td><span class="bdg b-un">Chưa phân định</span></td></tr>
+            <tr><th class="grpr" colspan="4">P03 Nạp tiền &nbsp;<em>3 / 7 khớp</em></th></tr>
+            <tr><td class="mono">deposit_submitted<div class="sub">Gửi lệnh nạp</div></td><td>9.640</td><td>07/08<div class="sub">máy · nguồn giao</div></td><td><span class="bdg b-in">Đang dựng</span></td></tr>
+          </table>
+        </div>
+        <div class="row2">
+          <div class="card kpi"><div class="lbl">Đang chạy</div><div class="num">23 / 30</div><div class="sub">7 điểm đo chưa có dữ liệu về</div></div>
+          <div class="card kpi"><div class="lbl">Chia theo nền tảng</div>
+            <div class="cats">
+              <i style="background:var(--c1);height:100%"></i><i style="background:var(--c2);height:74%"></i>
+              <i style="background:var(--c3);height:55%"></i><i style="background:var(--c4);height:38%"></i>
+              <i style="background:var(--c5);height:22%"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="foot">
+  <h3>Ba thứ cần biết trước khi chọn</h3>
+  <p>
+    <b>1. Nền lưới 38px.</b> A giữ, B và C bỏ. Đây là thứ nhìn ra ngay và tách được khỏi phương án màu —
+    chọn màu nào cũng có thể yêu cầu giữ/bỏ lưới riêng.
+  </p>
+  <p>
+    <b>2. Cam VNDIRECT.</b> A và B giữ nguyên <code>#d9531e</code>; C hạ xuống <code>#c9491a</code> cho
+    hợp nền be. Nếu cam phải khớp brand tuyệt đối thì loại C hoặc yêu cầu C giữ cam gốc.
+  </p>
+  <p>
+    <b>3. Cái gì <i>không</i> đổi ở cả ba.</b> Bốn màu trạng thái vẫn tách hue rõ (đỏ ~5° · cam ~15° ·
+    hổ phách ~40° · ô-liu ~75°) nên không màu nào đọc nhầm thành mức báo động khác; năm màu phân loại
+    và thang tuần tự vẫn đạt tương phản ≥ 4,9:1 trên nền trắng; bốn sắc xám của bốn nghĩa “không biết”
+    vẫn phân biệt được. Đổi màu là đổi <b>token</b>, không đụng một dòng component nào.
+  </p>
+</div>
+
+</body>
+</html>

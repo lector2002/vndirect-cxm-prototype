@@ -12,7 +12,7 @@ import { Card } from "../../design-system/index.ts";
    người xem đếm hai lần một chuyện. "Phải thấy được" là yêu cầu về MÀN, không phải về KHỐI.
 
    Còn lại đúng T1 và T3 — hai tình trạng không khối nào khác nói: cả hai đều là *bản khai không khớp
-   thực tế*, khác hẳn câu hỏi kiểm kê "có đo không" của khối ①.
+   thực tế*, khác hẳn phép kiểm kê của khối ① ("① Kiểm kê điểm đo").
 
    T1/F6 — "chưa đánh giá được" KHÔNG vào mẫu số của T1 (bất biến 2: không trộn *chưa-biết* với
    *thiếu*). Một flow chưa trích dẫn sơ đồ nguồn VÀ chưa chép bước là CHƯA CÓ THÔNG TIN NÀO để xếp
@@ -35,7 +35,10 @@ export function SignalGovernanceBlock({ data, cfg }: { data: CxmData; cfg: Cfg }
 
   return (
     <Card title="Bản khai không khớp thực tế">
-      <ul className="space-y-2.5 text-[13px]">
+      {/* Hai dòng cách nhau bằng một vạch chứ chỉ bằng khoảng trắng: khối này đứng ở cột hẹp nên mỗi
+          dòng tự xuống hai-ba dòng chữ, và khi đó khoảng cách giữa hai mục không còn phân biệt được
+          với khoảng cách giữa hai dòng trong cùng một mục. */}
+      <ul className="flex flex-col gap-3 text-[13px]">
         <li data-testid="gov-t1">
           <b className="tabular-nums">
             {citedNotCopied.length} / {evaluated.length}
@@ -43,11 +46,12 @@ export function SignalGovernanceBlock({ data, cfg }: { data: CxmData; cfg: Cfg }
           flow đã trích dẫn sơ đồ nguồn mà chưa chép bước
           <span className="t-meta" data-testid="gov-t1-not-evaluated">
             {" — "}
+            {/* luật 12/08: bỏ đuôi ", không tính vào mẫu số trên" — cơ sở đếm, không phải dữ liệu */}
             <b className="tabular-nums">{notEvaluated}</b> flow chưa đánh giá được (chưa trích dẫn
-            sơ đồ, cũng chưa chép bước), không tính vào mẫu số trên
+            sơ đồ, cũng chưa chép bước)
           </span>
         </li>
-        <li data-testid="gov-t3">
+        <li data-testid="gov-t3" className="border-t border-line-soft pt-3">
           <b className="tabular-nums">
             {brokenFeeding.length} / {data.sources.length}
           </b>{" "}

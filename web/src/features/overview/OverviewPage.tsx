@@ -198,7 +198,8 @@ export function OverviewPage({ sec, useStore = useCxmStore }: OverviewPageProps)
               </div>
             ) : (
               <div className="p-10 text-center text-ink-3 text-[13.5px]">
-                Câu hỏi này chưa có khối nào. Thêm ở <b>Quản lý set</b> (Quantify).
+                {/* luật 12/08: bỏ "Thêm ở Quản lý set (Quantify)" — hướng dẫn thao tác */}
+                Câu hỏi này chưa có khối nào.
               </div>
             )}
           </section>

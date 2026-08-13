@@ -48,14 +48,9 @@ export function SourceGroup() {
       title="SLA độ tươi từng nguồn"
       denomStrip={`${data.sources.length} nguồn`}
     >
-      <div className="mb-3.5">
-        <Note>
-          {/* luật 11/08: bỏ "Chốt xong bảng này tự đổi theo, không cần sửa lại màn." */}
-          <b>Bản tạm.</b> Danh sách nguồn dưới đây sinh thẳng từ dữ liệu đang có, cùng lứa với màn{" "}
-          <a href="#/sources">Nguồn dữ liệu</a> — kiểm kê nguồn của ngân hàng chưa chốt (06/08/2026).
-        </Note>
-      </div>
-
+      {/* luật 12/08: bỏ cả Note "Bản tạm. Danh sách nguồn dưới đây sinh thẳng từ dữ liệu đang có…" —
+          nó nói về XUẤT XỨ của bảng và tình trạng một quyết định ngoài app, không nói về dữ liệu
+          đang hiện. Việc "kiểm kê nguồn chưa chốt" thuộc tài liệu bàn giao, không thuộc màn. */}
       {error ? (
         <div className="mb-3" data-testid="source-write-error">
           <Note tone="crit">

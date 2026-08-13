@@ -28,7 +28,7 @@ const SRC_LABEL: Record<SourceHealth, string> = {
 };
 
 /* Màu mark theo trạng thái — token có sẵn trong tailwind.config.js, không thêm hex mới.
-   "na" (không áp dụng) không có token riêng: --unk và --ink3 cùng trỏ #8c8681 trong index.css
+   "na" (không áp dụng) không có token riêng: --unk và --ink3 cùng trỏ #7e756a trong index.css
    (không phải #C6CDD2 gốc) nên chọn nào cũng lệch nhẹ như nhau về màu; dùng text-ink-3 để nhất
    quán với tiền lệ Badge.tsx (cũng dùng --ink3 cho trạng thái "không xác định được"). */
 const MARK_CLASS: Record<SourceHealth, string> = {
@@ -160,7 +160,8 @@ export function SrcMatrix({ sources, metrics, cfg, asOf, compact }: SrcMatrixPro
       </div>
       {noPf.length ? (
         <div className="t-meta text-[11.5px] mt-1.5">
-          Nguồn không gắn nền tảng nào: {noPf.map((s) => s.name).join(" · ")} — nhập tay hoặc qua webhook.
+          {/* luật 12/08: bỏ đuôi "— nhập tay hoặc qua webhook", chú giải chứ không phải dữ liệu */}
+          Nguồn không gắn nền tảng nào: {noPf.map((s) => s.name).join(" · ")}
         </div>
       ) : null}
     </div>

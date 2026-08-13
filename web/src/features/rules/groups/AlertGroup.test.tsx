@@ -20,7 +20,7 @@ function deadCount(): number {
   return data.sources.filter((s) => sourceHealth(s, c, data.asOf) === "down").length;
 }
 
-describe("AlertGroup — bảy ngưỡng cảnh báo + áp ngay lúc này", () => {
+describe("AlertGroup — các ngưỡng cảnh báo + áp ngay lúc này", () => {
   it("hiện đúng số nguồn Ngừng gửi ứng với deadDays mặc định", () => {
     render(<AlertGroup />);
     const n = deadCount();
@@ -33,7 +33,7 @@ describe("AlertGroup — bảy ngưỡng cảnh báo + áp ngay lúc này", () =
     const before = deadCount();
     expect(before).toBeGreaterThan(0);
 
-    const field = screen.getByLabelText("Số ngày quá nhịp giao thì coi là Ngừng gửi");
+    const field = screen.getByLabelText("Ngưỡng Ngừng gửi (ngày quá nhịp giao)");
     fireEvent.change(field, { target: { value: "30" } });
     fireEvent.blur(field);
 
@@ -61,7 +61,7 @@ describe("AlertGroup — bảy ngưỡng cảnh báo + áp ngay lúc này", () =
     render(<AlertGroup />);
     const before = cfg().data.deadDays;
 
-    const field = screen.getByLabelText("Số ngày quá nhịp giao thì coi là Ngừng gửi");
+    const field = screen.getByLabelText("Ngưỡng Ngừng gửi (ngày quá nhịp giao)");
     fireEvent.change(field, { target: { value: "0" } });
     fireEvent.blur(field);
 
@@ -71,13 +71,24 @@ describe("AlertGroup — bảy ngưỡng cảnh báo + áp ngay lúc này", () =
     expect((field as HTMLInputElement).value).toBe(String(before));
   });
 
-  it("bảy ô số đều ghi đúng khoá cfg tương ứng", () => {
+  /* 12/08 (owner quyết, handoff §6) — hai ô mồ côi đã bỏ. Test này canh chiều NGƯỢC với các test
+     trên: không phải "ô này đổi được nhãn nào" mà "ô không đổi được nhãn nào thì không được đứng
+     trên màn". Nếu lần sau có chỗ tiêu thụ thật (chuỗi volume theo ngày cho anomalyX, log liên hệ
+     theo chủ đề cho repeatMin) thì thêm lại ô VÀ xoá test này CÙNG MỘT LƯỢT — để nguyên là chặn
+     đúng thứ đáng lên màn. */
+  it("không còn ô nhập nào cho anomalyX/repeatMin — hai khoá đã bỏ khỏi cfg", () => {
+    render(<AlertGroup />);
+    expect(screen.queryByLabelText("Số lần vượt baseline thì cảnh báo")).toBeNull();
+    expect(screen.queryByLabelText("Số lần liên hệ tính là repeat contact")).toBeNull();
+    expect(Object.keys(cfg().data)).not.toContain("anomalyX");
+    expect(Object.keys(cfg().data)).not.toContain("repeatMin");
+  });
+
+  it("mỗi ô số đều ghi đúng khoá cfg tương ứng", () => {
     render(<AlertGroup />);
     const cases: [string, number, "data" | "anomaly", string][] = [
       ["Ngưỡng Z-score đánh dấu bất thường", 1, "anomaly", "z"],
-      ["Số lần vượt baseline thì cảnh báo", 3, "data", "anomalyX"],
       ["Cooldown khảo sát toàn cục", 7, "data", "cooldown"],
-      ["Số lần liên hệ tính là repeat contact", 5, "data", "repeatMin"],
       ["Ngưỡng tô đỏ số khách có tín hiệu churn", 40, "data", "churnWarn"],
     ];
     for (const [label, value, group, key] of cases) {

@@ -46,9 +46,13 @@ function boundHint(v: number, unit: CfgBandAxis['unit']): string | undefined {
   return read === null ? undefined : `= ${read}`;
 }
 
-/** Ba ca sai nói được thành câu cho người sửa. Trả `null` khi ranh giới hợp lệ. */
+/** Ba ca sai nói được thành câu cho người sửa. Trả `null` khi ranh giới hợp lệ.
+
+    luật 12/08: câu lỗi giữ nguyên phần NÓI CÁI GÌ SAI, cắt phần dạy nghĩa ở đuôi ("…thì không có
+    dải nào để xếp khách vào", "…từ biểu đồ sẽ không tách lại được chúng"). Câu lỗi khai báo hỏng
+    thuộc diện GIỮ, nhưng đuôi giảng giải thì không. */
 function axisError(axis: CfgBandAxis): string | null {
-  if (axis.cuts.length === 0) return "Phải có ít nhất một ranh giới — không có ranh giới thì không có dải nào để xếp khách vào.";
+  if (axis.cuts.length === 0) return "Phải có ít nhất một ranh giới.";
   for (let i = 1; i < axis.cuts.length; i++) {
     if (axis.cuts[i] <= axis.cuts[i - 1]) {
       return `Ranh giới phải tăng dần: ranh giới thứ ${i + 1} (${nf(axis.cuts[i])}) không lớn hơn ranh giới thứ ${i} (${nf(axis.cuts[i - 1])}).`;
@@ -59,7 +63,7 @@ function axisError(axis: CfgBandAxis): string | null {
   }
   const labels = bandLabels(axis);
   if (new Set(labels).size !== labels.length) {
-    return `Hai dải khác nhau đang cho ra cùng một nhãn (${labels.join(" · ")}) — từ biểu đồ sẽ không tách lại được chúng.`;
+    return `Hai dải khác nhau đang cho ra cùng một nhãn (${labels.join(" · ")}).`;
   }
   return null;
 }

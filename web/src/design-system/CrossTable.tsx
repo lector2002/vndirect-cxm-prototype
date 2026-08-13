@@ -30,9 +30,12 @@ export function CrossTable({ cx }: CrossTableProps) {
     );
   }
 
-  const multiNote = cx.multi
-    ? ` · một phản hồi có thể mang nhiều ${cx.rd?.unit ?? ""}/${cx.cd?.unit ?? ""} nên tổng có thể lớn hơn số mẫu`
-    : "";
+  /* luật 12/08: cơ sở đếm xuống TOOLTIP, không còn nối vào dòng chữ dưới bảng — cùng cách xử với
+     công thức `failed ÷ entered` ở #/rules. Chuỗi chỉ dựng khi `cx.multi` đúng, tức chỉ khi tổng
+     THẬT SỰ có thể lớn hơn số mẫu. */
+  const multiTitle = cx.multi
+    ? `Một phản hồi có thể mang nhiều ${cx.rd?.unit ?? ""}/${cx.cd?.unit ?? ""} nên tổng có thể lớn hơn số mẫu`
+    : undefined;
   return (
     <div>
       <div className="overflow-x-auto">
@@ -91,10 +94,9 @@ export function CrossTable({ cx }: CrossTableProps) {
           </tbody>
         </table>
       </div>
-      <div className="text-[11.5px] text-ink-3 mt-2">
+      <div className="text-[11.5px] text-ink-3 mt-2" title={multiTitle}>
         {/* luật 11/08: bỏ "tập mẫu, không phải toàn bộ bản ghi" */}
         Đang hiện {nf(cx.matched)} trên {nf(cx.sampleN)} mẫu bằng chứng
-        {multiNote}
       </div>
     </div>
   );

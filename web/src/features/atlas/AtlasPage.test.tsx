@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 import { cfgDefault, seed } from "../../data/fixtures/seed.ts";
 import { flowHasSourceCitation, flowStepsCopied, fx } from "../../domain/index.ts";
 import { nf } from "../../design-system/format.ts";
-import { AtlasPage } from "./AtlasPage.tsx";
+import { AtlasPage, FLOW_DOT_PENDING } from "./AtlasPage.tsx";
+
+/** "#RRGGBB" → "rgb(r, g, b)" — dạng jsdom trả về khi đọc `.style.background`. */
+function rgbOf(hex: string): string {
+  const m = hex.replace("#", "").match(/.{2}/g)!;
+  return `rgb(${m.map((h) => parseInt(h, 16)).join(", ")})`;
+}
 
 /* Container dùng store singleton thật (useCxmStore, singleton = demoData) như WorkPage.test.tsx.
    demoData spread NGUYÊN `seed` cho phases/groups/flows/steps/obs/touchpoints/signals (chỉ `cust`
@@ -83,13 +89,16 @@ describe("AtlasPage — #/atlas", () => {
       flowsOfP.forEach((f, i) => {
         const stepsCopied = flowStepsCopied(f, seed.steps);
         const hasSource = flowHasSourceCitation(f);
-        // jsdom chuẩn hoá màu hex đọc qua .style.background thành rgb() — "#D6D1CB" (chờ nguồn,
-        // AtlasPage.tsx) đọc lại thành "rgb(214, 209, 203)" (cùng cách CatChip.test.tsx đã canh).
+        /* jsdom chuẩn hoá màu hex đọc qua .style.background thành rgb(), nên phải đổi hệ trước khi
+           so. Mã màu ĐỌC TỪ `FLOW_DOT_PENDING` của chính AtlasPage chứ không gõ lại: bản trước gõ
+           "rgb(214, 209, 203)" vào đây, và đến lúc owner đổi bảng màu thì test đỏ vì một con số bị
+           ghim chứ không phải vì luật nào gãy. Cái test này canh là PHÉP SUY ba nhánh, không phải
+           mã màu. */
         const expectedColor = stepsCopied
           ? "var(--primary)"
           : hasSource
             ? "var(--ink3)"
-            : "rgb(214, 209, 203)";
+            : rgbOf(FLOW_DOT_PENDING);
         expect(dots[i]!.style.background).toBe(expectedColor);
         checked++;
       });

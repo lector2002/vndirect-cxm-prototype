@@ -46,7 +46,9 @@ describe("SubGroup — bản tin định kỳ", () => {
     expect(screen.getByText(new RegExp(`${on.length} bản tin đang bật`))).toBeTruthy();
   });
 
-  it("tắt hết bản tin ⇒ nói thẳng không ai nhận được gì nếu không tự vào xem", () => {
+  /* luật 12/08 bỏ vế "Không ai nhận được gì nếu không tự vào xem" (hệ quả luận giải) nên assertion
+     ghim nó đi theo. Điều test canh KHÔNG đổi: tắt hết thì khối phải NÓI RA tình trạng đó, không im. */
+  it("tắt hết bản tin ⇒ khối tổng kết nói ra là không còn bản tin nào bật", () => {
     render(<SubGroup />);
     const { data } = useCxmStore.getState();
     for (const d of data.dash) {
@@ -54,6 +56,5 @@ describe("SubGroup — bản tin định kỳ", () => {
       fireEvent.change(f, { target: { value: "off" } });
     }
     expect(screen.getByText(/Không có bản tin nào đang bật/)).toBeTruthy();
-    expect(screen.getByText(/Không ai nhận được gì nếu không tự vào xem/)).toBeTruthy();
   });
 });

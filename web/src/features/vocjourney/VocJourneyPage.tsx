@@ -281,15 +281,14 @@ export function VocJourneyPage() {
                     {quiet.length > 0 ? (
                       <>
                         {quiet.length === 1 ? "bước " : "các bước "}
+                        {/* luật 12/08: cắt hai đuôi kết luận ("Hành vi im lặng không có nghĩa là
+                            không có vấn đề" · "hai lớp đang nói cùng một điều"). Vế còn lại vẫn nói
+                            đủ tình trạng đối chiếu: bước nào trong ngưỡng mà vẫn có phản hồi dồn. */}
                         <b>{quiet.map((s) => `${s.code} ${s.name}`).join(" · ")}</b> có mọi tiêu chí
-                        hành vi <b>trong ngưỡng</b> nên trên bản đồ hành trình trông ổn — nhưng vẫn có
-                        phản hồi dồn vào đó. Hành vi im lặng không có nghĩa là không có vấn đề.
+                        hành vi <b>trong ngưỡng</b> nhưng vẫn có phản hồi dồn vào đó.
                       </>
                     ) : (
-                      <>
-                        mọi điểm chạm có tiếng nói đều đã vượt ngưỡng theo dõi trên bản đồ hành trình —
-                        hai lớp đang nói cùng một điều.
-                      </>
+                      <>mọi điểm chạm có tiếng nói đều đã vượt ngưỡng theo dõi trên bản đồ hành trình.</>
                     )}
                     {/* luật 11/08: bỏ hướng dẫn "Xem lớp hành vi ở Bản đồ hành trình" */}
                   </Note>

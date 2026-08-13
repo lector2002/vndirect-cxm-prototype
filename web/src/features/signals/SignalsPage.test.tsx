@@ -126,20 +126,40 @@ describe("Khối ② — hai hướng của owner chốt 07/08 phương án (a)"
 });
 
 describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngày im lặng", () => {
-  it("cột hiện `seen` phải mang nhãn 'mốc do người khai', không phải nhãn trung lập không cảnh báo", () => {
-    render(<SignalsPage useStore={demoStore()} />);
-    expect(screen.getAllByText(/mốc do người khai/).length).toBeGreaterThan(0);
-  });
+  /* 12/08 (owner): tên cột đổi theo quy ước cụm danh từ, rồi chiều cùng ngày owner chốt lối (i) của
+     §10c — điểm đo nối được nguồn (`srcId`) lấy MỐC GIAO CỦA NGUỒN, máy ghi; điểm đo chưa nối vẫn
+     dùng `Signal.seen` người gõ. Vì hai xuất xứ nay nằm cùng một cột nên phần "(người khai)" rời
+     khỏi NHÃN CỘT và xuống TỪNG Ô.
 
-  it("mọi chuỗi seen thật trong data hiện verbatim trên bảng, và không có số ngày/giờ suy diễn cạnh nó", () => {
+     Điều D6 cưỡng chế hai vế, cả hai vẫn nguyên: (1) không được suy tuổi/số ngày im lặng từ `seen`;
+     (2) chỗ nào hiện `seen` thì KHÔNG ĐƯỢC IM về việc số đó do người gõ. Vế 2 nay kiểm theo từng
+     dòng chứ không theo nhãn cột — chặt hơn bản trước, vì trước đây một nhãn cột đúng có thể che
+     cho mọi ô bên dưới. */
+  it("mỗi dòng dùng `seen` phải nói rõ 'người khai' NGAY TRÊN DÒNG ĐÓ, không im", () => {
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
     const { data } = store.getState();
-    const withSeen = data.signals.filter((s) => s.seen);
-    expect(withSeen.length).toBeGreaterThan(0);
-    for (const sig of withSeen) {
+    const handTyped = data.signals.filter((s) => s.seen && s.srcId === null);
+    expect(handTyped.length).toBeGreaterThan(0); // tiền đề: fixture còn mốc gõ tay
+    for (const sig of handTyped) {
       const row = screen.getByTestId(`signal-row-${sig.id}`);
       expect(row.textContent).toContain(sig.seen as string);
+      expect(row.textContent).toContain("người khai");
+    }
+  });
+
+  it("dòng đã nối nguồn hiện MỐC CỦA NGUỒN và khai là mốc máy — không trộn với mốc gõ tay", () => {
+    const store = demoStore();
+    render(<SignalsPage useStore={store} />);
+    const { data } = store.getState();
+    const linked = data.signals.filter((s) => s.srcId !== null);
+    expect(linked.length).toBeGreaterThan(0); // tiền đề: fixture đã nối được nguồn cho vài điểm đo
+    for (const sig of linked) {
+      const src = data.sources.find((s) => s.id === sig.srcId)!;
+      const row = screen.getByTestId(`signal-row-${sig.id}`);
+      expect(row.textContent).toContain(src.last);
+      expect(row.textContent).toContain("máy");
+      expect(row.textContent).not.toContain("người khai");
     }
   });
 

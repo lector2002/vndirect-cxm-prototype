@@ -331,11 +331,9 @@ export function QuantifyBuilder({
                 value={qb.chart}
                 onSelect={(v) => setField("chart", v)}
               />
-            ) : isCross ? (
-              <div className="text-xs text-ink-2">
-                Ghép chéo hiển thị dạng <b>bảng ma trận</b> (View Bảng) hoặc <b>stacked bar</b> (View Chart).
-              </div>
             ) : null}
+            {/* luật 12/08: bỏ "Ghép chéo hiển thị dạng bảng ma trận (View Bảng) hoặc stacked bar
+                (View Chart)" — dạy trước màn sẽ vẽ ra gì; bấm là thấy. */}
           </Card>
 
           <Card title={editId ? "Lưu thay đổi" : "Lưu chart"}>
