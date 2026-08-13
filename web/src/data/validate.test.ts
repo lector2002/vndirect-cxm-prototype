@@ -121,7 +121,7 @@ describe("validateFixture", () => {
     d.flows.push({ id: "f-test-m", groupId: "g-in", name: "t", owner: "x", version: "v1", src: "\u2014", note: "" });
     d.steps.push({ id: "s-test", flowId: "f-test-m", code: "01", name: "t", stationId: "JS-TEST-01", owner: "x" });
     d.touchpoints.push({ id: "tp-test", stepId: "s-test", name: "t", channel: "app", owner: "x", users: 10, desc: "" });
-    d.signals.push({ id: "sg-test", tpId: "tp-test", name: "deposit_test", st: "live", pf: [], es: "client", vol: 1, seen: null, metrics: [], desc: "", values: [] });
+    d.signals.push({ id: "sg-test", tpId: "tp-test", name: "deposit_test", st: "live", pf: [], es: "client", vol: 1, seen: null, srcId: null, metrics: [], desc: "", values: [] });
     const r = validateFixture(d, dims, seedNav, seedTour);
     expect(r.some((e) => e.includes("d\u00F2ng ti\u1EC1n"))).toBe(true);
   });
@@ -552,7 +552,7 @@ describe("validateFixture", () => {
   function sigXSignal(): Signal {
     return {
       id: "sg-x", tpId: "tp1", name: "test_signal", st: "live", pf: ["ios", "android"], es: "client",
-      vol: 10, seen: null, metrics: [], desc: "signal test cho nhóm 22", values: ["a", "b"],
+      vol: 10, seen: null, srcId: null, metrics: [], desc: "signal test cho nhóm 22", values: ["a", "b"],
     };
   }
 
@@ -562,7 +562,7 @@ describe("validateFixture", () => {
   function sigYSignal(): Signal {
     return {
       id: "sg-y", tpId: "tp1", name: "test_signal_y", st: "live", pf: ["ios"], es: "client",
-      vol: 5, seen: null, metrics: [], desc: "signal test thứ hai cho nhóm 22 — cố tình KHÔNG có sigCounts", values: ["z"],
+      vol: 5, seen: null, srcId: null, metrics: [], desc: "signal test thứ hai cho nhóm 22 — cố tình KHÔNG có sigCounts", values: ["z"],
     };
   }
 

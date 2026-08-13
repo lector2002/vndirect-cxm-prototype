@@ -56,12 +56,14 @@ export {
   metricState,
   sourceHealth,
   sourceDaysMissing,
+  signalFeedHealth,
+  signalFeedLast,
   SOURCE_ALLOW_DAYS_DEFAULT,
   laneOf,
   flowHasSourceCitation,
   flowStepsCopied,
 } from "./state.ts";
-export type { DerivedState, SourceHealth, LaneKey } from "./state.ts";
+export type { DerivedState, SourceHealth, SignalFeedHealth, LaneKey } from "./state.ts";
 export { getPrimaryAction, advanceAction, advanceBlockedReason } from "./loop.ts";
 export type { LoopStageKey, PrimaryAction } from "./loop.ts";
 export { qRun, qRunCross, PF_LABEL } from "./quantify.ts";

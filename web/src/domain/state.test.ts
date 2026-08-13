@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { Cfg, Source } from "../data/schema/index.ts";
 import { seed, cfgDefault } from "../data/fixtures/seed.ts";
 import { demoData } from "../data/fixtures/demo.ts";
-import { stepState, stepWhy, metricState, sourceHealth, sourceDaysMissing, laneOf } from "./state.ts";
+import { stepState, stepWhy, metricState, sourceHealth, sourceDaysMissing, signalFeedHealth, signalFeedLast, laneOf } from "./state.ts";
 import type { SourceHealth } from "./state.ts";
 
 describe("stepState", () => {
@@ -209,5 +209,74 @@ describe("laneOf", () => {
     }
     expect(counts).toEqual({ confirm: 1, approve: 2, fix: 1, verify: 1, off: 1 });
     expect(Object.values(counts).reduce((x, y) => x + y, 0)).toBe(seed.act.length);
+  });
+});
+
+/* signalFeedHealth — độ tươi điểm đo tính bằng máy (owner chốt 12/08, lối (i) của handoff §10c).
+   Không ghim con số nào: mọi kỳ vọng suy lại từ chính `data.signals` và `sourceHealth()`. */
+describe("signalFeedHealth", () => {
+  it("chưa nối nguồn (srcId null) trả 'unknown', KHÔNG rơi về 'ok'", () => {
+    const unlinked = seed.signals.filter((s) => s.srcId === null);
+    expect(unlinked.length).toBeGreaterThan(0);
+    for (const sg of unlinked) {
+      expect(signalFeedHealth(sg, seed.sources, cfgDefault, seed.asOf)).toBe("unknown");
+    }
+  });
+
+  it("đã nối nguồn thì trả ĐÚNG bậc thang của nguồn đó, không dựng bậc thang thứ hai", () => {
+    const linked = seed.signals.filter((s) => s.srcId !== null);
+    expect(linked.length).toBeGreaterThan(0);
+    for (const sg of linked) {
+      const src = seed.sources.find((s) => s.id === sg.srcId);
+      expect(src).toBeDefined();
+      expect(signalFeedHealth(sg, seed.sources, cfgDefault, seed.asOf)).toBe(
+        sourceHealth(src as Source, cfgDefault, seed.asOf),
+      );
+    }
+  });
+
+  it("srcId trỏ vào nguồn không có thật vẫn là 'unknown' chứ không phải 'ok'", () => {
+    const sg = { ...seed.signals[0], srcId: "src-khong-ton-tai" };
+    expect(signalFeedHealth(sg, seed.sources, cfgDefault, seed.asOf)).toBe("unknown");
+  });
+
+  /* Dựng tay một nguồn ĐANG TRỄ rồi nối một điểm đo vào nó — fixture hôm nay không có sẵn ca đó
+     (nguồn duy nhất không "ok" lại chưa điểm đo nào nối vào). KHÔNG viết dạng `if (…) return` để
+     test tự bỏ qua: một test xanh mà không đo gì là đúng cái bẫy `[].every()` đã ghi ở
+     SignalValueChart. Điều cần đo là quyền chấm nằm ở cfg NGUỒN, không phải ở điểm đo. */
+  it("siết/nới nhịp giao của nguồn ở cfg thì điểm đo nối vào nó đổi theo — một luật, hai màn", () => {
+    const src: Source = { ...seed.sources[0], id: "src-test-tre", last: "01/01", vol: 10 };
+    const sg = { ...seed.signals[0], srcId: src.id };
+    const sources = [...seed.sources, src];
+
+    const strict: Cfg = { ...cfgDefault, source: { ...cfgDefault.source, [src.id]: 0 } };
+    expect(signalFeedHealth(sg, sources, strict, seed.asOf)).not.toBe("ok");
+    expect(signalFeedHealth(sg, sources, strict, seed.asOf)).toBe(sourceHealth(src, strict, seed.asOf));
+
+    const loose: Cfg = { ...cfgDefault, source: { ...cfgDefault.source, [src.id]: 3650 } };
+    expect(signalFeedHealth(sg, sources, loose, seed.asOf)).toBe("ok");
+  });
+
+  it("demoData cho cùng kết quả với seed — demo chỉ thay bảng khách, không đụng điểm đo", () => {
+    for (const sg of demoData.signals) {
+      expect(signalFeedHealth(sg, demoData.sources, cfgDefault, demoData.asOf)).toBe(
+        signalFeedHealth(sg, seed.sources, cfgDefault, seed.asOf),
+      );
+    }
+  });
+});
+
+describe("signalFeedLast", () => {
+  it("chưa nối nguồn trả null — chỗ đọc phải quay về Signal.seen và nói rõ là mốc người khai", () => {
+    for (const sg of seed.signals.filter((s) => s.srcId === null)) {
+      expect(signalFeedLast(sg, seed.sources)).toBeNull();
+    }
+  });
+
+  it("đã nối nguồn trả ĐÚNG mốc giao của nguồn, không phải mốc seen gõ tay của điểm đo", () => {
+    for (const sg of seed.signals.filter((s) => s.srcId !== null)) {
+      const src = seed.sources.find((s) => s.id === sg.srcId);
+      expect(signalFeedLast(sg, seed.sources)).toBe(src?.last);
+    }
   });
 });

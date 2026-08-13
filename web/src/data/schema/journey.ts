@@ -72,6 +72,17 @@ export type Signal = {
   es: string;
   vol: number;
   seen: string | null;
+  /** Nguồn dữ liệu GIAO bản ghi của điểm đo này (`Source.id`), owner chốt 12/08 — lối (i) của §10c.
+      `null` = CHƯA NỐI ĐƯỢC NGUỒN, không phải "không có nguồn": nó là ô trống chờ đội dữ liệu khai,
+      và mọi chỗ đọc field này phải trả "chưa biết" chứ KHÔNG được rơi về "đang ổn" (cùng luật cấm
+      trộn chưa-biết với thiếu ở `data/segment.ts`).
+
+      Vì sao nối tới NGUỒN chứ không thêm `lastRecordAt` riêng cho từng điểm đo: nhịp giao và mốc
+      giao là thuộc tính của LÔ dữ liệu, không phải của một event lẻ — nối vào nguồn thì độ tươi của
+      điểm đo dùng lại đúng bậc thang `sourceHealth()` và đúng ô nhịp giao đã cấu hình ở #/rules,
+      cả app chỉ còn MỘT thành ngữ độ tươi. Mốc máy sinh cho riêng từng điểm đo (§10c, `lastRecordAt`)
+      vẫn là việc của đội dữ liệu và KHÔNG bị field này thay thế. */
+  srcId: string | null;
   metrics: string[];
   desc: string;
   /** Danh sách giá trị RỜI RẠC mà chính điểm đo này bắn ra — khai bởi đội dữ liệu, KHÔNG quét ngược

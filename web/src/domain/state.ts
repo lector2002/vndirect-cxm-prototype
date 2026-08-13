@@ -1,4 +1,4 @@
-import type { Obs, Metric, Source, Action, Cfg, Flow, Step } from "../data/schema/index.ts";
+import type { Obs, Metric, Source, Action, Cfg, Flow, Step, Signal } from "../data/schema/index.ts";
 import { metricDirection } from "../data/metric-direction.ts";
 
 /* Trạng thái suy ra từ ngưỡng — port 1-1 từ prototype (output/cxm-platform-prototype.html).
@@ -126,6 +126,35 @@ export function sourceHealth(s: Source, cfg: Cfg, asOf: string): SourceHealth {
   if (missing >= allow + cfg.data.deadDays) return "down";
   if (s.vol > 0) return "stale";
   return s.kind === "event" ? "stale" : "silent";
+}
+
+/** Độ tươi của một điểm đo, tính BẰNG MÁY thay cho mốc `Signal.seen` người gõ (owner chốt 12/08,
+    lối (i) của handoff §10c). "unknown" KHÔNG phải một bậc của bậc thang — nó là câu trả lời cho
+    một câu hỏi khác hẳn: chưa nối được nguồn thì không có gì để chấm, và rơi về "ok" ở đây đúng là
+    kiểu lỗi biến chưa-biết thành đang-ổn mà dự án cấm. Điểm đo đã nối thì độ tươi của nó CHÍNH LÀ
+    độ tươi của lô dữ liệu chở nó — dùng lại nguyên `sourceHealth()`, không dựng bậc thang thứ hai,
+    để đổi luật ở #/rules là đổi cho cả hai màn. */
+export type SignalFeedHealth = SourceHealth | "unknown";
+
+export function signalFeedHealth(
+  signal: Signal,
+  sources: readonly Source[],
+  cfg: Cfg,
+  asOf: string,
+): SignalFeedHealth {
+  if (signal.srcId === null) return "unknown";
+  const src = sources.find((s) => s.id === signal.srcId);
+  // srcId trỏ vào nguồn không có thật: validate.ts nhóm 7 đã chặn ở cửa dữ liệu, nhưng hàm domain
+  // không giả định fixture nào cũng qua cửa đó — vẫn là "chưa biết", không phải "đang ổn".
+  return src ? sourceHealth(src, cfg, asOf) : "unknown";
+}
+
+/** Mốc giao gần nhất mà MÁY ghi được cho điểm đo — là mốc của nguồn chở nó, không phải mốc riêng
+    từng event. `null` = chưa nối nguồn, chỗ đọc phải quay về `Signal.seen` và nói rõ đó là mốc
+    người khai (điều D6). Mốc máy sinh cho RIÊNG từng điểm đo vẫn là việc chưa có (charter §10). */
+export function signalFeedLast(signal: Signal, sources: readonly Source[]): string | null {
+  if (signal.srcId === null) return null;
+  return sources.find((s) => s.id === signal.srcId)?.last ?? null;
 }
 
 /* Hai trục rời của một flow trên bản đồ hành trình — SUY TẠI CHỖ ĐỌC, không lưu thành field.

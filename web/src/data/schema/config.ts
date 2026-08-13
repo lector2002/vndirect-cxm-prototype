@@ -12,11 +12,15 @@ export type CfgMetricBand = {
   crit: number;
 };
 
+/* `anomalyX` và `repeatMin` ĐÃ BỎ 12/08 (owner quyết, handoff §6): hai field chưa từng có caller
+   nào trong bản React — chỉ có ô nhập ở #/rules ghi vào chúng, không phép tính nào đọc ra. Nối vào
+   phép tính thật thì cần dữ liệu chưa có (`anomalyX` đòi chuỗi volume theo ngày, `repeatMin` đòi log
+   liên hệ theo chủ đề — cả hai nằm trong bản yêu cầu dữ liệu 6 mục, module-i charter §10). Giữ field
+   mà không ai đọc là đúng bẫy "ô cấu hình mồ côi" của dự án: màn hứa một thứ nó không làm. Khi dữ
+   liệu về thì khai lại cùng lúc với chỗ tiêu thụ, không khai trước. */
 export type CfgData = {
   deadDays: number;
-  anomalyX: number;
   cooldown: number;
-  repeatMin: number;
   repeatWarn: number;
   churnWarn: number;
 };

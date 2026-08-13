@@ -16,6 +16,7 @@ function makeSignal(overrides: Partial<Signal> & { id: string; vol: number; valu
     pf: ["ios"],
     es: "client",
     seen: null,
+    srcId: null,
     metrics: [],
     desc: "",
     ...overrides,

@@ -87,6 +87,7 @@ const sig = (id: string, st: Signal["st"]): Signal => ({
   es: "",
   vol: 0,
   seen: null,
+  srcId: null,
   metrics: [],
   desc: "",
   values: [],

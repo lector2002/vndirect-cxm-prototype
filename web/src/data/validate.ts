@@ -178,6 +178,14 @@ export function validateFixture(
 
   /* 7. Signal dòng tiền */
   for (const sg of data.signals) {
+    /* `srcId` trỏ tới một nguồn KHÔNG CÓ THẬT là ca nguy hiểm hơn `srcId: null`: null nói thẳng
+       "chưa nối được nguồn" và mọi chỗ đọc đều trả "chưa biết", còn id lạc thì màn sẽ im lặng rơi
+       về cùng một nhánh trong khi dữ liệu đang khai một quan hệ sai. Chỉ kiểm TỒN TẠI — không kiểm
+       "metrics của signal phải nằm trong metrics của nguồn": luật gán ở seed hôm nay đọc theo
+       metric, nhưng một điểm đo hoàn toàn có thể được giao bởi một nguồn chưa nuôi chỉ số nào. */
+    if (sg.srcId !== null && !data.sources.some((s) => s.id === sg.srcId)) {
+      e.push(`signal ${sg.id}: srcId ${sg.srcId} không tồn tại`);
+    }
     const tp = data.touchpoints.find((tp) => tp.id === sg.tpId);
     if (!tp) { e.push(`signal ${sg.id}: touchpoint ${sg.tpId} không tồn tại`); continue; }
     const step = lookup.steps.get(tp.stepId);
@@ -824,9 +832,11 @@ export function validateFixture(
         unit: "ngày",
         why: "0 làm hai bậc \"đang trễ\" và \"im lặng\" không bao giờ tới được — nguồn vừa quá nhịp một ngày đã bị tuyên Ngừng gửi",
       },
-      "data.anomalyX": { minOpen: true, min: 0, unit: "lần", why: "số lần vượt baseline" },
+      /* `data.anomalyX` và `data.repeatMin` ĐÃ BỎ 12/08 cùng field trong `CfgData` — hai ô mồ côi,
+         không phép tính nào đọc (xem docblock data/schema/config.ts). Xoá dải ở đây là bắt buộc,
+         không phải dọn dẹp thêm: khoá thừa trong bảng này không bị luật nào bắt, nên để lại là dựng
+         sẵn một dải cho field không tồn tại. */
       "data.cooldown": { int: true, min: 0, unit: "ngày", why: "số ngày, hiện nguyên văn trên màn Nguồn dữ liệu" },
-      "data.repeatMin": { int: true, min: 1, unit: "lần", why: "số lần liên hệ" },
       "data.repeatWarn": { min: 0, max: 100, unit: "%", why: "so với repeat contact của điểm gãy, tính bằng %" },
       "data.churnWarn": { int: true, min: 0, unit: "khách", why: "số khách" },
       "anomaly.z": { minOpen: true, min: 0, unit: "σ", why: "điểm bất thường khi |z| ≥ ngưỡng; ở 0 thì mọi điểm tính được đều là bất thường" },
