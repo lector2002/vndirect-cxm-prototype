@@ -352,6 +352,11 @@ vì `validate.ts` nhóm 12 và §14 đang trỏ tới "bất biến 8". Chèn v�
 
 ## 10. Bản yêu cầu dữ liệu — **là deliverable, không phải ghi chú**
 
+> **14/08 — danh sách gộp về một chỗ:** `web/docs/ideal-data-model.md` là bản DUY NHẤT của
+> *"đang cần xin cái gì"*, gộp mục §10 này với nhu cầu phát sinh từ ADR-001 và ADR-002. Bảng dưới
+> đây giữ nguyên làm **lập luận nguồn** (mục nào sinh từ quyết định nào của phiên 07/08); khi gửi
+> đi thì gửi bản gộp, không gửi hai danh sách.
+
 Ba mục phát sinh từ phiên này, phải vào bản yêu cầu gửi bên data:
 
 | Mục | Cần gì | Sinh từ QĐ |

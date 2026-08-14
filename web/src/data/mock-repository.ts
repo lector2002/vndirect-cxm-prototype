@@ -1,4 +1,4 @@
-import type { Action, Cfg, CxmData, Customer, DashSet, Dim, Issue, IssuePri, NavItem, Outcome, OutcomeMeasure, QuantifyItem, QuantifyShow, SigCount, Snapshot, TourStop, Verdict } from "./schema/index.ts";
+import type { Action, Cfg, CxmData, Customer, DashSet, Dim, Issue, NavItem, Outcome, OutcomeMeasure, QuantifyItem, QuantifyShow, SigCount, Snapshot, TourStop, Verdict } from "./schema/index.ts";
 import { cfgDefault, dims, seed, seedApprovers, seedNav, seedOwners, seedTour } from "./fixtures/seed.ts";
 import { validateFixture } from "./validate.ts";
 import { projectCustomerBands } from "./projectBands.ts";
@@ -316,22 +316,16 @@ export class MockRepository implements CxmRepository {
     const iid = `CXI-${num}`;
     const aid = `CXA-${num}`;
 
-    const failed = this.data.obs.find((o) => o.stepId === fields.step)?.failed ?? 0;
-
-    /* Điểm ưu tiên: mức nghiêm trọng + số khách rơi tại bước + mức quan trọng của bước. Ba thành
-       phần còn lại để 0 vì chưa có dữ liệu — thà để 0 còn hơn đoán (port createIssue() prototype
-       ~dòng 4649-4652). total TÍNH bằng tổng, không gõ hằng, để bất biến validateFixture() giữ. */
-    const pri: IssuePri = {
-      sev: { critical: 30, high: 22, medium: 14 }[fields.sev],
-      aff: Math.min(24, Math.round(failed / 100)),
-      jc: 14,
-      rep: 0,
-      tr: 0,
-      reg: 0,
-      total: 0,
-    };
-    pri.total = pri.sev + pri.aff + pri.jc + pri.rep + pri.tr + pri.reg;
-
+    /* KHÔNG còn chấm điểm ở đây (ADR-002 §1, §9). Bản cũ đặt `sev` theo bảng tra, `aff` bằng
+       `min(24, round(obs.failed/100))` và `jc = 14` cứng, rồi để `rep`/`tr`/`reg` = 0 kèm ghi chú
+       "thà để 0 còn hơn đoán". Ba lỗi trong bốn dòng đó:
+         - `aff` lấy theo BƯỚC nên ba điểm gãy trên `s3` nhận cùng một con số (kịch trần 24);
+         - `jc = 14` cho MỌI bước, tức khoá này chưa phân biệt được bước nào với bước nào;
+         - số 0 cho khoá chưa đo được là *chưa-biết viết thành thiếu* — điểm gãy mới xếp thấp hơn
+           thực chất và không màn nào nói vì sao.
+       Điểm nay do `data/priority.ts` tính lúc đọc; điểm gãy mới sinh ra với `sigMap: null` nên
+       `aff` là *chưa tính được*, và nó hiện ở khối "chưa đủ dữ liệu để xếp" của `#/work` cho tới
+       khi owner map điểm đo — đúng chỗ để nhìn thấy việc còn phải làm. */
     const owner = fields.owner || UNASSIGNED;
     const acc = fields.acc || seedApprovers[0];
     const due = fields.due || plusDaysVi(14);
@@ -344,8 +338,8 @@ export class MockRepository implements CxmRepository {
       plain,
       hyp: "Chưa có giả thuyết — điểm gãy mới tạo, chưa nối được bằng chứng.",
       dec: "Chưa đủ căn cứ để duyệt thay đổi. Bổ sung bằng chứng tại bước này trước.",
-      pri,
-      imp: { aff: failed, rep: 0, csat: 0, churn: 0, hv: 0 },
+      sigMap: null,
+      imp: { rep: 0, churn: 0 },
     };
     const action: Action = {
       id: aid, iss: iid, title: `Xử lý: ${title}`, owner, acc, due,

@@ -3,22 +3,32 @@ import type { Obs } from './journey.ts';
 export type IssueSt = 'detecting' | 'investigating' | 'fixing';
 export type IssueSev = 'critical' | 'high' | 'medium';
 
-export type IssuePri = {
-  sev: number;
-  aff: number;
-  jc: number;
+/* BẢY khoá của điểm ưu tiên (ADR-002 §11). Điểm KHÔNG còn nằm trong dữ liệu: `Issue.pri` đã bỏ
+   14/08 cùng cả `IssuePri` — dữ liệu chỉ mang SỐ ĐO, `data/priority.ts` chiếu thành điểm, trọng số
+   và mốc neo ở `cfg.pri` (ADR-002 §1, §2). Ai cần điểm thì gọi `issueScore()`, không đọc field. */
+export type PriKey = 'sev' | 'aff' | 'jc' | 'rep' | 'tr' | 'reg' | 'hv';
+
+/* `aff`, `hv`, `csat` ĐÃ BỎ 14/08:
+   - `aff`/`hv` chuyển thành SỐ ĐO tính được (`issueScore().x`), vì để chúng lại đây là giữ một số
+     gõ tay chạy song song với chính con số công thức đang tính — đúng lệch mà ADR-002 §16 đo được
+     (`CXI-024` khai `imp.aff = 730` bằng đúng `obs.s1.failed`, `CXI-021` khai 312 trên 2650).
+   - `csat` mất chỗ tiêu thụ cuối cùng khi card "Top theo tác động CES" bị bỏ (ADR-002 §12); theo
+     luật không-khai-schema-trước-chỗ-tiêu-thụ thì nó rút luôn, không nằm lại làm field mồ côi.
+   `rep`/`churn` Ở LẠI: chúng là số đếm riêng của nhóm cảnh báo (`AlertGroup`), không phải khoá của
+   công thức ưu tiên — `pri.rep` là một phép đo khác và đang treo (ADR-002 §7). */
+export type IssueImp = {
   rep: number;
-  tr: number;
-  reg: number;
-  total: number;
+  churn: number;
 };
 
-export type IssueImp = {
-  aff: number;
-  rep: number;
-  csat: number;
-  churn: number;
-  hv: number;
+/** Điểm gãy này ứng với GIÁ TRỊ nào của điểm đo nào (ADR-002 §16) — đường duy nhất để đo `aff` là
+    "bao nhiêu KHÁCH gặp phải", thay cho `obs.failed` của cả bước (ba điểm gãy trên `s3` đang nhận
+    cùng một con số vì lấy theo bước). `null` = CHƯA MAP, không phải "không ứng với giá trị nào":
+    `aff` khi đó là *chưa tính được*, không phải 0. Nhiều giá trị ⇒ `aff` là HỢP của các tập khách,
+    không phải tổng lượt bắn (cộng dồn là đếm trùng khách gặp hai lý do). */
+export type IssueSigMap = {
+  sig: string;
+  vals: string[];
 };
 
 export type Issue = {
@@ -35,7 +45,7 @@ export type Issue = {
   plain: string;
   hyp: string;
   dec: string;
-  pri: IssuePri;
+  sigMap: IssueSigMap | null;
   imp: IssueImp;
   cust: string[];
 };

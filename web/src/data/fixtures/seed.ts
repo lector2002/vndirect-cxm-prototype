@@ -613,8 +613,8 @@ const seedRaw: CxmData = {
       plain:'Nhiều khách Android không vượt được bước nhận diện khuôn mặt và phải thử lại hoặc gọi hỗ trợ. Tín hiệu đang tăng nên cần quyết định xử lý ngay.',
       hyp:'SDK 4.8.2 nhạy với ánh sáng yếu trên nhóm Android RAM ≤ 4GB.',
       dec:'Duyệt rollout hướng dẫn theo điều kiện lỗi và thử SDK patch trên 10% traffic.',
-      pri:{ sev:30, aff:22, jc:18, rep:12, tr:8, reg:4, total:94 },
-      imp:{ aff:312, rep:29, csat:-0.9, churn:71, hv:9 },
+      sigMap:null,
+      imp:{ rep:29, churn:71 },
       cust:['KH•••7A2','KH•••1C9','KH•••4B8','KH•••9F1'] },
     { id:'CXI-017', title:'Không rõ trạng thái ký hợp đồng', step:'s5', metric:'m-contract', ins:'VI-02', act:'CXA-017',
       sev:'high', st:'fixing', conf:84,
@@ -622,8 +622,8 @@ const seedRaw: CxmData = {
       plain:'Khách không biết hợp đồng đã được ký hay chưa khi phiên SmartCA hết hạn. Điều này tạo bỏ dở và liên hệ lại.',
       hyp:'CTA và trạng thái SmartCA không phản hồi kịp trước khi session hết hạn.',
       dec:'Chốt sticky CTA, trạng thái theo thời gian thực và đường quay lại phiên ký.',
-      pri:{ sev:22, aff:16, jc:18, rep:9, tr:5, reg:12, total:82 },
-      imp:{ aff:146, rep:18, csat:-0.8, churn:19, hv:4 },
+      sigMap:null,
+      imp:{ rep:18, churn:19 },
       cust:['KH•••8B4','KH•••9F1'] },
     { id:'CXI-013', title:'Chụp CCCD thất bại nhưng thiếu hướng dẫn', step:'s2', metric:'m-ocr', ins:'VI-03', act:'CXA-013',
       sev:'medium', st:'fixing', conf:72,
@@ -631,8 +631,8 @@ const seedRaw: CxmData = {
       plain:'Bản cập nhật reason code đã phát hành. Hệ thống đang theo dõi evidence coverage để người phụ trách xác nhận thay đổi có đủ hiệu quả hay chưa.',
       hyp:'Thông báo lỗi chung không phân biệt chói, mờ và sai khung.',
       dec:'Theo dõi reason code sau phát hành và xác nhận evidence coverage đạt mục tiêu trước khi mở rộng hướng dẫn.',
-      pri:{ sev:14, aff:18, jc:14, rep:6, tr:-4, reg:20, total:68 },
-      imp:{ aff:228, rep:11, csat:-0.4, churn:12, hv:2 },
+      sigMap:null,
+      imp:{ rep:11, churn:12 },
       cust:['KH•••5F6'] },
     { id:'CXI-024', title:'Rớt sớm tại bước nhập SĐT từ traffic banner', step:'s1', metric:'m-completion', ins:null, act:'CXA-024',
       sev:'high', st:'detecting', conf:58,
@@ -640,8 +640,8 @@ const seedRaw: CxmData = {
       plain:'Khách vào từ banner rớt ngay bước đầu sau khoảng 8 giây. Chưa có verbatim nên chưa rõ nguyên nhân, độ tin cậy còn thấp.',
       hyp:'Kỳ vọng từ nội dung banner không khớp với việc phải nhập SĐT ngay.',
       dec:'Chưa đủ căn cứ để duyệt thay đổi. Cần bổ sung khảo sát micro tại bước 01 trước.',
-      pri:{ sev:20, aff:24, jc:10, rep:2, tr:6, reg:0, total:62 },
-      imp:{ aff:730, rep:3, csat:-0.2, churn:8, hv:1 },
+      sigMap:null,
+      imp:{ rep:3, churn:8 },
       cust:[] },
     { id:'CXI-026', title:'Khách 50+ cần hỗ trợ bước quay mặt', step:'s3', metric:'m-liveness', ins:'VI-01', act:'CXA-026',
       sev:'medium', st:'investigating', conf:64,
@@ -649,8 +649,8 @@ const seedRaw: CxmData = {
       plain:'Nhóm khách lớn tuổi khó tự hoàn thành bước quay mặt và đề nghị có kênh làm tại quầy.',
       hyp:'Thao tác liveness giả định khách tự cầm máy và tự canh khung.',
       dec:'Cần quyết định liên phòng ban về việc mở kênh hỗ trợ tại quầy. Chưa đưa vào Control Tower kỳ này.',
-      pri:{ sev:12, aff:8, jc:14, rep:5, tr:2, reg:6, total:47 },
-      imp:{ aff:64, rep:22, csat:-0.5, churn:9, hv:6 },
+      sigMap:null,
+      imp:{ rep:22, churn:9 },
       cust:['KH•••2C8'] },
     { id:'CXI-028', title:'Zalo OA ngừng gửi dữ liệu từ 19/07', step:'s3', metric:'m-repeat', ins:null, act:'CXA-028',
       sev:'high', st:'fixing', conf:99,
@@ -658,8 +658,8 @@ const seedRaw: CxmData = {
       plain:'Webhook Zalo OA lỗi từ 19/07 nên repeat contact đang bị đếm thiếu. Mọi số liệu liên hệ lại trong kỳ này đều thấp hơn thực tế.',
       hyp:'Token webhook hết hạn sau lần đổi cấu hình 18/07.',
       dec:'Khôi phục webhook và backfill dữ liệu 8 ngày trước khi dùng số repeat contact để ra quyết định.',
-      pri:{ sev:22, aff:6, jc:8, rep:0, tr:0, reg:14, total:50 },
-      imp:{ aff:0, rep:0, csat:0, churn:0, hv:0 },
+      sigMap:null,
+      imp:{ rep:0, churn:0 },
       cust:[] },
   ],
   act: [
@@ -856,8 +856,12 @@ const seedRaw: CxmData = {
       qs:[
         { q:'Hành trình đang gãy ở đâu?',
           sub:'Chỉ pilot Mở tài khoản có dữ liệu quan sát. 31 flow còn lại mới map cấu trúc, chưa đo.', b:['@journeystate'] },
-        { q:'Điểm gãy nào đáng xử lý trước?',
-          sub:'Bốn cách xếp hạng khác nhau — thứ tự đổi theo cách xếp, và đó là thông tin.', b:['@toppri'] },
+        /* Đổi 14/08 (ADR-002 §17). Câu cũ "Điểm gãy nào đáng xử lý trước?" nay là câu của `#/work`
+           và CHỈ của `#/work` — ba bảng ở đây đều xếp theo một THÀNH PHẦN của cùng điểm ưu tiên đó,
+           nên để hai chỗ cùng hỏi một câu là hai câu trả lời khác nhau chạy song song. Chữ "Bốn"
+           cũng phải đổi: card "tác động CES" đã bỏ (§12), còn ba. */
+        { q:'Từng khoá ưu tiên đang chỉ vào điểm gãy nào?',
+          sub:'Ba cách xếp hạng khác nhau — thứ tự đổi theo cách xếp, và đó là thông tin.', b:['@toppri'] },
         { q:'Ta đo được bao nhiêu phần hành trình?',
           sub:'Thấy thất bại mà không biết lý do cũng là một dạng mù.', b:['@coverage'] },
       ] },
@@ -961,7 +965,28 @@ export const seedOwners: string[] = ["Minh Quân", "Linh Trần", "Hà Vũ", "Th
 export const seedApprovers: string[] = ["Head of Onboarding", "Head of Growth", "Head of CX", "Head of Risk", "Data Platform Lead"];
 
 export const cfgDefault: Cfg = {
-  step: { failWatch: 5, failCrit: 15, covMin: 70, effortMax: 2.0 },
+  /* `jc`/`reg` RỖNG là trạng thái ĐÚNG, không phải fixture chưa làm xong (ADR-002 §5, §6): mức
+     quan trọng và rủi ro pháp lý của một bước là phán đoán của owner, không phải số đo — điền sẵn
+     vài giá trị "cho có" là bịa ra chính thứ bản đồ này sinh ra để bỏ. Hệ quả nhìn thấy ngay: cả
+     sáu điểm gãy seed thiếu `jc` và `reg` nên nằm ở khối "chưa đủ dữ liệu để xếp" của `#/work` —
+     và khối đó CHÍNH LÀ danh sách 30 ô owner phải điền (§19). */
+  step: { failWatch: 5, failCrit: 15, covMin: 70, effortMax: 2.0, jc: {}, reg: {} },
+  /* Trọng số bảy khoá, cộng lại đúng 100 (`data/validate.ts` canh). Giữ THỨ TỰ NẶNG NHẸ của bộ số
+     cũ đang chạy (sev 30 > aff 22 > jc 18 > rep 12 > tr 8 > reg 4) và chèn `hv` — khoá thứ bảy
+     (§11) — vào giữa. Không phát minh lại tương quan: ADR-002 §3 chỉ chốt THANG, không chốt bộ số,
+     và đây là ô owner sửa được nên một bộ khởi điểm hợp lý đủ dùng. */
+  pri: {
+    w: { sev: 24, aff: 22, jc: 16, hv: 12, rep: 10, tr: 8, reg: 8 },
+    /* Mốc neo: giá trị nào của số đo thì chiếu chạm 1,0. `aff` 1.000 khách, `hv` 50 khách,
+       `tr` ±50%. `rep` neo theo `cfg.data.repeatWarn` (đã có, không khai lại ở đây). */
+    anchor: { aff: 1000, hv: 50, tr: 50 },
+  },
+  /* "Khách giá trị cao" mặc định = hai dải NAV cao nhất. Chọn `nav` chứ không `tier` vì `nav` cắt
+     ngưỡng nên nhãn dải SINH từ `segment.band.nav.cuts` ngay bên dưới — danh sách luôn đóng và
+     luôn khớp. `tier` là string tự do chưa có danh mục đóng (`segment.values` không có entry), nên
+     bộ chọn ở đó chỉ liệt kê được giá trị tình cờ có trong dữ liệu (ADR-002 §10). Hai nhãn dưới đây
+     phải khớp `bandLabels(segment.band.nav)` — `data/validate.ts` canh, không tin vào việc gõ đúng. */
+  hv: { dim: "nav", values: ["1-5tỷ", "5tỷ+"] },
   metric: {
     "m-completion": { on: true, watch: 72, crit: 68 },
     "m-liveness": { on: true, watch: 90, crit: 85 },

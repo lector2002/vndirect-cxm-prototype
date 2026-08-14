@@ -47,9 +47,13 @@ const primary017 = getPrimaryAction(action017, outcomeOf(action017.id), loopClos
 const blocked017 = advanceBlockedReason(action017, outcomeOf(action017.id));
 
 const SEV_COLOR = "var(--crit)";
+/* Câu điểm ưu tiên do CONTAINER tính (WorkPage) và truyền xuống — IssueBar chỉ render. Test dùng
+   một chuỗi cố định vì việc cần nghiệm thu ở tầng này là "chuỗi được truyền có lên đúng chỗ";
+   phép tính ra chuỗi đó là việc của WorkPage.test.tsx. */
+const PRI_LABEL = "Ưu tiên 41 · thiếu 5/7";
 
 describe("IssueBar", () => {
-  it("render root testid + tiêu đề + Ưu tiên {pri.total}", () => {
+  it("render root testid + tiêu đề + câu điểm ưu tiên container truyền vào", () => {
     render(
       <IssueBar
         issue={issue021}
@@ -58,13 +62,14 @@ describe("IssueBar", () => {
         primary={primary021}
         blockedReason={blocked021}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
       />,
     );
     const root = screen.getByTestId(`issue-bar-${issue021.id}`);
     expect(root).toBeInTheDocument();
     expect(root).toHaveTextContent(issue021.title);
-    expect(root).toHaveTextContent(`Ưu tiên ${issue021.pri.total}`);
+    expect(root).toHaveTextContent(PRI_LABEL);
   });
 
   it("stage='fix': ô stage-fix có aria-current='step', các ô khác không có", () => {
@@ -76,6 +81,7 @@ describe("IssueBar", () => {
         primary={primary028}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
       />,
     );
@@ -95,6 +101,7 @@ describe("IssueBar", () => {
         primary={primary013}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
       />,
     );
@@ -114,6 +121,7 @@ describe("IssueBar", () => {
         primary={primary024}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
       />,
     );
@@ -134,6 +142,7 @@ describe("IssueBar", () => {
         primary={primary021}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={onAdvance}
       />,
     );
@@ -155,6 +164,7 @@ describe("IssueBar", () => {
         primary={primary017}
         blockedReason={blocked017}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={onAdvance}
       />,
     );
@@ -177,6 +187,7 @@ describe("IssueBar", () => {
         primary={primary021}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
       />,
     );
@@ -193,6 +204,7 @@ describe("IssueBar", () => {
         primary={primary013}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
       />,
     );
@@ -209,6 +221,7 @@ describe("IssueBar", () => {
         primary={primary021}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
       />,
     );
@@ -225,6 +238,7 @@ describe("IssueBar", () => {
         primary={primary021}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
         onOpenIssue={onOpenIssue}
       />,
@@ -243,6 +257,7 @@ describe("IssueBar", () => {
         primary={primary021}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
       />,
     );
@@ -261,6 +276,7 @@ describe("IssueBar", () => {
         primary={primary024}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={onAdvance}
         onConfirm={onConfirm}
       />,
@@ -284,6 +300,7 @@ describe("IssueBar", () => {
         primary={primary024}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
       />,
     );
@@ -304,6 +321,7 @@ describe("IssueBar", () => {
         primary={primary028}
         blockedReason={null}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
         onConfirm={onConfirm}
       />,
@@ -321,6 +339,7 @@ describe("IssueBar", () => {
         primary={primary021}
         blockedReason={blocked021}
         sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
         onAdvance={() => {}}
         onOpenIssue={() => {}}
       />,

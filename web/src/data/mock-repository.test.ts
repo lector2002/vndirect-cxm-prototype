@@ -4,6 +4,7 @@ import { demoData, recountDemoSignals } from "./fixtures/demo.ts";
 import { seed } from "./fixtures/seed.ts";
 import { metricDirection } from "./metric-direction.ts";
 import { SIG_CUST_DIMS, SIG_FIRE_DIM } from "./projectSignalCounts.ts";
+import { issueScore } from "./priority.ts";
 import type { CreateIssueFields } from "./repository.ts";
 
 describe("MockRepository", () => {
@@ -271,11 +272,19 @@ describe("MockRepository", () => {
       expect(repo.validate()).toEqual([]);
     });
 
-    it("createIssue: pri.total = tổng 6 thành phần (tính lại trong test)", () => {
+    /* Điểm gãy mới KHÔNG mang điểm nào (ADR-002 §1): bản cũ gán sẵn `sev` theo bảng tra,
+       `aff` theo `obs.failed` của cả bước và `jc = 14` cứng, rồi để ba khoá còn lại bằng 0. Test này
+       chốt điều ngược lại: không field điểm nào được sinh ra, và `sigMap` là null (chưa map điểm
+       đo) nên `aff` sẽ là *chưa tính được* chứ không phải 0. */
+    it("createIssue: không sinh điểm ưu tiên, sigMap null, aff chưa tính được", () => {
       const { issue } = repo.createIssue(baseFields);
-      const saved = repo.getSnapshot().iss.find((i) => i.id === issue.id)!;
-      const sum = saved.pri.sev + saved.pri.aff + saved.pri.jc + saved.pri.rep + saved.pri.tr + saved.pri.reg;
-      expect(saved.pri.total).toBe(sum);
+      const snap = repo.getSnapshot();
+      const saved = snap.iss.find((i) => i.id === issue.id)!;
+      expect(saved.sigMap).toBeNull();
+      expect(saved).not.toHaveProperty("pri");
+      const score = issueScore(saved, snap, repo.getCfg(), repo.getDims());
+      expect(score.x.aff).toBeNull();
+      expect(score.missing).toContain("aff");
       expect(repo.validate()).toEqual([]);
     });
 

@@ -30,7 +30,6 @@ const LANES: { k: LaneKey; n: string; l: string }[] = [
 ];
 
 export function LanesBlock({ data, onGo }: LanesBlockProps) {
-  const issOf = (id: string) => data.iss.find((i) => i.id === id);
   const inWork = data.act.filter((a) => laneOf(a) !== "off").length;
 
   return (
@@ -44,9 +43,11 @@ export function LanesBlock({ data, onGo }: LanesBlockProps) {
     >
       <div className="grid grid-cols-4 gap-3">
         {LANES.map((L) => {
-          const list = data.act
-            .filter((a) => laneOf(a) === L.k)
-            .sort((x, y) => (issOf(y.iss)?.pri.total ?? 0) - (issOf(x.iss)?.pri.total ?? 0));
+          /* `.sort()` theo `pri.total` ĐÃ BỎ 14/08 cùng field: kết quả sắp xếp chưa từng được hiện
+             ra — thẻ làn chỉ in `list.length`. Nó là code chết từ trước, chỉ lộ ra khi field biến
+             mất. Không dựng lại bằng `issueScore()`: thứ tự việc phải làm chỉ nói ở `#/work`
+             (ADR-002 §17), khối này đếm chứ không xếp. */
+          const list = data.act.filter((a) => laneOf(a) === L.k);
           const hot = L.k === "confirm" && list.length > 0;
           return (
             <button

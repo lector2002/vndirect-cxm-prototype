@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { seed } from "../../data/fixtures/seed.ts";
+import { cfgDefault, dims, seed } from "../../data/fixtures/seed.ts";
+import { PRI_KEYS, PRI_LABEL, isRankable, scoreIssues } from "../../data/priority.ts";
 import { getPrimaryAction } from "../../domain/index.ts";
 import { navLabel } from "../../nav.tsx";
 import { WorkPage } from "./WorkPage.tsx";
@@ -19,27 +20,64 @@ const pend = seed.act.filter((a) => a.cf === "confirmed" && a.ap === "pending").
 const closed = seed.act.filter((a) => a.lc === "closed").length;
 const waitLoop = seed.act.filter((a) => a.iv === "validated" && a.lc !== "closed").length;
 
-const openRows = seed.act
+/* Hai khối, không một danh sách (ADR-002 §19). Điểm gãy đủ 7/7 khoá xuống khối trên và xếp theo
+   điểm; còn thiếu khoá thì xuống khối "chưa đủ dữ liệu để xếp", sắp theo SỐ KHOÁ CÒN THIẾU tăng dần.
+   Test suy lại bằng chính `scoreIssues`, không ghim id nào: seed hôm nay chưa điền `cfg.step.jc`/`reg`
+   và chưa map điểm đo nên khối trên RỖNG — điền vào seed sau này là test tự đi theo. */
+const scores = scoreIssues(seed, cfgDefault, dims);
+const scoreOf = (id: string) => scores.get(id)!;
+
+const allRows = seed.act
   .filter((a) => a.lc !== "closed")
-  .map((a) => ({ action: a, issue: seed.iss.find((i) => i.id === a.iss)! }))
-  .sort((x, y) => y.issue.pri.total - x.issue.pri.total);
+  .map((a) => ({ action: a, issue: seed.iss.find((i) => i.id === a.iss)! }));
+
+const openRows = allRows
+  .filter((r) => isRankable(scoreOf(r.issue.id)))
+  .sort((x, y) => scoreOf(y.issue.id).total - scoreOf(x.issue.id).total);
+
+const pendingRows = allRows
+  .filter((r) => !isRankable(scoreOf(r.issue.id)))
+  .sort((x, y) => scoreOf(x.issue.id).missing.length - scoreOf(y.issue.id).missing.length);
 
 describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () => {
-  it(`render đúng ${openRows.length} thanh, action đã closed (lc:'closed') không có mặt`, () => {
+  it(`render đúng ${allRows.length} thanh trên cả hai khối, action đã closed không có mặt`, () => {
     render(<WorkPage />);
     const closedAction = seed.act.find((a) => a.lc === "closed")!;
     expect(screen.queryByTestId(`issue-bar-${seed.iss.find((i) => i.act === closedAction.id)!.id}`)).not.toBeInTheDocument();
 
     const bars = screen.getAllByTestId(/^issue-bar-/);
-    expect(bars).toHaveLength(openRows.length);
+    expect(bars).toHaveLength(allRows.length);
   });
 
-  it("thứ tự thanh giảm dần theo pri.total", () => {
+  it("khối trên xếp giảm dần theo điểm; khối dưới xếp theo số khoá còn thiếu", () => {
     render(<WorkPage />);
     const bars = screen.getAllByTestId(/^issue-bar-/);
     const domIds = bars.map((el) => el.getAttribute("data-testid"));
-    const expectedIds = openRows.map((r) => `issue-bar-${r.issue.id}`);
+    const expectedIds = [...openRows, ...pendingRows].map((r) => `issue-bar-${r.issue.id}`);
     expect(domIds).toEqual(expectedIds);
+  });
+
+  it("mỗi thanh chưa đủ khoá ghi rõ thiếu khoá nào, khớp missing của scoreIssues", () => {
+    render(<WorkPage />);
+    for (const r of pendingRows) {
+      const line = screen.getByTestId(`work-missing-${r.issue.id}`);
+      for (const k of scoreOf(r.issue.id).missing) {
+        expect(line.textContent).toContain(PRI_LABEL[k]);
+      }
+    }
+  });
+
+  it("câu điểm ưu tiên trên thanh luôn kèm số khoá đã tính, không bao giờ chỉ con số", () => {
+    render(<WorkPage />);
+    for (const r of allRows) {
+      const s = scoreOf(r.issue.id);
+      const bar = screen.getByTestId(`issue-bar-${r.issue.id}`);
+      expect(bar.textContent).toContain(
+        s.missing.length === 0
+          ? `Ưu tiên ${s.total} · đủ ${PRI_KEYS.length}/${PRI_KEYS.length}`
+          : `Ưu tiên ${s.total} · thiếu ${s.missing.length}/${PRI_KEYS.length}`,
+      );
+    }
   });
 
   /* Hai phép đếm này trước nằm trong câu mở đầu cỡ lớn; owner bỏ khối đó ngày 06/08 và chọn dời
@@ -91,7 +129,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   // ĐẶT CUỐI CÙNG: mutate singleton store, ảnh hưởng state cho mọi test chạy SAU trong file này.
   it("bấm advance của action KHÔNG bị chặn → state đổi, nút đổi nhãn sang bước kế tiếp", () => {
     render(<WorkPage />);
-    const unblocked = openRows.find((r) => seed.out.find((o) => o.act === r.action.id && o.verdict === "inconclusive") === undefined)!;
+    const unblocked = allRows.find((r) => seed.out.find((o) => o.act === r.action.id && o.verdict === "inconclusive") === undefined)!;
     const btn = screen.getByTestId(`advance-${unblocked.action.id}`);
     const labelBefore = btn.textContent;
     fireEvent.click(btn);

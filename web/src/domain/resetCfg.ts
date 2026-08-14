@@ -25,6 +25,8 @@ export function resetCfgPatch(current: Cfg, def: Cfg): Cfg {
 
   return {
     step: structuredClone(def.step),
+    pri: structuredClone(def.pri),
+    hv: structuredClone(def.hv),
     metric: structuredClone(def.metric),
     source: structuredClone(def.source),
     data: structuredClone(def.data),

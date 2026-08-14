@@ -41,11 +41,15 @@ describe("validateFixture", () => {
     expect(r.some((e) => e.includes("step s-nonexistent"))).toBe(true);
   });
 
-  it("3: priority.total sai", () => {
+  /* Bất biến "tổng thành phần === total" đã bỏ cùng field (ADR-002 §1). Luật thay chỗ nó: `sigMap`
+     — liên kết điểm gãy → giá trị điểm đo — phải trỏ vào giá trị CÓ TRONG BẢN KHAI của điểm đo đó.
+     Không canh thì một giá trị gõ sai sẽ đếm ra 0 khách và `aff` đọc thành "không ai bị ảnh hưởng". */
+  it("3: sigMap trỏ giá trị không có trong bản khai của điểm đo", () => {
     const d = structuredClone(seed) as CxmData;
-    d.iss[0] = { ...d.iss[0], pri: { ...d.iss[0].pri, total: 999 } };
+    const sig = d.signals.find((x) => x.values.length > 0)!;
+    d.iss[0] = { ...d.iss[0], sigMap: { sig: sig.id, vals: ["gia-tri-khong-ton-tai"] } };
     const r = validateFixture(d, dims, seedNav, seedTour);
-    expect(r.some((e) => e.includes("priority.total"))).toBe(true);
+    expect(r.some((e) => e.includes("gia-tri-khong-ton-tai"))).toBe(true);
   });
 
   /* Group 4: Action */

@@ -2,8 +2,6 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { seed } from "../../data/fixtures/seed.ts";
 import { useCxmStore } from "../../store/store.ts";
-import { fx } from "../../domain/index.ts";
-import { nf } from "../../design-system/format.ts";
 import { SEV_LABEL } from "./WorkCreateForm.tsx";
 import { WorkConfirmForm } from "./WorkConfirmForm.tsx";
 
@@ -56,7 +54,10 @@ describe("WorkConfirmForm", () => {
     expect(screen.getByText("Mức")).toBeInTheDocument();
     expect(screen.getByText(SEV_LABEL[issue.sev])).toBeInTheDocument();
     expect(screen.getByText("Khách bị ảnh hưởng")).toBeInTheDocument();
-    expect(screen.getByText(nf(fx(issue.imp.aff)))).toBeInTheDocument();
+    /* `imp.aff` gõ tay đã bỏ (ADR-002 §16) và số đo thật chưa về — ô này phải nói "chưa tính
+       được", KHÔNG được in số 0: người đang xác nhận một điểm gãy mà đọc "0 khách" sẽ kết luận
+       ngược hẳn sự thật. */
+    expect(screen.getByText("chưa tính được")).toBeInTheDocument();
     expect(screen.getByText("Bằng chứng")).toBeInTheDocument();
   });
 

@@ -1,5 +1,5 @@
 import type { CxmData, Dim, NavItem, TourStop, Cfg } from "./schema/index.ts";
-import type { Step, Metric, Evidence, Issue, Action, Source, Survey, VoiceInsight, QuantifyItem, DashSet, Flow, Customer, Outcome, Snapshot, Group, Phase, Agent, TaxNode } from "./schema/index.ts";
+import type { Step, Metric, Evidence, Issue, Action, Source, Survey, VoiceInsight, QuantifyItem, DashSet, Flow, Customer, Outcome, Snapshot, Group, Phase, Agent, TaxNode, Signal, StepLevel } from "./schema/index.ts";
 import type { CfgBandAxis, SigCount } from "./schema/index.ts";
 import { CUST_NUM, CUST_CAT } from "./rawFields.ts";
 import { BLOCKS } from "./blocks.ts";
@@ -67,6 +67,7 @@ export function validateFixture(
     groups: byId<Group>(data.groups),
     phases: byId<Phase>(data.phases),
     agents: byId<Agent>(data.ag),
+    signals: byId<Signal>(data.signals),
   };
 
   /* 1. ID trùng */
@@ -121,8 +122,23 @@ export function validateFixture(
     for (const k of i.cust) {
       if (!lookup.cust.has(k)) e.push(`${i.id}: khách ${k} không có trong fixture`);
     }
-    const sum = i.pri.sev + i.pri.aff + i.pri.jc + i.pri.rep + i.pri.tr + i.pri.reg;
-    if (sum !== i.pri.total) e.push(`${i.id}: priority.total = ${i.pri.total} nhưng tổng thành phần = ${sum}`);
+    /* Bất biến "sev+aff+jc+rep+tr+reg === total" ĐÃ BỎ 14/08 (ADR-002 §1): nó canh phép cộng của
+       một dãy số GÕ TAY, nên xanh suốt trong khi hai điểm gãy mang điểm `sev` lệch khỏi chính bảng
+       tra của code (`CXI-024` 20 thay vì 22, `CXI-026` 12 thay vì 14). Điểm nay là hàm tính
+       (`data/priority.ts`), không còn dãy số nào trong dữ liệu để cộng lại. */
+    if (i.sigMap) {
+      const sig = lookup.signals.get(i.sigMap.sig);
+      if (!sig) e.push(`${i.id}: sigMap trỏ điểm đo ${i.sigMap.sig} không tồn tại`);
+      else if (i.sigMap.vals.length === 0) {
+        e.push(`${i.id}: sigMap khai điểm đo ${sig.id} nhưng không giá trị nào — bỏ hẳn sigMap nếu chưa map, để aff là "chưa tính được"`);
+      } else {
+        for (const v of i.sigMap.vals) {
+          if (!sig.values.includes(v)) {
+            e.push(`${i.id}: sigMap trỏ giá trị "${v}" không có trong bản khai của điểm đo ${sig.id}`);
+          }
+        }
+      }
+    }
   }
 
   /* 4. Action — thứ tự trạng thái */
@@ -840,6 +856,12 @@ export function validateFixture(
       "data.repeatWarn": { min: 0, max: 100, unit: "%", why: "so với repeat contact của điểm gãy, tính bằng %" },
       "data.churnWarn": { int: true, min: 0, unit: "khách", why: "số khách" },
       "anomaly.z": { minOpen: true, min: 0, unit: "σ", why: "điểm bất thường khi |z| ≥ ngưỡng; ở 0 thì mọi điểm tính được đều là bất thường" },
+      /* Trọng số bảy khoá ưu tiên (ADR-002 §3). Dải từng ô là 0–100; TỔNG bằng 100 là một luật
+         khác, nằm ở nhóm 25 bên dưới — bảng này chỉ nói về một leaf số một mình. */
+      "pri.w.*": { min: 0, max: 100, unit: "% quyết định", why: "phần trăm sức nặng của một khoá; bảy khoá cộng lại đúng 100" },
+      "pri.anchor.aff": { int: true, minOpen: true, min: 0, unit: "khách", why: "số khách ứng với mức tối đa của khoá; ở 0 thì mọi điểm gãy có khách đều kịch trần" },
+      "pri.anchor.hv": { int: true, minOpen: true, min: 0, unit: "khách", why: "số khách giá trị cao ứng với mức tối đa; ở 0 thì mọi điểm gãy đều kịch trần" },
+      "pri.anchor.tr": { minOpen: true, min: 0, unit: "%", why: "mức thay đổi ứng với mức tối đa; ở 0 thì mọi thay đổi dù nhỏ đều kịch trần" },
     };
 
     const specFor = (path: string[]): { key: string; spec: NumRange } | null => {
@@ -901,6 +923,63 @@ export function validateFixture(
         (spec.max !== undefined && v > spec.max);
       if (bad) {
         e.push(`${pathLabel(path, key)} = ${String(v)} không hợp lệ: phải là ${describe(spec)} — ${spec.why}`);
+      }
+    }
+  }
+
+  /* 25. Điểm ưu tiên — trọng số, mốc "khách giá trị cao", và hai bảng mức theo bước (ADR-002).
+
+     Vì sao TÁCH khỏi nhóm 24: nhóm 24 canh MỘT leaf số một mình (dải hợp lệ). Ba luật ở đây nói về
+     QUAN HỆ — bảy trọng số cộng lại 100, nhãn "giá trị cao" phải là nhãn dải có thật của chiều đã
+     chọn, khoá của `step.jc`/`step.reg` phải là bước có thật. Không luật nào trong số đó nhìn thấy
+     được từ một con số đứng riêng.
+
+     Cả ba đều đi qua `MockRepository.setCfg()` như mọi luật khác trong khối này, nên sửa sai trên
+     #/rules bị chặn tại chỗ ghi và câu lỗi in nguyên văn vào ô "Không ghi được cấu hình" của đúng
+     nhóm vừa sửa — người vận hành không bao giờ thấy một cấu hình nửa vời chạy trên màn. */
+  if (cfg) {
+    const PRI_KEYS_V: readonly string[] = ["sev", "aff", "jc", "rep", "tr", "reg", "hv"];
+    const wKeys = Object.keys(cfg.pri?.w ?? {});
+    for (const k of PRI_KEYS_V) {
+      if (!wKeys.includes(k)) e.push(`cfg.pri.w: thiếu trọng số cho khoá "${k}" — bảy khoá phải có đủ, không khoá nào được rơi ra ngoài im lặng`);
+    }
+    for (const k of wKeys) {
+      if (!PRI_KEYS_V.includes(k)) e.push(`cfg.pri.w["${k}"]: không phải khoá ưu tiên nào — bảy khoá là ${PRI_KEYS_V.join(", ")}`);
+    }
+    /* Cộng lại ĐÚNG 100 là thứ làm trọng số tự đọc được thành "khoá này chiếm bao nhiêu phần trăm
+       quyết định". Tổng 94 (đúng bộ số cũ đang chạy) vẫn xếp hạng ra kết quả y hệt, nhưng lúc đó
+       con số 22 trên màn không còn nghĩa nào nói ra được — và đó là toàn bộ lý do có thang này. */
+    const wSum = Object.values(cfg.pri?.w ?? {}).reduce((a: number, b: number) => a + b, 0);
+    if (wKeys.length > 0 && Math.round(wSum * 100) / 100 !== 100) {
+      e.push(`cfg.pri.w: bảy trọng số cộng lại = ${String(Math.round(wSum * 100) / 100)}, phải đúng 100 — không đủ 100 thì con số từng ô không còn đọc được thành phần trăm quyết định`);
+    }
+
+    const hvDim = dims[cfg.hv?.dim ?? ""];
+    if (!hvDim) {
+      e.push(`cfg.hv.dim = "${String(cfg.hv?.dim)}": không có chiều nào tên vậy trong dims`);
+    } else if (hvDim.base !== "cust" || !hvDim.cut) {
+      e.push(`cfg.hv.dim = "${cfg.hv.dim}": không phải chiều khách chia được (thiếu base:'cust' hoặc cut) — "khách giá trị cao" phải đếm được trên một chiều của khách`);
+    }
+    /* KHÔNG kiểm nhãn trong `cfg.hv.values` có tồn tại hay không — cố ý, và đây là một lối đã thử
+       rồi bỏ trong chính phiên này. Nhãn dải SINH từ `cfg.segment.band[dim].cuts`, nên hễ owner
+       thêm một ranh giới NAV là nhãn cũ ("5tỷ+" → "5-8tỷ" + "8tỷ+") chết theo. Bắt nó ở đây thành
+       lỗi bất biến nghĩa là `setCfg` chặn luôn việc SỬA RANH GIỚI — khoá mất một tính năng owner
+       đã chốt ở Module E, chỉ để canh một chuỗi.
+
+       Chỗ đúng để xử lý là phép đo: `measureHv` (data/priority.ts) trả *chưa tính được* khi khai
+       báo đã lệch khỏi bộ nhãn hiện tại — không đếm một phần rồi im. Cùng luật không trộn
+       chưa-biết với thiếu, chỉ áp ở tầng đọc thay vì tầng chặn. */
+
+    const LEVELS = new Set<string>(["low", "mid", "high"]);
+    for (const field of ["jc", "reg"] as const) {
+      const m: Record<string, StepLevel> = cfg.step?.[field] ?? {};
+      for (const [stepId, lv] of Object.entries(m)) {
+        if (!lookup.steps.has(stepId)) {
+          e.push(`cfg.step.${field}["${stepId}"]: không có bước nào id vậy — mức khai cho một bước không tồn tại thì không điểm gãy nào đọc tới`);
+        }
+        if (!LEVELS.has(lv)) {
+          e.push(`cfg.step.${field}["${stepId}"] = "${String(lv)}": mức không hợp lệ (phải là low, mid hoặc high)`);
+        }
       }
     }
   }

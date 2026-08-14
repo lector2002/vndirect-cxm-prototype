@@ -1,9 +1,30 @@
+import type { PriKey } from './cxm.ts';
+
 // ----- CFG_DEFAULT -----
+
+/** Ba mức của `jc` (mức quan trọng của bước) và `reg` (rủi ro pháp lý) — ADR-002 §5, §6. Thang ba
+    mức chứ không phải số tự do: owner phải điền 24 lần, và "cao hơn một chút" giữa hai bước không
+    phải phán đoán ai giữ được nhất quán qua 24 lần. */
+export type StepLevel = 'low' | 'mid' | 'high';
+
 export type CfgStep = {
   failWatch: number;
   failCrit: number;
   covMin: number;
   effortMax: number;
+  /** Mức quan trọng của TỪNG BƯỚC, keyed theo `Step.id`. Thuộc tính của BƯỚC nên khai một lần cho
+      mọi bước, không gõ lại theo từng điểm gãy — mọi điểm gãy trên cùng bước thừa hưởng, không có
+      đường cho hai chỗ lệch nhau (ADR-002 §5).
+
+      THIẾU ENTRY LÀ HỢP LỆ VÀ CÓ NGHĨA: `jc` của điểm gãy trên bước đó là *chưa tính được* (§9),
+      **không có mặc định**. Một mặc định là phán đoán trá hình — "bước này quan trọng vừa" là câu
+      khẳng định, không phải chỗ trống. Đây là chỗ khác biệt với `cfg.source` (thiếu entry rơi về
+      một hằng): ở đó hằng là một CHÍNH SÁCH SLA chung hợp lý, ở đây không có cái tương đương. */
+  jc: Record<string, StepLevel>;
+  /** Rủi ro pháp lý / tuân thủ của TỪNG BƯỚC. Cùng khuôn `jc`, cùng luật thiếu-entry (ADR-002 §6).
+      Giá đã biết trước khi chốt: hai điểm gãy trên cùng bước luôn cùng mức, kể cả khi một cái chạm
+      KYC còn cái kia chỉ là giao diện. */
+  reg: Record<string, StepLevel>;
 };
 
 export type CfgMetricBand = {
@@ -65,8 +86,48 @@ export type CfgSegment = {
   values: Record<string, string[]>;
 };
 
+/** Trọng số bảy khoá + mốc neo của điểm ưu tiên (ADR-002 §2, §3). Đây là chỗ owner sửa được trên
+    `#/rules` nhóm 6 — lý do lối "pipeline tính sẵn điểm" bị bác: trọng số nằm ngoài `cfg` thì mỗi
+    lần đổi là một ticket cho bên dữ liệu.
+
+    `w` CỘNG LẠI ĐÚNG 100 (`data/validate.ts` canh) để trọng số tự đọc thành "khoá này chiếm bao
+    nhiêu phần trăm quyết định". `norm` (chiếu số đo về 0..1) KHÔNG ở đây — nó cố định trong code
+    (`data/priority.ts`), vì hình dạng phép chiếu là quyết định thiết kế, không phải ô vận hành. */
+export type CfgPri = {
+  w: Record<PriKey, number>;
+  /** Mốc neo của ba khoá chiếu tuyến tính: giá trị nào của số đo thì `norm` chạm 1,0. Ở `cfg` chứ
+      không hằng trong code vì "1.000 khách là nhiều" là một phán đoán về quy mô nghiệp vụ, đổi theo
+      lô dữ liệu. `rep` neo theo `cfg.data.repeatWarn` (đã có), `sev`/`jc`/`reg` là bảng tra bậc. */
+  anchor: {
+    /** Số KHÁCH bị ảnh hưởng ứng với `norm = 1,0`. Trên mốc thì kẹp trần. */
+    aff: number;
+    /** Số khách GIÁ TRỊ CAO ứng với `norm = 1,0`. */
+    hv: number;
+    /** Thay đổi tương đối (%) ứng với `norm = 1,0`. `tr` âm được (đang đỡ) nên chiếu về [-1, 1]. */
+    tr: number;
+  };
+};
+
+/** "Khách giá trị cao" là gì — owner khai, KHÔNG chốt cứng trong code (ADR-002 §10).
+
+    CẢNH BÁO ĐỘ CHẮC, đã ghi ở ADR và phải nhắc lại tại chỗ khai: hai chiều không cùng độ chắc.
+    `nav` cắt ngưỡng nên nhãn dải SINH từ `cfg.segment.band.nav.cuts` — danh sách luôn đóng, luôn
+    đủ. `tier` là string tự do, `cfg.segment.values` chưa có entry, `validate` không kiểm giá trị
+    lạ ⇒ bộ chọn chỉ liệt kê được các giá trị TÌNH CỜ CÓ trong dữ liệu, và một lỗi gõ ở nguồn đẻ ra
+    một "tier" mới mà không ai báo. Mặc định vì vậy là `nav`. */
+export type CfgHv = {
+  /** Id chiều khách trong `dims` (phải có `base:'cust'` và `cut`). */
+  dim: string;
+  /** Nhãn nhóm nào của chiều đó được coi là giá trị cao. Rỗng ⇒ `hv` là *chưa tính được*, không
+      phải 0: "chưa khai ai là khách giá trị cao" khác "không có khách giá trị cao nào". */
+  values: string[];
+};
+
 export type Cfg = {
   step: CfgStep;
+  /** ADR-002 §15: khai CÙNG LÚC với `data/priority.ts` và nhóm 6 mở khoá, không sớm hơn. */
+  pri: CfgPri;
+  hv: CfgHv;
   metric: Record<string, CfgMetricBand>;
   /** Nhịp giao của từng nguồn, keyed theo id nguồn: SỐ NGÀY dữ liệu nguồn được phép còn thiếu so
       với mốc số liệu `asOf` mà vẫn coi là "đang nhận". ĐƠN VỊ LÀ NGÀY — đổi 11/08 (owner, giải C5);

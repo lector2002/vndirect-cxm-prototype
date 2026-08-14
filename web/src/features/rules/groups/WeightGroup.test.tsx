@@ -1,38 +1,68 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { PRI_KEYS, isRankable, scoreIssues } from "../../../data/priority.ts";
 import { useCxmStore } from "../../../store/store.ts";
 import { WeightGroup } from "./WeightGroup.tsx";
 
-/* Ghim bất biến "chỉ đọc" của nhóm Trọng số ưu tiên — đây là thứ dễ bị một phiên sau vô tình nới ra
-   (charter mục "Vì sao nhóm 6 chỉ đọc"): fixture lưu điểm TUYỆT ĐỐI và validateFixture() khẳng định
-   sev+aff+jc+rep+tr+reg===total, nên sửa một trọng số tại đây mà không tính lại total sẽ bắn banner
-   đỏ trên mọi màn. Test này canh thẳng KHÔNG có control ghi nào, không đoán qua tên biến. */
+/* Nhóm 6 MỞ KHOÁ 14/08 (ADR-002 §13). Bộ test cũ ghim bất biến ngược lại — "không render bất kỳ
+   input/select/button nào" — với lý do fixture lưu điểm tuyệt đối và `validate` canh tổng thành
+   phần. Lý do đó chết cùng `iss[].pri`, nên bất biến cũng phải chết, không được để lại làm luật mồ
+   côi ghim một màn chỉ-đọc mà ADR vừa yêu cầu mở.
 
-const PRI_KEYS = ["sev", "aff", "jc", "rep", "tr", "reg"] as const;
+   Ba thứ đáng canh ở đây, không cái nào là "có ô nhập hay không":
+     1. đủ BẢY ô, một ô cho mỗi khoá — thiếu ô là một khoá không sửa được mà không ai báo;
+     2. tổng ≠ 100 thì KHÔNG lưu được — đây là ràng buộc duy nhất giữa bảy ô;
+     3. bảng xem trước dùng CHÍNH `scoreIssues`, nên nó không thể nói khác `#/work`. */
 
-describe("WeightGroup — bảng 6 thành phần ưu tiên, chỉ đọc", () => {
-  it("không render bất kỳ input / select / checkbox nào", () => {
+describe("WeightGroup — trọng số sửa được, xem trước trước khi lưu", () => {
+  it("render đúng một ô nhập cho mỗi khoá ưu tiên", () => {
     const { container } = render(<WeightGroup />);
-    expect(container.querySelectorAll("input").length).toBe(0);
-    expect(container.querySelectorAll("select").length).toBe(0);
-    expect(container.querySelectorAll('[type="checkbox"]').length).toBe(0);
-    expect(container.querySelectorAll("button").length).toBe(0);
+    expect(container.querySelectorAll("input").length).toBe(PRI_KEYS.length);
   });
 
-  it("in đúng điểm cao nhất của từng thành phần, đối chiếu bằng phép max tính độc lập", () => {
+  it("trọng số mặc định cộng lại đúng 100, đọc lại từ cfg chứ không ghim số", () => {
     render(<WeightGroup />);
-    const { data } = useCxmStore.getState();
-    for (const k of PRI_KEYS) {
-      const expected = Math.max(...data.iss.map((i) => i.pri[k]));
-      const row = screen.getByTestId(`weight-row-${k}`);
-      expect(row.textContent).toContain(String(expected));
-    }
+    const { cfg } = useCxmStore.getState();
+    const sum = PRI_KEYS.reduce((a, k) => a + cfg.pri.w[k], 0);
+    expect(sum).toBe(100);
+    expect(screen.getByTestId("weight-sum").textContent).toContain(`Tổng: ${sum}`);
   });
 
-  it("luật 11/08: đã bỏ ghi chú luận giải, bất biến chỉ đọc vẫn giữ qua việc không có control ghi nào", () => {
+  it("sửa một ô làm tổng lệch 100 → nút lưu bị khoá và nói còn thiếu bao nhiêu", () => {
     const { container } = render(<WeightGroup />);
-    expect(screen.queryByText(/Vì sao nhóm này chỉ đọc/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Rủi ro pháp lý là thành phần đặc thù/)).not.toBeInTheDocument();
-    expect(container.querySelectorAll("input, select, button").length).toBe(0);
+    const { cfg } = useCxmStore.getState();
+    const first = container.querySelectorAll("input")[0] as HTMLInputElement;
+    const lowered = cfg.pri.w[PRI_KEYS[0]] - 5;
+
+    fireEvent.change(first, { target: { value: String(lowered) } });
+    fireEvent.blur(first);
+
+    expect(screen.getByTestId("weight-apply")).toBeDisabled();
+    expect(screen.getByTestId("weight-sum").textContent).toContain("còn 5 nữa mới đủ 100");
+    // cfg KHÔNG bị ghi khi bản nháp còn sai — bản nháp sống trong nhóm, không rò ra store.
+    expect(useCxmStore.getState().cfg.pri.w[PRI_KEYS[0]]).toBe(cfg.pri.w[PRI_KEYS[0]]);
+  });
+
+  it("bảng xem trước khớp đúng kết quả của scoreIssues, tính độc lập trong test", () => {
+    render(<WeightGroup />);
+    const { data, cfg, dims } = useCxmStore.getState();
+    const scores = scoreIssues(data, cfg, dims);
+    const rankable = data.iss.filter((i) => {
+      const s = scores.get(i.id);
+      return s !== undefined && isRankable(s);
+    });
+
+    if (rankable.length === 0) {
+      /* Trạng thái ĐÚNG của seed hôm nay: chưa ai điền `cfg.step.jc`/`reg` và chưa map điểm đo nên
+         không điểm gãy nào đủ 7/7. Test đi theo dữ liệu chứ không ghim nhánh — điền `jc`/`reg` vào
+         seed sau này là nhánh dưới tự nhận việc, không phải sửa test. */
+      expect(screen.getByTestId("weight-preview-empty")).toBeInTheDocument();
+      return;
+    }
+    for (const i of rankable) {
+      expect(screen.getByTestId(`weight-rank-${i.id}`).textContent).toContain(
+        String(scores.get(i.id)?.total),
+      );
+    }
   });
 });

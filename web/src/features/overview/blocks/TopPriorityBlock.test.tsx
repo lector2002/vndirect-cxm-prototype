@@ -1,65 +1,83 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import { cfgDefault, seed } from "../../../data/fixtures/seed.ts";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { cfgDefault, dims, seed } from "../../../data/fixtures/seed.ts";
+import { PRI_LABEL, scoreIssues } from "../../../data/priority.ts";
+import type { PriKey } from "../../../data/schema/index.ts";
 import { TopPriorityBlock } from "./TopPriorityBlock.tsx";
 
-/* Số suy từ seed (đối chiếu độc lập bằng oracle jiti, không phải giả).
-   CXI-013 KHÔNG còn trong bảng: action CXA-013 có lc:'closed' từ 02/08/2026, block lọc
-   `lc !== 'closed'`. Giữ lại (013) trong ngoặc để thấy chính xác nó rơi ra ở đâu:
-   imp.aff  → CXI-024(730) > CXI-021(312) > [CXI-013(228) loại] > CXI-017(146) > CXI-026(64) > CXI-028(0)
-   imp.hv   → CXI-021(9)   > CXI-026(6)   > CXI-017(4)   > [CXI-013(2) loại]  > CXI-024(1)  > CXI-028(0)
-   |csat|*10→ CXI-021(9)   > CXI-017(8)   > CXI-026(5)   > [CXI-013(4) loại]  > CXI-024(2)  > CXI-028(0)
-   pri.reg  → [CXI-013(20) loại] > CXI-028(14) > CXI-017(12) > CXI-026(6) > CXI-021(4) > CXI-024(0)
-   → mỗi bảng 5 dòng (không phải 6). Đầu bảng: CXI-024 / CXI-021 / CXI-021 / CXI-028.
-   Bảng 4 ĐỔI người dẫn đầu (013 → 028) vì 013 chính là đỉnh của pri.reg; ba bảng còn lại giữ
-   nguyên đầu bảng vì 013 chỉ đứng thứ 3-4 ở đó. */
+/* Bộ test cũ ghim thứ hạng thành số cụ thể (`imp.aff → CXI-024(730) > CXI-021(312) > …`) vì mọi số
+   đó là hằng gõ tay trong fixture. Chúng biến mất cùng `iss[].pri` và `imp.aff`/`imp.hv`/`imp.csat`
+   (ADR-002 §1, §12, §16), nên bộ test này suy lại toàn bộ từ chính `scoreIssues`.
+
+   BA card, không bốn: "Top theo tác động CES" đã bỏ (§12) — nó đọc `imp.csat` gõ tay và không nối
+   với `m-ces` bằng đường code nào. */
+
+const CARDS: readonly PriKey[] = ["aff", "hv", "reg"];
+
+/* "Đang mở" = có action chưa khép vòng — cùng vị từ mà block dùng, suy lại chứ không chép số. */
+const open = seed.iss.filter((i) => {
+  const a = seed.act.find((x) => x.id === i.act);
+  return a !== undefined && a.lc !== "closed";
+});
+const scores = scoreIssues(seed, cfgDefault, dims);
+const measured = (k: PriKey) => open.filter((i) => scores.get(i.id)?.x[k] !== null);
+
 describe("TopPriorityBlock", () => {
-  it("render đúng 4 card xếp hạng", () => {
-    render(<TopPriorityBlock data={seed} cfg={cfgDefault} />);
-    expect(screen.getByText("Top theo số khách ảnh hưởng")).toBeInTheDocument();
-    expect(screen.getByText("Top theo khách giá trị cao")).toBeInTheDocument();
-    expect(screen.getByText("Top theo tác động CES")).toBeInTheDocument();
-    expect(screen.getByText("Top theo rủi ro tuân thủ")).toBeInTheDocument();
+  it("render đúng ba card, mỗi card một khoá ưu tiên", () => {
+    render(<TopPriorityBlock data={seed} cfg={cfgDefault} dims={dims} />);
+    for (const k of CARDS) {
+      expect(screen.getByText(`Top theo ${PRI_LABEL[k].toLowerCase()}`)).toBeInTheDocument();
+    }
+    expect(screen.getAllByTestId("bars")).toHaveLength(CARDS.length);
   });
 
-  it("thứ tự điểm gãy KHÁC nhau giữa ít nhất 2 cách xếp hạng — suy độc lập từ seed", () => {
-    render(<TopPriorityBlock data={seed} cfg={cfgDefault} />);
+  it("card CES đã bỏ hẳn — không còn tiêu đề lẫn đơn vị của nó", () => {
+    render(<TopPriorityBlock data={seed} cfg={cfgDefault} dims={dims} />);
+    expect(screen.queryByText(/tác động CES/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/điểm CES × 10/)).not.toBeInTheDocument();
+  });
+
+  it("mỗi card chỉ liệt kê điểm gãy ĐO ĐƯỢC trục đó, không xếp cái chưa tính được xuống cuối", () => {
+    render(<TopPriorityBlock data={seed} cfg={cfgDefault} dims={dims} />);
     const bars = screen.getAllByTestId("bars");
-    expect(bars).toHaveLength(4);
-    // Card 1 (khách ảnh hưởng): CXI-024 đứng đầu
-    expect(bars[0].children[0]!.textContent).toContain("Rớt sớm tại bước nhập SĐT từ traffic banner");
-    // Card 2 (khách giá trị cao): CXI-021 đứng đầu — KHÁC card 1
-    expect(bars[1].children[0]!.textContent).toContain("Liveness thất bại lặp lại trên Android");
-    /* Card 4 (rủi ro tuân thủ): CXI-028 đứng đầu — khác cả card 1 và card 2, nên ý của test (4 cách
-       xếp hạng cho ra thứ tự khác nhau) vẫn được chứng minh. Trước 02/08/2026 đây là CXI-013, nó
-       chính là đỉnh pri.reg=20 nhưng đã khép vòng (lc:'closed') nên rời bảng, nhường cho 028(14). */
-    expect(bars[3].children[0]!.textContent).toContain("Zalo OA ngừng gửi dữ liệu từ 19/07");
-    // Neo luôn việc 013 KHÔNG xuất hiện ở bất kỳ card nào — nếu ai bỏ vế lc!=='closed' thì test này đỏ.
-    for (const b of bars) {
-      expect(b.textContent).not.toContain("Chụp CCCD thất bại nhưng thiếu hướng dẫn");
+    CARDS.forEach((k, idx) => {
+      expect(bars[idx].children).toHaveLength(Math.min(measured(k).length, 10));
+    });
+  });
+
+  it("phần chưa tính được của mỗi card được ĐẾM RA CHỮ, không im lặng biến mất", () => {
+    render(<TopPriorityBlock data={seed} cfg={cfgDefault} dims={dims} />);
+    for (const k of CARDS) {
+      const unmeasured = open.length - measured(k).length;
+      if (unmeasured === 0) continue;
+      expect(
+        screen.getAllByText(new RegExp(`${unmeasured} chưa tính được trục này`)).length,
+      ).toBeGreaterThan(0);
     }
   });
 
-  it("mỗi card hiện đúng 'Đang hiện Top 5 trên 5 điểm gãy' (6 issue, 1 đã khép vòng nên bị loại)", () => {
-    render(<TopPriorityBlock data={seed} cfg={cfgDefault} />);
-    expect(screen.getAllByText(/Đang hiện Top 5/).length).toBe(4);
-    expect(screen.getAllByText(/trên 5 điểm gãy/).length).toBe(4);
-    // Mẫu số 5 phải suy được từ seed, không phải hằng chép tay: 6 issue − 1 action lc:'closed'.
-    const open = seed.iss.filter((i) => seed.act.find((a) => a.id === i.act)?.lc !== "closed");
-    expect(open.length).toBe(5);
+  it("điểm gãy đã khép vòng không có mặt ở card nào", () => {
+    render(<TopPriorityBlock data={seed} cfg={cfgDefault} dims={dims} />);
+    const closedAct = seed.act.find((a) => a.lc === "closed");
+    if (!closedAct) return;
+    const closedIssue = seed.iss.find((i) => i.act === closedAct.id);
+    if (!closedIssue) return;
+    for (const b of screen.getAllByTestId("bars")) {
+      expect(b.textContent).not.toContain(closedIssue.title);
+    }
   });
 
-  it("bấm một hàng gọi onGo('issue/<id>') đúng id được bấm", () => {
-    const onGo = vi.fn();
-    render(<TopPriorityBlock data={seed} cfg={cfgDefault} onGo={onGo} />);
+  it("thứ tự trong mỗi card giảm dần theo chính số đo của khoá đó", () => {
+    render(<TopPriorityBlock data={seed} cfg={cfgDefault} dims={dims} />);
     const bars = screen.getAllByTestId("bars");
-    fireEvent.click(bars[0].children[0]!);
-    expect(onGo).toHaveBeenCalledWith("issue/CXI-024");
-  });
-
-  it("không truyền onGo: hàng không có role=button (không crash, không điều hướng)", () => {
-    render(<TopPriorityBlock data={seed} cfg={cfgDefault} />);
-    const bars = screen.getAllByTestId("bars");
-    expect(bars[0].children[0]).not.toHaveAttribute("role");
+    CARDS.forEach((k, idx) => {
+      const expected = measured(k)
+        .slice()
+        .sort((a, b) => (scores.get(b.id)?.x[k] as number) - (scores.get(a.id)?.x[k] as number))
+        .slice(0, 10);
+      expected.forEach((i, row) => {
+        expect(bars[idx].children[row]?.textContent).toContain(i.title);
+      });
+    });
   });
 });

@@ -18,6 +18,11 @@ export type IssueBarProps = {
   blockedReason: string | null;
   /** Màu chấm mức độ nghiêm trọng — container truyền vào, design-system KHÔNG tự suy ngữ nghĩa domain. */
   sevColor: string;
+  /** Câu điểm ưu tiên, container tính sẵn bằng `issueScore()` — vd `Ưu tiên 72 · đủ 7/7` hoặc
+      `Ưu tiên 24 · thiếu 5/7`. LUÔN mang cả số khoá đã tính, không bao giờ chỉ mang con số
+      (ADR-002 §9): một điểm gãy thiếu khoá có điểm thấp hơn thực chất, và con số trần trụi không
+      nói được điều đó. Chuỗi chứ không phải object vì tầng này chỉ render. */
+  priLabel: string;
   onAdvance: () => void;
   onOpenIssue?: () => void;
   /** Khi stage==='confirm' VÀ prop này được truyền: CTA đổi sang "Xác nhận điểm gãy" (không phải
@@ -53,7 +58,7 @@ const STAGE_CLASS: Record<StageStatus, string> = {
 
 const TITLE_CLASS = "text-[13.5px] font-semibold leading-snug";
 
-export function IssueBar({ issue, action, stage, primary, blockedReason, sevColor, onAdvance, onOpenIssue, onConfirm }: IssueBarProps) {
+export function IssueBar({ issue, action, stage, primary, blockedReason, sevColor, priLabel, onAdvance, onOpenIssue, onConfirm }: IssueBarProps) {
   // stage='off' đã ra khỏi 4 chặng xử lý → cả 4 ô đều "đã qua", không ô nào aria-current.
   const currentIndex = stage === "off" ? STAGES.length : STAGES.findIndex((s) => s.key === stage);
   const blocked = blockedReason !== null;
@@ -75,7 +80,7 @@ export function IssueBar({ issue, action, stage, primary, blockedReason, sevColo
           <span className={`${TITLE_CLASS} min-w-0 truncate`}>{issue.title}</span>
         )}
         <span className="ml-auto flex-none text-[12px] font-semibold text-ink-3 whitespace-nowrap">
-          {`Ưu tiên ${issue.pri.total}`}
+          {priLabel}
         </span>
       </div>
 

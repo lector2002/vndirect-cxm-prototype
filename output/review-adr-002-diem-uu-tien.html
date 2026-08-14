@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Review ADR-002 — Điểm ưu tiên thành công thức</title>
+<style>
+:root{
+  --primary:#c9491a; --primary-soft:#fbeee6; --primary-line:#e9c6ae;
+  --bg:#f3f0ea; --surface:#fff; --surface2:#efebe3; --line:#ddd6ca; --line-soft:#ebe6dc;
+  --ink:#171310; --ink2:#4c443c; --ink3:#7e756a;
+  --watch:#8a5a04; --watch-bg:#fbf6e6; --watch-line:#e4d59a;
+  --crit:#a52218; --crit-bg:#fbeeec; --crit-line:#eec4bd;
+  --good:#3a5c10; --good-bg:#f5f8ec; --good-line:#d7e2bc;
+  --info:#28587f; --info-bg:#eff5fa; --info-line:#c9dced;
+  --radius:12px;
+  --shadow:0 1px 2px rgba(23,19,16,.05), 0 10px 26px rgba(23,19,16,.07);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14.5px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px}
+.wrap{max-width:940px;margin:0 auto;padding:26px 20px 90px}
+h1{font-size:23px;margin:0 0 5px;letter-spacing:-.2px}
+.sub{color:var(--ink3);font-size:13px;margin:0 0 20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:17px 19px;margin:0 0 15px}
+h2{font-size:16.5px;margin:0 0 10px}
+h3{font-size:13px;margin:16px 0 7px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em}
+
+/* ---- formula ---- */
+.formula{background:var(--surface2);border:1px solid var(--line);border-radius:9px;
+  padding:14px 16px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;
+  overflow-x:auto;white-space:pre;line-height:1.75}
+
+/* ---- tally ---- */
+.tally{display:flex;gap:9px;flex-wrap:wrap;margin:0 0 16px}
+.tbox{flex:1 1 150px;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:11px 13px}
+.tbox b{display:block;font-size:24px;line-height:1.1;letter-spacing:-.5px}
+.tbox span{font-size:12px;color:var(--ink3)}
+.tbox.you b{color:var(--good)} .tbox.rev b{color:var(--watch)}
+.tbox.csq b{color:var(--ink3)} .tbox.def b{color:var(--info)}
+
+/* ---- filter ---- */
+.bar{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:0 0 15px;
+  position:sticky;top:0;background:var(--bg);padding:11px 0;z-index:5;
+  border-bottom:1px solid var(--line-soft)}
+button{font:inherit;cursor:pointer}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink2);
+  border-radius:999px;padding:5px 13px;font-size:12.5px}
+.chip[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.prog{margin-left:auto;font-size:12.5px;color:var(--ink3)}
+.prog b{color:var(--ink)}
+
+/* ---- section ---- */
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin:0 0 12px;overflow:hidden}
+.sec.hide{display:none}
+.sechead{display:flex;gap:12px;align-items:flex-start;padding:14px 17px;cursor:pointer}
+.sechead:hover{background:#fcfbf9}
+.num{flex:none;width:30px;height:30px;border-radius:8px;background:var(--surface2);
+  color:var(--ink2);display:grid;place-items:center;font-weight:600;font-size:13px;
+  font-family:ui-monospace,Menlo,Consolas,monospace}
+.stitle{flex:1;min-width:0}
+.stitle .t{font-weight:600;font-size:15px;margin:0 0 4px}
+.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;
+  border:1px solid;margin-right:6px;white-space:nowrap}
+.b-you{color:var(--good);background:var(--good-bg);border-color:var(--good-line)}
+.b-rev{color:var(--watch);background:var(--watch-bg);border-color:var(--watch-line)}
+.b-csq{color:var(--ink3);background:var(--surface2);border-color:var(--line)}
+.b-def{color:var(--info);background:var(--info-bg);border-color:var(--info-line)}
+.caret{flex:none;color:var(--ink3);font-size:12px;padding-top:6px;transition:transform .12s}
+.sec.open .caret{transform:rotate(90deg)}
+.body{display:none;padding:2px 17px 17px 59px;border-top:1px solid var(--line-soft)}
+.sec.open .body{display:block}
+.body p{margin:11px 0}
+.body ul{margin:10px 0;padding-left:20px}
+.body li{margin:5px 0}
+.rule{background:var(--good-bg);border:1px solid var(--good-line);border-radius:9px;
+  padding:11px 13px;margin:12px 0}
+.rule .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--good);
+  font-weight:600;margin-bottom:4px}
+.no{background:var(--crit-bg);border:1px solid var(--crit-line);border-radius:9px;
+  padding:11px 13px;margin:11px 0;font-size:13.5px}
+.no .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--crit);
+  font-weight:600;margin-bottom:4px}
+.warn{background:var(--watch-bg);border:1px solid var(--watch-line);border-radius:9px;
+  padding:11px 13px;margin:11px 0;font-size:13.5px}
+.mark{display:flex;gap:8px;margin:14px 0 0;padding-top:12px;border-top:1px dashed var(--line)}
+.mk{border:1px solid var(--line);background:var(--surface);border-radius:8px;
+  padding:5px 12px;font-size:12.5px;color:var(--ink2)}
+.mk[aria-pressed=true].ok{background:var(--good-bg);border-color:var(--good-line);color:var(--good);font-weight:600}
+.mk[aria-pressed=true].re{background:var(--crit-bg);border-color:var(--crit-line);color:var(--crit);font-weight:600}
+/* Trạng thái đánh dấu: đổi màu ô số + nhuộm nền rất nhạt.
+   Không dùng viền màu một bên — đọc thành thanh trang trí, không thành trạng thái. */
+.sec.done{border-color:var(--good-line);background:linear-gradient(var(--good-bg),var(--good-bg))}
+.sec.done .num{background:var(--good-bg);color:var(--good);border:1px solid var(--good-line)}
+.sec.done .sechead:hover{background:#f1f6e7}
+.sec.flag{border-color:var(--crit-line);background:linear-gradient(var(--crit-bg),var(--crit-bg))}
+.sec.flag .num{background:var(--crit-bg);color:var(--crit);border:1px solid var(--crit-line)}
+.sec.flag .sechead:hover{background:#f8e7e4}
+
+table{width:100%;border-collapse:collapse;margin:11px 0;font-size:13.5px}
+th,td{text-align:left;padding:7px 9px;border-top:1px solid var(--line-soft);vertical-align:top}
+th{color:var(--ink3);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.tw{overflow-x:auto}
+.note{background:var(--info-bg);border:1px solid var(--info-line);border-radius:9px;
+  padding:12px 14px;margin:13px 0;font-size:13.5px}
+.foot{color:var(--ink3);font-size:12.5px;margin-top:22px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>ADR-002 — Điểm ưu tiên điểm gãy tính bằng công thức</h1>
+<p class="sub">20 mục · 14/08/2026 · nguồn <code>web/docs/adr-002-diem-uu-tien-thanh-cong-thuc.md</code>
++ <code>.scratch/diem-uu-tien-thanh-cong-thuc/map.md</code> · chưa dòng code nào trong <code>web/</code></p>
+
+<div class="card">
+  <h2>Cái đang sửa</h2>
+  <p>Màn <b>Bảng xử lý</b> (<code>#/work</code>) sắp danh sách điểm gãy theo một con số:
+  <code>pri.total</code>. Sáu điểm gãy hiện có điểm <b>94 · 82 · 68 · 62 · 50 · 47</b> — con số đó
+  quyết định <b>việc nào làm trước</b>, và hôm nay nó <b>được gõ tay vào file dữ liệu</b>.</p>
+  <div class="formula">CXI-021:  sev 30 + aff 22 + jc 18 + rep 12 + tr 8 + reg 4  =  94   ← gõ tay</div>
+  <p>Sau khi sửa, nó là hàm:</p>
+  <div class="formula">total = Σ  w[k] · norm[k](x[k])            0–100, trọng số cộng lại 100
+k ∈ { sev · aff · jc · rep · tr · reg · hv }
+
+x[k]     số đo        →  dữ liệu
+norm[k]  chuẩn hoá    →  cố định trong code, 0..1
+w[k]     trọng số     →  cfg, bạn sửa trên #/rules</div>
+  <div class="tw"><table>
+    <thead><tr><th>Bạn khai một lần</th><th>Máy tự đo</th></tr></thead>
+    <tbody>
+      <tr><td><code>jc</code> + <code>reg</code> cho 24 bước</td>
+          <td><code>aff</code> từ giá trị điểm đo</td></tr>
+      <tr><td>nhãn <code>sev</code> cho từng điểm gãy</td>
+          <td><code>hv</code> từ <code>cfg.hv</code> · <code>tr</code> từ <code>obsTrend</code></td></tr>
+      <tr><td>map điểm gãy → giá trị điểm đo</td>
+          <td>trọng số nhân · tổng · thứ hạng</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Không còn ai gõ điểm.</b></p>
+</div>
+
+<div class="card">
+  <h2>Ba lỗi thật bản đồ này bắt được</h2>
+  <ul>
+    <li><b><code>aff</code> cho ba điểm gãy trên bước <code>s3</code> nhận cùng một điểm 24</b>
+      (kịch trần) vì công thức lấy <code>obs.failed</code> của cả bước — thực tế chúng chạm
+      <b>312 · 64 · 0</b> khách.</li>
+    <li><b>Điểm <code>sev</code> gõ tay đã trôi khỏi bảng tra của chính code.</b> Bảng là
+      {critical 30 · high 22 · medium 14}, nhưng <code>CXI-024</code> (high) → <b>20</b> và
+      <code>CXI-026</code> (medium) → <b>12</b>. <code>validate</code> không bắt vì chỉ kiểm tổng.</li>
+    <li><b>Card “Top theo tác động CES” không đọc CES.</b> Nó đọc <code>imp.csat</code> — số âm gõ
+      tay — rồi nhân 10. Không có đường code nào nối với <code>m-ces</code>.</li>
+  </ul>
+</div>
+
+<h3>Cần bạn xem tới mức nào</h3>
+<div class="tally">
+  <div class="tbox you"><b>11</b><span>bạn đã chốt trực tiếp</span></div>
+  <div class="tbox rev"><b>5</b><span>uỷ quyền — cần bạn xem</span></div>
+  <div class="tbox csq"><b>2</b><span>hệ quả, không phải phán đoán mới</span></div>
+  <div class="tbox def"><b>2</b><span>hoãn, chờ ngoài repo</span></div>
+</div>
+<div class="note"><b>Nếu ít thời gian:</b> bấm chip <b>Cần bạn xem</b> — chỉ <b>5 mục</b>
+(§4 · §8 · §9 · §13 · §15) là ruling tôi tự chốt mà bạn chưa nhìn. 11 mục kia là câu bạn đã trả lời,
+2 mục là hệ quả logic không có chỗ để chọn khác, 2 mục đang chờ người ngoài trả lời.</div>
+
+<div class="bar">
+  <button class="chip" data-f="all" aria-pressed="true">Tất cả 20</button>
+  <button class="chip" data-f="rev" aria-pressed="false">Cần bạn xem 5</button>
+  <button class="chip" data-f="you" aria-pressed="false">Bạn đã chốt 11</button>
+  <button class="chip" data-f="csq" aria-pressed="false">Hệ quả 2</button>
+  <button class="chip" data-f="def" aria-pressed="false">Hoãn 2</button>
+  <span class="prog" id="prog">chưa đánh dấu mục nào</span>
+</div>
+
+<div id="list"></div>
+
+<div class="card" id="out">
+  <h2>Hai câu phải chuyển ra ngoài repo</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Cho ai</th><th>Câu</th><th>Mặc định trong lúc chờ</th></tr></thead>
+    <tbody>
+      <tr><td>Bên hệ thống case</td>
+        <td>Case có gắn được với <b>bước hành trình</b> hoặc với <b>lý do thất bại cụ thể</b> không,
+            gắn bằng trường nào? <span style="color:var(--ink3)">(§7)</span></td>
+        <td><code>rep</code> là <b>chưa tính được</b>, không phải 0</td></tr>
+      <tr><td>CX Insight</td>
+        <td>Khảo sát CES chấm được theo <b>từng điểm gãy</b> không, hay chỉ có điểm trung bình toàn
+            bộ? <span style="color:var(--ink3)">(§20)</span></td>
+        <td>CES <b>không</b> có mặt trong công thức — bảy khoá, không tám</td></tr>
+    </tbody>
+  </table></div>
+  <p>Cả hai <b>không chặn dựng</b>: mặc định của cả hai là <i>chưa tính được</i>, không phải một con
+  số bịa.</p>
+</div>
+
+<div class="card">
+  <h2>Ngoài phạm vi — ghi để không tái tranh luận</h2>
+  <ul>
+    <li><b>Lưu vết ai đổi <code>cfg</code> lúc nào.</b> Hôm nay <code>cfg</code> không có audit cho
+      <b>bất kỳ nhóm nào</b> trong bảy nhóm. Đây là câu về cả <code>cfg</code>, không riêng nhóm 6 —
+      mở audit cho một nhóm là để lại một nhóm cư xử khác sáu nhóm kia.</li>
+    <li><b>Module tuỳ biến <code>tier</code></b> (Module E-e) · <b>màn <code>#/issue/:id</code></b>
+      (Module B, HOÃN) · <b>rework Bảng xử lý</b> (Module H, HOÃN) · <b>cơ chế ngưỡng metric</b>
+      (đang chạy đúng, ADR này chỉ đọc).</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h2>Còn một cửa trước khi giao việc</h2>
+  <p><code>/flow</code> đòi mọi mặt người dùng thấy phải có <b>spec thị giác khoá</b>. Ba mặt chưa
+  có: nhóm 6 trên <code>#/rules</code> (ô trọng số + xem trước thứ hạng) · <code>@toppri</code> đổi
+  tiêu đề và bỏ một card · <code>#/work</code> chia hai khối.</p>
+</div>
+
+<p class="foot">Đánh dấu chỉ sống trong tab này — đóng trang là mất. Chốt lại bằng lời cho tôi.</p>
+</div>
+
+<script>
+/* Nội dung 20 mục. `k`: you = owner chốt trực tiếp · rev = uỷ quyền cần xem ·
+   csq = hệ quả logic · def = hoãn chờ ngoài repo. */
+var SECS=[
+{n:1,k:'you',t:'Điểm ưu tiên là HÀM TÍNH trong app, từ số đo thô',
+ rule:'Dữ liệu chỉ mang SỐ ĐO. Tầng <code>data/</code> chiếu thành điểm. Bỏ hẳn trường <code>total</code> và cả sáu thành phần khỏi dữ liệu. Trọng số + mốc neo ở <code>cfg</code>.',
+ body:'<p><b>Hệ quả:</b> bất biến <code>validate.ts:124-125</code> biến mất; lý do <i>“vì sao nhóm 6 chỉ đọc”</i> (<code>module-g-rules-charter.md:160-165</code>) <b>hết hiệu lực</b> — charter đó phải sửa khi dựng; đổi trọng số ⇒ thứ hạng đổi ngay, đúng khuôn ranh giới dải NAV đang chạy.</p>',
+ no:'<b>Bác “pipeline SQL tính, app chỉ đọc”</b> dù nó đọc luật 11/08 chặt nhất: trọng số nằm ngoài <code>cfg</code> thì bạn không sửa được trên màn, mỗi lần đổi là một ticket cho bên dữ liệu. Luật 11/08 cấm app <b>tự nghĩ ra luật</b>, không cấm app <b>áp luật bạn đã khai</b> — <code>metricState()</code> là tiền lệ đã chạy.<br><b>Bác “bỏ total, giữ sáu thành phần đã lưu”</b>: rẻ nhất nhưng sáu thành phần vẫn gõ tay ⇒ vấn đề gốc chưa giải.',
+ extra:'<p><b>Bán kính đã đo trước khi chốt:</b> 5 chỗ production đọc <code>pri.total</code>; 6 tham chiếu trong test và <b>cả sáu đã tính lại từ dữ liệu</b>, không ghim số cứng.</p>'},
+
+{n:2,k:'csq',t:'Tách trọng số khỏi đo lường',
+ rule:'Ba chỗ: <b>số đo</b> ở dữ liệu · <b><code>norm</code></b> trong code · <b>trọng số + mốc neo</b> ở <code>cfg</code>.',
+ body:'<p>Không phải phán đoán mới — §1 chọn “tính từ số đo thô” thì giữ điểm tuyệt đối là mâu thuẫn trực tiếp. Không có chỗ nào để chọn khác.</p>'},
+
+{n:3,k:'you',t:'Thang điểm: norm 0..1, trọng số cộng lại 100',
+ rule:'Điểm luôn trong 0–100, và trọng số tự nói <i>“khoá này chiếm bao nhiêu phần trăm quyết định”</i>.',
+ body:'<p><b>Mốc neo khai trong <code>cfg</code></b>, không hằng trong code. Mặc định khởi điểm: <code>aff</code> 1.000 khách = 1,0 (kẹp trần) · <code>hv</code> 50 khách = 1,0 · <code>tr</code> ±50% = 1,0 · <code>rep</code> neo theo <code>cfg.data.repeatWarn</code>.</p><p>Bảng tra <code>sev</code>: <b>critical 1,0 · high 0,7 · medium 0,45</b> — giữ đúng tỉ lệ 30/22/14 đang chạy, không phát minh tỉ lệ mới.</p>',
+ no:'<b>Bác chuẩn hoá theo <code>max</code> của tập điểm gãy hiện có</b>: thêm một điểm gãy mới là điểm của MỌI điểm gãy cũ đổi, thứ hạng nhảy mà bản thân chúng không đổi gì.<br><b>Bác neo tương đối theo bước</b> (<code>aff / obs.entered</code>): tự chuẩn hoá, nhưng đổi câu hỏi từ “bao nhiêu khách” sang “bao nhiêu % khách của bước” — điểm gãy chạm 730 khách ở bước đông sẽ xếp dưới điểm gãy chạm 60 khách ở bước vắng.',
+ extra:'<p style="color:var(--watch)"><b>Phần bạn chốt:</b> thang (tổng 100). <b>Phần tôi tự đặt:</b> các con số neo mặc định ở trên — chúng ở <code>cfg</code> nên sửa được bất cứ lúc nào, nhưng nếu con số nào nghe sai ngay từ đầu thì nói.</p>'},
+
+{n:4,k:'rev',t:'sev: GIỮ nhãn người chấm, BỎ điểm gõ tay',
+ rule:'Mức nghiêm trọng vẫn là nhãn người chấm (<code>critical/high/medium</code>). Chỉ bỏ <b>điểm</b> gõ tay — nhãn → điểm bằng bảng tra cố định trong code.',
+ body:'<p><b>Đây là mục lật chính đề xuất của tôi hôm trước.</b> Tôi từng nói “<code>sev</code> suy từ <code>metricState()</code> là chỗ rẻ nhất”. Sai.</p><p><b>Bằng chứng:</b> <code>CXI-021</code> (critical) và <code>CXI-026</code> (medium) <b>cùng trỏ <code>m-liveness</code></b>. <code>metricState()</code> chỉ biết trạng thái của CHỈ SỐ nên cho hai điểm gãy này cùng một kết quả — suy từ nó là <b>xoá mất phân biệt</b>. Mức nghiêm trọng là phán đoán về ĐIỂM GÃY, không phải trạng thái của chỉ số nó trỏ tới.</p>',
+ extra:'<p><b>Bằng chứng phụ, cho thấy số gõ tay đã trôi:</b> bảng tra là {30 · 22 · 14} nhưng seed có <code>CXI-024</code> (high) → <b>20</b>, <code>CXI-026</code> (medium) → <b>12</b>.</p><p><b>Trigger mở lại:</b> nếu <code>aff</code> đo đúng theo §16 rồi mà phần “nghiêm trọng” hoá ra trùng lặp với <code>aff</code>, lúc đó mới bàn được việc bỏ hẳn <code>sev</code>.</p>'},
+
+{n:5,k:'you',t:'jc khai theo BƯỚC — cfg.step.jc[stepId]',
+ rule:'Thang ba mức (thấp / vừa / cao), bạn khai một lần cho <b>24 bước</b> trên <code>#/rules</code>. Mọi điểm gãy trên cùng bước thừa hưởng.',
+ body:'<p><b>Bước thiếu entry ⇒ <code>jc</code> chưa tính được (§9), không có mặc định.</b> Một mặc định là phán đoán trá hình: <i>“bước này quan trọng vừa”</i> là câu khẳng định, không phải chỗ trống.</p><p>Hôm nay <code>createIssue</code> để <code>jc = 14</code> cho MỌI bước — khoá này chưa phân biệt được bước nào với bước nào. 24 ô phải điền là giá của việc nó bắt đầu có nghĩa.</p>',
+ no:'<b>Bác “suy từ vị trí trong hành trình”</b> (bước càng cuối càng đắt): máy tính được, không ai phải điền, nhưng đó là app <b>tự nghĩ ra luật</b> — va thẳng luật 11/08.<br><b>Bác “bỏ jc”</b>: mất khả năng nói “bước này ít khách nhưng hỏng là mất tiền”.'},
+
+{n:6,k:'you',t:'reg khai theo BƯỚC — cfg.step.reg[stepId]',
+ rule:'Cùng khuôn <code>jc</code> — một màn, hai cột, điền cùng lúc cho 24 bước. Thiếu entry ⇒ chưa tính được.',
+ body:'<p><b>Giá đã biết trước khi chốt:</b> hai điểm gãy trên cùng bước luôn cùng mức rủi ro pháp lý, kể cả khi một cái chạm KYC còn cái kia chỉ là giao diện.</p>',
+ no:'<b>Bác “cờ theo từng điểm gãy có người ký”</b>: chính xác hơn, có trách nhiệm rõ, nhưng quay về gõ tay từng điểm gãy — đúng thứ bản đồ này sinh ra để bỏ.<br><b>Bác “cả hai, bước là nền, điểm gãy ghi đè”</b>: hai nguồn cho một số — đúng loại lệch nhau mà <code>metric-direction.ts</code> đã phải đi dọn một lần.',
+ extra:'<p><b>Trigger mở lại:</b> xuất hiện ca thật mà hai điểm gãy cùng bước phải khác mức pháp lý.</p>'},
+
+{n:7,k:'def',t:'rep — TREO, chờ bên hệ thống case',
+ rule:'<code>rep</code> là <b>chưa tính được</b>, <b>không</b> phải 0, cho tới khi bên case trả lời.',
+ body:'<p>Câu phải chuyển: <i>“case có gắn được với BƯỚC hành trình hoặc với lý do thất bại cụ thể không, gắn bằng trường nào?”</i></p>',
+ no:'<b>Bác lối lấy <code>m-repeat</code> toàn cục gán cho từng điểm gãy</b> — đó là tỉ lệ repeat của TOÀN BỘ khách, không phải của nhóm gặp điểm gãy này. Cùng lỗi hình dạng với §4 và §16.',
+ extra:'<p><b>Trigger:</b> có khoá nối ⇒ <code>rep</code> thành khoá đo được. Không có ⇒ <code>rep</code> ở lại <i>chưa tính được</i> vĩnh viễn và phải cân nhắc bỏ khỏi công thức.</p>'},
+
+{n:8,k:'rev',t:'tr: bảng obsTrend hạt NGÀY, thước hai đầu',
+ rule:'<code>obsTrend = { step, period, entered, completed, failed }</code>, <code>period</code> hạt <b>ngày</b>; hạt hiển thị cộng lên từ ngày. Cửa sổ đọc <b>thanh timeframe chung</b>.',
+ body:'<p><b>Không phát minh gì mới — áp nguyên tiền lệ ADR-001:</b> không thêm khoá kỳ vào <code>Obs</code> (cùng lý do §6 của ADR-001 không thêm vào <code>SigCount</code>), và không dựng cụm mốc riêng (tiền lệ <code>App.tsx:21</code>).</p><p><b>Thước:</b> thay đổi tương đối giữa <b>kỳ đầu ĐO ĐƯỢC</b> và <b>kỳ ĐỦ gần nhất</b>. Hai chữ in hoa là hai bẫy đã trả giá ở ADR-001: kỳ đầu cửa sổ có thể là kỳ chưa đo (bước cắm muộn), và <b>kỳ cuối luôn chưa đủ</b> — tính cả nó thì mọi điểm gãy đều đọc thành “đang đỡ dần”.</p><p><code>tr</code> <b>âm được</b> (đang đỡ). Chưa đủ hai kỳ đo được ⇒ chưa tính được.</p>',
+ extra:'<p style="color:var(--watch)"><b>Điều kiện chặn:</b> <code>obsTrend</code> là bảng <b>chưa có</b>. Cùng loại yêu cầu dữ liệu với ADR-001 §6 — nên xin <b>một lần cùng nhau</b>, không xin hai đợt.</p>'},
+
+{n:9,k:'rev',t:'Khoá chưa tính được KHÔNG vào tổng và KHÔNG thành 0',
+ rule:'Khoá chưa tính được không vào tổng. <code>total</code> <b>luôn đi kèm số khoá đã tính</b> — <code>72 · đủ 7/7</code> hay <code>48 · thiếu 2/7</code>.',
+ body:'<p>Hôm nay <code>createIssue</code> để <code>rep</code>/<code>tr</code>/<code>reg</code> = 0 kèm comment <i>“thà để 0 còn hơn đoán”</i> — thành thật về ý định, nhưng vẫn là <b>chưa-biết bị viết thành thiếu</b>: điểm gãy mới xếp thấp hơn thực chất và không màn nào nói vì sao.</p><p>Bảng Top xếp theo MỘT trục <b>loại</b> điểm gãy chưa tính được trục đó, thay vì xếp nó xuống cuối — xếp cuối là khẳng định “trục này thấp”, tức bịa.</p><p>Cùng luật với rule 2 của <code>signalChart.ts</code> và trạng thái (3) của ADR-001 §6.</p>'},
+
+{n:10,k:'you',t:'“Khách giá trị cao” — KHÔNG chốt cứng, cho customize',
+ rule:'<code>cfg.hv = { dim, values[] }</code> — bạn chọn giá trị/dải nào được coi là giá trị cao, sửa trên <code>#/rules</code>, đổi khai báo là <code>imp.hv</code> chiếu lại ngay.',
+ body:'<p>Đây là lối bạn tự đưa ra, khác cả ba lựa chọn tôi đề nghị.</p>',
+ warn:'<b>Hai chiều KHÔNG cùng độ chắc — phải biết trước khi dựng:</b><br>· <code>nav</code> là chiều <b>cắt ngưỡng</b>: nhãn dải <b>sinh ra</b> từ <code>cfg.segment.band.nav.cuts</code>, luôn đóng và luôn đủ. Bộ chọn liệt kê chính xác 5 dải.<br>· <code>tier</code> là <b>string tự do</b>: <code>cfg.segment.values</code> <b>chưa có entry</b> cho nó, <code>validate</code> không kiểm giá trị lạ, luật gán chỉ sống trong generator demo. Bộ chọn chỉ liệt kê được <b>các giá trị tình cờ có trong dữ liệu</b> — một lỗi gõ ở nguồn đẻ ra một “tier” mới mà không ai báo.<br>⇒ <b>Mặc định <code>cfg.hv</code> = <code>nav</code> + hai dải cao</b> (<code>1-5tỷ</code>, <code>5tỷ+</code>). Chọn <code>tier</code> mở được, nhưng màn phải nói thẳng rằng danh sách tier là “các giá trị đang thấy trong dữ liệu”, không phải danh mục đã chốt.',
+ extra:'<p><b>Kèm theo:</b> <code>imp.hv</code> thành SỐ ĐẾM ⇒ đóng luôn lỗ <code>validate</code> không kiểm chéo <code>hv</code> với <code>cust[]</code> (<code>CXI-021</code> khai <code>hv: 9</code> trong khi <code>cust[]</code> chỉ có 4 khách, 1 người high-value).</p><p><b>Phụ thuộc ngoài phạm vi:</b> <code>tier</code> chỉ thành chiều chắc chắn khi Module E-e chốt danh sách đóng.</p>'},
+
+{n:11,k:'you',t:'hv là khoá THỨ BẢY, cộng vào điểm',
+ rule:'Công thức có <b>bảy khoá</b>: <code>sev · aff · jc · rep · tr · reg · hv</code>, trọng số cộng lại 100.',
+ body:'<p><b>Giá thường phải trả ở đây gần bằng 0:</b> thêm khoá là thang điểm đổi nghĩa, điểm cũ không so được với điểm mới — nhưng §1 đã bỏ hết điểm cũ khỏi dữ liệu, nên nếu làm <b>cùng đợt</b> thì không có điểm cũ nào để lệch. Làm sau, thành một đợt riêng, thì giá này quay lại.</p>'},
+
+{n:12,k:'you',t:'Bỏ hẳn card “Top theo tác động CES”',
+ rule:'Gỡ card khỏi <code>@toppri</code>. Không hiện cái không đo được. Khối còn ba trục.',
+ body:'<p>Card đọc <code>imp.csat</code> — số âm gõ tay — rồi <code>Math.abs(x)*10</code> và in đơn vị <i>“điểm CES × 10”</i>. <b>Không có đường code nào</b> nối nó với <code>m-ces</code> hay survey <code>sv-ces-mtk</code>. Gốc tích: cột gốc là <i>“Impact on NPS”</i>, đổi tên vì <code>sv-nps</code> đang paused.</p>',
+ no:'<b>Bác “sửa nhãn thành CSAT”</b>: rẻ hơn nhưng vẫn để một số gõ tay không nguồn đứng xếp hạng.',
+ extra:'<p><b>Phải làm cùng lúc:</b> <code>IssueImp.csat</code> mất chỗ tiêu thụ cuối cùng ⇒ theo luật <i>không khai schema trước chỗ tiêu thụ</i>, nó rút khỏi <code>IssueImp</code> chứ không nằm lại làm field mồ côi.</p><p><b>Trigger mở lại:</b> CX Insight xác nhận CES chấm được theo từng điểm gãy — xem §20.</p>'},
+
+{n:13,k:'rev',t:'Mở nhóm 6 trên #/rules cho sửa trọng số',
+ rule:'Mở, theo đúng khuôn nhóm 7 (ranh giới dải) đã chạy: ô nhập <code>w[k]</code>, ghi qua <code>useCfgWrite</code>, <code>setCfg</code> ném ⇒ in nguyên văn lý do và giữ state cũ.',
+ body:'<p><b>Xem trước TRƯỚC KHI LƯU</b> — hiện thứ hạng <code>#/work</code> sẽ thành thế nào với bản nháp, đúng tiền lệ <code>SegmentGroup.previewCounts</code>. Đây là khác biệt đáng giá nhất so với nhóm 7: đổi ranh giới dải chỉ đổi <i>cách chia</i>, đổi trọng số <b>đổi thứ tự việc phải làm</b>.</p>',
+ extra:'<p style="color:var(--watch)"><b>Phải sửa charter:</b> <code>module-g-rules-charter.md:80, 160-165</code> — mục “Vì sao nhóm 6 chỉ đọc” hết hiệu lực theo §1, không được để lại làm luật mồ côi.</p><p><b>Chuyển ra ngoài phạm vi:</b> lưu vết ai đổi trọng số lúc nào — <code>cfg</code> chưa có audit cho bất kỳ nhóm nào.</p>'},
+
+{n:14,k:'csq',t:'Chuyển hết sang tính, không có đường song song',
+ rule:'<code>iss[].pri</code> biến mất khỏi <code>seed.ts</code>. Không còn cái gì để chạy song song.',
+ body:'<p>6 tham chiếu <code>pri.total</code> trong test <b>đều đã tính lại từ dữ liệu</b> nên phần lớn tự sống. Phải sửa tay: các oracle ghim số trong <code>certification-log.md</code> — đó là <b>nhật ký</b>, ghi bản mới chứ không sửa lịch sử.</p>',
+ warn:'<b>Hệ quả không tránh được:</b> cho tới khi bạn map xong điểm gãy → giá trị điểm đo (§16) và điền xong <code>jc</code>/<code>reg</code> cho 24 bước, <b>sáu điểm gãy seed sẽ hiện “thiếu k/7”</b>. Đó là trạng thái ĐÚNG, không phải hồi quy — hôm nay chúng trông đủ chỉ vì số được gõ vào.'},
+
+{n:15,k:'rev',t:'Khai Cfg.pri cùng lúc với hàm tính, không sớm hơn',
+ rule:'Luật nhà: <b>không khai schema trước chỗ tiêu thụ</b>. Tiền lệ <code>anomalyX</code> đã bỏ, và ADR-001 §9 vừa dùng đúng luật này để chặn <code>Metric.formula</code>.',
+ body:'<p><b>Chỗ tiêu thụ ĐÃ TỒN TẠI, không phải chờ ai:</b> <code>#/work</code> đang sắp theo <code>pri.total</code>, <code>LanesBlock</code> sắp trong từng làn, <code>IssueBar</code> hiện điểm. Ba chỗ này đủ là consumer — <b>không</b> phải chờ màn <code>#/issue/:id</code> (Module B đang HOÃN) dựng xong. Breakdown bảy thành phần thì đúng là cần màn đó, nhưng breakdown là <b>cách hiển thị</b>, không phải điều kiện để công thức chạy.</p><p><b>Ba cụm, ba đợt</b>, mỗi cụm có consumer ngay trong đợt của nó: <code>cfg.step.jc</code>+<code>reg</code> đi cùng nhóm mới ở <code>#/rules</code> · <code>cfg.pri.w</code>+<code>anchor</code> đi cùng nhóm 6 mở khoá · <code>cfg.hv</code> đi cùng chỗ tính <code>imp.hv</code>.</p>'},
+
+{n:16,k:'you',t:'aff đo theo GIÁ TRỊ CỦA ĐIỂM ĐO',
+ rule:'Điểm gãy khai nó ứng với giá trị nào của điểm đo (vd. <code>CXI-013</code> ↔ <code>sg4 = blur</code>), rồi <code>aff = số khách bắn giá trị đó trong kỳ</code>. Dùng lại nền dữ liệu chart điểm đo.',
+ body:'<p><b>Lỗi thật trong công thức đang chạy:</b> <code>createIssue</code> lấy <code>aff = min(24, round(obs.failed/100))</code> — số khách thất bại của cả <b>BƯỚC</b>. Nhưng <code>CXI-021</code> · <code>CXI-026</code> · <code>CXI-028</code> <b>cùng nằm trên bước <code>s3</code></b>, <code>obs.s3.failed = 2650</code> ⇒ cả ba nhận <b>cùng <code>aff</code> = 24</b> (kịch trần), trong khi số gõ tay của chúng là <b>312 · 64 · 0</b>.</p><p>Số gõ tay còn để lộ hai nghĩa đang trộn: <code>CXI-024</code> có <code>imp.aff = 730</code> <b>bằng đúng</b> <code>obs.s1.failed</code> (chiếm trọn bước), còn <code>CXI-021</code> chỉ 312/2650 (một phần của bước).</p>',
+ warn:'<b>Ba thứ đi kèm, không tách rời được:</b><br>1. <b><code>Issue</code> cần liên kết mới tới giá trị điểm đo</b> — hôm nay nó chỉ có <code>step</code> và <code>metric</code>. Trường mới khai cùng lúc với hàm tính (§15).<br>2. <b>Một điểm gãy được ứng với NHIỀU giá trị.</b> Khi đó <code>aff</code> = số khách bắn <b>BẤT KỲ</b> giá trị nào trong tập — <b>hợp</b>, KHÔNG phải tổng lượt bắn. Cộng dồn sẽ đếm trùng khách gặp hai lý do, ở đúng khoá nặng nhất.<br>3. <b>Bước chưa cắm điểm đo phân loại ⇒ <code>aff</code> chưa tính được</b> (§9).',
+ extra:'<p><b>Việc bạn phải làm một lần:</b> map từng điểm gãy sang giá trị điểm đo. Sáu điểm gãy seed hôm nay chưa có map nào.</p>'},
+
+{n:17,k:'you',t:'@toppri: GIỮ ba bảng, ĐỔI CÁCH NÓI',
+ rule:'Tiêu đề khối thôi nói <i>“Điểm gãy nào đáng xử lý trước”</i> — đổi thành <b>“Nhìn theo từng khoá”</b>. <code>#/work</code> là chỗ DUY NHẤT nói thứ tự việc phải làm.',
+ body:'<p>Giữ vì một điểm tổng <b>che mất lý do</b>; ba bảng cho thấy VÌ SAO một điểm gãy lên đầu. Đổi chữ vì sau §11 cả ba khoá của khối đều đã là thành phần của <code>pri.total</code> — để nguyên tiêu đề cũ là <b>hai định nghĩa “đáng xử lý trước” chạy song song</b>, người xem không biết tin bảng nào.</p><p><b>Rẻ: chỉ sửa chữ</b>, không đụng logic ngoài việc bỏ card CES (§12).</p>',
+ no:'<b>Bác “bỏ khối”</b>: mất hẳn khả năng nhìn từng khoá, vì chỗ đúng để đặt breakdown là màn chi tiết điểm gãy — mà màn đó đang HOÃN.<br><b>Bác “đổi thành một bảng breakdown”</b>: đắt hơn, và làm đúng việc màn chi tiết sẽ làm ⇒ dựng bây giờ là dựng trước rồi bỏ.'},
+
+{n:18,k:'you',t:'Điểm SỐNG, không đóng băng thứ hạng',
+ rule:'Thứ hạng luôn phản ánh dữ liệu mới nhất. Không thêm khái niệm “kỳ chấm điểm”, <b>không lưu điểm đã chốt ở đâu cả</b>.',
+ body:'<p>Câu <code>#/work</code> trả lời là <i>“giờ này cái gì đáng làm nhất”</i>, không phải <i>“đầu tuần ta đã cam kết gì”</i>. Lưu điểm đã chốt là lưu lại đúng cái §1 vừa bỏ.</p><p><b>Liên đới đã tính:</b> đổi trọng số ở nhóm 6 là thứ tự việc phải làm đổi <b>ngay lập tức</b> — §13 đã đòi xem trước trước khi lưu chính vì lý do này, nên cú nhảy không đến bất ngờ.</p>',
+ extra:'<p><b>Trigger mở lại:</b> có người vận hành phàn nàn <i>“thứ tự cứ đổi, không làm việc được”</i>.</p>'},
+
+{n:19,k:'you',t:'#/work chia hai khối; thiếu dữ liệu vào khối riêng',
+ rule:'Danh sách <b>đã xếp được</b> (đủ 7/7) ở trên; khối <b>“chưa đủ dữ liệu để xếp”</b> ở dưới, mỗi dòng ghi <b>thiếu khoá nào</b>.',
+ body:'<p>Không giả vờ xếp được cái chưa xếp được — và khối đó <b>tự nó là danh sách việc-phải-điền</b> cho bạn (map điểm đo, điền <code>jc</code>/<code>reg</code> cho 24 bước).</p>',
+ warn:'<b>Giá đã biết, bạn đã nhìn hình trước khi chốt:</b> tuần đầu sau khi dựng, khối trên <b>RỖNG</b> và cả sáu điểm gãy nằm dưới. Đó là trạng thái ĐÚNG (§14), không phải hồi quy.',
+ no:'<b>Bác “xếp lẫn, chỉ đánh dấu”</b>: thiếu khoá thì điểm <b>thấp giả</b> — điểm gãy nặng mà chưa map sẽ tụt xuống đáy và không ai thấy, đúng lỗi §9 sinh ra để chặn.<br><b>Bác “đẩy lên đầu bảng”</b>: một điểm gãy vặt thiếu một khoá sẽ nằm trên điểm gãy nặng đủ dữ liệu — cũng là một lời khẳng định sai.'},
+
+{n:20,k:'def',t:'CES KHÔNG là khoá của điểm ưu tiên — TREO',
+ rule:'Mặc định đang chạy: CES <b>không</b> có mặt. <b>Bảy</b> khoá, không tám.',
+ body:'<p>§12 đã dọn phần <b>sai</b> (card đọc <code>imp.csat</code> gắn nhãn CES). Câu còn lại là câu khác: CES thật — chỉ số khảo sát thang 1–5, ngưỡng <code>watch 4,2 / crit 3,5</code> — <b>có nên</b> là khoá thứ tám?</p><p>Không tra được trong repo. Chặn bởi một câu cho CX Insight: <i>“khảo sát CES chấm được theo từng ĐIỂM GÃY không, hay chỉ có điểm trung bình toàn bộ?”</i></p>',
+ no:'Nếu chỉ có điểm tổng thì lối này <b>chết</b> — một con số toàn cục gán cho từng điểm gãy là đúng lỗi hình dạng của §4, §7, §16.'}
+];
+
+var BADGE={you:['b-you','bạn đã chốt trực tiếp'],rev:['b-rev','uỷ quyền — cần bạn xem'],
+           csq:['b-csq','hệ quả, không phải phán đoán mới'],def:['b-def','hoãn, chờ ngoài repo']};
+var MARK={};
+
+function render(){
+  document.getElementById('list').innerHTML=SECS.map(function(s){
+    var b=BADGE[s.k];
+    return '<div class="sec" data-k="'+s.k+'" data-n="'+s.n+'">'+
+      '<div class="sechead" data-toggle="'+s.n+'">'+
+        '<div class="num">§'+s.n+'</div>'+
+        '<div class="stitle"><div class="t">'+s.t+'</div>'+
+          '<span class="badge '+b[0]+'">'+b[1]+'</span></div>'+
+        '<div class="caret">▶</div>'+
+      '</div>'+
+      '<div class="body">'+
+        '<div class="rule"><div class="lbl">Ruling</div>'+s.rule+'</div>'+
+        (s.body||'')+
+        (s.warn?'<div class="warn"><div class="lbl" style="color:var(--watch);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:4px">Phải biết trước khi dựng</div>'+s.warn+'</div>':'')+
+        (s.no?'<div class="no"><div class="lbl">Lối đã bác</div>'+s.no+'</div>':'')+
+        (s.extra||'')+
+        '<div class="mark">'+
+          '<button class="mk ok" data-mk="ok:'+s.n+'" aria-pressed="false">Đồng ý</button>'+
+          '<button class="mk re" data-mk="re:'+s.n+'" aria-pressed="false">Cần bàn lại</button>'+
+        '</div>'+
+      '</div></div>';
+  }).join('');
+  paint();
+}
+
+function paint(){
+  var ok=0,re=0;
+  Object.keys(MARK).forEach(function(n){MARK[n]==='ok'?ok++:re++});
+  var p=document.getElementById('prog');
+  p.innerHTML = (ok+re)===0 ? 'chưa đánh dấu mục nào'
+    : '<b>'+ok+'</b> đồng ý · <b>'+re+'</b> cần bàn lại · còn <b>'+(20-ok-re)+'</b>';
+  SECS.forEach(function(s){
+    var el=document.querySelector('.sec[data-n="'+s.n+'"]');
+    el.classList.toggle('done',MARK[s.n]==='ok');
+    el.classList.toggle('flag',MARK[s.n]==='re');
+    el.querySelector('[data-mk="ok:'+s.n+'"]').setAttribute('aria-pressed',MARK[s.n]==='ok');
+    el.querySelector('[data-mk="re:'+s.n+'"]').setAttribute('aria-pressed',MARK[s.n]==='re');
+  });
+}
+
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-toggle]');
+  if(t){t.parentNode.classList.toggle('open');return}
+  var m=e.target.closest('[data-mk]');
+  if(m){
+    var a=m.getAttribute('data-mk').split(':'),n=a[1];
+    MARK[n]===a[0]?delete MARK[n]:MARK[n]=a[0];
+    paint();return;
+  }
+  var f=e.target.closest('[data-f]');
+  if(f){
+    var k=f.getAttribute('data-f');
+    document.querySelectorAll('[data-f]').forEach(function(b){
+      b.setAttribute('aria-pressed',b===f);
+    });
+    document.querySelectorAll('.sec').forEach(function(el){
+      el.classList.toggle('hide',k!=='all'&&el.getAttribute('data-k')!==k);
+      if(k==='rev'||k==='def')el.classList.add('open');
+    });
+  }
+});
+render();
+</script>
+</body>
+</html>

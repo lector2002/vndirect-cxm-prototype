@@ -12,6 +12,7 @@ import { AlertGroup } from "./groups/AlertGroup.tsx";
 import { SegmentGroup } from "./groups/SegmentGroup.tsx";
 import { SubGroup } from "./groups/SubGroup.tsx";
 import { WeightGroup } from "./groups/WeightGroup.tsx";
+import { StepPriGroup } from "./groups/StepPriGroup.tsx";
 
 /* Chỉ số & ngưỡng #/rules — port cấu trúc V.rules (prototype dòng 4103-4327): menu nhóm bên trái,
    MỘT nhóm hiện bên phải. Prototype có 6 nhóm; ở đây 7, vì `cfg.segment` (ranh giới dải phân khúc
@@ -46,7 +47,7 @@ import { WeightGroup } from "./groups/WeightGroup.tsx";
    c. HAI KHỐI CẢNH BÁO (ghi hỏng · ngưỡng đặt ngược) ĐỨNG TRÊN CÙNG, trước cả menu và thân — chúng
       nói về cấu hình ĐANG có chứ không riêng nhóm đang mở, nên không được cuộn theo thân nhóm. */
 
-type GroupKey = "step" | "metric" | "source" | "alert" | "segment" | "sub" | "weight";
+type GroupKey = "step" | "metric" | "source" | "alert" | "segment" | "sub" | "weight" | "steppri";
 
 const BODY: Record<GroupKey, ComponentType> = {
   step: StepGroup,
@@ -56,6 +57,7 @@ const BODY: Record<GroupKey, ComponentType> = {
   segment: SegmentGroup,
   sub: SubGroup,
   weight: WeightGroup,
+  steppri: StepPriGroup,
 };
 
 /* Số ô ngưỡng của hai nhóm KHÔNG sinh từ dữ liệu — chúng là số field cố định của `cfg.step` và của
@@ -104,7 +106,11 @@ export function RulesPage() {
     {
       g: "Ngưỡng đánh giá",
       items: [
-        { k: "step", l: "Bước hành trình", n: Object.keys(cfg.step).length, bad: stepBad },
+        /* Đếm Ô NGƯỠNG, không đếm khoá của `cfg.step`: từ 14/08 `cfg.step` còn mang hai BẢNG khai
+           theo bước (`jc`/`reg`, ADR-002 §5-§6) — đếm cả chúng thì con số cạnh tên nhóm nhảy từ 4
+           lên 6 trong khi nhóm vẫn có đúng bốn ô ngưỡng. Lọc theo kiểu chứ không liệt kê tên field,
+           giữ đúng lý do docblock trên: thêm ô ngưỡng mới thì số tự lên. */
+        { k: "step", l: "Bước hành trình", n: Object.values(cfg.step).filter((v) => typeof v === "number").length, bad: stepBad },
         { k: "metric", l: "Chỉ số theo dõi", n: data.metrics.length, bad: metricBad },
         { k: "source", l: "SLA từng nguồn", n: data.sources.length, bad: sourceBad },
         { k: "alert", l: "Cảnh báo & khảo sát", n: Object.keys(cfg.data).length + 1, bad: 0 },
@@ -121,12 +127,26 @@ export function RulesPage() {
         },
       ],
     },
+    /* Nhóm mới 14/08 (ADR-002 §13, §15): hai nhóm nuôi CÙNG MỘT công thức điểm ưu tiên nên đứng
+       cạnh nhau. "Trọng số ưu tiên" DỜI khỏi "Gửi đi & chính sách" — nó chưa bao giờ là chính sách
+       gửi đi, chỉ nằm nhờ ở đó vì trước kia nó là nhóm chỉ-đọc không biết xếp vào đâu.
+       Chấm đỏ của "Mức của từng bước" đếm số bước CHƯA điền đủ hai mức: đó là việc còn phải làm, và
+       là lý do trực tiếp khiến điểm gãy nằm ở khối "chưa đủ dữ liệu để xếp" của #/work. */
+    {
+      g: "Điểm ưu tiên điểm gãy",
+      items: [
+        { k: "weight", l: "Trọng số ưu tiên", n: Object.keys(cfg.pri.w).length, bad: 0 },
+        {
+          k: "steppri",
+          l: "Mức của từng bước",
+          n: data.steps.length,
+          bad: data.steps.filter((s) => cfg.step.jc[s.id] === undefined || cfg.step.reg[s.id] === undefined).length,
+        },
+      ],
+    },
     {
       g: "Gửi đi & chính sách",
-      items: [
-        { k: "sub", l: "Bản tin định kỳ", n: data.dash.length, bad: 0 },
-        { k: "weight", l: "Trọng số ưu tiên", n: 6, bad: 0 },
-      ],
+      items: [{ k: "sub", l: "Bản tin định kỳ", n: data.dash.length, bad: 0 }],
     },
   ];
 

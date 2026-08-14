@@ -46,8 +46,8 @@ type BlockBodyProps = {
   b: string;
   data: CxmData;
   cfg: Cfg;
-  /** CHỈ @themestack dùng (F1, module-f-charter.md) — chart theo bằng chứng cần `dims[axis].label`
-      để đặt nhãn trục/denomStrip, khác 8 block còn lại (đọc data.tax/data.cats trực tiếp). */
+  /** @themestack (F1) và @toppri (ADR-002 §10) dùng — chart theo bằng chứng cần `dims[axis].label`,
+      còn @toppri cần đọc nhóm khách theo `cfg.hv.dim` để đếm khách giá trị cao. */
   dims: Record<string, Dim>;
   onGo: (route: string) => void;
   selectedLines: string[];
@@ -82,7 +82,7 @@ function BlockBody({ b, data, cfg, dims, onGo, selectedLines, onToggleLine, mont
         />
       );
     case "@toppri":
-      return <TopPriorityBlock data={data} cfg={cfg} onGo={onGo} />;
+      return <TopPriorityBlock data={data} cfg={cfg} dims={dims} onGo={onGo} />;
     case "@journeystate":
       return <JourneyStateBlock data={data} cfg={cfg} onGo={onGo} />;
     case "@coverage":

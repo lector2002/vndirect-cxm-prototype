@@ -10,6 +10,16 @@ owner chưa yêu cầu (xem §2; 4 file untracked cũ không tính). `tsc -b` ex
 xanh**, `validateFixture` **0 lỗi trên cả hai fixture** (đợt tối không đụng `data/`). Không còn việc
 code nào dở dang.
 
+**Đợt 14/08 — ADR-002, điểm ưu tiên điểm gãy thành công thức.** `iss[].pri` (số gõ tay) bị gỡ khỏi
+schema; `pri.total = Σ w[k]·norm[k](x[k])` trên bảy khoá, hàm ở `web/src/data/priority.ts`. Nhóm
+*Trọng số* của `#/rules` mở khoá cho sửa, thêm nhóm *Mức của từng bước* (30 bước × `jc`/`reg`).
+Hôm nay seed đo được **tối đa 2/7 khoá** nên khối xếp hạng ở `#/work` **RỖNG** và cả sáu điểm gãy
+nằm ở khối *"chưa đủ dữ liệu để xếp"* — **trạng thái đúng, không phải hồi quy**. Ba tài liệu:
+quyết định `web/docs/adr-002-diem-uu-tien-thanh-cong-thuc.md` · dữ liệu còn phải đi xin
+`web/docs/ideal-data-model.md` · nghiệm thu ở cuối `web/docs/certification-log.md`.
+`tsc` 0 lỗi, **1261 test / 106 file xanh**, build xanh, **chưa ai nhìn bằng mắt** (extension Chrome
+không kết nối được). Vẫn CHƯA COMMIT.
+
 Sáu đợt việc trong ngày: (a) dọn ô mồ côi + C1/C6 (§6, §8) · (b) **đợt 3 của luật giao diện** — bỏ 23
 dòng giải thích trên toàn app, 3 chỗ chuyển tooltip, luật ghi ở `docs/DB-FIRST-HANDOFF.md`
 §"Đợt 3 (12/08)" · (c) **redesign tương tác màn Điểm đo** (§9) — chip lọc, ô tìm, mờ + đẩy lên đầu

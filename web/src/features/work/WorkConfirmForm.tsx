@@ -1,9 +1,7 @@
 import { useState } from "react";
 import type { ConfirmFields } from "../../data/repository.ts";
 import type { Action, Issue } from "../../data/schema/index.ts";
-import { fx } from "../../domain/index.ts";
 import { Card, Note, btnPrimary, btnSecondary, btnSizeMd } from "../../design-system/index.ts";
-import { nf } from "../../design-system/format.ts";
 import { SEV_LABEL, vnDate } from "./WorkCreateForm.tsx";
 
 /* WorkConfirmForm — chặng Xác nhận (thay chặng Gán, owner chốt 02/08/2026, module-a-charter.md
@@ -58,7 +56,12 @@ export function WorkConfirmForm({ issue, action, stepLabel, owners, approvers, e
           </div>
           <div>
             <span className="t-lbl block mb-0.5">Khách bị ảnh hưởng</span>
-            <span className="t-body">{nf(fx(issue.imp.aff))}</span>
+            {/* `imp.aff` gõ tay đã bỏ 14/08 (ADR-002 §16) và số đo thật chưa về (cần map điểm gãy →
+                giá trị điểm đo + số khách độc lập theo giá trị, xem web/docs/ideal-data-model.md
+                mục A). Nói thẳng "chưa tính được" thay vì in một số 0 — đây đúng là chỗ luật không
+                trộn chưa-biết với thiếu áp vào: người đang xác nhận một điểm gãy mà đọc "0 khách"
+                sẽ kết luận ngược hẳn sự thật. */}
+            <span className="t-body text-ink-3">chưa tính được</span>
           </div>
           <div>
             <span className="t-lbl block mb-0.5">Bằng chứng</span>

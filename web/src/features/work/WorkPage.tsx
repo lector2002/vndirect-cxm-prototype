@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { Issue } from "../../data/schema/index.ts";
 import type { ConfirmFields, CreateIssueFields } from "../../data/repository.ts";
+import type { IssueScore } from "../../data/priority.ts";
+import { PRI_KEYS, PRI_LABEL, isRankable, scoreIssues } from "../../data/priority.ts";
 import { advanceBlockedReason, getPrimaryAction, laneOf } from "../../domain/index.ts";
 import { IssueBar, Note, btnPrimary, btnSecondary, btnSizeLg, btnSizeSm } from "../../design-system/index.ts";
 import { PageTitle } from "../../nav.tsx";
@@ -25,7 +27,7 @@ type ConfirmOk = { aid: string; owner: string };
 /* Màu chấm mức độ nghiêm trọng — TRÙNG CHỦ Ý với sevColor() ở
    features/overview/blocks/TopPriorityBlock.tsx (dòng ~26-28): feature này KHÔNG được import chéo
    feature Overview nên viết lại cục bộ. Cùng logic: critical→--crit, high→--watch, còn lại→--ink3 —
-   mức độ NGHIÊM TRỌNG của issue, không phải mã màu theo pri.total (màu mã hoá ý nghĩa, không mã hoá
+   mức độ NGHIÊM TRỌNG của issue, không phải mã màu theo điểm ưu tiên (màu mã hoá ý nghĩa, không mã hoá
    thứ hạng). */
 function sevColor(sev: Issue["sev"]): string {
   return sev === "critical" ? "var(--crit)" : sev === "high" ? "var(--watch)" : "var(--ink3)";
@@ -33,6 +35,8 @@ function sevColor(sev: Issue["sev"]): string {
 
 export function WorkPage() {
   const data = useCxmStore((s) => s.data);
+  const cfg = useCxmStore((s) => s.cfg);
+  const dims = useCxmStore((s) => s.dims);
   const advanceAction = useCxmStore((s) => s.advanceAction);
   const createIssue = useCxmStore((s) => s.createIssue);
   const confirmIssue = useCxmStore((s) => s.confirmIssue);
@@ -135,12 +139,41 @@ export function WorkPage() {
   /* Danh sách thanh — lọc theo `lc !== 'closed'`, KHÔNG dùng `laneOf(a) !== 'off'`: `lc==='ready'`
      kéo theo `iv==='validated'` nên laneOf trả 'off' — lọc bằng laneOf sẽ làm việc đang CHỜ KHÉP
      VÒNG biến mất khỏi màn dù `getPrimaryAction` vẫn trả `key:'close'`, tức vẫn còn một bước người
-     phải làm. Chỉ việc đã `closed` mới thật sự rời danh sách. Sắp theo `pri.total` giảm dần. */
-  const rows = act
+     phải làm. Chỉ việc đã `closed` mới thật sự rời danh sách. */
+  const scores = scoreIssues(data, cfg, dims);
+  const scoreOf = (id: string): IssueScore => scores.get(id) as IssueScore;
+
+  const allRows = act
     .filter((a) => a.lc !== "closed")
     .map((a) => ({ action: a, issue: data.iss.find((i) => i.id === a.iss) }))
-    .filter((r): r is { action: (typeof act)[number]; issue: Issue } => r.issue !== undefined)
-    .sort((x, y) => y.issue.pri.total - x.issue.pri.total);
+    .filter((r): r is { action: (typeof act)[number]; issue: Issue } => r.issue !== undefined);
+
+  /* HAI KHỐI, không một danh sách (ADR-002 §19). Điểm gãy còn thiếu khoá KHÔNG được xếp lẫn: thiếu
+     khoá thì điểm thấp GIẢ, nên một điểm gãy nặng mà chưa map điểm đo sẽ tụt xuống đáy và không ai
+     thấy. Đẩy nó lên đầu cũng sai theo chiều ngược lại. Cách duy nhất không nói dối là tách ra và
+     ghi rõ thiếu khoá nào.
+
+     Khối dưới TỰ NÓ LÀ DANH SÁCH VIỆC PHẢI ĐIỀN cho owner — map điểm đo, điền `jc`/`reg` cho từng
+     bước. Tuần đầu sau khi dựng nó chứa TẤT CẢ điểm gãy và khối trên rỗng: đó là trạng thái đúng
+     (§14), không phải hồi quy — trước đây chúng trông "đủ" chỉ vì điểm được gõ tay vào fixture. */
+  const rows = allRows
+    .filter((r) => isRankable(scoreOf(r.issue.id)))
+    .sort((x, y) => scoreOf(y.issue.id).total - scoreOf(x.issue.id).total);
+
+  /* Trong khối chưa xếp được, sắp theo SỐ KHOÁ CÒN THIẾU tăng dần: cái gần đủ nhất đứng trước, vì
+     đó là cái owner tốn ít công nhất để đưa lên được khối trên. KHÔNG sắp theo `total` — con số đó
+     ở đây không so sánh được giữa hai điểm gãy thiếu khác nhau. */
+  const pending = allRows
+    .filter((r) => !isRankable(scoreOf(r.issue.id)))
+    .sort((x, y) => scoreOf(x.issue.id).missing.length - scoreOf(y.issue.id).missing.length);
+
+  const priLabelOf = (id: string): string => {
+    const s = scoreOf(id);
+    const done = s.computed.length;
+    return done === PRI_KEYS.length
+      ? `Ưu tiên ${s.total} · đủ ${done}/${PRI_KEYS.length}`
+      : `Ưu tiên ${s.total} · thiếu ${s.missing.length}/${PRI_KEYS.length}`;
+  };
 
   // Action/issue đang mở form Xác nhận — container tra sẵn stepLabel, WorkConfirmForm không tự tra steps.
   const confirmAction = confirmId ? act.find((a) => a.id === confirmId) : undefined;
@@ -265,30 +298,64 @@ export function WorkPage() {
         </div>
       ) : null}
 
-      {rows.length === 0 ? (
+      {allRows.length === 0 ? (
         <div data-testid="work-empty" className="t-meta">
           Không còn điểm gãy nào cần xử lý.
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {rows.map(({ action, issue }) => {
-            const outcome = data.out.find((o) => o.act === action.id);
-            return (
-              <IssueBar
-                key={action.id}
-                issue={issue}
-                action={action}
-                stage={laneOf(action)}
-                primary={getPrimaryAction(action, outcome, action.lc === "closed")}
-                blockedReason={advanceBlockedReason(action, outcome)}
-                sevColor={sevColor(issue.sev)}
-                onAdvance={() => advanceAction(action.id)}
-                onConfirm={() => openConfirm(action.id)}
-              />
-            );
-          })}
-        </div>
+        <>
+          {rows.length > 0 ? (
+            <div className="flex flex-col gap-3" data-testid="work-ranked">
+              {rows.map(({ action, issue }) => renderBar(action, issue))}
+            </div>
+          ) : (
+            /* Khối trên rỗng KHÔNG được im lặng: một danh sách trống ở chỗ vốn có thứ tự việc phải
+               làm sẽ đọc thành "hết việc rồi", trong khi sự thật là "chưa đủ dữ liệu để xếp". */
+            <div data-testid="work-none-rankable">
+              <Note>
+                {`Chưa điểm gãy nào đủ ${PRI_KEYS.length}/${PRI_KEYS.length} khoá để xếp hạng. Danh sách bên dưới ghi rõ từng cái còn thiếu khoá nào.`}
+              </Note>
+            </div>
+          )}
+
+          {pending.length > 0 ? (
+            <div className="mt-6" data-testid="work-pending">
+              <div className="t-lbl mb-2">{`Chưa đủ dữ liệu để xếp · ${pending.length}`}</div>
+              <div className="flex flex-col gap-3">
+                {pending.map(({ action, issue }) => (
+                  <div key={action.id}>
+                    {renderBar(action, issue)}
+                    <div
+                      data-testid={`work-missing-${issue.id}`}
+                      className="t-meta mt-1 pl-3.5 text-[12px]"
+                    >
+                      {`Thiếu: ${scoreOf(issue.id).missing.map((k) => PRI_LABEL[k]).join(" · ")}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );
+
+  function renderBar(action: (typeof act)[number], issue: Issue) {
+    const outcome = data.out.find((o) => o.act === action.id);
+    return (
+      <IssueBar
+        key={action.id}
+        issue={issue}
+        action={action}
+        stage={laneOf(action)}
+        primary={getPrimaryAction(action, outcome, action.lc === "closed")}
+        blockedReason={advanceBlockedReason(action, outcome)}
+        sevColor={sevColor(issue.sev)}
+        priLabel={priLabelOf(issue.id)}
+        onAdvance={() => advanceAction(action.id)}
+        onConfirm={() => openConfirm(action.id)}
+      />
+    );
+  }
 }

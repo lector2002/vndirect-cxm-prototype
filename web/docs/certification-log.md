@@ -1572,3 +1572,39 @@ một lượt chọn qua hộp hỏi, và ngay sau đó có một thông báo h�
 điểm yếu của nó trước khi hỏi: `<50tr` giờ là 247/300 nên thanh đó đọc là "chưa có tài sản", không phải
 "khách nhỏ"), nhưng **cần owner xác nhận lại bằng lời** trước khi xây thêm gì lên trên. Đảo lại rẻ:
 toàn bộ nằm trong một commit fixture/type/test, không có logic nào phụ thuộc.
+
+---
+
+## 14/08/2026 — ADR-002: `pri` từ số gõ tay thành công thức, chứng thực tĩnh
+
+**Ghi thêm, KHÔNG sửa lịch sử** (ADR-002 §14). Ba mục oracle cũ dưới đây neo vào `iss[].pri` —
+trường đó nay không còn tồn tại, nên chúng đọc như lịch sử chứ không còn là bất biến đang canh:
+
+- dòng 452 `pri.reg`: CXI-013(20) là ĐỈNH → CXI-028(14) — `pri.reg` là số gõ tay theo từng điểm gãy;
+  `reg` nay là thuộc tính của BƯỚC (`cfg.step.reg[stepId]`, thang thấp/vừa/cao), chưa bước nào điền.
+- dòng 453 "3 card còn lại giữ nguyên đầu bảng (024 / 021 / 021)" — Overview nay **ba** card
+  (`aff` · `hv` · `reg`), card CES đã bỏ cùng `imp.csat` (§12).
+- dòng 526–527 `pri.total = tổng 6 thành phần (48 = 30+4+14)` và `pri.aff = min(24, round(430/100))`
+  — cả hai phép này bị gỡ; `aff` nay là `COUNT(DISTINCT customer_id)` **chưa có dữ liệu** (mục A của
+  `ideal-data-model.md`), trả `null` chứ không quy về một số trần.
+
+**Cái thay thế:** `pri.total = Σ w[k]·norm[k](x[k])` trên bảy khoá, `web/src/data/priority.ts`.
+Ba chỗ tách rời: đo ở `data/`, `norm` cố định trong code, trọng số ở `cfg.pri.w` (tổng đúng 100,
+nhóm 25 của `validate` canh).
+
+**Số đo hiện trạng (oracle riêng bằng `tsx`, không suy từ test):** `seed.steps.length = 30`;
+`scoreIssues` trên seed → CXI-021/017/013/026 = **2/7** (`sev`,`hv`), CXI-024/028 = **1/7** (`sev`,
+vì `cust: []` nên `hv` cũng chưa tính được). **Không điểm gãy nào đủ 7/7**, nên khối xếp hạng ở
+`#/work` **rỗng** và cả sáu nằm ở khối *"chưa đủ dữ liệu để xếp"*. Đó là trạng thái ĐÚNG theo §19.
+
+**Một chỗ lệch ADR có chủ ý** (đã ghi ở đầu ADR-002): §6 định để `validateFixture` canh
+`cfg.hv.values` ⊂ `bandLabels(cfg.segment.band[dim])`. Bỏ, vì nhãn dải được **sinh** từ `cuts`, nên
+biến nó thành bất biến sẽ khiến `setCfg` chặn mọi lần owner sửa ranh giới NAV — giết một tính năng
+Module E đã duyệt. Ngữ nghĩa chuyển xuống `measureHv`: khai báo lệch ⇒ khoá `hv` *chưa tính được*.
+
+**Chứng thực:** `tsc -p tsconfig.app.json --noEmit` 0 lỗi · `vitest run` **1261/1261 pass (106 file)**
+· `vite build` xanh (6,42s) · `validateFixture(...)` = `[]`.
+
+**Chưa làm được:** không live-check. Extension Chrome báo *"Browser extension is not connected"*, nên
+`#/work` (hai khối), `#/rules` › *Điểm ưu tiên điểm gãy* (hai nhóm) và `@toppri` (ba card) mới chỉ
+được chứng thực qua test + render trong jsdom, chưa ai nhìn bằng mắt.

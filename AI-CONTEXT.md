@@ -158,7 +158,23 @@ Ba hàm là chỗ duy nhất quyết định "Đang kiểm soát / Cần theo d�
 - `metricState(m)` — **band riêng từng metric** ở `CFG.metric[id]`. Cố ý không dùng một ngưỡng chung: `m-liveness` (83,3% / mục tiêu 90%) là `crit` còn `m-ocr` (71% / mục tiêu 90%) chỉ là `watch` — metric chạm khách và metric chất lượng dữ liệu không đọc cùng một cách. Một ngưỡng chung sẽ đảo ngược đúng hai metric này.
 - `sourceHealth(s)` — so `lagH` với **SLA riêng từng nguồn** ở `CFG.source[id]`. Crawl store 1 lần/ngày không thể chấm cùng SLA với event stream.
 
-Trọng số xếp ưu tiên điểm gãy để **chỉ đọc** (mục 6 của `#/rules`): fixture lưu điểm tuyệt đối và `validateFixture()` khẳng định `sev+aff+jc+rep+tr+reg === total`, nên cho sửa trọng số mà không tính lại `total` sẽ bắn banner đỏ mọi màn.
+## Điểm ưu tiên điểm gãy là CÔNG THỨC, không phải số gõ tay (14/08/2026 — ADR-002)
+
+Trước 14/08 trọng số ở mục 6 `#/rules` để **chỉ đọc**, vì fixture lưu điểm tuyệt đối `iss[].pri` và
+`validateFixture()` khẳng định `sev+aff+jc+rep+tr+reg === total` — sửa trọng số mà không tính lại
+`total` sẽ bắn banner đỏ mọi màn. Luật đó **đã chết**: `iss[].pri` bị gỡ khỏi schema.
+
+Nay `pri.total = Σ w[k]·norm[k](x[k])` trên bảy khoá `sev · aff · jc · rep · tr · reg · hv`
+(`web/src/data/priority.ts`), tách làm ba chỗ không lẫn nhau: **đo** nằm ở `data/`, **chuẩn hoá**
+`norm` cố định trong code, **trọng số** ở `cfg.pri.w` (owner sửa được, tổng phải đúng 100).
+
+Hệ quả phải nhớ:
+- Nhóm *Trọng số* nay **sửa được**, kèm bảng xem trước thứ hạng tính bằng chính `scoreIssues`.
+- Thêm nhóm *Mức của từng bước* (`cfg.step.jc` / `cfg.step.reg`) — 30 bước × 2 ô, **bỏ trống là
+  câu trả lời hợp lệ** nghĩa *chưa tính được*, không rơi về mức giữa.
+- Khoá chưa đo được thì điểm gãy **không lên bảng xếp hạng**, nằm ở khối *"chưa đủ dữ liệu để xếp"*
+  và nói ra thiếu mấy khoá. Hôm nay seed đo được **tối đa 2/7** (hai điểm gãy `cust: []` chỉ 1/7) nên khối xếp hạng **rỗng** — đó là
+  trạng thái ĐÚNG (§19), không phải regression. Dữ liệu còn phải đi xin: `web/docs/ideal-data-model.md`.
 
 ## Đã verify 28/07/2026 sau khi implement spec (Node harness + Chrome DevTools)
 - **13 view render OK**, không console error/warning, không banner đỏ trên mọi route kể cả hash không tồn tại.

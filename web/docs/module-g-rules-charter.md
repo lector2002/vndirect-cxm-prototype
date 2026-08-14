@@ -77,7 +77,8 @@ không có.
 | 3 | SLA từng nguồn | `source[id]` (**ngày** — đổi 11/08, trước là giờ) | có | **bản tạm** — xem mục riêng bên dưới |
 | 4 | Cảnh báo & khảo sát | `anomaly.z` + `data` (6 số) | có | |
 | 5 | Bản tin định kỳ | `sub[setId]` (`f`/`ch`) | có | |
-| 6 | Trọng số ưu tiên | — | **CHỈ ĐỌC** | lý do ở mục "Vì sao nhóm 6 chỉ đọc" |
+| 6 | Trọng số ưu tiên | `pri.w` (7 số, cộng lại 100) + `pri.anchor` | **có** — mở 14/08 | kèm **xem trước thứ hạng** trước khi lưu (ADR-002 §13) |
+| 8 | Mức của từng bước | `step.jc[stepId]`, `step.reg[stepId]` | có | nhóm MỚI 14/08 (ADR-002 §5, §6); bỏ trống = chưa tính được |
 | 7 | Phân khúc khách | `segment.band[dim]`, `segment.values[dim]` | cuts sửa được; `values` chỉ đọc | đóng E7 |
 
 **Đầu màn chỉ có `<PageTitle route="rules" />`** — luật 06/08, không câu dẫn nào khác. Câu luận đề
@@ -157,12 +158,24 @@ trong khi cfg giữ số cũ — đúng "màn nói sai về chính nó" mà docb
 ra. `commit()` giờ kéo ô về `value` sau khi gọi `onCommit`; ghi được thì hai lần `setText` cùng một
 batch và effect chốt ở số mới.
 
-## Vì sao nhóm 6 chỉ đọc
+## Vì sao nhóm 6 TỪNG chỉ đọc — và vì sao nay không còn
 
-Fixture lưu **điểm tuyệt đối** của 6 thành phần ưu tiên và `validateFixture()` khẳng định
-`sev+aff+jc+rep+tr+reg === total`. Cho sửa trọng số mà không tính lại `total` sẽ bắn banner đỏ trên
-mọi màn. Đây là lý do đã ghi trong `AI-CONTEXT.md` và prototype nói thẳng trên UI — giữ nguyên cách
-nói đó, kèm bảng 6 thành phần + điểm cao nhất đang ghi nhận (`max` trên `data.iss[].pri`).
+**Luật cũ (hết hiệu lực 14/08, ADR-002 §1 + §13).** Lý do cũ: fixture lưu **điểm tuyệt đối** của 6
+thành phần ưu tiên và `validateFixture()` khẳng định `sev+aff+jc+rep+tr+reg === total`, nên cho sửa
+trọng số mà không tính lại `total` sẽ bắn banner đỏ trên mọi màn.
+
+Cả hai vế đó đã biến mất: `iss[].pri` không còn tồn tại (dữ liệu chỉ mang SỐ ĐO), điểm là hàm tính
+ở `data/priority.ts`, và bất biến tổng thành phần đã bỏ khỏi `validate`. Giữ lại mục này ở dạng cũ
+sẽ là một luật mồ côi ghim một màn chỉ-đọc mà ADR vừa yêu cầu mở.
+
+**Luật đang chạy.** Nhóm 6 ghi được `cfg.pri.w` (7 trọng số, **cộng lại đúng 100** — `validate`
+nhóm 25 canh) và `cfg.pri.anchor`. Bảy ô sửa trên một BẢN NHÁP rồi lưu một lần, không ghi từng ô:
+ghi từng ô sẽ đi qua trạng thái tổng ≠ 100 ở mọi bước trung gian và bị chặn đúng luật, tức không
+sửa nổi ô nào.
+
+Khác nhóm 7 ở một điểm, và là điểm đáng giá nhất: **xem trước thứ hạng trước khi lưu**. Đổi ranh
+giới dải chỉ đổi *cách chia*; đổi trọng số đổi *thứ tự việc phải làm* ở `#/work`, và điểm là số
+SỐNG nên cú nhảy xảy ra ngay (ADR-002 §18).
 
 ## Bốn feature + tiêu chí nghiệm thu
 
