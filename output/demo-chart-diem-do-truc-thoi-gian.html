@@ -1,0 +1,945 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chart điểm đo · trục thời gian — ba hướng để chọn</title>
+<style>
+:root{
+  --primary:#c9491a; --primary-soft:#fbeee6; --primary-line:#e9c6ae;
+  --bg:#f3f0ea; --surface:#fff; --surface2:#efebe3; --line:#ddd6ca; --line-soft:#ebe6dc;
+  --ink:#171310; --ink2:#4c443c; --ink3:#7e756a;
+  --watch:#8a5a04; --watch-bg:#fbf6e6; --watch-line:#e4d59a;
+  --crit:#a52218; --crit-bg:#fbeeec; --crit-line:#eec4bd;
+  --good:#3a5c10; --good-bg:#f5f8ec; --good-line:#d7e2bc;
+  --info:#28587f; --info-bg:#eff5fa; --info-line:#c9dced;
+  --cat-1:#35558f; --cat-2:#654389; --cat-3:#953d61; --cat-4:#2b6f5e; --cat-5:#565f68;
+  --cat-other:#b5aa99;
+  --seq-1:#bcd6f2; --seq-2:#8ab3e3; --seq-3:#5a8ecd; --seq-4:#356ab0; --seq-5:#1c4780;
+  --unk-nocust:#a1978a;
+  --radius:12px;
+  --shadow:0 1px 2px rgba(23,19,16,.05), 0 10px 26px rgba(23,19,16,.07);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 22px 90px}
+h1{font-size:23px;line-height:1.25;margin:0 0 6px;letter-spacing:-.01em}
+h2{font-size:17px;margin:0 0 4px;letter-spacing:-.005em}
+h3{font-size:13.5px;margin:0 0 8px}
+.lede{color:var(--ink2);max-width:78ch;margin:0 0 4px}
+.meta{color:var(--ink3);font-size:12.5px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 18px 16px;margin:0 0 18px}
+.sec{margin:34px 0 0}
+.sechead{display:flex;align-items:baseline;gap:10px;margin:0 0 12px}
+.num{flex:none;width:26px;height:26px;border-radius:8px;background:var(--ink);color:var(--bg);
+  display:grid;place-items:center;font-size:13px;font-weight:700}
+.note{border-radius:10px;padding:9px 12px;font-size:12.8px;line-height:1.5;border:1px solid}
+.note.info{background:var(--info-bg);border-color:var(--info-line);color:var(--ink2)}
+.note.warn{background:var(--watch-bg);border-color:var(--watch-line);color:var(--ink2)}
+.note.crit{background:var(--crit-bg);border-color:var(--crit-line);color:var(--ink2)}
+.note.good{background:var(--good-bg);border-color:var(--good-line);color:var(--ink2)}
+.note b{color:var(--ink)}
+code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface2);
+  border:1px solid var(--line-soft);border-radius:5px;padding:.5px 4px}
+
+/* ---- thanh điều khiển dùng chung ---- */
+.controls{position:sticky;top:0;z-index:20;background:rgba(243,240,234,.93);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:0 -22px 22px;padding:12px 22px}
+.ctlrow{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.ctl{display:flex;align-items:center;gap:7px;min-width:0}
+.lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);font-weight:600;flex:none}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink2);border-radius:8px;
+  padding:4px 9px;font:600 12.3px/1.3 inherit;cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:var(--primary-line);background:var(--primary-soft)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.chip.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.6px}
+
+/* ---- khung mô phỏng màn app ---- */
+.mock{border:1px solid var(--line);border-radius:11px;background:var(--surface);overflow:hidden}
+.mockbar{background:var(--surface2);border-bottom:1px solid var(--line);padding:6px 12px;
+  font-size:11px;color:var(--ink3);letter-spacing:.04em;text-transform:uppercase;font-weight:600;
+  display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mockbody{padding:14px}
+.ttl{font-size:14.5px;font-weight:700;margin:0 0 1px}
+.denom{font-size:11.5px;color:var(--ink3);margin:0 0 11px;font-variant-numeric:tabular-nums}
+
+.legend{display:flex;flex-wrap:wrap;gap:4px 13px;margin:9px 0 0;font-size:11.8px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.sw{width:9px;height:9px;border-radius:2.5px;flex:none}
+.sw.ln{width:15px;height:2.5px;border-radius:2px}
+
+svg{display:block;max-width:100%}
+.gridline{stroke:var(--line-soft);stroke-width:1}
+.axis{stroke:var(--line);stroke-width:1}
+.tick{font-size:9.5px;fill:var(--ink3);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.pt{cursor:pointer}
+.pt:hover circle{r:4.5}
+
+.grid2{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:900px){.grid2.split{grid-template-columns:1.35fr 1fr}}
+.sm{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(178px,1fr))}
+.smcell{border:1px solid var(--line-soft);border-radius:9px;padding:8px 9px 5px;background:var(--surface)}
+.smcell.hot{border-color:var(--crit-line);background:var(--crit-bg)}
+.smtop{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 3px}
+.smname{font-size:12px;font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.smval{font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+.smdelta{font-size:10.5px;font-variant-numeric:tabular-nums}
+.up{color:var(--crit)} .down{color:var(--good)} .flat{color:var(--ink3)}
+
+.bars{display:grid;gap:7px}
+.barrow{display:grid;grid-template-columns:minmax(88px,auto) 1fr auto;gap:9px;align-items:center}
+.barname{font:600 11.8px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bartrack{height:19px;border-radius:4px;overflow:hidden;display:flex;background:var(--surface2)}
+.barseg{height:100%}
+.barn{font:600 11.8px/1.3 inherit;font-variant-numeric:tabular-nums;color:var(--ink2);flex:none}
+
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink3);
+  font-weight:600;padding:0 8px 6px;border-bottom:1px solid var(--line)}
+td{padding:7px 8px;border-top:1px solid var(--line-soft);vertical-align:top}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* Nhãn viết hoa + gạch mảnh — đúng idiom của `t-lbl` + `--line` trong web/src/index.css.
+   KHÔNG dùng thanh màu dọc bên trái: cả design system của dự án không có chỗ nào dùng lối đó. */
+.verdict{border-top:1px solid var(--line);margin:16px 0 0;padding:11px 0 0}
+.verdict::before{content:"Nhận xét";display:block;font-size:10.5px;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--ink3);font-weight:600;margin:0 0 5px}
+.verdict b{color:var(--ink)}
+ul.tight{margin:7px 0 0;padding-left:19px}
+ul.tight li{margin:0 0 5px}
+.kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;
+  font:11.5px/1.6 ui-monospace,monospace;background:var(--surface2)}
+.hr{height:1px;background:var(--line);margin:26px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Chart điểm đo · trục thời gian</h1>
+<p class="lede">Ba hướng dựng trên <b>cùng một bộ số</b> và <b>cùng một bộ điều khiển</b> — đổi điểm đo hay đổi mốc ở thanh dưới thì cả ba đổi theo, để so thẳng chứ không so bằng trí nhớ.</p>
+<p class="meta">Mốc số liệu 27/07/2026 · bản đồ: <code>.scratch/chart-diem-do-truc-thoi-gian/map.md</code> · ruling: <code>web/docs/adr-001-chart-diem-do-truc-thoi-gian.md</code></p>
+
+<div style="margin:14px 0 0" class="note warn"><b>Số trong trang này là số minh hoạ để chọn HÌNH, không phải số đo.</b> Chỉ <b>tháng đủ gần nhất (06/2026)</b> neo vào <code>Signal.vol</code> thật của fixture (614 · 1.180 · 410 · 816, sai lệch dưới 1%); mọi kỳ khác là số sinh có hạt giống. Bốn điểm đo, tên event và danh sách giá trị là thật.</div>
+
+<div class="controls">
+  <div class="ctlrow">
+    <div class="ctl"><span class="lbl">Điểm đo</span><div class="chips" id="sigChips"></div></div>
+    <div class="ctl"><span class="lbl">Mốc timeframe</span><div class="chips" id="winChips"></div></div>
+    <div class="ctl"><span class="lbl">Đường vẽ <span style="font-weight:400;text-transform:none;letter-spacing:0">(chỉ hướng A)</span></span><div class="chips" id="unitChips"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════ 1 · CỬA SỔ VÀ HẠT ══════════════ -->
+<div class="sec">
+  <div class="sechead"><span class="num">1</span><div>
+    <h2>Cửa sổ không phải hạt</h2>
+    <p class="meta">Cửa sổ là <b>thanh timeframe chung đã có</b> (<code>store/timeframe.ts</code>), không phải cụm mốc riêng. Hạt suy ra từ mốc, không cho chọn tay.</p>
+  </div></div>
+
+  <div class="card">
+    <p style="margin:0 0 12px;color:var(--ink2)">Mốc 7D với hạt tháng ra <b>đúng một điểm</b>. Hạt phải suy từ mốc:</p>
+    <table>
+      <thead><tr><th>Mốc timeframe</th><th>Hạt suy ra</th><th>Số kỳ</th><th>Ghi chú</th></tr></thead>
+      <tbody id="grainTable"></tbody>
+    </table>
+    <div style="margin:14px 0 0" class="note crit"><b>Kỳ cuối luôn chưa đủ.</b> Mốc số liệu 27/07 nằm giữa tháng, nên ở mốc 6M và 12M, bucket cuối chỉ có 27/31 ngày. Vẽ nó như kỳ đủ thì <b>mọi đường đều tụt ở điểm cuối</b> và người xem đọc thành “đang giảm” — trong khi thật ra là “chưa đếm hết tháng”. Trong cả ba hướng dưới, kỳ chưa đủ vẽ <b>dải nền mờ + điểm rỗng</b> — <b>không</b> dùng nét đứt, vì nét đứt trên cùng hình này đã mang nghĩa khác: vạch đứt dọc ở chỗ ngắt = <b>không tính được</b> (0/0).</div>
+  </div>
+
+  <div class="card">
+    <h3>Cùng một điểm đo, ba mức hạt</h3>
+    <p class="denom" id="grainDenom"></p>
+    <div class="grid2" style="grid-template-columns:1fr;gap:16px" id="grainDemo"></div>
+    <div style="margin:13px 0 0" class="note info" id="grainVerdict"></div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ══════════════ 2 · HƯỚNG A ══════════════ -->
+<div class="sec">
+  <div class="sechead"><span class="num">A</span><div>
+    <h2>Công tắc hai mode</h2>
+    <p class="meta">Đúng đề xuất của bạn — một chart, một công tắc, mỗi lúc thấy một thứ.</p>
+  </div></div>
+  <div class="card">
+    <div class="mock">
+      <div class="mockbar"><span>Hồ sơ điểm đo · mặt 4 — Giá trị phát ra</span><span id="aMode"></span></div>
+      <div class="mockbody">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 11px">
+          <div class="ttl" id="aTtl"></div>
+          <div class="chips" id="aSwitch"></div>
+        </div>
+        <div id="aBody"></div>
+      </div>
+    </div>
+    <div class="verdict" id="aVerdict"></div>
+  </div>
+</div>
+
+<!-- ══════════════ 3 · HƯỚNG B ══════════════ -->
+<div class="sec">
+  <div class="sechead"><span class="num">B</span><div>
+    <h2>Hai tầng nối nhau</h2>
+    <p class="meta">Không phải hai mode — một trang, đường ở trên, lát cắt ở dưới. Bấm một điểm trên đường thì lát cắt nhảy về đúng kỳ đó.</p>
+  </div></div>
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">
+      <span class="lbl" style="margin:0">Tầng đường xử lý đơn vị</span>
+      <div class="chips" id="bVariant"></div>
+    </div>
+    <div class="mock">
+      <div class="mockbar"><span>Hồ sơ điểm đo · mặt 4 — Giá trị phát ra</span><span id="bPick"></span></div>
+      <div class="mockbody">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 11px">
+          <div class="ttl" style="margin:0" id="bTtl"></div>
+          <div class="chips" id="bUnit"></div>
+        </div>
+        <div class="lbl" id="bAxis" style="margin:0 0 5px"></div>
+        <div id="bLine"></div>
+        <div style="height:1px;background:var(--line-soft);margin:14px 0 12px"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 9px">
+          <div class="lbl" id="bSliceLbl"></div>
+          <div class="chips" id="bDims"></div>
+        </div>
+        <div id="bSlice"></div>
+      </div>
+    </div>
+    <div class="verdict" id="bVerdict"></div>
+  </div>
+</div>
+
+<!-- ══════════════ 4 · HƯỚNG C ══════════════ -->
+<div class="sec">
+  <div class="sechead"><span class="num">C</span><div>
+    <h2>Lưới đường nhỏ</h2>
+    <p class="meta">Mỗi giá trị một ô riêng. Không có đường nào chồng đường nào, và không cần màu để phân biệt.</p>
+  </div></div>
+  <div class="card">
+    <div class="mock">
+      <div class="mockbar"><span>Hồ sơ điểm đo · mặt 4 — Giá trị phát ra</span><span id="cScale"></span></div>
+      <div class="mockbody">
+        <div class="ttl" style="margin:0 0 11px" id="cTtl"></div>
+        <div class="lbl" id="cAxis" style="margin:0 0 7px"></div>
+        <div class="sm" id="cGrid"></div>
+        <div style="margin:9px 0 0" id="cStrip"></div>
+        <div style="margin:13px 0 0" class="lbl">Lát cắt của kỳ gần nhất</div>
+        <div style="margin:8px 0 0" id="cSlice"></div>
+      </div>
+    </div>
+    <div class="verdict" id="cVerdict"></div>
+  </div>
+</div>
+
+<div class="hr"></div>
+
+<!-- ══════════════ 5 · SO SÁNH ══════════════ -->
+<div class="sec">
+  <div class="sechead"><span class="num">5</span><div>
+    <h2>Ba hướng chịu được gì</h2>
+    <p class="meta">Cột cuối là ca làm gãy — thử đổi điểm đo sang <code>sg-rut-2</code> (7 giá trị) rồi đọc lại bảng.</p>
+  </div></div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Việc</th><th>A · công tắc</th><th>B · hai tầng</th><th>C · lưới nhỏ</th></tr></thead>
+      <tbody>
+        <tr><td><b>Điểm đo 1 giá trị</b><div class="meta">sg1 tapped</div></td>
+          <td>Được — mode Lịch sử là toàn bộ nội dung</td><td>Được — tầng dưới thành lát cắt của kỳ chọn, vẫn có việc</td><td>Được, nhưng lưới 1 ô hơi trống</td></tr>
+        <tr><td><b>2 giá trị</b><div class="meta">sg5 success/fail</div></td>
+          <td>Tốt</td><td>Tốt nhất — thấy xu hướng rồi bổ ngay ra ai chịu</td><td>Được, hai ô hơi thừa chỗ</td></tr>
+        <tr><td><b>7 giá trị</b><div class="meta">sg-rut-2</div></td>
+          <td class="n" style="color:var(--crit)">Gãy — 7 đường chồng nhau, và bảng màu phân loại chỉ có 5</td>
+          <td style="color:var(--watch)">Chật — cùng bệnh của A ở tầng trên</td>
+          <td style="color:var(--good)">Chịu được — mỗi ô một khung, không cần màu</td></tr>
+        <tr><td><b>Chọn nhiều điểm đo cùng lúc</b><div class="meta">đã bỏ — node 11 no-build</div></td>
+          <td class="n" style="color:var(--ink3)">Không làm — owner bỏ hướng ghép nhiều điểm đo 13/08</td>
+          <td style="color:var(--watch)">Chật như A</td>
+          <td style="color:var(--good)">Chịu được — lưới dài thêm, không rối thêm</td></tr>
+        <tr><td><b>Trả lời “ai đang bị”</b></td>
+          <td style="color:var(--watch)">Phải bấm công tắc, mất trục thời gian khỏi màn</td>
+          <td style="color:var(--good)">Thấy cùng lúc, và lát cắt bám đúng kỳ đang chỉ</td>
+          <td>Thấy cùng lúc nhưng lát cắt cứng ở kỳ gần nhất</td></tr>
+        <tr><td><b>So hai giá trị với nhau</b><div class="meta">success vs fail cùng trục</div></td>
+          <td style="color:var(--good)">Tốt — chung một trục y</td><td style="color:var(--good)">Tốt</td>
+          <td style="color:var(--watch)">Kém — mỗi ô một trục, phải bật “chung thang”</td></tr>
+        <tr><td><b>Việc phải dựng</b></td>
+          <td>Công tắc + 1 line chart</td><td>Line chart + nối bấm-điểm xuống lát cắt đang có</td><td>Lưới mini + toggle chung thang</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Chỗ tôi thấy nên chọn</h3>
+    <div class="note good"><b>B làm khung, C làm lối thoát khi đông giá trị.</b> Không phải chọn một bỏ hai.</div>
+    <ul class="tight">
+      <li><b>Bỏ ý “hai mode”.</b> Lịch sử và lát cắt không phải hai chế độ loại trừ nhau — chúng là hai câu hỏi nối tiếp: <i>“đang xấu đi từ bao giờ”</i> rồi <i>“kỳ đó ai chịu”</i>. Công tắc (hướng A) cắt đúng chỗ nối, bắt người dùng nhớ số ở màn trước.</li>
+      <li><b>Cái B có mà A không có</b> là bấm một điểm trên đường thì lát cắt nhảy về kỳ đó. Đây là thứ duy nhất trong cả ba hướng trả lời được câu <i>“tháng 5 tự nhiên vọt lên, tháng đó là nhóm khách nào”</i> — và nó tái dùng nguyên lát cắt đang chạy, không dựng chart mới.</li>
+      <li><b>Chuyển sang C theo số giá trị, không theo ý người dùng.</b> Ngưỡng đề xuất: <b>từ 5 giá trị trở lên</b>. Lý do cứng chứ không phải thẩm mỹ — bảng màu phân loại của dự án <b>chỉ có 5 màu</b> (<code>--cat-1..5</code>), giá trị thứ 6 trở đi phải rơi vào <code>--cat-other</code> hoặc gộp “Khác (+N)”, tức là <b>xoá mất</b> đúng cái danh sách lý do mà chart này sinh ra để hiện.</li>
+      <li><b>Tỉ lệ không bật được cho mọi điểm đo.</b> Xem mục 6 — đây là chỗ dễ in số sai nhất và nó không phải câu hỏi giao diện.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════ 6 · MẪU SỐ ══════════════ -->
+<div class="sec">
+  <div class="sechead"><span class="num">6</span><div>
+    <h2>Đếm hay tỉ lệ — và tỉ lệ của cái gì</h2>
+    <p class="meta">Node 4. Không phải câu hỏi giao diện: chọn sai là in một con số dưới cái nhãn nó không thuộc về.</p>
+  </div></div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Điểm đo</th><th>Các giá trị quan hệ thế nào</th><th>Mẫu số đúng</th><th>Bật tỉ lệ?</th></tr></thead>
+      <tbody>
+        <tr><td class="n"><code>sg1</code> account_open_started<div class="meta">1 giá trị · 614</div></td>
+          <td>Chỉ một token <code>tapped</code></td><td>—</td>
+          <td style="color:var(--crit)"><b>Không.</b> Tỉ lệ luôn là 100%, một đường thẳng vô nghĩa. Điểm đo một giá trị <b>chỉ có số đếm</b>.</td></tr>
+        <tr><td class="n"><code>sg5</code> liveness_result<div class="meta">2 giá trị · 1.180</div></td>
+          <td>Loại trừ nhau, một lần bắn đúng một giá trị</td><td class="n">Chính <code>vol</code> của nó</td>
+          <td style="color:var(--good)"><b>Có</b> — và tỉ lệ ở đây đúng nghĩa “tỉ lệ trượt liveness”.</td></tr>
+        <tr><td class="n"><code>sg4</code> document_fail_reason<div class="meta">4 giá trị · 410</div></td>
+          <td>Là <b>tập con</b> của <code>sg3</code> (920 lượt chụp)</td><td class="n">Tuỳ câu hỏi — xem dưới</td>
+          <td style="color:var(--watch)"><b>Có, nhưng phải nói mẫu số.</b></td></tr>
+        <tr><td class="n"><code>sg-rut-2</code> gate_block_reason<div class="meta">7 giá trị · 816</div></td>
+          <td>816 là tổng failed của <b>sáu bước cổng</b>, không phải số lệnh rút</td><td class="n">Chính nó, không phải số lệnh rút</td>
+          <td style="color:var(--watch)"><b>Có, nhưng phải nói mẫu số.</b></td></tr>
+      </tbody>
+    </table>
+    <div style="margin:14px 0 0" class="note crit"><b>Bẫy cụ thể ở <code>sg4</code>.</b> Tỉ lệ trong nội bộ <code>sg4</code> trả lời <i>“trong các ca trượt, lý do nào chiếm phần lớn”</i> — hợp lệ. Nó <b>không</b> trả lời <i>“tỉ lệ trượt là bao nhiêu”</i>: câu đó cần mẫu số ở <b>một điểm đo khác</b> (<code>sg3</code>, 920 lượt). Hai câu này đọc gần giống nhau và cho hai con số khác hẳn (blur chiếm 42% <b>các ca trượt</b> ≠ blur xảy ra ở 42% <b>lượt chụp</b>). Nếu chart chỉ ghi “%” trơn thì người xem tự chọn nghĩa — và đây đúng là kiểu lỗi <code>VOC_SCOPE</code> mà dự án đã vấp.</div>
+    <div style="margin:11px 0 0" class="note info"><b>Đề xuất:</b> nhãn trục tỉ lệ luôn viết đủ mẫu số (<i>“% trên 410 lượt bắn của chính điểm đo này”</i>), và <b>không</b> cho phép tỉ lệ liên-điểm-đo ở vòng này — nối <code>sg4 ÷ sg3</code> là đã bước sang tầng công thức của chỉ số, tức node 9, không phải chart điểm đo.</div>
+  </div>
+
+  <div class="card">
+    <h3>Hai cách đưa mẫu số ra màn</h3>
+    <table>
+      <thead><tr><th>Việc</th><th>(i) công tắc đếm / tỉ lệ</th><th>(ii) đường tỉ lệ + dải khối lượng</th></tr></thead>
+      <tbody>
+        <tr><td><b>Mẫu số có trên màn không</b></td>
+          <td class="n" style="color:var(--crit)">Không — con số % đứng một mình</td>
+          <td style="color:var(--good)">Có — dải dưới đường, dùng chung trục ngang</td></tr>
+        <tr><td><b>Điểm đo 1 giá trị</b><div class="meta">6 / 30 điểm đo của seed</div></td>
+          <td style="color:var(--crit)">Nút Tỉ lệ phải khoá — một nút chết cứ năm điểm đo lại gặp một</td>
+          <td style="color:var(--good)">Tự thu về một đường đếm, không có nút nào để chết</td></tr>
+        <tr><td><b>Hạt ngày, lưu lượng thấp</b><div class="meta">sg4 · ~13 lượt/ngày cho 4 giá trị</div></td>
+          <td style="color:var(--crit)">Tỉ lệ nhảy hàng chục % giữa hai ngày liền nhau, không có dấu hiệu nào để nghi</td>
+          <td style="color:var(--good)">Dải teo lại đúng chỗ nhảy — đọc ra ngay là mẫu nhỏ</td></tr>
+        <tr><td><b>Kỳ không bắn lần nào</b><div class="meta">0/0 — 05/07 ở sg4</div></td>
+          <td>Đường đứt + vạch đỏ báo lý do — chung cho cả hai biến thể</td>
+          <td>Thêm vạch đỏ ở dải: thấy luôn mẫu số hai bên chỗ đứt tụt tới đâu</td></tr>
+        <tr><td><b>Xu hướng ĐẾM của riêng một giá trị</b></td>
+          <td style="color:var(--good)">Có — bật công tắc là thành đường</td>
+          <td class="n" style="color:var(--watch)">Mất — phải bấm vào kỳ rồi đọc ở lát cắt dưới</td></tr>
+        <tr><td><b>Trạng thái phải nhớ</b></td>
+          <td style="color:var(--watch)">Thêm một, nhân với mốc timeframe và chiều khách</td>
+          <td style="color:var(--good)">Không thêm</td></tr>
+        <tr><td><b>Việc phải dựng</b></td>
+          <td>Một nút</td><td>Dải bar dưới đường, dùng chung phép chiếu trục X</td></tr>
+      </tbody>
+    </table>
+    <div style="margin:14px 0 0" class="note good"><b>Owner chốt 13/08: (ii).</b> Không phải vì đẹp hơn mà vì nó <b>chính là Đ2</b> — luật đã chốt cho lát cắt (“chân đế riêng từng nhóm”, mỗi nhóm thấy mẫu số của chính nó) dịch sang trục thời gian. <b>Giá đã trả:</b> ô màu cam ở cột (ii) — xu hướng đếm của riêng một giá trị không còn là đường, phải bấm vào kỳ rồi đọc ở lát cắt. Nếu về sau đó thành câu hay hỏi thì mở lại node 4, không phải sửa vá.</div>
+    <div style="margin:11px 0 0" class="note"><b>Tổ hợp phân định:</b> đổi hai nút ở đầu mục 3, với <code>sg4</code> · mốc <b>4W</b>. Ngày 05/07 được cấy chủ ý là ngày không bắn lần nào — chỉ nhìn thấy ở hạt ngày.</div>
+  </div>
+</div>
+
+<!-- ══════════════ 7 · CÒN LẠI ══════════════ -->
+<div class="sec">
+  <div class="sechead"><span class="num">7</span><div>
+    <h2>Trạng thái toàn bộ bản đồ</h2>
+    <p class="meta">13 node · 13 chốt · Fog rỗng. Nguồn: <code>.scratch/chart-diem-do-truc-thoi-gian/map.md</code> · <code>web/docs/adr-001-chart-diem-do-truc-thoi-gian.md</code></p>
+  </div></div>
+  <div class="card">
+    <div class="note good"><b>Owner chốt trực tiếp:</b> node 1 (lật Đ3) · 2 (hai tầng nối nhau) · 3 (chiều khách ở tầng dưới) · 4 (đường tỉ lệ + dải khối lượng) · 5b (hạt ngày, không ngoại lệ theo lưu lượng).</div>
+    <div style="margin:11px 0 0" class="note info"><b>Chốt theo uỷ quyền, chờ review tổng thể:</b> node 4b · 5 (reroute) · 6 · 7 · 8 (reroute) · 9 · 10.</div>
+    <ul class="tight" style="margin-top:15px">
+      <li><b>Node 5 — cửa sổ: ĐI LẠI ĐƯỜNG.</b> Ruling sáng nay (bộ 1/3/6/12 tự chế) bị lật bởi bằng chứng trong code: <code>store/timeframe.ts</code> đã có thanh timeframe chung, và <code>App.tsx:21</code> ghi tiền lệ <code>#/topics</code> lập 06/08 — <i>"hai chỗ điều khiển cùng một thứ sẽ lệch nhau"</i>. Chart điểm đo đọc thanh chung; khi dựng phải thêm <code>'signals'</code> vào <code>TIMEFRAME_ROUTES</code>.</li>
+      <li><b>Node 4b — lưới C:</b> ô mini vẽ tỉ lệ, <b>một</b> dải khối lượng dùng chung dưới cả lưới. Bác lối "mini vẽ đếm" vì ngưỡng ≥5 do máy chọn — đơn vị sẽ tự đổi khi khai thêm giá trị thứ 5 mà người dùng không bấm gì.</li>
+      <li><b>Node 6 — hình dạng dữ liệu:</b> <code>{ sig, val, period, n }</code>. <code>n</code> có <b>ba</b> trạng thái chứ không phải hai: có bắn · <b>đo được và bằng 0</b> (kỳ phải có mặt) · <b>chưa đo</b> (kỳ vắng mặt, vẽ trống). Trộn hai cái sau là tái phạm luật không-trộn-chưa-biết-với-thiếu. Chờ Bảng D để chốt cách khai mốc instrument.</li>
+      <li><b>Node 7 — Demo Mode:</b> <code>Fire</code> thêm mốc, cộng lên từ chính <code>Fire</code>. Không phải <code>monthly()</code> tái phạm — cấm là cấm ngoại suy dữ liệu THẬT; Demo Mode BẬT có điều lệ sinh số. Cấm dùng <code>Period.factor</code> nhân <code>vol</code>.</li>
+      <li><b>Node 9 — tầng chỉ số:</b> dừng, mở đường, không nối. Khớp đứt <code>Metric.value</code> gõ tay <b>vẫn còn nguyên</b>, không được coi là đã xong.</li>
+      <li><b>Node 11 — nhiều điểm đo: KHÔNG LÀM</b> (owner chốt 13/08). Màn chỉ lo <b>từng điểm đo hiện cho tốt</b>. Bản dựng thử đã gỡ khỏi trang này. Mở lại nếu có câu thật cần so hai điểm đo trên cùng một trục thời gian.</li>
+      <li><b>Node 8 — thuộc tính khách:</b> hết treo. Dữ liệu là <b>thô, lưu lâu dài, tự lọc bằng SQL</b> ⇒ lối (b): bảng snapshot <code>khách × kỳ</code>, nối temporal theo <b>ngày của lượt bắn</b>. Chỉ <code>nav</code> và <code>tier</code> cần nối; <code>age</code> suy từ ngày sinh, <code>acq</code> tĩnh.</li>
+    </ul>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* ============================================================
+   SỐ MINH HOẠ — sinh tất định bằng hạt giống, KHÔNG phải số đo.
+   Tháng ĐỦ gần nhất (06/2026) neo vào Signal.vol thật của fixture; tháng 07 là kỳ chưa đủ.
+   ============================================================ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+var ASOF=new Date(2026,6,27), START=new Date(2025,7,1);
+var DAY=864e5;
+
+var SIGNALS=[
+ {id:'sg1',name:'account_open_started',desc:'Khách bấm Mở tài khoản',vol:614,growth:.70,nullRate:.92,
+  values:[{v:'tapped',now:1,then:1}]},
+ {id:'sg5',name:'ekyc_face_liveness_result',desc:'Kết quả mỗi lần liveness',vol:1180,growth:.82,nullRate:.22,
+  values:[{v:'success',now:.833,then:.910},{v:'fail',now:.167,then:.090}]},
+ {id:'sg4',name:'ekyc_document_fail_reason',desc:'Lý do thất bại chụp giấy tờ',vol:410,growth:.78,nullRate:.31,
+  values:[{v:'blur',now:.42,then:.25},{v:'glare',now:.27,then:.33},{v:'crop',now:.19,then:.24},{v:'expired',now:.12,then:.18}]},
+ /* `since` — mốc INSTRUMENT. Cấy chủ ý để trạng thái (3) của node 6 (CHƯA ĐO ≠ đo-được-0) có chỗ
+    hiện thật: kỳ trước mốc này phải để TRỐNG, không vẽ 0 và cũng không phải chỗ ngắt 0/0. Ca này
+    trước đó chỉ có trên giấy: điểm đo cắm giữa cửa sổ là ca THẬT của một điểm đo đơn lẻ, và phần
+    trước mốc cắm phải TRỐNG chứ không phải 0. */
+ {id:'sg-rut-2',name:'withdraw_gate_block_reason',desc:'Cổng nào chặn lệnh rút',vol:816,growth:.74,nullRate:.01,
+  since:new Date(2025,11,1),
+  values:[{v:'insufficient_withdrawable',now:.38,then:.30},{v:'rtt_below_100',now:.17,then:.14},
+          {v:'cccd_not_verified',now:.13,then:.22},{v:'signature_missing',now:.11,then:.13},
+          {v:'otp_failed',now:.09,then:.10},{v:'over_limit_after_16h',now:.07,then:.06},
+          {v:'month_end_blackout',now:.05,then:.05}]}
+];
+
+var LINE_COLORS=['--cat-1','--cat-3','--cat-4','--cat-2','--cat-5','--primary','--watch'];
+var BANDS=[{b:'<50tr',c:'--seq-1'},{b:'50-200tr',c:'--seq-2'},{b:'200tr-1tỷ',c:'--seq-3'},
+           {b:'1-5tỷ',c:'--seq-4'},{b:'5tỷ+',c:'--seq-5'}];
+var DIMS=[{id:'nav',l:'Phân khúc NAV'},{id:'age',l:'Độ tuổi'},{id:'acq',l:'Nguồn lead'},{id:'sigpf',l:'Nền tảng'}];
+
+/* ---- sinh chuỗi NGÀY cho mỗi điểm đo ---- */
+var DAYS=[];
+for(var d=new Date(START);d<=ASOF;d=new Date(d.getTime()+DAY))DAYS.push(new Date(d));
+
+var SERIES={}; // SERIES[sigId] = [{date, byVal:{v:n}, total}]
+SIGNALS.forEach(function(sig,si){
+  var rnd=mulberry32(0x51624e+si*977);
+  // tổng của THÁNG CUỐI (đủ tháng) = vol thật; các tháng trước nội suy theo growth
+  var rows=DAYS.map(function(dt){
+    var mi=(dt.getFullYear()-2025)*12+dt.getMonth()-7;      // 0..11
+    var t=mi/11;
+    var monthTotal=sig.vol*(sig.growth+(1-sig.growth)*t);
+    var dim=new Date(dt.getFullYear(),dt.getMonth()+1,0).getDate();
+    var wd=dt.getDay(), weekend=(wd===0||wd===6)?.62:1.14;
+    var base=monthTotal/dim*weekend*(.82+rnd()*.36);
+    var byVal={},sum=0;
+    sig.values.forEach(function(vv){
+      var share=vv.then+(vv.now-vv.then)*t;
+      var n=Math.max(0,Math.round(base*share*(.78+rnd()*.44)));
+      byVal[vv.v]=n; sum+=n;
+    });
+    // trước mốc instrument: KHÔNG có số liệu (khác hẳn có số liệu và bằng 0)
+    if(sig.since&&dt<sig.since)return {date:dt,byVal:{},total:0,pre:true};
+    return {date:dt,byVal:byVal,total:sum};
+  });
+  /* Cấy CHỦ Ý một ngày `sg4` không bắn lần nào (05/07/2026). 0/0 là ca THẬT sẽ gặp ngay khi để hạt
+     ngày cho điểm đo lưu lượng thấp, và demo phải cho thấy cách xử: ĐẾM vẽ điểm 0 (đo được, bằng 0),
+     TỈ LỆ đứt đường (không tính được). Không cấy thì generator không bao giờ sinh ra ngày tổng 0
+     (sàn cuối tuần .62 × base ~13 vẫn ra 7) và bản demo lặng lẽ né đúng ca khó nhất. */
+  if(sig.id==='sg4'){
+    rows.forEach(function(r){
+      if(r.date.getMonth()===6&&r.date.getDate()===5){
+        sig.values.forEach(function(vv){r.byVal[vv.v]=0});
+        r.total=0;
+      }
+    });
+  }
+  SERIES[sig.id]=rows;
+});
+
+/* ---- các mốc của THANH TIMEFRAME CHUNG (store/timeframe.ts `RangeKey`) ----
+   Không phải bộ 1/3/6/12 tự chế: `#/topics` đã lập tiền lệ 06/08 — màn có chart đọc thẳng thanh
+   chung chứ không dựng cụm mốc riêng, "hai chỗ điều khiển cùng một thứ sẽ lệch nhau" (App.tsx:21).
+   Cột `n` là số kỳ, cột `grain` là hạt suy ra. `RANGE_MONTHS`/`effectiveMonths` của
+   features/overview/sec.ts KHÔNG dùng lại được ở đây: chúng gán 7d/14d/4w = 1 tháng rồi kẹp sàn
+   3 điểm vì dữ liệu VoC/Quantify là monthly-only — chart điểm đo có mốc thô từng lượt bắn nên ba
+   mốc mịn ở đây là THẬT. */
+var RANGES=[
+  {k:'default',l:'Default',grain:'month',n:6},
+  {k:'7d',     l:'7D',     grain:'day',  n:7},
+  {k:'14d',    l:'14D',    grain:'day',  n:14},
+  {k:'4w',     l:'4W',     grain:'day',  n:28},
+  {k:'3m',     l:'3M',     grain:'week', n:13},
+  {k:'6m',     l:'6M',     grain:'month',n:6},
+  {k:'12m',    l:'12M',    grain:'month',n:12},
+  {k:'custom', l:'Custom', grain:'month',n:6, off:true}
+];
+function rangeBy(k){return RANGES.filter(function(r){return r.k===k})[0]}
+
+/* ---- gộp NGÀY thành bucket theo cửa sổ ---- */
+function bucketsFor(sigId,rk){
+  var rows=SERIES[sigId], sig=sigById(sigId);
+  var r=rangeBy(rk), grain=r.grain;
+  /* Cắt cửa sổ theo ĐÚNG hạt, không cắt thô theo ngày: hạt tháng mà cắt ở 27/01 thì bucket đầu
+     chỉ có 4 ngày và vẽ ra một điểm tụt giả. Hạt tháng ⇒ lùi về ĐẦU tháng thứ (n-1). */
+  var from;
+  if(grain==='month'){
+    from=new Date(ASOF.getFullYear(),ASOF.getMonth()-(r.n-1),1);
+    from=new Date(from.getTime()-DAY);           // biên mở, giữ nguyên phép so `>` bên dưới
+  }else{
+    from=new Date(ASOF.getTime()-(grain==='day'?r.n:r.n*7)*DAY);
+  }
+  var sel=rows.filter(function(r){return r.date>from});
+  var map=new Map();
+  sel.forEach(function(r){
+    var key,label,endOfBucket;
+    if(grain==='day'){
+      key=r.date.getTime();
+      label=pad(r.date.getDate())+'/'+pad(r.date.getMonth()+1);
+      endOfBucket=r.date;
+    }else if(grain==='week'){
+      var off=Math.floor((ASOF-r.date)/DAY/7);
+      key=1000-off;
+      var end=new Date(ASOF.getTime()-off*7*DAY);
+      label=pad(end.getDate())+'/'+pad(end.getMonth()+1);
+      endOfBucket=end;
+    }else{
+      key=r.date.getFullYear()*12+r.date.getMonth();
+      label=pad(r.date.getMonth()+1)+'/'+String(r.date.getFullYear()).slice(2);
+      endOfBucket=new Date(r.date.getFullYear(),r.date.getMonth()+1,0);
+    }
+    if(!map.has(key))map.set(key,{key:key,label:label,byVal:{},total:0,end:endOfBucket,obs:0});
+    var b=map.get(key);
+    if(r.pre)return;                    // ngày chưa đo không góp gì, kể cả số 0
+    b.obs++;
+    sig.values.forEach(function(vv){b.byVal[vv.v]=(b.byVal[vv.v]||0)+r.byVal[vv.v]});
+    b.total+=r.total;
+  });
+  var out=[...map.values()].sort(function(a,b){return a.key-b.key});
+  // kỳ cuối chưa đủ nếu bucket kéo dài quá mốc số liệu
+  // bucket không có NGÀY NÀO đo được ⇒ chưa đo (trạng thái 3), khác bucket đo được mà tổng 0
+  out.forEach(function(b){b.partial=b.end>ASOF;b.pre=b.obs===0});
+  if(out.length&&grain==='month'){
+    var last=out[out.length-1];
+    last.partial=last.end>ASOF;
+  }
+  return {grain:grain,list:out};
+}
+function pad(n){return n<10?'0'+n:''+n}
+function sigById(id){return SIGNALS.filter(function(s){return s.id===id})[0]}
+function nf(n){return Math.round(n).toLocaleString('vi-VN')}
+function pct(x){return (x*100).toFixed(1).replace('.',',')+'%'}
+function cssv(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim()}
+
+/* ---- trạng thái ---- */
+var ST={sig:'sg5',rng:'6m',unit:'count',bDim:'nav',bIdx:null,aMode:'hist',cShared:true,grain:'auto',
+        bTop:'strip',    // biến thể tầng đường của B: 'toggle' | 'strip' — owner chốt (ii) strip 13/08
+
+        bUnit:'ratio'};  // đơn vị của biến thể (i), tách khỏi ST.unit dùng chung cho A và C
+
+/* ============================================================
+   VẼ
+   ============================================================ */
+/* `p.y === null` nghĩa là KHÔNG TÍNH ĐƯỢC (kỳ đó điểm đo không bắn lần nào ⇒ tỉ lệ là 0/0), khác
+   hẳn `p.y === 0` là ĐO ĐƯỢC VÀ BẰNG 0. Đường phải ĐỨT ở đó, không nối thẳng qua và không hạ về 0 —
+   cùng luật với rule 2 của signalChart.ts ("nhóm rỗng đọc thành đã đo, ra 0, một lời bịa").
+   `opts.stripVals` = dải khối lượng vẽ ngay dưới đường, DÙNG CHUNG trục ngang: đây là Đ2 ("chân đế
+   riêng từng nhóm") dịch sang trục thời gian — mẫu số của chính đường đang vẽ phải nhìn thấy được. */
+function lineSvg(series,opts){
+  opts=opts||{};
+  var W=opts.w||760, mini=!!opts.mini;
+  var strip=opts.stripVals||null, stripH=strip?26:0, stripGap=strip?7:0;
+  var PL=mini?4:38,PR=mini?4:10,PT=mini?6:12,PB=mini?14:22;
+  var n=series[0]?series[0].pts.length:0;
+  if(!n)return '<div class="meta">chưa có kỳ nào</div>';
+  var ih=(opts.h||(mini?70:190))-PT-PB;
+  var yStrip=PT+ih+stripGap;
+  var H=PT+ih+(strip?stripGap+stripH:0)+PB;
+  var max=0;
+  series.forEach(function(s){s.pts.forEach(function(p){if(p.y!==null&&p.y>max)max=p.y})});
+  if(opts.max!==undefined)max=opts.max;
+  if(opts.unit==='ratio')max=Math.max(max,.08);
+  max=max*1.14||1;
+  var iw=W-PL-PR;
+  var X=function(i){return PL+(n===1?iw/2:iw*i/(n-1))};
+  var Y=function(v){return PT+ih-ih*(v/max)};
+  var out='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img">';
+
+  /* ---- DẢI NỀN = kỳ CHƯA ĐỦ ----
+     Trước đây trạng thái này vẽ bằng nét đứt ngang trên đường. Bỏ, vì owner nhìn bản dựng 13/08 và
+     nét đứt đã có nghĩa khác trên cùng hình: vạch đứt DỌC ở chỗ ngắt = KHÔNG TÍNH ĐƯỢC (0/0). Hai
+     nghĩa khác hẳn nhau mà cùng một thành ngữ, khác nhau chỉ ở hướng và màu — ở hạt tháng một tháng
+     tổng 0 sẽ vẽ cả hai trên một đường. Nay "đứt" chỉ còn đúng một nghĩa; chưa-đủ nói bằng NỀN.
+     Dải phủ xuống hết cả dải khối lượng vì cột cuối cũng thiếu ngày y như điểm cuối. */
+  var fp=-1;
+  for(var pi=0;pi<n;pi++){if(series[0].pts[pi].partial){fp=pi;break}}
+  if(fp>=0){
+    var bx=fp===0?PL:(X(fp-1)+X(fp))/2;
+    var bh=ih+(strip?stripGap+stripH:0);
+    out+='<rect x="'+bx.toFixed(1)+'" y="'+PT+'" width="'+(W-PR-bx).toFixed(1)+'" height="'+bh.toFixed(1)+
+         '" fill="'+cssv('--ink3')+'" opacity=".09"><title>kỳ chưa đủ — chưa đếm hết kỳ, không phải đang giảm</title></rect>'+
+         '<line x1="'+bx.toFixed(1)+'" y1="'+PT+'" x2="'+bx.toFixed(1)+'" y2="'+(PT+bh).toFixed(1)+
+         '" stroke="'+cssv('--ink3')+'" stroke-width="1" opacity=".4"/>';
+  }
+
+  if(!mini){
+    for(var g=0;g<=3;g++){
+      var yy=PT+ih*g/3, val=max*(1-g/3);
+      out+='<line class="gridline" x1="'+PL+'" y1="'+yy.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+yy.toFixed(1)+'"/>';
+      out+='<text class="tick" x="'+(PL-6)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+
+           (opts.unit==='ratio'?(val*100).toFixed(0)+'%':nf(val))+'</text>';
+    }
+    var every=Math.max(1,Math.ceil(n/9));
+    series[0].pts.forEach(function(p,i){
+      if(i%every&&i!==n-1)return;
+      out+='<text class="tick" x="'+X(i).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle">'+p.label+'</text>';
+    });
+  }
+
+  // ---- dải khối lượng (mẫu số) ----
+  if(strip){
+    var smax=Math.max.apply(null,strip)||1;
+    var bw=Math.max(1.5,iw/n*0.66);
+    strip.forEach(function(v,i){
+      // v === 0 vẫn phải THẤY: một vạch đỏ 2px ở đáy. Cột cao 0 thì không phân biệt được với chỗ trống.
+      var h=v>0?Math.max(1,stripH*(v/smax)):2;
+      /* Kỳ CHƯA ĐỦ vẽ cột rỗng (cùng thành ngữ với điểm rỗng của đường): hạt tháng thì kỳ cuối mới
+         có 27/31 ngày nên cột thấp hơn thật, mà đây lại đúng là chỗ có nhiệm vụ nói thật về mẫu số. */
+      var part=series[0].pts[i].partial;
+      // CHƯA ĐO: không vẽ cột nào. Vạch đỏ 2px nghĩa là "đo được, không bắn" — dùng ở đây là bịa.
+      if(series[0].pts[i].pre)return;
+      out+='<rect x="'+(X(i)-bw/2).toFixed(1)+'" y="'+(yStrip+stripH-h).toFixed(1)+'" width="'+bw.toFixed(1)+
+           '" height="'+h.toFixed(1)+'" fill="'+(part?cssv('--surface'):cssv(v>0?'--line':'--crit'))+'"'+
+           (part?' stroke="'+cssv('--line')+'" stroke-width="1"':'')+' rx="1">'+
+           '<title>'+series[0].pts[i].label+' · '+nf(v)+' lượt bắn'+
+           (v>0?'':' — không bắn lần nào, tỉ lệ không tính được')+(part?' · kỳ chưa đủ':'')+'</title></rect>';
+    });
+    out+='<text class="tick" x="'+(PL-6)+'" y="'+(yStrip+stripH).toFixed(1)+'" text-anchor="end">'+nf(smax)+'</text>';
+  }
+
+  series.forEach(function(s){
+    var col=cssv(s.color), sw=mini?1.6:2;
+    // Nối từng đoạn một: đứt khi gặp null, gạch đứt khi một trong hai đầu là kỳ chưa đủ.
+    var prev=null;
+    for(var i=0;i<n;i++){
+      var p=s.pts[i];
+      if(p.y===null){prev=null;continue}
+      var cur=[X(i),Y(p.y)];
+      if(prev){
+        out+='<path d="M'+prev[0].toFixed(1)+' '+prev[1].toFixed(1)+'L'+cur[0].toFixed(1)+' '+cur[1].toFixed(1)+
+             '" fill="none" stroke="'+col+'" stroke-width="'+sw+'" stroke-linecap="round"/>';
+      }
+      prev=cur;
+    }
+    if(!mini||n<40){
+      s.pts.forEach(function(p,i){
+        if(p.y===null)return;
+        var r=mini?1.7:3;
+        out+='<g class="pt"'+(opts.onPoint?' data-i="'+i+'"':'')+'>'+
+          '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.y).toFixed(1)+'" r="'+r+'" fill="'+(p.partial?cssv('--surface'):col)+'" stroke="'+col+'" stroke-width="1.6"/>'+
+          (opts.onPoint?'<title>'+p.label+' · '+s.label+' · '+(opts.unit==='ratio'?pct(p.y):nf(p.y))+(p.partial?' · kỳ chưa đủ':'')+'</title>':'')+
+          '</g>';
+      });
+    }
+  });
+
+  // vạch dọc ở kỳ KHÔNG TÍNH ĐƯỢC — để chỗ đứt không bị đọc thành "đường vẽ lỗi"
+  if(!mini&&series[0]){
+    series[0].pts.forEach(function(p,i){
+      if(p.y!==null||p.pre)return;      // pre là TRỐNG, không phải "không tính được"
+      out+='<line x1="'+X(i).toFixed(1)+'" y1="'+PT+'" x2="'+X(i).toFixed(1)+'" y2="'+(PT+ih)+
+           '" stroke="'+cssv('--crit')+'" stroke-width="1" stroke-dasharray="2 4" opacity=".55"><title>'+
+           p.label+' — không bắn lần nào, tỉ lệ không tính được</title></line>';
+    });
+  }
+
+  if(opts.sel!==null&&opts.sel!==undefined&&opts.sel<n){
+    out+='<line x1="'+X(opts.sel).toFixed(1)+'" y1="'+PT+'" x2="'+X(opts.sel).toFixed(1)+'" y2="'+
+         (PT+ih+(strip?stripGap+stripH:0)).toFixed(1)+'" stroke="'+cssv('--primary')+'" stroke-width="1.5" stroke-dasharray="2 3"/>';
+  }
+  out+='</svg>';
+  return out;
+}
+
+/* Dải khối lượng DÙNG CHUNG cho cả lưới C: mọi ô mini chia CÙNG một mẫu số (tổng lượt bắn của
+   điểm đo trong kỳ), nên MỘT dải phục vụ được cả lưới — vẫn là Đ2, không phải ngoại lệ của nó.
+   Ô mini cao 52px không đủ chỗ cho dải riêng từng ô, và dải riêng cũng sẽ vẽ lại cùng một hình. */
+function stripSvg(pts,vals){
+  var W=760,PL=38,PR=10,sh=20,H=26,n=pts.length,iw=W-PL-PR;
+  var X=function(i){return PL+(n===1?iw/2:iw*i/(n-1))};
+  var smax=Math.max.apply(null,vals)||1, bw=Math.max(1.5,iw/n*.66);
+  var out='<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'" role="img">';
+  // cùng dải nền chưa-đủ như lineSvg: dải này rời khỏi svg của lưới nên phải tự vẽ lại
+  var fp=-1;
+  for(var pi=0;pi<n;pi++){if(pts[pi].partial){fp=pi;break}}
+  if(fp>=0){
+    var bx=fp===0?PL:(X(fp-1)+X(fp))/2;
+    out+='<rect x="'+bx.toFixed(1)+'" y="0" width="'+(W-PR-bx).toFixed(1)+'" height="'+sh+
+         '" fill="'+cssv('--ink3')+'" opacity=".09"/>';
+  }
+  vals.forEach(function(v,i){
+    var h=v>0?Math.max(1,sh*(v/smax)):2, part=pts[i].partial;
+    if(pts[i].pre)return;
+    out+='<rect x="'+(X(i)-bw/2).toFixed(1)+'" y="'+(sh-h).toFixed(1)+'" width="'+bw.toFixed(1)+
+      '" height="'+h.toFixed(1)+'" fill="'+(part?cssv('--surface'):cssv(v>0?'--line':'--crit'))+'"'+
+      (part?' stroke="'+cssv('--line')+'" stroke-width="1"':'')+' rx="1">'+
+      '<title>'+pts[i].label+' · '+nf(v)+' lượt bắn'+(v>0?'':' — không bắn lần nào')+(part?' · kỳ chưa đủ':'')+'</title></rect>';
+  });
+  out+='<text class="tick" x="'+(PL-6)+'" y="'+sh+'" text-anchor="end">'+nf(smax)+'</text></svg>';
+  return out;
+}
+
+/* `preSince` — kỳ TRỐNG phải TỰ KHAI trên màn. Không khai thì khoảng trống bên trái đọc thành
+   "chart lỗi", đúng cái luật ba trạng thái sinh ra để chặn. */
+function legendFor(sig,unit,hasGap,preSince){
+  return '<div class="legend">'+sig.values.map(function(vv,i){
+    return '<span><i class="sw ln" style="background:'+cssv(LINE_COLORS[i%LINE_COLORS.length])+'"></i>'+vv.v+'</span>';
+  }).join('')+'<span style="color:var(--ink3)"><i class="sw" style="background:var(--ink3);opacity:.18"></i>dải nền = kỳ chưa đủ</span>'+
+    (hasGap?'<span style="color:var(--ink3)"><i class="sw ln" style="background:var(--crit)"></i>đường ngắt = kỳ không bắn lần nào</span>':'')+
+    (preSince?'<span style="color:var(--watch)"><i class="sw" style="background:var(--surface);box-shadow:inset 0 0 0 1px var(--line)"></i>trống = chưa đo, cắm '+preSince+'</span>':'')+'</div>';
+}
+
+/* Nhãn mốc cắm, chỉ trả về khi cửa sổ ĐANG xem có kỳ trống — ngoài cửa sổ đó thì mốc cắm không
+   phải chuyện của người xem. */
+function preSinceLbl(sig,bk){
+  if(!sig.since||!bk.list.some(function(b){return b.pre}))return '';
+  return pad(sig.since.getDate())+'/'+pad(sig.since.getMonth()+1)+'/'+sig.since.getFullYear();
+}
+
+function seriesFor(sig,bk,unit){
+  return sig.values.map(function(vv,i){
+    return {label:vv.v,color:LINE_COLORS[i%LINE_COLORS.length],
+      pts:bk.list.map(function(b){
+        // pre = CHƯA ĐO ⇒ y null nhưng KHÔNG phải chỗ ngắt: để trống, không đánh dấu gì.
+        return {label:b.label,partial:b.partial,pre:b.pre,
+          // tổng kỳ = 0 ⇒ tỉ lệ là 0/0 = KHÔNG TÍNH ĐƯỢC (null, đường đứt), không phải 0.
+          y:b.pre?null:(unit==='ratio'?(b.total?b.byVal[vv.v]/b.total:null):b.byVal[vv.v])};
+      })};
+  });
+}
+
+/* ---- lát cắt: giá trị × nhóm ---- */
+function sliceBars(sig,bucket,dimId){
+  var rnd=mulberry32(0xbeef+dimId.length*31+sig.id.length);
+  var groups=dimId==='nav'?BANDS:
+             dimId==='age'?[{b:'18-24',c:'--seq-1'},{b:'25-34',c:'--seq-2'},{b:'35-49',c:'--seq-3'},{b:'50+',c:'--seq-4'}]:
+             dimId==='acq'?[{b:'banner',c:'--cat-1'},{b:'giới thiệu',c:'--cat-2'},{b:'chi nhánh',c:'--cat-3'},{b:'tự tìm',c:'--cat-4'},{b:'đối tác',c:'--cat-5'}]:
+                           [{b:'ios',c:'--cat-1'},{b:'android',c:'--cat-2'},{b:'web',c:'--cat-4'}];
+  var maxTotal=0;
+  sig.values.forEach(function(vv){if(bucket.byVal[vv.v]>maxTotal)maxTotal=bucket.byVal[vv.v]});
+  var html='<div class="bars">';
+  sig.values.forEach(function(vv){
+    var tot=bucket.byVal[vv.v]||0;
+    var ni=dimId==='sigpf'?0:Math.round(tot*sig.nullRate);
+    var rest=tot-ni, ws=groups.map(function(){return .4+rnd()}), s=ws.reduce(function(a,b){return a+b},0);
+    var segs=groups.map(function(g,i){return {b:g.b,c:g.c,n:Math.round(rest*ws[i]/s)}});
+    if(ni>0)segs.push({b:'chưa định danh',c:'--unk-nocust',n:ni});
+    html+='<div class="barrow"><div class="barname" title="'+vv.v+'">'+vv.v+'</div>'+
+      '<div class="bartrack" style="width:'+(maxTotal?Math.max(6,tot/maxTotal*100):0)+'%">'+
+      segs.map(function(s2){return '<div class="barseg" style="width:'+(tot?s2.n/tot*100:0)+'%;background:'+cssv(s2.c)+'" title="'+s2.b+': '+nf(s2.n)+'"></div>'}).join('')+
+      '</div><div class="barn">'+nf(tot)+'</div></div>';
+  });
+  html+='</div>';
+  html+='<div class="legend">'+groups.map(function(g){return '<span><i class="sw" style="background:'+cssv(g.c)+'"></i>'+g.b+'</span>'}).join('')+
+        (dimId==='sigpf'?'':'<span><i class="sw" style="background:'+cssv('--unk-nocust')+'"></i>chưa định danh</span>')+'</div>';
+  return html;
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function chipHtml(id,label,pressed,extra){
+  return '<button class="chip'+(extra||'')+'" data-act="'+id+'" aria-pressed="'+(pressed?'true':'false')+'">'+label+'</button>';
+}
+
+function renderControls(){
+  document.getElementById('sigChips').innerHTML=SIGNALS.map(function(s){
+    return chipHtml('sig:'+s.id,s.name+' <span style="opacity:.65">· '+s.values.length+' gt</span>',ST.sig===s.id,' mono');
+  }).join('');
+  document.getElementById('winChips').innerHTML=RANGES.map(function(r){
+    return r.off
+      ? '<button class="chip" disabled style="opacity:.4;cursor:not-allowed" title="Chưa có date-picker thật — hôm nay Custom = Default (sec.ts)">'+r.l+'</button>'
+      : chipHtml('rng:'+r.k,r.l,ST.rng===r.k);
+  }).join('');
+  var sig=sigById(ST.sig), single=sig.values.length===1;
+  document.getElementById('unitChips').innerHTML=
+    chipHtml('unit:count','Số đếm',ST.unit==='count')+
+    (single?'<button class="chip" disabled style="opacity:.4;cursor:not-allowed" title="Điểm đo một giá trị: tỉ lệ luôn 100%">Tỉ lệ</button>'
+           :chipHtml('unit:ratio','Tỉ lệ',ST.unit==='ratio'));
+}
+
+function renderGrain(){
+  var GN={day:'ngày',week:'tuần',month:'tháng'};
+  // số kỳ ĐẾM LẠI từ dữ liệu, không gõ tay — đổi bộ mốc là bảng tự đúng theo
+  document.getElementById('grainTable').innerHTML=RANGES.map(function(r){
+    var on=ST.rng===r.k, cnt=bucketsFor(ST.sig,r.k).list.length;
+    var note=r.off?'chưa có date-picker thật — hôm nay bằng Default'
+            :r.grain==='day'?'mốc MỊN — chỉ chart điểm đo có thật, VoC/Quantify vẫn monthly-only'
+            :r.grain==='week'?'đọc tốt nhất':'đọc tốt';
+    return '<tr'+(on?' style="background:var(--primary-soft)"':'')+'><td class="n"><b>'+r.l+'</b></td>'+
+      '<td class="n">'+GN[r.grain]+'</td><td class="n">'+cnt+'</td><td>'+note+'</td></tr>';
+  }).join('');
+
+  var sig=sigById(ST.sig);
+  document.getElementById('grainDenom').textContent=
+    sig.name+' · '+nf(sig.vol)+' lượt bắn ở kỳ gần nhất · mốc '+rangeBy(ST.rng).l;
+
+  var cfgs=[{k:'4w',t:'4W · hạt ngày'},{k:'3m',t:'3M · hạt tuần'},{k:'12m',t:'12M · hạt tháng'}];
+  document.getElementById('grainDemo').innerHTML=cfgs.map(function(c){
+    var bk=bucketsFor(ST.sig,c.k);
+    return '<div><div class="lbl" style="margin:0 0 5px">'+c.t+' · '+bk.list.length+' điểm</div>'+
+      lineSvg(seriesFor(sig,bk,'count'),{h:120,unit:'count'})+'</div>';
+  }).join('');
+
+  var perDay=Math.round(sig.vol/30/sig.values.length);
+  document.getElementById('grainVerdict').innerHTML= perDay<8
+    ? '<b>'+sig.name+' ở hạt ngày là nhiễu.</b> '+nf(sig.vol)+' lượt/tháng chia cho '+sig.values.length+
+      ' giá trị ⇒ khoảng <b>'+perDay+' lượt/ngày/giá trị</b>. Đường răng cưa này không phải xu hướng, nó là dao động mẫu nhỏ — đây là node 5b.'
+    : '<b>'+sig.name+' đủ dày cho hạt ngày</b> (~'+perDay+' lượt/ngày/giá trị). Đổi sang <code>sg4</code> để thấy ca ngược lại.';
+}
+
+function renderA(){
+  var sig=sigById(ST.sig), bk=bucketsFor(ST.sig,ST.rng);
+  document.getElementById('aTtl').textContent=sig.desc;
+  document.getElementById('aMode').textContent=ST.aMode==='hist'?'mode Lịch sử':'mode Lát cắt';
+  document.getElementById('aSwitch').innerHTML=
+    chipHtml('amode:hist','Lịch sử',ST.aMode==='hist')+chipHtml('amode:slice','Lát cắt',ST.aMode==='slice');
+
+  var body=document.getElementById('aBody');
+  if(ST.aMode==='hist'){
+    body.innerHTML=lineSvg(seriesFor(sig,bk,ST.unit),{unit:ST.unit,onPoint:false})+legendFor(sig,ST.unit);
+  }else{
+    var last=bk.list[bk.list.length-1];
+    body.innerHTML=sliceBars(sig,last,'nav');
+  }
+  var many=sig.values.length>=5;
+  document.getElementById('aVerdict').innerHTML= many
+    ? '<b style="color:var(--crit)">Đây là chỗ A gãy.</b> '+sig.values.length+' đường chồng nhau, mà bảng màu phân loại của dự án chỉ có <b>5 màu</b> — đường thứ 6, 7 phải đi mượn màu khác nghĩa. Và khi bấm sang Lát cắt thì trục thời gian <b>biến mất khỏi màn</b>, muốn so lại phải nhớ bằng đầu.'
+    : '<b>A chạy được ở điểm đo này.</b> Nhược điểm không nằm ở hình mà ở chỗ nối: bấm sang Lát cắt là <b>mất trục thời gian khỏi màn</b>, nên không trả lời được “kỳ đang vọt lên đó là nhóm khách nào”. Đổi sang <code>sg-rut-2</code> để thấy A gãy hẳn.';
+}
+
+function renderB(){
+  var sig=sigById(ST.sig), bk=bucketsFor(ST.sig,ST.rng);
+  var n=bk.list.length;
+  var idx=(ST.bIdx===null||ST.bIdx>=n)?n-1:ST.bIdx;
+  var b=bk.list[idx];
+  var single=sig.values.length===1, strip=ST.bTop==='strip';
+  var unit=single?'count':(strip?'ratio':ST.bUnit);
+  var totals=bk.list.map(function(x){return x.total});
+  // kỳ CHƯA ĐO cũng có total 0 nhưng nó là TRỐNG, không phải chỗ ngắt — không đếm vào hasGap
+  var hasGap=unit==='ratio'&&bk.list.some(function(x){return !x.pre&&x.total===0});
+  var avgN=totals.reduce(function(a,t){return a+t},0)/n;
+
+  document.getElementById('bVariant').innerHTML=
+    chipHtml('btop:toggle','(i) công tắc đếm / tỉ lệ',ST.bTop==='toggle')+
+    chipHtml('btop:strip','(ii) đường tỉ lệ + dải khối lượng · đã chốt',ST.bTop==='strip');
+
+  document.getElementById('bUnit').innerHTML= strip ? '' :
+    (chipHtml('bunit:count','Số đếm',single||ST.bUnit==='count')+
+     (single?'<button class="chip" disabled style="opacity:.4;cursor:not-allowed" title="Điểm đo một giá trị: tỉ lệ luôn 100%">Tỉ lệ</button>'
+            :chipHtml('bunit:ratio','Tỉ lệ',ST.bUnit==='ratio')));
+
+  document.getElementById('bAxis').textContent= unit==='ratio'
+    ? '% trên lượt bắn của chính điểm đo trong kỳ'+(strip?' · dải dưới: số lượt bắn thật của kỳ':'')
+    : 'Số lượt bắn mỗi kỳ';
+  document.getElementById('bTtl').textContent=sig.desc;
+  document.getElementById('bPick').textContent='đang chỉ kỳ '+b.label+(b.partial?' · chưa đủ':'');
+  document.getElementById('bLine').innerHTML=
+    lineSvg(seriesFor(sig,bk,unit),{unit:unit,onPoint:true,sel:idx,stripVals:(strip&&!single)?totals:null})+
+    legendFor(sig,unit,hasGap,preSinceLbl(sig,bk));
+  document.getElementById('bSliceLbl').textContent='Lát cắt kỳ '+b.label+' · '+nf(b.total)+' lượt bắn';
+  document.getElementById('bSlice').innerHTML=sliceBars(sig,b,ST.bDim);
+  document.getElementById('bDims').innerHTML=DIMS.map(function(d){
+    return chipHtml('bdim:'+d.id,d.l,ST.bDim===d.id);
+  }).join('');
+
+  var v;
+  if(strip){
+    v='<b>Đây là Đ2 dịch sang trục thời gian.</b> Đ2 đã chốt lát cắt phải có “chân đế riêng từng nhóm” — mỗi nhóm nhìn thấy mẫu số của chính nó. Dải dưới đường làm đúng việc đó cho trục ngang: tỉ lệ vọt lên mà dải teo lại thì đọc ra ngay là <b>mẫu nhỏ</b>, không phải xu hướng.'+
+      (single?' Ở điểm đo một giá trị, thiết kế này tự thu về một đường đếm — không có nút chết nào phải nhìn.':'')+
+      (hasGap?' Chỗ đường đứt là kỳ điểm đo <b>không bắn lần nào</b> — tỉ lệ 0/0 không tính được — và dải dưới cho thấy mẫu số hai bên chỗ đứt tụt tới đâu.':'')+
+      ' <b style="color:var(--watch)">Cái mất:</b> không xem được xu hướng ĐẾM của riêng một giá trị thành đường. Vẫn tra được — bấm vào kỳ, đọc ở lát cắt dưới — nhưng không thành đường.';
+  }else if(single){
+    v='<b style="color:var(--crit)">Công tắc chết ở đây.</b> Điểm đo một giá trị thì tỉ lệ luôn 100%, nút phải khoá — và <b>6 trong 30 điểm đo</b> của seed rơi vào ca này. Một nút mà cứ năm điểm đo lại chết một là nút dạy sai người dùng.';
+  }else if(unit==='ratio'&&avgN<40){
+    v='<b style="color:var(--crit)">Đây là chỗ công tắc gãy.</b> Kỳ ở đây trung bình chỉ '+nf(avgN)+' lượt bắn cho '+sig.values.length+' giá trị. Tỉ lệ tính trên mẫu đó nhảy hàng chục phần trăm giữa hai kỳ liền nhau mà <b>chẳng có gì xảy ra</b> — và trên màn không còn dấu vết nào của mẫu số để biết mà nghi ngờ. Đúng loại lỗi dự án đã chặn ba lần: <i>một con số in dưới cái nhãn nó không thuộc về</i>.'+
+      (hasGap?' Chỗ đứt kia là kỳ không bắn lần nào; vạch đỏ báo được <i>vì sao</i> đứt, nhưng vẫn không cho biết mẫu số quanh đó tụt tới đâu.':'');
+  }else if(unit==='ratio'){
+    v='<b>Công tắc chạy được ở tổ hợp này</b> — mẫu số đủ lớn nên tỉ lệ không nhiễu. Nhưng mẫu số ấy <b>không có trên màn</b>: đổi sang <code>sg4</code> · mốc <b>4W</b> để thấy đúng chỗ nó gãy.';
+  }else{
+    v='<b>Đang ở Số đếm — đây là nửa dễ của công tắc.</b> Bấm <b>Tỉ lệ</b> để thấy nửa còn lại, và bấm ở <code>sg4</code> · mốc <b>4W</b> thì thấy đúng chỗ nó gãy.';
+  }
+  if(sig.values.length>=5)
+    v='<b style="color:var(--watch)">Tầng trên chật đúng như A</b> ở điểm đo đông giá trị — đó là lý do B tự chuyển sang C khi ≥5 giá trị. Còn về đơn vị: '+v;
+  document.getElementById('bVerdict').innerHTML=v;
+}
+
+function renderC(){
+  var sig=sigById(ST.sig), bk=bucketsFor(ST.sig,ST.rng);
+  document.getElementById('cTtl').textContent=sig.desc;
+  document.getElementById('cScale').innerHTML=
+    chipHtml('cscale:1',ST.cShared?'chung thang':'thang riêng từng ô',true);
+
+  /* Node 4b: lưới C KHÔNG có công tắc, cùng luật node 4. Đơn vị cố định là TỈ LỆ, và mẫu số nằm ở
+     MỘT dải dùng chung dưới lưới — mọi ô chia cùng một mẫu số nên không cần dải riêng từng ô.
+     Điểm đo một giá trị không bao giờ tới C (ngưỡng ≥5), nhưng trang này cho chọn tay nên vẫn phải
+     xử: một giá trị thì tỉ lệ vô nghĩa ⇒ rơi về ĐẾM. */
+  var cUnit=sig.values.length===1?'count':'ratio';
+  var ser=seriesFor(sig,bk,cUnit);
+  var gmax=0; ser.forEach(function(s){s.pts.forEach(function(p){if(p.y!==null&&p.y>gmax)gmax=p.y})});
+  var cPre=preSinceLbl(sig,bk);
+  document.getElementById('cAxis').textContent= (cUnit==='ratio'
+    ? '% trên lượt bắn của chính điểm đo trong kỳ · dải dưới lưới: số lượt bắn thật, mẫu số chung của mọi ô'
+    : 'Số lượt bắn mỗi kỳ')+
+    (cPre?' · phần TRỐNG bên trái mọi ô: chưa đo, điểm đo cắm '+cPre:'');
+  document.getElementById('cGrid').innerHTML=ser.map(function(s){
+    /* So với kỳ ĐẦU ĐO ĐƯỢC, không phải kỳ đầu cửa sổ: điểm đo cắm muộn thì kỳ đầu cửa sổ là TRỐNG
+       và "so với đầu kỳ quan sát" sẽ không có gì để so, dù giữa cửa sổ có cả 8 kỳ đo được. Nhãn phải
+       nói đúng mốc đang so. */
+    var pts=s.pts, last=pts[pts.length-1], fki=firstKnown(pts), first=fki>=0?pts[fki]:pts[0];
+    var known=fki>=0&&fki<pts.length-1&&last.y!==null;
+    var cmpLbl=known&&fki>0?'so với kỳ '+first.label:'so với đầu kỳ quan sát';
+    // tỉ lệ đổi bao nhiêu ĐIỂM %, không phải "tăng bao nhiêu % của một %" — hai cái đọc lẫn nhau được
+    var dpp=known?(last.y-first.y)*100:0;
+    var rel=known&&first.y!==0?(last.y-first.y)/first.y:0;
+    var mag=cUnit==='ratio'?Math.abs(dpp)/100:Math.abs(rel);
+    var cls=!known?'flat':(mag<.05?'flat':(dpp>0||rel>0?'up':'down'));
+    var hot=known&&mag>=.3;
+    var arrow=(cUnit==='ratio'?dpp:rel)>0?'▲ ':(cUnit==='ratio'?dpp:rel)<0?'▼ ':'– ';
+    return '<div class="smcell'+(hot?' hot':'')+'">'+
+      '<div class="smtop"><span class="smname" title="'+s.label+'">'+s.label+'</span>'+
+      '<span class="smval">'+(last.y===null?'–':(cUnit==='ratio'?pct(last.y):nf(last.y)))+'</span></div>'+
+      lineSvg([s],{mini:true,h:52,unit:cUnit,max:ST.cShared?gmax*1.14/1.14:undefined})+
+      '<div class="smdelta '+cls+'">'+(!known?'chưa so được với đầu kỳ quan sát'
+        :cUnit==='ratio'?arrow+Math.abs(dpp).toFixed(1).replace('.',',')+' điểm % '+cmpLbl
+                        :arrow+(Math.abs(rel)*100).toFixed(0)+'% '+cmpLbl)+'</div></div>';
+  }).join('');
+  document.getElementById('cStrip').innerHTML= cUnit==='ratio'
+    ? stripSvg(ser[0].pts,bk.list.map(function(b){return b.total})) : '';
+  document.getElementById('cSlice').innerHTML=sliceBars(sig,bk.list[bk.list.length-1],ST.bDim);
+  var many=sig.values.length>=5;
+  document.getElementById('cVerdict').innerHTML= (many
+    ? '<b style="color:var(--good)">Đây là chỗ C thắng.</b> '+sig.values.length+' giá trị vẫn đọc được vì <b>không giá trị nào phải mượn màu</b> — mỗi ô là khung riêng. Ô viền đỏ là giá trị đổi trên 30 điểm % so với đầu kỳ quan sát, tức là màn tự chỉ chỗ đáng nhìn thay vì bắt người xem dò 7 đường.'
+    : '<b>C hơi thừa chỗ ở điểm đo ít giá trị</b> — '+sig.values.length+' ô cho '+sig.values.length+' giá trị, và so hai giá trị với nhau thì kém hơn vẽ chung một trục. Đổi sang <code>sg-rut-2</code> để thấy C thắng.')+
+    ' <b>Node 4b:</b> một dải khối lượng cho cả lưới, không phải dải riêng từng ô — mọi ô chia cùng một mẫu số nên dải riêng chỉ vẽ lại cùng một hình.';
+}
+
+/* Kỳ ĐẦU ĐO ĐƯỢC, không phải kỳ đầu cửa sổ: điểm đo cắm muộn thì kỳ đầu cửa sổ là TRỐNG và
+   "so với đầu kỳ quan sát" sẽ không có gì để so. Trả về chỉ số để nhãn nói đúng mốc đang so. */
+function firstKnown(pts){
+  for(var i=0;i<pts.length;i++)if(pts[i].y!==null)return i;
+  return -1;
+}
+
+function renderAll(){renderControls();renderGrain();renderA();renderB();renderC()}
+
+document.addEventListener('click',function(e){
+  var btn=e.target.closest('[data-act]');
+  if(btn){
+    var a=btn.getAttribute('data-act'), k=a.split(':')[0], v=a.slice(k.length+1);
+    if(k==='sig'){ST.sig=v;ST.bIdx=null;if(sigById(v).values.length===1)ST.unit='count'}
+    else if(k==='rng'){ST.rng=v;ST.bIdx=null}
+    else if(k==='unit')ST.unit=v;
+    else if(k==='amode')ST.aMode=v;
+    else if(k==='bdim')ST.bDim=v;
+    else if(k==='btop')ST.bTop=v;
+    else if(k==='bunit')ST.bUnit=v;
+    else if(k==='cscale')ST.cShared=!ST.cShared;
+    renderAll(); return;
+  }
+  var pt=e.target.closest('#bLine .pt');
+  if(pt){ST.bIdx=+pt.getAttribute('data-i');renderB()}
+});
+
+renderAll();
+</script>
+</body>
+</html>
