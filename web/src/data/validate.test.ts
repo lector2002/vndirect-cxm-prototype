@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { seed, seedNav, seedTour, dims, cfgDefault } from "./fixtures/seed.ts";
+import { demoData } from "./fixtures/demo.ts";
 import { validateFixture } from "./validate.ts";
 import { projectCustomerBands } from "./projectBands.ts";
 import { NOT_IDENTIFIED } from "./projectSignalCounts.ts";
@@ -125,7 +126,7 @@ describe("validateFixture", () => {
     d.flows.push({ id: "f-test-m", groupId: "g-in", name: "t", owner: "x", version: "v1", src: "\u2014", note: "" });
     d.steps.push({ id: "s-test", flowId: "f-test-m", code: "01", name: "t", stationId: "JS-TEST-01", owner: "x" });
     d.touchpoints.push({ id: "tp-test", stepId: "s-test", name: "t", channel: "app", owner: "x", users: 10, desc: "" });
-    d.signals.push({ id: "sg-test", tpId: "tp-test", name: "deposit_test", st: "live", pf: [], es: "client", vol: 1, seen: null, srcId: null, metrics: [], desc: "", values: [] });
+    d.signals.push({ id: "sg-test", tpId: "tp-test", name: "deposit_test", st: "live", pf: [], es: "client", vol: 1, seen: null, srcId: null, metrics: [], desc: "", instAt: null, values: [] });
     const r = validateFixture(d, dims, seedNav, seedTour);
     expect(r.some((e) => e.includes("d\u00F2ng ti\u1EC1n"))).toBe(true);
   });
@@ -556,7 +557,7 @@ describe("validateFixture", () => {
   function sigXSignal(): Signal {
     return {
       id: "sg-x", tpId: "tp1", name: "test_signal", st: "live", pf: ["ios", "android"], es: "client",
-      vol: 10, seen: null, srcId: null, metrics: [], desc: "signal test cho nhóm 22", values: ["a", "b"],
+      vol: 10, seen: null, srcId: null, metrics: [], desc: "signal test cho nhóm 22", instAt: null, values: ["a", "b"],
     };
   }
 
@@ -566,7 +567,7 @@ describe("validateFixture", () => {
   function sigYSignal(): Signal {
     return {
       id: "sg-y", tpId: "tp1", name: "test_signal_y", st: "live", pf: ["ios"], es: "client",
-      vol: 5, seen: null, srcId: null, metrics: [], desc: "signal test thứ hai cho nhóm 22 — cố tình KHÔNG có sigCounts", values: ["z"],
+      vol: 5, seen: null, srcId: null, metrics: [], desc: "signal test thứ hai cho nhóm 22 — cố tình KHÔNG có sigCounts", instAt: null, values: ["z"],
     };
   }
 
@@ -607,11 +608,22 @@ describe("validateFixture", () => {
     expect(r).toEqual([]);
   });
 
-  it("22: giá trị không có trong Signal.values đã khai", () => {
-    const rows = baseSigXCounts();
-    rows.push({ sig: "sg-x", dim: "sigpf", val: "c-la", band: "ios", n: 1 });
+  /* ĐẢO CHIỀU 14/08 (ADR-001 §10). Ca cũ khẳng định giá trị chưa khai là LỖI; luật đó đã gỡ khỏi
+     `validate.ts` vì section hiện nó lên màn nay đã có, và một cổng CHẶN cho tình trạng bình thường
+     (bản khai chậm hơn pipeline) sẽ làm cả app báo hỏng đúng lúc chart phát hiện ra điều đáng xem.
+     Ca mới canh chiều ngược lại — không được bắt lỗi — và canh luôn rằng nới chỗ này KHÔNG nới ràng
+     buộc 1: đổi tên giá trị giữ nguyên tổng thì hợp lệ, còn thêm lượt đếm thì vẫn phải bị bắt. */
+  it("22: giá trị chưa khai KHÔNG còn là lỗi — bản khai chậm hơn dữ liệu là trạng thái bình thường", () => {
+    const rows = baseSigXCounts().map((r) => (r.val === "b" ? { ...r, val: "c-chua-khai" } : r));
     const r = validateFixture(withSigX(rows), dims, seedNav, seedTour, cfgDefault);
-    expect(r.some((e) => e.includes("sg-x") && e.includes('giá trị "c-la"'))).toBe(true);
+    expect(r).toEqual([]);
+  });
+
+  it("22: nới giá trị chưa khai KHÔNG nới ràng buộc 1 — thêm lượt đếm vẫn lệch vol và vẫn bị bắt", () => {
+    const rows = baseSigXCounts();
+    rows.push({ sig: "sg-x", dim: "sigpf", val: "c-chua-khai", band: "ios", n: 1 });
+    const r = validateFixture(withSigX(rows), dims, seedNav, seedTour, cfgDefault);
+    expect(r.some((e) => e.includes("sg-x") && e.includes("ràng buộc 1"))).toBe(true);
   });
 
   it("22: ràng buộc 1 — tổng một chiều lệch Signal.vol", () => {
@@ -861,5 +873,66 @@ describe("validateFixture", () => {
 
   it("24: cfgDefault không vi phạm dải nào", () => {
     expect(chk(cfgDefault).some((e) => e.startsWith("cfg.step") || e.startsWith("cfg.data") || e.startsWith("cfg.source") || e.startsWith("cfg.metric") || e.startsWith("cfg.anomaly"))).toBe(false);
+  });
+});
+
+/* Nhóm 26 — hạt thô `sigFires`. Bộ này chạy trên demoData vì seed khai `sigFires: []` (Bảng D còn
+   treo): không có dòng nào thì không luật nào có gì để nói, và "xanh vì rỗng" chính là tình trạng
+   nhóm này sinh ra để chấm dứt. Mỗi ca BẺ demoData một chỗ rồi đòi validate chỉ đúng chỗ đó. */
+describe("26: hạt thô sigFires + Signal.instAt", () => {
+  const chk26 = (d: CxmData) => validateFixture(d, dims, seedNav, seedTour, cfgDefault);
+  /** Một lượt bắn của demoData, sửa vài field. Lấy dòng đầu vì mọi dòng đều đã hợp lệ. */
+  const bend = (patch: Partial<CxmData["sigFires"][number]>): CxmData => ({
+    ...demoData,
+    sigFires: [{ ...demoData.sigFires[0], ...patch }, ...demoData.sigFires.slice(1)],
+  });
+
+  it("demoData sạch: không nổi lỗi hạt thô nào", () => {
+    expect(chk26(demoData).filter((e) => e.startsWith("sigFires") || e.includes("instAt"))).toEqual([]);
+  });
+
+  it("ngày sai khuôn, điểm đo không tồn tại, khách không tra ra ⇒ mỗi thứ một lỗi", () => {
+    expect(chk26(bend({ at: "01/05/2026" })).some((e) => e.includes("khuôn yyyy-MM-dd"))).toBe(true);
+    expect(chk26(bend({ sigId: "sg-khong-co" })).some((e) => e.includes('sigFires "sg-khong-co"'))).toBe(true);
+    expect(chk26(bend({ custKey: "KH•••ZZZ" })).some((e) => e.includes("không tra ra khách nào"))).toBe(true);
+  });
+
+  it("lượt bắn sau mốc số liệu ⇒ lỗi (không kỳ nào đếm tới)", () => {
+    expect(chk26(bend({ at: "2099-01-01" })).some((e) => e.includes("sau mốc số liệu"))).toBe(true);
+  });
+
+  /* Ca đắt nhất: lượt bắn TRƯỚC instAt vẫn cộng vào vol nhưng rơi khỏi xương lịch — đúng kiểu lệch
+     im lặng giữa hai con số trên cùng một màn. */
+  it("lượt bắn trước instAt ⇒ lỗi", () => {
+    const sig = demoData.signals.find((s) => s.instAt !== null)!;
+    const f = demoData.sigFires.find((x) => x.sigId === sig.id)!;
+    const d: CxmData = {
+      ...demoData,
+      sigFires: demoData.sigFires.map((x) => (x === f ? { ...x, at: "2020-01-01" } : x)),
+    };
+    expect(chk26(d).some((e) => e.includes("TRƯỚC instAt"))).toBe(true);
+  });
+
+  it("bớt một lượt bắn ⇒ ràng buộc 1 bản hạt thô đỏ (đếm thô phải khớp Signal.vol)", () => {
+    const d: CxmData = { ...demoData, sigFires: demoData.sigFires.slice(1) };
+    expect(chk26(d).some((e) => e.includes("ràng buộc 1, bản hạt thô"))).toBe(true);
+  });
+
+  /* Ca VẮNG MẶT HOÀN TOÀN, không phải lệch số: bảng còn dòng của điểm đo khác nên không thể coi là
+     "Demo Mode tắt". Đây đúng chỗ nhóm 22 đã ghi là nguy hiểm nhất, và cũng đúng cái "xanh vì rỗng"
+     nhóm 26 sinh ra để chấm dứt — nên nó phải đỏ, dù `n = 0`. */
+  it("xoá SẠCH fires của một điểm đo vol>0 (bảng vẫn còn dòng) ⇒ đỏ, không im lặng", () => {
+    const target = demoData.signals.find((s) => s.vol > 0)!;
+    const d: CxmData = { ...demoData, sigFires: demoData.sigFires.filter((f) => f.sigId !== target.id) };
+    expect(chk26(d).some((e) => e.startsWith(`sigFires ${target.id}:`) && e.includes("ràng buộc 1, bản hạt thô"))).toBe(true);
+  });
+
+  it("instAt sai khuôn ⇒ lỗi ở chính điểm đo đó", () => {
+    const target = demoData.signals.find((s) => s.instAt !== null)!;
+    const d: CxmData = {
+      ...demoData,
+      signals: demoData.signals.map((s) => (s.id === target.id ? { ...s, instAt: "15/01/2025" } : s)),
+    };
+    expect(chk26(d).some((e) => e.includes(`signal ${target.id}: instAt`))).toBe(true);
   });
 });

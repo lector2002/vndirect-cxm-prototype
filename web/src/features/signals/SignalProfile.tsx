@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { Cfg, CxmData, Dim, Signal } from "../../data/schema/index.ts";
 import {
@@ -8,13 +8,17 @@ import {
   runningNotTrusted,
   seenAfterAsOf,
   signalAllocationChain,
-  signalChart,
   signalFeedHealth,
   signalsWithoutMetric,
   signalsWithoutValues,
 } from "../../domain/index.ts";
 import type { DimState, SigCol, SigGroup, SigSlice, SignalFeedHealth } from "../../domain/index.ts";
 import { Badge, Card, Note, SignalColumns } from "../../design-system/index.ts";
+import { SigTrendChart } from "../../design-system/SigTrendChart.tsx";
+import { sigTrendChart } from "../../domain/sigTrendChart.ts";
+import { sigCut } from "../../domain/sigCut.ts";
+import { isoFromVn, vnFromIso } from "../../data/projectSigTrend.ts";
+import { useTimeframeStore } from "../../store/timeframe.ts";
 import type { BadgeState, SigColBar, SigColGroup, SigColSlice } from "../../design-system/index.ts";
 import { nf } from "../../design-system/format.ts";
 import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
@@ -165,9 +169,43 @@ function ValueDimButtons({
 function SignalValueChart({ data, signal, dims }: { data: CxmData; signal: Signal; dims: Record<string, Dim> }) {
   // Rule 6 (AtlasSignalPanel.tsx:229): mặc định LUÔN 'nav', không tự chọn hộ chiều khác.
   const [dimId, setDimId] = useState("nav");
+  /* Kỳ đang soi ở lát cắt — `null` = cả cửa sổ. Là state của MÀN, cùng khuôn `selectedSigId`: một
+     lựa chọn để xem, không phải một cấu hình để lưu. */
+  const [bucket, setBucket] = useState<string | null>(null);
+  const range = useTimeframeStore((s) => s.range);
+  const asOfIso = isoFromVn(data.asOf);
 
-  const hasRows = data.sigCounts.some((r) => r.sig === signal.id);
-  if (!hasRows) {
+  /* Cả ba phép dưới đây quét TOÀN BỘ `sigFires` (demoData ~40k dòng), nên chúng phải nhớ theo đầu
+     vào chứ không chạy lại mỗi lần vẽ: bấm một kỳ chỉ đổi `bucket`, mà không có `useMemo` thì cú
+     bấm đó tính lại cả đường thời gian vốn không đổi. Cùng lỗi đã sửa một lần ở `measureHv`. */
+  const hasRows = useMemo(
+    () => data.sigCounts.some((r) => r.sig === signal.id) || data.sigFires.some((f) => f.sigId === signal.id),
+    [data.sigCounts, data.sigFires, signal.id],
+  );
+
+  /* TẦNG TRÊN — đường theo thời gian (ADR-001 §2). Đứng trước lát cắt vì nó trả lời câu "xấu đi từ
+     bao giờ", còn lát cắt trả lời "kỳ đó là nhóm khách nào" — thứ tự đọc đi từ câu thứ nhất sang
+     câu thứ hai, và bấm một kỳ trên đường chính là chỗ chuyển giữa hai câu. */
+  const trend = useMemo(
+    () => (asOfIso === null || !hasRows ? null : sigTrendChart(data.sigFires, signal, asOfIso, range)),
+    [data.sigFires, signal, asOfIso, range, hasRows],
+  );
+  const picked = trend?.kind === "draw" ? trend.buckets.find((b) => b.key === bucket) : undefined;
+
+  /* Lát cắt đi qua `sigCut` — MỘT cửa dùng chung với `#/quantify` (ADR-003), không gọi thẳng
+     `signalChart` nữa. Có kỳ đang chọn thì truyền cửa sổ của đúng kỳ đó xuống phép cộng ở `data/`;
+     cắt ở tầng vẽ sẽ cho một mẫu số sai mà không ai thấy. */
+  const winFrom = picked?.from ?? null;
+  const winTo = picked?.to ?? null;
+  const cut = useMemo(
+    () =>
+      hasRows
+        ? sigCut(data, dims, [signal.id], dimId, winFrom !== null && winTo !== null ? { from: winFrom, to: winTo } : undefined)
+        : null,
+    [data, dims, signal.id, dimId, winFrom, winTo, hasRows],
+  );
+
+  if (!hasRows || cut === null) {
     return (
       <div data-testid="signal-profile-values-no-counts">
         {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
@@ -176,7 +214,14 @@ function SignalValueChart({ data, signal, dims }: { data: CxmData; signal: Signa
     );
   }
 
-  const chart = signalChart(data.sigCounts, [signal], dims, [signal.id], dimId);
+  if (cut.kind === "refuse") {
+    return (
+      <div data-testid="signal-profile-cut-refuse">
+        <Note tone="warn">{cut.reason}</Note>
+      </div>
+    );
+  }
+  const chart = cut.chart;
   // Phòng thủ giống AtlasSignalPanel.tsx: signal có giá trị + có dòng đếm ở dimId khác nhưng
   // vol=0 (chưa gặp trên seed/demoData hôm nay, nhưng hàm domain không giả định điều đó).
   if (chart.groups.length === 0) {
@@ -193,7 +238,44 @@ function SignalValueChart({ data, signal, dims }: { data: CxmData; signal: Signa
 
   return (
     <div data-testid="signal-profile-value-chart">
+      {trend === null ? null : trend.kind === "refuse" ? (
+        <div className="mb-3" data-testid="sigtrend-refuse">
+          <Note tone="warn">{trend.reason}</Note>
+        </div>
+      ) : (
+        <div className="mb-4">
+          {/* Điểm đo cắm giữa cửa sổ ⇒ phần trước mốc cắm để TRỐNG, và màn TỰ KHAI vì sao trống
+              (§11). Không có câu này thì khoảng trống đọc thành "chart hỏng". */}
+          {trend.startsMidWindow ? (
+            <div className="mb-2" data-testid="sigtrend-mid-window">
+              {/* Chỉ nêu MỐC, không diễn giải hộ khoảng trống (owner 14/08: chỉ vẽ và show data).
+                  Vẫn phải có: không có mốc cắm thì khoảng trống đầu trục không tra được về đâu. */}
+              <Note>{`Mốc cắm đo: ${vnFromIso(trend.instAt)}`}</Note>
+            </div>
+          ) : null}
+          {/* MỘT chart cho mọi điểm đo, bao nhiêu giá trị cũng lồng chung vào đây (owner 14/08).
+              Không còn nhánh lưới đường nhỏ. */}
+          <SigTrendChart chart={trend} activeBucket={bucket ?? undefined} onPickBucket={(k) => setBucket(k === bucket ? null : k)} />
+          {/* Mẫu số phải viết đủ vào nhãn trục (§4) — "tỉ lệ" mà không nói tỉ lệ trên cái gì là chỗ
+              người đọc tự điền một mẫu số họ đoán. */}
+          <div className="t-meta text-[11.5px] mt-1" data-testid="sigtrend-unit">
+            {trend.unit === "ratio"
+              ? "Đường: tỉ lệ trên tổng lượt bắn của chính điểm đo trong kỳ. Dải dưới: số lượt bắn của kỳ."
+              : "Đường: số lượt bắn trong kỳ. Dải dưới: cùng số đó."}
+            {trend.undeclared.length > 0 ? ` · ${trend.undeclared.join(", ")} chưa có trong bản khai.` : ""}
+          </div>
+        </div>
+      )}
+
       <ValueDimButtons dimStates={chart.dimStates} selectedDimId={dimId} dims={dims} onSelect={setDimId} />
+      {picked ? (
+        <div className="mt-2" data-testid="sigtrend-scoped">
+          {/* §8: lượt bắn được cắt đúng theo kỳ, nhưng NHÓM của khách vẫn là nhóm HÔM NAY — không có
+              bảng ảnh chụp thuộc tính khách theo thời gian. Cửa sổ càng lùi xa thì sai lệch đó càng
+              lớn, và chính cửa sổ mới làm nó lộ ra, nên nói ra ở đúng chỗ đang cắt. */}
+          <Note>{`Lát cắt đang đọc kỳ ${picked.label} — lượt bắn theo kỳ, nhóm khách tính theo hôm nay. Bấm lại kỳ đó để xem cả cửa sổ.`}</Note>
+        </div>
+      ) : null}
       <div className="mt-2">
         {curDimState?.state === "locked" ? (
           // luật 11/08: bỏ lời mời "chọn một chiều khác ở trên để xem chart"

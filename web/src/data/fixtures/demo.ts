@@ -5,7 +5,8 @@ import { UNKNOWN_YET, MISSING } from "../segment.ts";
 import { ANON_CK } from "../validate.ts";
 import { bandLabels } from "../bands.ts";
 import { projectCustomerBands } from "../projectBands.ts";
-import { projectSignalCounts, type SigCount } from "../projectSignalCounts.ts";
+import { projectSignalCounts, type SigCount, type SigFire } from "../projectSignalCounts.ts";
+import { isoFromVn } from "../projectSigTrend.ts";
 import { CUST_CAT } from "../rawFields.ts";
 
 /* demoData — chế độ "demo bật/tắt" (Module C, section C4): trải seed thật (7 khách trung thực,
@@ -659,7 +660,46 @@ const demoEv: Evidence[] = [
    phải vì raw bị cấm qua mạng; nếu sau này nhận raw thật, kiểu lần bắn của đường nhận đó khai riêng ở
    chỗ đọc dữ liệu thật, không nhất thiết trùng `Fire` (Fire chỉ mô phỏng đúng nhu cầu genFiresForSignal
    ở dưới). */
-type Fire = { sigId: string; val: string; custKey: string | null; pf: string };
+type Fire = SigFire;
+
+/** Mốc số liệu ở dạng `yyyy-MM-dd`, SUY từ `seed.asOf` chứ không gõ lại — gõ lại là dựng nguồn sự
+    thật thứ hai cho cùng một ngày, đúng loại lỗi đã đẻ ra `Period.range` lặp ba lần. */
+const DEMO_AS_OF = (() => {
+  const iso = isoFromVn(seed.asOf);
+  // Không có fallback: một ngày dự phòng viết ở đây CHÍNH LÀ nguồn sự thật thứ hai mà docblock trên
+  // vừa cấm, chỉ khác là nó chỉ hiện ra khi `seed.asOf` đã hỏng — lúc không ai đang nhìn.
+  if (iso === null) throw new Error(`seed.asOf = "${seed.asOf}" không đúng khuôn dd/MM/yyyy`);
+  return iso;
+})();
+
+/* MỐC CẮM ĐO của demo (`Signal.instAt`) — fixture thật khai `null` cả 30 vì **Bảng D còn treo**, nên
+   giá trị ở đây là số DEMO, đúng loại quyết định với SIG_NULL_RATE bên dưới.
+
+   Ba nhóm, chọn để cả ba trạng thái của §6 và ca "cắm giữa cửa sổ" của §11 ĐỀU tới được trên màn —
+   một fixture chỉ có một nhóm sẽ làm ba nhánh code kia không ai chạy vào:
+     · mặc định — cắm từ trước cả mốc dài nhất (12M), nên cửa sổ nào cũng đo được trọn vẹn;
+     · nhóm pilot mở rộng — cắm 02/03/2026, tức GIỮA cửa sổ 12M: phần trước đó phải để TRỐNG và màn
+       phải tự khai *"trống = chưa đo, cắm 02/03/2026"*, không vẽ 0;
+     · `sg11` — cắm 11/05/2026, giữa cả cửa sổ 6M mặc định, để ca đó tới được mà không cần đổi mốc. */
+const SIG_INST_DEFAULT = "2025-01-15";
+const SIG_INST_AT: Record<string, string> = {
+  sg11: "2026-05-11",
+  'sg-dvo-1': "2026-03-02", 'sg-dvo-2': "2026-03-02", 'sg-dvo-3': "2026-03-02",
+  'sg-nap-1': "2026-03-02", 'sg-nap-2': "2026-03-02", 'sg-nap-3': "2026-03-02",
+  'sg-tra-1': "2026-03-02", 'sg-tra-2': "2026-03-02", 'sg-tra-3': "2026-03-02",
+  'sg-rut-1': "2026-03-02", 'sg-rut-2': "2026-03-02", 'sg-rut-3': "2026-03-02", 'sg-rut-4': "2026-03-02",
+  'sg-ctn-1': "2026-03-02", 'sg-ctn-2': "2026-03-02", 'sg-ctn-3': "2026-03-02",
+};
+
+/* TOKEN CHƯA KHAI (ADR-001 §10) — pipeline bắn ra một giá trị không có trong `Signal.values`. Đây là
+   một TÌNH TRẠNG THẬT mà thiết kế §7 buộc phải hiện ra chứ không nuốt, nên fixture phải có ít nhất
+   một ca, nếu không cả nhánh "đường + cảnh báo bổ sung khai báo" không ai chạy vào.
+   Chọn `sg4` (lý do thất bại khi chụp giấy tờ): một lý do mới `too_dark` xuất hiện từ giữa tháng 5
+   mà bản khai chưa cập nhật — đúng khuôn lỗ hổng A của thiết kế (giá trị do đội dữ liệu KHAI, không
+   quét ngược từ dữ liệu). Tỉ lệ nhỏ để nó không lấn các lý do đã khai. */
+const SIG_UNDECLARED: Record<string, { val: string; rate: number; from: string }> = {
+  sg4: { val: "too_dark", rate: 0.06, from: "2026-05-14" },
+};
 
 /* Hạt giống RIÊNG, KHÔNG dùng chung DEMO_SEED/RAW_SEED/DEMO_EV_SEED — cùng lý do đã nêu ở
    DEMO_EV_SEED: một stream riêng thì mọi số khách/bằng chứng đã sinh trước đó không lệch một bit dù
@@ -806,6 +846,31 @@ const SIG_WEIGHT: Record<string, { val?: Record<string, number>; pf?: Record<str
 /* Sinh các lần bắn của MỘT signal. `vol===0` (gap/designed) luôn đi kèm `values:[]` (luật khai ở
    seed.ts) nên không có gì để sinh — trả rỗng, không throw: đây là bộ sinh demo, không phải luật
    kiểm (validate.ts mới là nơi ném lỗi khi khai báo sai). */
+/* Hạt giống cho MỐC THỜI GIAN của lượt bắn, sinh từ chính id điểm đo.
+
+   ĐÂY LÀ CHỖ DỄ HỎNG NHẤT của lát này, ghi rõ để không ai "dọn" nó: mốc `at` PHẢI đến từ một stream
+   RIÊNG, không được rút thêm số từ `rng` của `generateFires`. `genFiresForSignal` rút đúng ba số mỗi
+   lượt bắn (val · pf · custKey) và mọi điểm đo dùng CHUNG một stream chạy tuần tự, nên chỉ cần rút
+   thêm một số thứ tư là toàn bộ `custKey`/`val` của mọi điểm đo phía sau dịch đi — `sigCounts` đổi
+   hàng loạt, và các số neo trong test lẫn nhật ký chứng thực đổi theo mà KHÔNG có lý do ngữ nghĩa
+   nào. Stream riêng theo id thì thêm/bớt mốc thời gian không đụng một bit nào của phần đã sinh. */
+function seedFromId(id: string): number {
+  let h = 0x9e3779b9;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 0x01000193) >>> 0;
+  return h >>> 0;
+}
+
+/** Số ngày giữa hai mốc `yyyy-MM-dd`. UTC, cùng lý do với `nextDay` (data/projectSigTrend.ts). */
+function daysBetween(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+}
+
+function dayAfter(from: string, k: number): string {
+  const d = new Date(`${from}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + k);
+  return d.toISOString().slice(0, 10);
+}
+
 function genFiresForSignal(rng: () => number, sig: Signal, custPool: readonly Customer[]): Fire[] {
   if (sig.vol === 0 || sig.values.length === 0) return [];
   // Phòng khi một signal mới thêm quên khai tỉ lệ ở SIG_NULL_RATE — mặc định 0.5, không throw.
@@ -816,12 +881,30 @@ function genFiresForSignal(rng: () => number, sig: Signal, custPool: readonly Cu
   const w = SIG_WEIGHT[sig.id];
   const valWeights = sig.values.map((v) => [v, w?.val?.[v] ?? 1] as const);
   const pfWeights = sig.pf.map((p) => [p, w?.pf?.[p] ?? 1] as const);
+  /* Stream RIÊNG cho mốc thời gian — xem seedFromId ở trên. Rải lượt bắn trên cửa sổ từ mốc cắm đo
+     tới `asOf`. Phân bố KHÔNG đều tuyệt đối: mũ `skew` riêng từng điểm đo kéo mật độ về cuối hoặc
+     đầu cửa sổ, để đường không phẳng lì và mắt còn thấy được xu hướng. Đây là số DEMO đúng nghĩa —
+     điều lệ Demo Mode BẬT là "đủ để trình diễn" — và KHÁC hẳn `monthly()` đã bị cấm: cấm là cấm lấy
+     một con số THẬT rồi nhân hệ số ra sáu tháng lịch sử, còn ở đây từng lượt bắn được sinh ra rồi
+     mới cộng lên, không có `Period.factor` nào tham gia (ADR-001 §7). */
+  const atRng = mulberry32(seedFromId(sig.id));
+  const instAt = SIG_INST_AT[sig.id] ?? SIG_INST_DEFAULT;
+  const span = Math.max(1, daysBetween(instAt, DEMO_AS_OF));
+  const skew = 0.75 + (seedFromId(`skew ${sig.id}`) % 1000) / 1000; // 0,75..1,75
+  const und = SIG_UNDECLARED[sig.id];
+
   const out: Fire[] = [];
   for (let i = 0; i < sig.vol; i++) {
     const val = pickWeighted(rng, valWeights);
     const pf = pickWeighted(rng, pfWeights);
     const custKey = rng() < nullRate ? null : custPool[Math.floor(rng() * custPool.length)].key;
-    out.push({ sigId: sig.id, val, custKey, pf });
+    const at = dayAfter(instAt, Math.min(span, Math.floor(Math.pow(atRng(), skew) * (span + 1))));
+    /* Token chưa khai chỉ xuất hiện TỪ một ngày nhất định (§10: đường của nó bắt đầu ở kỳ đầu tiên
+       token xuất hiện, không kéo ngược về đầu trục). Nó THAY một giá trị đã khai chứ không cộng
+       thêm lượt bắn — nếu cộng thêm thì tổng lượt bắn vượt `Signal.vol` và bảng khai tự mâu thuẫn.
+       Rút từ chính `atRng` (stream mốc thời gian) nên không đụng ba số của vòng trên. */
+    const useUnd = und !== undefined && at >= und.from && atRng() < und.rate;
+    out.push({ sigId: sig.id, val: useUnd ? und.val : val, custKey, pf, at });
   }
   return out;
 }
@@ -957,9 +1040,20 @@ const demoProjected: CxmData = projectCustomerBands({ ...seed, cust: demoCust, e
    trong `cfgDefault` rồi gọi lại `projectCustomerBands` + `projectSignalCounts` (không sửa dòng nào
    ở đây) → `band` của chiều `nav` trong `sigCounts` chia lại theo ranh giới mới — xem
    projectSignalCounts.test.ts. */
+/* Mốc cắm đo — CHỈ có trong demo. Fixture thật khai `null` cả 30 vì Bảng D còn treo, và chart tự
+   từ chối vẽ chuỗi khi thiếu mốc (projectSigTrend.ts, nhánh `refuse`). Ghi đè ở đây chứ không sửa
+   `seed.ts`: mốc này là số demo, và trộn nó vào fixture thật sẽ xoá mất chính cái tình trạng "chưa
+   ai khai" mà màn phải nói ra khi Demo Mode TẮT. */
+const demoSignals: Signal[] = demoProjected.signals.map((s) => ({
+  ...s,
+  instAt: SIG_INST_AT[s.id] ?? SIG_INST_DEFAULT,
+}));
+
 export const demoData: CxmData = {
   ...demoProjected,
+  signals: demoSignals,
   sigCounts: projectSignalCounts(demoFires, demoProjected.cust, dims),
+  sigFires: demoFires,
   hist: demoHist,
 };
 

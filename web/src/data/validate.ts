@@ -6,10 +6,12 @@ import { BLOCKS } from "./blocks.ts";
 import { isSegUnknown } from "./segment.ts";
 import { bandLabels, bandOf } from "./bands.ts";
 import { NOT_IDENTIFIED, SIG_CUST_DIMS, SIG_FIRE_DIM } from "./projectSignalCounts.ts";
+import { isoFromVn } from "./projectSigTrend.ts";
 
-/* validateFixture — 24 nhóm bất biến (port từ prototype; nhóm 19 thêm 02/08 cho phân khúc khách;
+/* validateFixture — 26 nhóm bất biến (port từ prototype; nhóm 19 thêm 02/08 cho phân khúc khách;
    nhóm 23 thêm 07/08 cho chuỗi lịch sử chỉ số `hist`, module-b-issue-charter.md section B1; nhóm 24
-   thêm 12/08 cho dải số của cfg, module-i-signal-registry-charter.md §12.1) */
+   thêm 12/08 cho dải số của cfg, module-i-signal-registry-charter.md §12.1; nhóm 26 thêm 14/08 cho
+   hạt thô `sigFires` + `Signal.instAt`, ADR-003) */
 
 const ROUTES = new Set([
   "cxm", "voc", "quantify", "assistant", "atlas", "work",
@@ -683,15 +685,23 @@ export function validateFixture(
         continue;
       }
 
-      // Giá trị lạ — không có trong danh mục Signal.values đã khai (thiết kế §7: giá trị chưa khai
-      // phải HIỆN RA chứ không bị bỏ im lặng; cột "giá trị chưa khai" là việc của section sau, ở đây
-      // chỉ chặn giá trị không rõ nguồn gốc lọt vào sigCounts).
-      const validVals = new Set(sig.values);
-      for (const r of rows) {
-        if (!validVals.has(r.val)) {
-          e.push(`sigCounts ${sig.id}: giá trị "${r.val}" không có trong Signal.values đã khai`);
-        }
-      }
+      /* GỠ 14/08 — phép kiểm "giá trị lạ không có trong Signal.values" đã ở đây với chú thích tự khai
+         là TẠM: *"cột giá trị chưa khai là việc của section sau, ở đây chỉ chặn giá trị không rõ
+         nguồn gốc"*. Section sau nay đã tới (ADR-001 §10) và nó LẬT NGHĨA của tình trạng này: token
+         điểm đo bắn ra mà bản khai chưa có **không phải lỗi dữ liệu, mà là một tình trạng phải hiện
+         lên màn** — một đường như mọi đường, bắt đầu ở kỳ đầu tiên token xuất hiện, kèm cảnh báo
+         *"cần bổ sung khai báo"* ở chú giải (projectSigTrend.ts trả `undeclared`).
+
+         Vì sao không giữ cả hai: `validateFixture` là cổng CHẶN — `setCfg` ném khi nó có lỗi mới, và
+         banner đỏ hiện trên mọi màn. Giữ luật này nghĩa là một pipeline bắn ra lý do thất bại mới sẽ
+         làm cả app báo hỏng, trong khi đó đúng là thứ chart sinh ra để phát hiện. Đây cũng chính là
+         lỗ hổng A của thiết kế (`output/thiet-ke-chart-signal.html` §2): giá trị do đội dữ liệu
+         KHAI, không quét ngược từ dữ liệu — nên bản khai chậm hơn dữ liệu là trạng thái BÌNH THƯỜNG,
+         không phải trạng thái sai.
+
+         Cái mất, ghi rõ để không ai tưởng là quên: gõ sai một giá trị trong fixture nay không bị bắt
+         ở đây nữa. Đổi lại nó hiện ra trên chart dưới dạng một đường có cảnh báo — thấy được, đọc
+         được, và ở đúng chỗ người khai đang nhìn. */
 
       // Ràng buộc 1 — tổng n của MỘT CHIỀU bất kỳ phải bằng Signal.vol. Khởi tạo sẵn cả NĂM chiều
       // bằng 0 (không chỉ những chiều CÓ dòng) — nếu không, một chiều bị THIẾU HẲN (0 dòng) sẽ không
@@ -979,6 +989,66 @@ export function validateFixture(
         }
         if (!LEVELS.has(lv)) {
           e.push(`cfg.step.${field}["${stepId}"] = "${String(lv)}": mức không hợp lệ (phải là low, mid hoặc high)`);
+        }
+      }
+    }
+  }
+
+  /* 26. Hạt THÔ của điểm đo — `sigFires` + `Signal.instAt` (thêm 14/08, ADR-003 mục 1 và 6). Nhóm 22
+     canh bảng ĐÃ CỘNG; nhóm này canh cái bảng đó được cộng RA TỪ. Nó cần tồn tại vì chart trục thời
+     gian đọc thẳng hạt thô: một lượt bắn sai khuôn ngày hoặc nằm trước mốc cắm biến mất khỏi đường
+     mà vẫn được cộng vào `vol`, tức hai con số trên cùng một màn lệch nhau không có gì đỏ.
+
+     Generator của demo hôm nay bảo đảm cả năm điều dưới đây BẰNG CÁCH DỰNG. Đó không phải lý do bỏ
+     nhóm này — validate có mặt cho lúc cách dựng trôi đi, và cho ngày pipeline thật thay generator. */
+  {
+    const asOfIso = isoFromVn(data.asOf);
+    const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+    const sigById = byId<Signal>(data.signals);
+
+    for (const sig of data.signals) {
+      if (sig.instAt !== null && !DATE_RE.test(sig.instAt)) {
+        e.push(`signal ${sig.id}: instAt = "${sig.instAt}" không đúng khuôn yyyy-MM-dd — biên trái của xương lịch phải so sánh được bằng chuỗi`);
+      }
+    }
+
+    if (data.sigFires.length > 0) {
+      /* Gom một vòng, báo MỘT lỗi mỗi loại mỗi signal. Bốn vạn dòng thô mà báo theo dòng thì một
+         pipeline lệch khuôn ngày đẻ ra bốn vạn dòng lỗi che hết mọi lỗi khác — cùng lý do nhóm 22
+         kiểm ở vòng ngoài. */
+      const badDate = new Set<string>();
+      const badSig = new Set<string>();
+      const badCust = new Set<string>();
+      const afterAsOf = new Set<string>();
+      const beforeInst = new Set<string>();
+      const nBySig = new Map<string, number>();
+
+      for (const f of data.sigFires) {
+        if (!DATE_RE.test(f.at)) badDate.add(f.sigId);
+        else if (asOfIso !== null && f.at > asOfIso) afterAsOf.add(f.sigId);
+        const sig = sigById.get(f.sigId);
+        if (!sig) badSig.add(f.sigId);
+        else if (sig.instAt !== null && DATE_RE.test(f.at) && f.at < sig.instAt) beforeInst.add(f.sigId);
+        if (f.custKey !== null && !lookup.cust.has(f.custKey)) badCust.add(f.sigId);
+        nBySig.set(f.sigId, (nBySig.get(f.sigId) ?? 0) + 1);
+      }
+
+      for (const id of badDate) e.push(`sigFires ${id}: có lượt bắn với "at" không đúng khuôn yyyy-MM-dd — ngày sai khuôn rơi ra ngoài mọi kỳ mà vẫn được cộng vào tổng`);
+      for (const id of badSig) e.push(`sigFires "${id}": không có điểm đo nào id vậy trong data.signals`);
+      for (const id of badCust) e.push(`sigFires ${id}: có lượt bắn mang custKey không tra ra khách nào — khác hẳn custKey=null ("chưa gắn được khách", một tình trạng hợp lệ)`);
+      for (const id of afterAsOf) e.push(`sigFires ${id}: có lượt bắn sau mốc số liệu ${data.asOf} — nằm ngoài mọi cửa sổ tính từ asOf nên không kỳ nào đếm tới`);
+      for (const id of beforeInst) e.push(`sigFires ${id}: có lượt bắn TRƯỚC instAt — lượt đó biến mất khỏi chart trục thời gian (xương lịch bắt đầu ở instAt) nhưng vẫn được cộng vào vol, hai số trên cùng một màn lệch nhau mà không có gì đỏ`);
+
+      /* Ràng buộc 1 của nhóm 22, bản HẠT THÔ: đếm thẳng từ fires phải khớp bản khai `Signal.vol`.
+         Sau ADR-003 mục 3, `volOf` lấy mẫu số từ dòng đếm — nên hạt thô lệch bản khai là mẫu số của
+         mọi tỉ lệ trên chart lệch theo. */
+      /* `n > 0 || sig.vol > 0` chứ KHÔNG chỉ `n > 0`: bảng có dòng mà riêng một điểm đo đã khai
+         vol>0 lại vắng mặt hoàn toàn là đúng ca nguy hiểm nhất — cùng lỗ hổng nhóm 22 đã ghi ra.
+         Chỉ canh `n > 0` là để lại đúng cái "xanh vì rỗng" mà nhóm này sinh ra để chấm dứt. */
+      for (const sig of data.signals) {
+        const n = nBySig.get(sig.id) ?? 0;
+        if ((n > 0 || sig.vol > 0) && n !== sig.vol) {
+          e.push(`sigFires ${sig.id}: đếm được ${String(n)} lượt bắn nhưng Signal.vol=${String(sig.vol)} (ràng buộc 1, bản hạt thô)`);
         }
       }
     }

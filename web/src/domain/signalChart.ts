@@ -131,19 +131,49 @@ function buildCols(sig: Signal, rows: readonly SigCount[], dimId: string): SigCo
     nghĩa "chưa gắn được khách" — đọc từ chiều khách nào cũng ra cùng số (ràng buộc 3 khi dữ liệu hợp
     lệ), chỉ cần MỘT chiều có dòng. Không có chiều khách nào có dòng cho signal này → cả hai `null`
     (không biết, không phải 0) — xem test "rule 6...không có dòng chiều khách". */
+/* SỐ LƯỢT BẮN ĐANG XÉT của một signal — đọc TỪ CHÍNH các dòng đếm được đưa vào, không đọc
+   `Signal.vol`.
+
+   Đổi 14/08 (ADR-003). Khi bảng đếm phủ cả lịch sử thì hai cách cho cùng một số: ràng buộc 1 của
+   `validate.ts` khẳng định tổng n của MỘT chiều bằng đúng `Signal.vol`. Nhưng từ nay bảng đếm có thể
+   là bảng đã CẮT THEO KỲ (`projectSignalCounts(..., win)`, dùng cho lát cắt nhảy theo kỳ ở ADR-001
+   §2) — lúc đó `Signal.vol` là tổng CẢ ĐỜI điểm đo, còn thứ đang vẽ là một kỳ. Lấy `Signal.vol` làm
+   mẫu số khi đó cho ra một tỉ lệ "chưa gắn được khách" nhỏ đi theo đúng tỉ lệ độ dài cửa sổ — sai mà
+   không có gì đỏ.
+
+   Đọc từ rows là ĐÚNG ở cả hai chế độ và bỏ được nguồn sự thật thứ hai. Chiều đọc phải là một chiều
+   KHÁCH (rule 6): `sigpf` được miễn ràng buộc 3 nên tổng của nó không dùng làm mẫu số chung được. */
+function volOf(sig: Signal, rows: readonly SigCount[]): number {
+  /* Đọc từ `sigpf` (SIG_FIRE_DIM), KHÔNG từ một chiều khách và KHÔNG từ `Signal.vol`.
+
+     `sigpf` là chiều DUY NHẤT luôn đủ: nó đọc thẳng nền tảng của chính lần bắn nên được miễn ràng
+     buộc 3 (data/validate.ts) — lần bắn không gắn được khách nào vẫn có một dòng ở đây. Chiều khách
+     thì có thể thiếu hẳn (nguồn không ghi phân khúc), và lấy một chiều thiếu làm mẫu số chính là
+     phép chia làm "thiếu" biến mất: coverage/expected = 1 với mọi mức thiếu.
+
+     `Signal.vol` chỉ dùng khi KHÔNG CÓ DÒNG NÀO — trạng thái "đáng ra phải có mà chưa nhận được",
+     và mẫu số phải là con số ĐÃ KHAI để năm chiều đọc thành `locked` chứ không phải biến mất khỏi
+     màn. Có dòng rồi thì `Signal.vol` là sai với bảng đã CẮT THEO KỲ: nó là tổng cả đời điểm đo, nên
+     mọi chiều sẽ tụt thành `partial` chỉ vì cửa sổ ngắn hơn lịch sử (ADR-003 §3). */
+  const fire = rows.filter((r) => r.sig === sig.id && r.dim === SIG_FIRE_DIM);
+  if (fire.length === 0) return sig.vol;
+  return fire.reduce((a, r) => a + r.n, 0);
+}
+
 function notIdentifiedOf(sig: Signal, rows: readonly SigCount[]): [number | null, number | null] {
   const custDim = SIG_CUST_DIMS.find((d) => rows.some((r) => r.sig === sig.id && r.dim === d));
   if (custDim === undefined) return [null, null];
   const n = rows
     .filter((r) => r.sig === sig.id && r.dim === custDim && r.band === NOT_IDENTIFIED)
     .reduce((a, r) => a + r.n, 0);
-  return [n, n / sig.vol];
+  const vol = volOf(sig, rows);
+  return [n, vol === 0 ? null : n / vol];
 }
 
 function buildGroup(sig: Signal, rows: readonly SigCount[], dimId: string): SigGroup {
   const cols = buildCols(sig, rows, dimId);
   const [notIdentified, notIdentifiedPct] = notIdentifiedOf(sig, rows);
-  return { sigId: sig.id, sigName: sig.name, vol: sig.vol, cols, notIdentified, notIdentifiedPct };
+  return { sigId: sig.id, sigName: sig.name, vol: volOf(sig, rows), cols, notIdentified, notIdentifiedPct };
 }
 
 /** Trả CHART cho chart điểm đo — không side-effect, không mutate `rows`/`signals` (rule "Pure", xem
@@ -171,9 +201,12 @@ export function signalChart(
   const liveSignals = selectedSignals.filter((s) => s.vol > 0);
   const notes = selectedSignals.filter((s) => s.vol === 0).map(noteFor);
 
-  // Σ vol các signal SỐNG đã chọn — mẫu số của mọi `missingPct` ở rule 7. Không chọn gì / chỉ chọn
-  // signal vol=0 → mẫu số 0, không được chia — trả rỗng thay vì giả "mọi chiều đều locked" (rule 7).
-  const expected = liveSignals.reduce((a, s) => a + s.vol, 0);
+  /* Σ số lượt bắn ĐANG XÉT của các signal sống — mẫu số của mọi `missingPct` ở rule 7. Đọc qua
+     `volOf` chứ không cộng `Signal.vol`, cùng lý do đã ghi ở `volOf`: với bảng đếm đã cắt theo kỳ,
+     `Signal.vol` là tổng cả đời nên MỌI chiều sẽ đọc thành `partial` chỉ vì cửa sổ ngắn hơn lịch sử.
+     Không chọn gì / chỉ chọn signal vol=0 → mẫu số 0, không được chia — trả rỗng thay vì giả "mọi
+     chiều đều locked" (rule 7). */
+  const expected = liveSignals.reduce((a, s) => a + volOf(s, rows), 0);
   if (expected === 0) return { dim: dimId, groups: [], notes, dimStates: [] };
 
   const groups = liveSignals.map((sig) => buildGroup(sig, rows, dimId));

@@ -80,6 +80,7 @@ const ev = (over: Partial<Evidence> & Pick<Evidence, "id">): Evidence => ({
 
 const sig = (id: string, st: Signal["st"]): Signal => ({
   id,
+  instAt: null,
   tpId: "tp1",
   name: id,
   st,

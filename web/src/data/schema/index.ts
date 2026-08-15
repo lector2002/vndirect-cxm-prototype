@@ -8,13 +8,13 @@ export type { NavItem, Meta, TourStop, Chip } from './ui.ts';
    thiết kế chart điểm đo: type sống cạnh phép cộng sinh ra nó (projectBands.ts cũng không có type
    "hàng" riêng trong schema/), CxmData chỉ re-export để mọi consumer vẫn `import … from
    './schema/index.ts'` như các type khác — không phải ngoại lệ về CÁCH DÙNG, chỉ khác NƠI KHAI. */
-export type { SigCount } from '../projectSignalCounts.ts';
+export type { SigCount, SigFire } from '../projectSignalCounts.ts';
 
 import type { Period, Scope, Phase, Group, Flow, Step, Obs, Touchpoint, Signal } from './journey.ts';
 import type { Metric, Source, Survey, TaxNode, Category, Evidence, VoiceInsight } from './voc.ts';
 import type { Issue, Action, Outcome, Snapshot, Loop, MetricHistory, Customer } from './cxm.ts';
 import type { QuantifyItem, DashSet, Agent } from './quantify.ts';
-import type { SigCount } from '../projectSignalCounts.ts';
+import type { SigCount, SigFire } from '../projectSignalCounts.ts';
 
 export type CxmData = {
   /** MỐC SỐ LIỆU — ngày dữ liệu tính đến, dạng "dd/mm/yyyy". Trước đây tồn tại NGẦM: cả ba
@@ -59,4 +59,16 @@ export type CxmData = {
       được số đếm sẵn từ bên dữ liệu), không phải lỗi — chart điểm đo tự nói "chưa có dữ liệu", không
       vẽ rỗng giả vờ là 0 (cùng nguyên tắc với Signal.st==='gap'). */
   sigCounts: SigCount[];
+  /** LƯỢT BẮN THÔ của chart điểm đo — hạt mịn nhất, có mốc ngày (xem SigFire).
+
+      Vì sao lưu hạt thô cạnh `sigCounts` đã cộng sẵn thay vì chỉ giữ một trong hai: từ ADR-001 §2
+      chart có HAI tầng nối nhau — đường theo thời gian ở trên, lát cắt theo nhóm khách ở dưới, và
+      **bấm một điểm trên đường thì lát cắt nhảy về đúng kỳ đó**. `sigCounts` không có khoá kỳ (và
+      §6 CẤM thêm — nhân theo kỳ làm nổ số dòng để mua một khả năng §3 đã bác), còn chuỗi theo ngày
+      thì không có nhóm khách. Không bảng đã-cộng-sẵn nào phục vụ được lát cắt-theo-kỳ; chỉ hạt thô
+      phục vụ được. `sigCounts` vẫn ở lại vì đó là hình dạng bên dữ liệu có thể giao sẵn.
+
+      Demo Mode TẮT ⇒ RỖNG, giống `sigCounts` — trạng thái trung thực "chưa nhận được dòng nào",
+      không phải đường phẳng 0 (ADR-001 §7). */
+  sigFires: SigFire[];
 };

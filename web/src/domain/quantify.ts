@@ -194,15 +194,16 @@ export const ROW_BUILDERS: Record<string, RowBuilder> = {
 export function rowBuilder(dims: Record<string, Dim>, id: string, data: CxmData): RowBuilder | undefined {
   const fixed = ROW_BUILDERS[id];
   if (fixed) return fixed;
-  /* `base:'fire'` (chart điểm đo, output/thiet-ke-chart-signal.html §4) đọc từ `data.sigCounts`
-     GỘP THEO MỘT SIGNAL cụ thể (data/projectSignalCounts.ts) — `qRun` ở đây không có khái niệm
-     "đang xem signal nào" nên KHÔNG CÓ cách đếm qua đường chung cho chiều này. Trả `undefined` (SỰ
-     THẬT: không có cách đếm ở đây), KHÔNG trả builder-luôn-rỗng — một builder luôn rỗng làm test
-     "thiếu là biểu đồ rỗng im lặng" xanh trong khi tạo ra chính cái nó canh (builder tồn tại nhưng
-     luôn trả rows rỗng = biểu đồ rỗng im lặng). Test quantify.test.ts loại trừ base:'fire' KHỎI phép
-     kiểm đó theo đúng lý do này (chiều này đếm qua đường riêng, không qua rowBuilder) — xem comment
-     tại test, đó là thu hẹp phạm vi vì đổi tiền đề, không phải nới lỏng kỳ vọng. Chart thật sự dùng
-     chiều này là section sau, qua đường riêng (data.sigCounts), không qua `rowBuilder`/`qRun`. */
+  /* `base:'fire'` (chart điểm đo) đếm trên LƯỢT BẮN, không trên dòng khách/bằng chứng — mà `qRun`
+     không có khái niệm "đang xem điểm đo nào", nên qua đường này vẫn KHÔNG có cách đếm. Trả
+     `undefined` (SỰ THẬT: không có cách đếm ở đây), KHÔNG trả builder-luôn-rỗng — một builder luôn
+     rỗng làm test "thiếu là biểu đồ rỗng im lặng" xanh trong khi tạo ra chính cái nó canh.
+
+     14/08 (ADR-003): tham số thiếu ĐÃ ĐƯỢC BỔ SUNG, nhưng ở một cửa khác — `qRunSig` dưới đây nhận
+     thêm điểm đo (và cửa sổ kỳ) rồi dùng CHUNG phép cộng của tầng `data/`. Đường cũ giữ nguyên
+     `undefined` là có chủ ý: `qRun(item, data, dims)` vẫn không biết điểm đo nào, nên nó vẫn phải
+     nói "không đếm được", không được lặng lẽ đoán một điểm đo. Gộp động cơ là cho hai lối vào chung
+     một cỗ máy, không phải xoá sự thật rằng lối này thiếu tham số. */
   if (dims[id]?.base === "fire") return undefined;
   const getter = custFieldPresent(dims, id, data);
   return getter ? (d) => byCustGroup(d, getter) : undefined;

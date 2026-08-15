@@ -1,14 +1,48 @@
 # ADR-001 — Chart điểm đo có trục thời gian
 
-Status: **ACCEPTED một phần.** Owner đã xem và chốt trực tiếp §1–§4 (bao gồm phần cơ chế đơn vị),
-§5b, và §11 (no-build).
-§4b, §5–§11 là **chốt theo uỷ quyền** trong cùng phiên ("đi hết đi rồi bảo tôi review tổng thể") —
-**chờ owner review tổng thể**. Mỗi mục ghi rõ thuộc loại nào.
-Date: 13/08/2026
+Status: **ACCEPTED — toàn bộ.** Owner chốt trực tiếp §1–§4 (bao gồm phần cơ chế đơn vị), §5b và §11
+(no-build) ngày 13/08. Bảy mục còn lại (§4b, §5–§10) ra theo uỷ quyền cùng phiên (*"đi hết đi rồi
+bảo tôi review tổng thể"*) và **được owner duyệt 14/08** khi ra lệnh dựng (*"gộp luôn khi dựng đi"*).
+Từ 14/08 cả 11 mục là ruling đầy đủ; nhãn *uỷ quyền, chờ review* trên từng mục giữ lại làm lịch sử
+xuất xứ, không còn nghĩa "chưa duyệt".
+
+> **LẬT §4b — 14/08/2026, owner chốt trực tiếp sau khi nhìn bản dựng.** Nguyên văn: *"với các trường
+> hợp có nhiều giá trị thì cho thành line graph nhiều line chung và có cả trục dọc để user biết đơn
+> vị, ngoài ra bỏ tất cả '+ điểm %', ko giải thích, chỉ vẽ và show data"*, làm rõ tiếp: *"nhiều đường
+> nhưng cần lồng vào nhau đứng chung 1 chart"*.
+>
+> **Lưới đường nhỏ BỎ HẲN.** Mọi điểm đo, bao nhiêu giá trị cũng vậy, vẽ MỘT chart — mọi giá trị một
+> đường, lồng vào nhau trên cùng một trục dọc. Ngưỡng 5 giá trị không còn chia nhánh hình vẽ nào; thứ
+> duy nhất còn do máy chọn là ĐƠN VỊ (§4 giữ nguyên).
+>
+> Lý do lật, đo được trên chính bản dựng: lưới tách mỗi giá trị ra một ô riêng, nên muốn so hai giá
+> trị phải nhớ hình ô này rồi nhìn sang ô kia — trong khi câu người xem hỏi luôn là *"cái nào đang ăn
+> vào cái nào"*. Xếp hai cột còn hỏng thêm một tầng: ô trái và ô phải nằm trên hai trục ngang khác
+> nhau, trong khi dải khối lượng chỉ có MỘT và chạy hết bề ngang — tức không ô nào thật sự chung trục
+> với dải, mà "chung trục ngang" chính là toàn bộ lý do §4b cho phép một dải phục vụ cả lưới. Owner
+> nhìn đúng chỗ đó: *"các step đang bị tách ra và ko nhìn rõ được"*.
+>
+> **Ràng buộc 5 màu — thứ vốn đẻ ra §4b — giải bằng HÌNH CỦA ĐIỂM**, không bằng nét đứt: nét đứt trên
+> hình này đã có nghĩa riêng (vạch đứt dọc = 0/0) và cho nó nghĩa thứ hai là tái phạm đúng lỗi §5 đã
+> sửa một lần. Vòng tròn → vuông → thoi, 5 màu × 3 hình = 15 đường đọc riêng ra được.
+>
+> **Bỏ mọi con số so sánh.** Chip `±x điểm %` gỡ khỏi màn. Đây là §4b's delta và cũng là luật 11/08
+> (app hiện dữ liệu, không luận giải) áp lại lần nữa. Chú giải giữ TÊN + SỐ MỚI NHẤT của từng đường —
+> đó là dữ liệu, không phải lời bình. Câu tự khai mốc cắm (§11) rút còn *"Mốc cắm đo: dd/MM/yyyy"*.
+>
+> Hệ quả code: `SigTrendChart.grid` **gỡ khỏi type domain**; `SigTrendGrid` xoá khỏi design-system.
+
+**Sửa phạm vi 14/08 — dựng bằng cách GỘP ĐỘNG CƠ, không dựng riêng.** Owner chốt: chart này không
+dựng thành một đường vẽ thứ hai cạnh `domain/quantify.ts`, mà đi thẳng vào cỗ máy đếm chung. Lý do
+đo được: `domain/quantify.ts:197-206` tự ghi rằng nó KHÔNG đếm được điểm đo chỉ vì `qRun` *"không có
+khái niệm đang xem signal nào"* — tức hai màn Quantify và Điểm đo đang chạy hai cỗ máy cùng hình
+dạng, tách nhau vì một tham số thiếu. Quyết định gộp ghi ở `adr-003-gop-dong-co-dem.md`; mục *Chỗ
+chạm* của ADR này đọc theo ADR-003.
+Date: 13/08/2026 · phạm vi sửa 14/08/2026
 Phạm vi: chart giá trị phát ra của màn Điểm đo (`#/signals`, mặt 4 của hồ sơ điểm đo).
 Bản đồ nguồn: `.scratch/chart-diem-do-truc-thoi-gian/map.md`.
 Bản dựng thử owner đã nhìn: `output/demo-chart-diem-do-truc-thoi-gian.html`.
-Chưa dựng dòng code nào trong `web/`.
+Bắt đầu dựng vào `web/` từ 14/08/2026.
 
 Đây là ADR đầu tiên của dự án, nên đặt luôn quy ước: file phẳng trong `web/docs/`, đánh số tăng
 dần, tên `adr-NNN-<slug>.md`, có `Status:` / `Date:` / `## Quyết định`. Không tạo thư mục riêng —

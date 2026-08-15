@@ -198,8 +198,8 @@ it("ca 1 — locked CẢ NĂM chiều cùng lúc, bằng dữ liệu THẬT (see
 
 describe("AtlasSignalPanel — nút chiều 'partial'/'locked, chỉ MỘT chiều' (fixture dựng tay — dữ liệu hợp lệ không sinh nổi ca này, xem lý do ràng buộc 1 validate.ts ở comment trên)", () => {
   const tpX: Touchpoint = { id: "tp-x", stepId: "s-x", name: "TP X", channel: "app", owner: "X", users: 0, desc: "" };
-  const sigA: Signal = { id: "sig-a", tpId: "tp-x", name: "evt_a", st: "live", pf: ["ios"], es: "client", vol: 10, seen: null, srcId: null, metrics: [], desc: "", values: ["x"] };
-  const sigB: Signal = { id: "sig-b", tpId: "tp-x", name: "evt_b", st: "live", pf: ["ios"], es: "client", vol: 10, seen: null, srcId: null, metrics: [], desc: "", values: ["x"] };
+  const sigA: Signal = { id: "sig-a", tpId: "tp-x", name: "evt_a", st: "live", pf: ["ios"], es: "client", vol: 10, seen: null, srcId: null, metrics: [], desc: "", instAt: null, values: ["x"] };
+  const sigB: Signal = { id: "sig-b", tpId: "tp-x", name: "evt_b", st: "live", pf: ["ios"], es: "client", vol: 10, seen: null, srcId: null, metrics: [], desc: "", instAt: null, values: ["x"] };
   const rows: SigCount[] = [
     // sigA: đủ cả năm chiều — full ở mọi nơi khi CHỈ sigA được chọn.
     { sig: "sig-a", dim: "acq", val: "x", band: "X", n: 10 },

@@ -31,9 +31,9 @@ describe("projectSignalCounts — phép cộng ra năm bảng đếm", () => {
   it("tổng n của MỘT chiều bất kỳ bằng đúng số lần bắn đã cho vào (ràng buộc 1)", () => {
     const cust = projectedMiniCust();
     const fires = [
-      { sigId: "sg-t", val: "a", custKey: "KH•••AAA", pf: "android" },
-      { sigId: "sg-t", val: "a", custKey: "KH•••BBB", pf: "ios" },
-      { sigId: "sg-t", val: "b", custKey: null, pf: "web" },
+      { sigId: "sg-t", val: "a", custKey: "KH•••AAA", pf: "android", at: "2026-05-01" },
+      { sigId: "sg-t", val: "a", custKey: "KH•••BBB", pf: "ios", at: "2026-05-01" },
+      { sigId: "sg-t", val: "b", custKey: null, pf: "web", at: "2026-05-01" },
     ];
     const rows = projectSignalCounts(fires, cust, dims);
     for (const dim of [...SIG_CUST_DIMS, SIG_FIRE_DIM]) {
@@ -45,9 +45,9 @@ describe("projectSignalCounts — phép cộng ra năm bảng đếm", () => {
   it("năm bảng đếm khớp nhau CHO TỪNG GIÁ TRỊ, không chỉ khớp tổng (ràng buộc 2)", () => {
     const cust = projectedMiniCust();
     const fires = [
-      { sigId: "sg-t", val: "a", custKey: "KH•••AAA", pf: "android" },
-      { sigId: "sg-t", val: "a", custKey: "KH•••BBB", pf: "ios" },
-      { sigId: "sg-t", val: "b", custKey: null, pf: "web" },
+      { sigId: "sg-t", val: "a", custKey: "KH•••AAA", pf: "android", at: "2026-05-01" },
+      { sigId: "sg-t", val: "a", custKey: "KH•••BBB", pf: "ios", at: "2026-05-01" },
+      { sigId: "sg-t", val: "b", custKey: null, pf: "web", at: "2026-05-01" },
     ];
     const rows = projectSignalCounts(fires, cust, dims);
     for (const val of ["a", "b"]) {
@@ -60,7 +60,7 @@ describe("projectSignalCounts — phép cộng ra năm bảng đếm", () => {
 
   it("custKey null ⇒ bốn chiều khách nhận band NOT_IDENTIFIED, chiều sigpf vẫn có nền tảng thật", () => {
     const cust = projectedMiniCust();
-    const fires = [{ sigId: "sg-t", val: "a", custKey: null, pf: "web" }];
+    const fires = [{ sigId: "sg-t", val: "a", custKey: null, pf: "web", at: "2026-05-01" }];
     const rows = projectSignalCounts(fires, cust, dims);
     for (const dim of SIG_CUST_DIMS) {
       expect(rows.find((r) => r.dim === dim)).toMatchObject({ band: NOT_IDENTIFIED, n: 1 });
@@ -72,7 +72,7 @@ describe("projectSignalCounts — phép cộng ra năm bảng đếm", () => {
 
   it("custKey có thật ⇒ band bốn chiều khách đọc đúng nhãn/giá trị của khách đó", () => {
     const cust = projectedMiniCust();
-    const fires = [{ sigId: "sg-t", val: "a", custKey: "KH•••BBB", pf: "ios" }];
+    const fires = [{ sigId: "sg-t", val: "a", custKey: "KH•••BBB", pf: "ios", at: "2026-05-01" }];
     const rows = projectSignalCounts(fires, cust, dims);
     const bandOf = (dim: string) => rows.find((r) => r.dim === dim)?.band;
     expect(bandOf("acq")).toBe("tự tìm"); // values-cut, đọc thẳng field
@@ -83,7 +83,7 @@ describe("projectSignalCounts — phép cộng ra năm bảng đếm", () => {
 
   it("custKey không khớp khách nào trong danh sách truyền vào ⇒ ném lỗi rõ ràng, không âm thầm bỏ qua", () => {
     const cust = projectedMiniCust();
-    const fires = [{ sigId: "sg-t", val: "a", custKey: "KH•••KHONGTON", pf: "ios" }];
+    const fires = [{ sigId: "sg-t", val: "a", custKey: "KH•••KHONGTON", pf: "ios", at: "2026-05-01" }];
     expect(() => projectSignalCounts(fires, cust, dims)).toThrow(/không khớp khách nào/);
   });
 
@@ -100,7 +100,7 @@ describe("projectSignalCounts — phép cộng ra năm bảng đếm", () => {
   /* Nghiệm thu quan trọng nhất của section (contract): đổi ranh giới NAV trong cfg rồi chiếu lại →
      band của chiều nav trong sigCounts phải chia lại theo ranh giới mới, KHÔNG sửa dòng code nào. */
   it("đổi ranh giới NAV trong cfg ⇒ band của chiều 'nav' trong sigCounts chia lại theo ranh giới mới", () => {
-    const fires = [{ sigId: "sg-t", val: "a", custKey: "KH•••BBB", pf: "ios" }];
+    const fires = [{ sigId: "sg-t", val: "a", custKey: "KH•••BBB", pf: "ios", at: "2026-05-01" }];
 
     const before = projectSignalCounts(fires, projectedMiniCust(cfgDefault), dims);
     const navBefore = before.find((r) => r.dim === "nav")!.band;
@@ -126,8 +126,8 @@ describe("projectSignalCounts — phép cộng ra năm bảng đếm", () => {
         ageYears: 45, navVnd: 9e9, tenureMonths: 50, bands: {}, acq: "tự tìm" },
     ];
     const fires = [
-      { sigId: "sg-t", val: "a", custKey: "KH•••BBB", pf: "ios" },
-      { sigId: "sg-t", val: "a", custKey: "KH•••CCC", pf: "web" },
+      { sigId: "sg-t", val: "a", custKey: "KH•••BBB", pf: "ios", at: "2026-05-01" },
+      { sigId: "sg-t", val: "a", custKey: "KH•••CCC", pf: "web", at: "2026-05-01" },
     ];
 
     const projectedBefore = projectCustomerBands({ ...seed, cust: custWithThird }, cfgDefault, dims).cust;
@@ -166,13 +166,20 @@ describe("projectSignalCounts trên demoData — kiểm trên dữ liệu sinh t
     expect(sigpfRows.some((r) => r.band === NOT_IDENTIFIED)).toBe(false);
   });
 
-  it("sg4 (ekyc_document_fail_reason) — tổng mỗi chiều bằng đúng vol=410, đúng 4 giá trị đã khai", () => {
+  it("sg4 (ekyc_document_fail_reason) — tổng mỗi chiều bằng đúng vol, và giá trị đếm được PHỦ bản khai", () => {
     const sig = seed.signals.find((s) => s.id === "sg4")!;
     const rows = demoData.sigCounts.filter((r) => r.sig === "sg4");
     for (const dim of [...SIG_CUST_DIMS, SIG_FIRE_DIM]) {
       const total = rows.filter((r) => r.dim === dim).reduce((a, r) => a + r.n, 0);
       expect(total).toBe(sig.vol);
     }
-    expect(new Set(rows.map((r) => r.val))).toEqual(new Set(sig.values));
+    /* Trước 14/08 ca này khẳng định tập giá trị đếm được BẰNG ĐÚNG bản khai. Bất biến đó chết cùng
+       luật validate vừa gỡ (ADR-001 §10): điểm đo bắn ra token bản khai chưa có là tình trạng phải
+       hiện lên màn, không phải lỗi — và fixture demo nay cố ý có một token như thế trên chính `sg4`.
+       Cái CÒN đúng và đáng canh là chiều bao hàm: mọi giá trị ĐÃ KHAI phải đếm được, thiếu một giá
+       trị đã khai mới là dấu hiệu phép cộng bỏ sót. */
+    const counted = new Set(rows.map((r) => r.val));
+    for (const v of sig.values) expect(counted).toContain(v);
+    expect([...counted].filter((v) => !sig.values.includes(v)).length).toBeGreaterThan(0);
   });
 });

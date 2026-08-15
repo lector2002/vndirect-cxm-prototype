@@ -176,6 +176,37 @@ Hệ quả phải nhớ:
   và nói ra thiếu mấy khoá. Hôm nay seed đo được **tối đa 2/7** (hai điểm gãy `cust: []` chỉ 1/7) nên khối xếp hạng **rỗng** — đó là
   trạng thái ĐÚNG (§19), không phải regression. Dữ liệu còn phải đi xin: `web/docs/ideal-data-model.md`.
 
+## Điểm đo có HẠT THÔ và một cỗ máy đếm dùng chung (14/08/2026 — ADR-001 + ADR-003)
+
+`CxmData.sigFires: SigFire[]` (`{sigId, val, custKey, pf, at}`) là **hạt thô**, và từ nay là nguồn
+chung. Hai bảng đếm đều là **truy vấn** trên nó, không phải bảng phải đi xin:
+`projectSignalCounts(fires, cust, dims, win?)` cắt theo nhóm khách (nhận cửa sổ), `projectSigTrend`
+cho chuỗi theo ngày. `domain/sigCut.ts` là **một cửa duy nhất** cho câu *"điểm đo X, chiều D, kỳ P"*
+— dùng chung giữa `#/signals` và `#/quantify`; đòi cắt theo kỳ mà chỉ có bảng cộng sẵn thì nó
+**từ chối kèm lý do**, không trả cả đời điểm đo.
+
+`#/signals` mặt 4 nay có **chart trục thời gian** hai tầng nối nhau: bấm một kỳ trên đường thì lát
+cắt theo nhóm khách nhảy về đúng kỳ đó. **MỘT chart cho mọi điểm đo** — bao nhiêu giá trị cũng lồng
+chung vào một trục dọc (owner lật §4b ngày 14/08, lưới đường nhỏ bỏ hẳn). Ràng buộc 5 màu phân loại
+giải bằng **hình của điểm** (tròn → vuông → thoi), KHÔNG bằng nét đứt — nét đứt đã mang nghĩa 0/0.
+Màn không in con số so sánh nào (`±x điểm %` gỡ bỏ): chú giải chỉ mang tên + số mới nhất từng đường.
+
+Ba trạng thái của `n`, ba thành ngữ **không được dùng lẫn**: vạch đứt dọc = `0/0` không tính được ·
+nền mờ + điểm rỗng + cột rỗng = kỳ chưa chạy hết · **không vẽ gì** = chưa đo (trước `Signal.instAt`).
+
+Hai luật cũ ĐÃ ĐỔI — nhớ trước khi tra hồi quy:
+- `validateFixture` nhóm 22 **gỡ** luật *"giá trị không có trong `Signal.values` là lỗi"*: bản khai
+  chậm hơn dữ liệu là trạng thái bình thường (đội dữ liệu **khai**, không quét ngược), và cổng
+  validate là cổng CHẶN nên giữ luật đó sẽ làm cả app treo banner đỏ vì đúng thứ chart sinh ra để
+  phát hiện. Thay bằng **nhóm 26** canh hạt thô (khuôn ngày · `at ≤ asOf` · `at ≥ instAt` · đếm thô
+  khớp `Signal.vol`).
+- `volOf` đọc mẫu số **từ dòng đếm**, không từ `Signal.vol` — với bảng đã cắt theo kỳ, `Signal.vol`
+  là tổng cả đời điểm đo nên mọi tỉ lệ co lại theo độ dài cửa sổ, sai mà không có gì đỏ.
+
+`Signal.instAt` (mốc cắm đo) khai riêng, **không suy từ `MIN(fire.at)`**; fixture thật khai `null`
+cả 30 vì **Bảng D còn treo**, và `null` ⇒ chart **từ chối vẽ** chuỗi. Quyết định:
+`web/docs/adr-003-gop-dong-co-dem.md`. Nghiệm thu: cuối `web/docs/certification-log.md`.
+
 ## Đã verify 28/07/2026 sau khi implement spec (Node harness + Chrome DevTools)
 - **13 view render OK**, không console error/warning, không banner đỏ trên mọi route kể cả hash không tồn tại.
 - `validateFixture()` **trả rỗng**, kể cả sau khi tạo issue mới, gán người và chạy hết chuỗi advance.

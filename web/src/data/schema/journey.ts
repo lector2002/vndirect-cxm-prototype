@@ -85,6 +85,21 @@ export type Signal = {
   srcId: string | null;
   metrics: string[];
   desc: string;
+  /** MỐC CẮM ĐO — ngày điểm đo này bắt đầu chạy, dạng `yyyy-MM-dd`. `null` = **chưa ai khai**.
+
+      Đây là biên trái của "xương lịch" mà `projectSigTrend` cần (ADR-001 §6): mọi ngày TRƯỚC mốc này
+      là trạng thái (3) *chưa đo* ⇒ **vắng mặt** khỏi chuỗi, tầng vẽ để trống. Mọi ngày TỪ mốc này
+      trở đi mà không có lượt bắn nào là trạng thái (2) *đo được, không bắn* ⇒ **có mặt với `n = 0`**.
+      Trộn hai thứ đó là tái phạm luật không-trộn-chưa-biết-với-thiếu.
+
+      **KHÔNG được suy mốc này bằng `MIN(fire.at)`** (ADR-001 §6, bẫy đã ghi): điểm đo đã cắm nhưng
+      im suốt tháng đầu sẽ bị đọc thành *chưa cắm*, tức xoá đúng cái biên mà ba trạng thái sinh ra để
+      giữ. Phải là một trường khai riêng — nó thuộc **Bảng D** của bản yêu cầu dữ liệu, hiện CÒN TREO,
+      nên fixture thật (`seed`) khai `null` cho cả 30 điểm đo. Demo Mode điền giá trị tất định.
+
+      `null` không được rơi về "cắm từ đầu cửa sổ": chuỗi khi đó KHÔNG phân biệt được (2) với (3) nên
+      chart phải nói ra là chưa khai mốc, không vẽ một đường đầy đủ trông như đã đo cả năm. */
+  instAt: string | null;
   /** Danh sách giá trị RỜI RẠC mà chính điểm đo này bắn ra — khai bởi đội dữ liệu, KHÔNG quét ngược
       từ dữ liệu (thiết kế: output/thiet-ke-chart-signal.html §2, lỗ hổng A). Đây là cột của chart
       điểm đo. `vol > 0` (đã instrument, có bắn) → danh sách thật; `st:'gap'` hoặc `vol === 0`

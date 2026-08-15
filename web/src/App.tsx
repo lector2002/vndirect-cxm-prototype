@@ -24,7 +24,10 @@ import { NAV_GROUPS, NAV_ITEMS, navIcon } from './nav.tsx'
    timeframe chung này (docblock TopicsPage, mục 2) — hai chỗ điều khiển cùng một thứ sẽ lệch nhau.
    Các route còn lại vẫn là Placeholder nên chưa vào: thanh timeframe đứng trên một màn không chart
    nào là vi phạm quy tắc "ẩn trên Placeholder". */
-const TIMEFRAME_ROUTES = new Set(['cxm', 'voc', 'quantify', 'work', 'topics'])
+/* `signals` vào danh sách 14/08: hồ sơ điểm đo nay có chart theo kỳ (ADR-001 §5) nên màn đó cần
+   thanh mốc chung. Dùng THANH CHUNG chứ không dựng cụm mốc riêng — tiền lệ 06/08 của TopicsPage:
+   hai chỗ điều khiển cùng một thứ sẽ lệch nhau. */
+const TIMEFRAME_ROUTES = new Set(['cxm', 'voc', 'quantify', 'work', 'topics', 'signals'])
 
 /* NAV_GROUPS dời sang `nav.tsx` ngày 06/08: từ khi mỗi màn in tên tab ở đầu trang, cái nhãn đó có
    HAI nơi hiện — mục sáng ở sidebar và tiêu đề màn — nên nó phải có đúng một nơi khai. */

@@ -1608,3 +1608,112 @@ Module E đã duyệt. Ngữ nghĩa chuyển xuống `measureHv`: khai báo lệ
 **Chưa làm được:** không live-check. Extension Chrome báo *"Browser extension is not connected"*, nên
 `#/work` (hai khối), `#/rules` › *Điểm ưu tiên điểm gãy* (hai nhóm) và `@toppri` (ba card) mới chỉ
 được chứng thực qua test + render trong jsdom, chưa ai nhìn bằng mắt.
+
+---
+
+## 14/08/2026 (đợt 2) — ADR-001 chart trục thời gian, dựng THẲNG vào cỗ máy đếm chung (ADR-003)
+
+Owner chốt *"gộp luôn khi dựng đi"*: không dựng chart riêng rồi gộp sau. Ba lát — `data/`
+(`SigFire` + `projectSigTrend` + `Signal.instAt`) → `domain/` (`sigTrendChart` + `sigCut` + `volOf`)
+→ `design-system/SigTrendChart.tsx` + `features/signals/SignalProfile.tsx` mặt 4.
+
+**Số đo hạt thô (oracle riêng bằng `tsx`, không suy từ test)** — chạy trên `demoData`:
+
+| Số | Giá trị | Nghĩa |
+| --- | --- | --- |
+| `sigFires.length` | **39 745** | hạt thô sinh ra |
+| `Σ Signal.vol` | **39 745** | **khớp tuyệt đối** — ràng buộc 1 bản hạt thô |
+| `custKey === null` | 8 553 | *chưa gắn được khách*, một tình trạng hợp lệ |
+| sg4 | **125 / 410** | y hệt trước khi thêm `at` |
+| `instAt` đã khai | 30/30 điểm đo | ba mốc: `2025-01-15`, `2026-03-02`, `2026-05-11` |
+| giá trị chưa khai | `sg4/too_dark` | đúng một token, cố ý (§10) |
+| rơi vào nhánh LƯỚI | 6/30 điểm đo | ≥5 giá trị |
+
+Hai dòng đầu và dòng sg4 là **bằng chứng tính tất định không bị phá**: mốc thời gian của từng lượt
+bắn lấy rng **stream riêng** (`mulberry32(seedFromId(sig.id))`), nên thêm một chiều dữ liệu mới
+không xê dịch một con số nào đã sinh trước đó. 125/410 là đúng số `signalChart.test.ts` đang ghim.
+
+**Hai ruling đổi HÀNH VI CÓ SẴN — đọc kỹ khi tra hồi quy:**
+
+1. **`validate` nhóm 22 gỡ luật "giá trị không có trong `Signal.values`"** (ADR-003 mục 5). Cổng
+   `validateFixture` là cổng CHẶN: giữ luật này thì một token mới từ pipeline làm cả app treo banner
+   đỏ, trong khi đó đúng là thứ chart sinh ra để phát hiện. **Cái mất:** gõ sai một giá trị trong
+   fixture không còn bị bắt ở `validate` — đổi lại nó hiện trên chart kèm nhãn *chưa khai*.
+2. **`volOf` đọc mẫu số TỪ DÒNG ĐẾM, không từ `Signal.vol`** (mục 3). Với bảng đã cắt theo kỳ,
+   `Signal.vol` là tổng **cả đời** điểm đo — lấy làm mẫu số thì mọi tỉ lệ co lại theo độ dài cửa sổ,
+   sai mà không có gì đỏ. Thứ tự đọc: một chiều khách bất kỳ → `sigpf` làm chỗ dựa cuối (ca chỉ có
+   dòng ở `sigpf` vẫn phải hiện ra, không được biến mất khỏi chart).
+
+**Bù lại chỗ vừa gỡ: `validate` nhóm 26 (mới)** canh hạt thô — khuôn ngày · `at ≤ asOf` · `sigId`
+tra ra · `custKey` null-hoặc-tra-ra · khuôn `instAt` · `at ≥ instAt` · đếm thô = `Signal.vol`. Hai
+luật giữa là chỗ đắt nhất vì cả hai **lệch im lặng**: lượt bắn sau `asOf` không kỳ nào đếm tới,
+lượt bắn trước `instAt` rơi khỏi xương lịch nhưng vẫn cộng vào `vol`.
+
+**Một lỗi hiệu năng đã bắt được và sửa:** `SignalProfile.test.tsx` (quét MỌI signal của `demoData`)
+**hết giờ 20 s** ở lần chạy đầu — `sigTrendChart` và `sigCut` quét 40 k dòng ở **mỗi lần vẽ**. Bọc
+`useMemo` + tính `hasRows` trước ⇒ cả thư mục `features/signals` chạy 33 s, 94/94 xanh. Cùng lỗi
+`measureHv` đã dính một lần.
+
+**Chứng thực:** `tsc --noEmit` **0 lỗi** · `vitest run` **1291/1292 pass (109 file)** · `vite build`
+xanh (6,49 s).
+
+Một test đỏ là `features/tour/TourOverlay.test.tsx` › *"bấm vào nền tối KHÔNG đóng tour"* — **chập
+chờn đã biết** (`docs/SESSION-HANDOFF-12-08.md` dòng 32-34, cùng file, cùng kiểu `waitFor` hết giờ
+lúc máy tải nặng). Chạy riêng `src/features/tour`: **24/24 xanh**. Không file signals nào có
+`data-tour`.
+
+**Chưa làm được:** vẫn **không live-check**. Extension Chrome báo *"Browser extension is not
+connected"*, nên chart trục thời gian ở `#/signals` mặt 4 — cả nhánh đường đơn lẫn nhánh lưới + dải
+khối lượng dùng chung — mới chỉ được chứng thực qua test và render trong jsdom, **chưa ai nhìn bằng
+mắt**.
+
+**Ba chỗ siết thêm sau khi rà lại luật (cùng đợt, chạy lại targeted 421/421 xanh, `tsc` 0 lỗi):**
+nhóm 26 đổi `n > 0` → `(n > 0 || sig.vol > 0)` để ca **vắng mặt hoàn toàn** cũng đỏ (đúng lỗ hổng
+nhóm 22 đã ghi) · cột khối lượng `0` lượt bắn vẽ **stub 2px** thay vì cao 0 pixel — cao 0 thì trạng
+thái (2) *đo được, không bắn* nhìn y hệt trạng thái (3) *chưa đo*, mất đúng phân biệt cả ADR-001
+xoay quanh · mốc `instAt` hiện lên màn viết `dd/MM/yyyy` (khuôn hiển thị của dự án), không phải
+khuôn lưu `yyyy-MM-dd`.
+
+**Sửa sau phản hồi owner (14/08, cùng đợt):** *"chart đang ko hiển thị số lượng của cột hoặc trục
+dọc để biết đang nhìn số liệu bao nhiêu"*. Đúng — bản dựng đầu bỏ mất phần MANG SỐ của bản demo đã
+duyệt, chỉ giữ phần hình. Khôi phục đủ bốn chỗ:
+
+| Chỗ | Trước | Sau |
+| --- | --- | --- |
+| thang dọc | 3 đường kẻ **không nhãn** | 4 mốc **có số** (tỉ lệ ghi `%`, đếm ghi số lượt), gutter trái 38px |
+| trần thang tỉ lệ | ép cứng 0–100% | bám dữ liệu, **sàn 8%** + 14% khoảng thở — đường vài % không còn nằm bẹp sát đáy |
+| dải khối lượng | không số | in **mẫu số lớn nhất** ở đầu dải + tooltip `kỳ · N lượt bắn` từng cột |
+| ô lưới | chỉ hình + delta | thêm **số mới nhất** của từng ô, và cả lưới **chung một thang** nói rõ thành chữ |
+
+Nhãn kỳ cũng thưa còn tối đa 9 mốc (cửa sổ 4W có 28 kỳ, in hết thì chồng thành vệt xám), kỳ cuối
+luôn in. Thang chung cho mọi ô lưới là bắt buộc chứ không phải trang trí: thang riêng từng ô thì hai
+ô cạnh nhau có hình y hệt trong khi một ô 30% còn ô kia 0,3% — mất đúng phép so mà lưới sinh ra để
+làm. `tsc` 0 lỗi · `src/features/signals` + `src/design-system` **326/326 xanh** · build xanh.
+Extension Chrome **vẫn không kết nối được** (`list_connected_browsers` trả rỗng), nên vẫn chưa ai
+nhìn bằng mắt.
+
+**Owner lật §4b ngay sau đó (14/08) — bỏ lưới, mọi đường lồng chung một chart.** Nguyên văn:
+*"với các trường hợp có nhiều giá trị thì cho thành line graph nhiều line chung và có cả trục dọc để
+user biết đơn vị, ngoài ra bỏ tất cả '+ điểm %', ko giải thích, chỉ vẽ và show data"* → *"nhiều đường
+nhưng cần lồng vào nhau đứng chung 1 chart"*.
+
+Cái owner nhìn thấy và nói *"các step đang bị tách ra và ko nhìn rõ được"* có ba lỗi chồng nhau, ghi
+lại vì lỗi thứ hai là loại sẽ lặp:
+
+1. **Lưới hai cột + một dải khối lượng chạy hết bề ngang ⇒ KHÔNG ô nào chung trục với dải.** Mà
+   "chung trục ngang" chính là toàn bộ lý do §4b cho phép một dải phục vụ cả lưới. Lỗi hình học, test
+   cũ không thấy vì nó chỉ hỏi *"có dải không"*.
+2. **`viewBox` rộng 640 trong khung ~1160px ⇒ mọi thứ phóng 1,8 lần.** Chữ khai 10 đơn vị hiện ra
+   18px, cột khối lượng thành khối xám to bằng nắm tay. Bài học: `W` của viewBox phải xấp xỉ bề ngang
+   THẬT của cột nội dung, nếu không mọi con số cỡ chữ/độ dày nét viết trong code đều nói dối.
+3. Ô mini vẽ từ mép 0 trong khi dải có gutter trái 44px — lệch thêm một tầng nữa.
+
+**Bản sau khi lật:** một chart cho mọi điểm đo, mọi giá trị một đường lồng chung, một trục dọc.
+Ràng buộc 5 màu (thứ vốn đẻ ra lưới) giải bằng **hình của điểm** — vòng tròn → vuông → thoi, 5 màu ×
+3 hình = 15 đường; **không** dùng nét đứt vì nét đứt đã có nghĩa 0/0. Chú giải mang tên + **số mới
+nhất** từng đường. Gỡ sạch chip `±x điểm %` và rút câu mốc cắm còn *"Mốc cắm đo: dd/MM/yyyy"* —
+owner: *"ko giải thích, chỉ vẽ và show data"*, cùng luật 11/08.
+
+Code: `SigTrendChart.grid` gỡ khỏi type domain · `SigTrendGrid` xoá khỏi design-system.
+`tsc` 0 lỗi · `vitest run` **1292/1294** (2 đỏ đều là `TourOverlay` chập chờn đã biết; chạy riêng
+`src/features/tour` **24/24 xanh**) · `vite build` xanh. Extension Chrome vẫn không kết nối được.

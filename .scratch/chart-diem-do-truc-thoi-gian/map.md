@@ -155,8 +155,18 @@ status: resolved
 
 ## 4b. Lưới C (≥5 giá trị) mang đơn vị gì dưới thiết kế không-công-tắc? [type: mockup]
 blocked by: 4
-status: resolved
-> resolution (**uỷ quyền 13/08, chờ owner review tổng thể**): **lối (b)** — ô mini vẽ **TỈ LỆ**, và
+status: no-build
+> **REROUTE 14/08 — owner lật ruling này sau khi nhìn bản dựng. Không còn lưới C nào để mang đơn
+> vị, nên câu hỏi của node tự mất.** Nguyên văn: *"với các trường hợp có nhiều giá trị thì cho thành
+> line graph nhiều line chung và có cả trục dọc"* → *"nhiều đường nhưng cần lồng vào nhau đứng chung
+> 1 chart"*. Mọi điểm đo vẽ MỘT chart, mọi giá trị một đường lồng chung, một trục dọc; ngưỡng 5 giá
+> trị không còn chia nhánh hình vẽ nào. Ràng buộc 5 màu giải bằng **hình của điểm** (tròn → vuông →
+> thoi), không bằng nét đứt. Chip `±x điểm %` gỡ bỏ (owner: *"ko giải thích, chỉ vẽ và show data"*).
+> Ghi ở khối lật đầu `web/docs/adr-001-chart-diem-do-truc-thoi-gian.md`.
+> **Trigger mở lại:** chọn NHIỀU điểm đo cùng lúc (mỗi điểm đo một mẫu số riêng ⇒ một trục dọc chung
+> không còn đúng) — hôm nay node 11 đã chốt KHÔNG LÀM, nên chưa chạm tới.
+>
+> ~~resolution (**uỷ quyền 13/08, chờ owner review tổng thể**)~~: **lối (b)** — ô mini vẽ **TỈ LỆ**, và
 > **MỘT dải khối lượng dùng chung đặt dưới cả lưới**. Hợp lệ vì mọi ô của lưới chia **cùng một mẫu
 > số** (tổng lượt bắn của điểm đo trong kỳ), nên một dải phục vụ được hết — đây vẫn là Đ2, không
 > phải ngoại lệ của nó; dải riêng từng ô chỉ vẽ lại cùng một hình.
@@ -417,7 +427,18 @@ xong (bộ lọc kỳ là **global**, `store/timeframe.ts` — đã đổ vào r
 
 # Handoffs
 
-—
+- **Toàn bộ chart trục thời gian → dựng thẳng vào `web/`, 14/08/2026.** Không qua `/flow`: owner
+  chốt *"gộp luôn khi dựng đi"*, tức dựng THẲNG vào cỗ máy đếm chung thay vì dựng riêng rồi gộp
+  sau. Ba lát: `data/` (`SigFire` + `projectSigTrend` + `Signal.instAt`) → `domain/`
+  (`sigTrendChart` + `sigCut` + `volOf`) → `design-system/SigTrendChart.tsx` +
+  `features/signals/SignalProfile.tsx`. Quyết định phát sinh lúc dựng nằm ở
+  `web/docs/adr-003-gop-dong-co-dem.md` (8 mục).
+
+  **PHẠM VI HẸP HƠN Destination — ghi lại để không phải cãi lại:** Destination nói *"`#/signals` mặt
+  4 **+ `AtlasSignalPanel`**"*, nhưng bản dựng chỉ làm **mặt 4 của `#/signals`**. Đó là đúng phạm vi
+  ADR-001 đã chốt. `AtlasSignalPanel` vẫn ở lát cắt-hiện-tại, và nó dùng chung `sigCut` nên nối
+  thêm là việc thêm một chỗ gọi, không phải dựng lại. Mở lại khi có người thật cần đường thời gian
+  ngay trong Atlas.
 
 # Out of scope
 

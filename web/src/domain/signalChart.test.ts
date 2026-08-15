@@ -11,6 +11,7 @@ import { signalChart } from "./signalChart.ts";
 function makeSignal(overrides: Partial<Signal> & { id: string; vol: number; values: string[] }): Signal {
   return {
     tpId: "tp-x",
+    instAt: null,
     name: overrides.id,
     st: "live",
     pf: ["ios"],

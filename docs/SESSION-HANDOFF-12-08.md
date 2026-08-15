@@ -20,6 +20,30 @@ quyết định `web/docs/adr-002-diem-uu-tien-thanh-cong-thuc.md` · dữ liệ
 `tsc` 0 lỗi, **1261 test / 106 file xanh**, build xanh, **chưa ai nhìn bằng mắt** (extension Chrome
 không kết nối được). Vẫn CHƯA COMMIT.
 
+**Đợt 14/08 (2) — ADR-001 chart trục thời gian, dựng THẲNG vào cỗ máy đếm chung.** ADR-002 đã
+**commit** (`bb89081`, 35 file — chú ý: commit đó nằm trên `main`, không phải nhánh
+`feat/module-i-signal-registry`; nhánh đã được fast-forward vào `main` từ trước phiên, chưa push).
+Sau đó owner chốt *"gộp luôn khi dựng đi"* nên chart mới **không** dựng riêng: hạt thô `SigFire`
+(`{sigId, val, custKey, pf, at}`) thành nguồn chung, `projectSignalCounts` (cắt theo nhóm khách,
+nhận cửa sổ) và `projectSigTrend` (chuỗi theo ngày) đều là **truy vấn** trên nó; `domain/sigCut.ts`
+là **một cửa** dùng chung với `#/quantify`. Chart hiện ở `#/signals` mặt 4, hai tầng nối nhau — bấm
+một kỳ trên đường thì lát cắt theo nhóm khách nhảy về đúng kỳ đó. **MỘT chart cho mọi điểm đo** —
+owner lật §4b cuối ngày 14/08 (*"nhiều đường nhưng cần lồng vào nhau đứng chung 1 chart"*), lưới
+đường nhỏ **bỏ hẳn**, mọi giá trị một đường trên cùng một trục dọc; 5 màu phân loại giải bằng hình
+của điểm (tròn → vuông → thoi). Màn không in con số so sánh nào — chip `±x điểm %` gỡ bỏ theo lệnh
+*"ko giải thích, chỉ vẽ và show data"*. Ba trạng thái của `n` giữ nguyên ba thành
+ngữ khác nhau (vạch đứt dọc = 0/0 · nền mờ + điểm rỗng = kỳ chưa đủ · **không vẽ gì** = chưa đo).
+Quyết định phát sinh: `web/docs/adr-003-gop-dong-co-dem.md` — **hai mục đổi hành vi có
+sẵn**: `validate` nhóm 22 gỡ luật "giá trị chưa khai là lỗi" (bù bằng **nhóm 26** canh hạt thô), và
+`volOf` đọc mẫu số từ dòng đếm thay vì `Signal.vol`. Nghiệm thu + số đo ở cuối
+`web/docs/certification-log.md`. `tsc` 0 lỗi, **1292/1294 xanh** (2 đỏ đều là `TourOverlay` chập chờn
+đã biết, xem ⚠ dưới; chạy riêng 24/24), build xanh. **Vẫn CHƯA COMMIT đợt này** — owner chưa yêu
+cầu. **Chưa ai nhìn bằng mắt.**
+
+Hai việc owner để lại **sau chart**, chưa đụng: (A) redesign `#/work` — lịch sử khởi tạo điểm gãy,
+màn chi tiết, flow khởi tạo từ màn nào · (B) đưa *Chỉ số & ngưỡng* về màn hành trình và chuyện gộp
+màn (đo được 3/8 nhóm `#/rules` chuyển được, 4 nhóm buộc ở lại).
+
 Sáu đợt việc trong ngày: (a) dọn ô mồ côi + C1/C6 (§6, §8) · (b) **đợt 3 của luật giao diện** — bỏ 23
 dòng giải thích trên toàn app, 3 chỗ chuyển tooltip, luật ghi ở `docs/DB-FIRST-HANDOFF.md`
 §"Đợt 3 (12/08)" · (c) **redesign tương tác màn Điểm đo** (§9) — chip lọc, ô tìm, mờ + đẩy lên đầu

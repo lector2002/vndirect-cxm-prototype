@@ -32,4 +32,5 @@ export const EMPTY_DATA: CxmData = {
   dash: [],
   ag: [],
   sigCounts: [],
+  sigFires: [],
 };
