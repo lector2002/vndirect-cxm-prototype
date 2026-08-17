@@ -16,7 +16,7 @@ import { SettingsPage } from './features/settings/SettingsPage.tsx'
 import { TourOverlay } from './features/tour/TourOverlay.tsx'
 import { DemoBanner } from './features/settings/DemoBanner.tsx'
 import { useCxmStore } from './store/store.ts'
-import { NAV_GROUPS, NAV_ITEMS, navIcon } from './nav.tsx'
+import { HOME_ROUTE, MVP_ROUTES, NAV_GROUPS, NAV_ITEMS, TOUR_ENABLED, navIcon } from './nav.tsx'
 
 /* Route (segment đầu URL) hiện có dữ liệu/chart thật trong src/ hiện nay — TimeframeBar chỉ mount
    trên các route này. 'topics' vào set này ngày 06/08 khi TopicsPage thật được dựng: màn đó vẽ
@@ -154,7 +154,25 @@ function Shell() {
               ) : (
                 <div className="t-lbl px-[18px] pt-3.5 pb-1.5">{grp.g}</div>
               )}
-              {grp.items.map((n) => (
+              {grp.items.map((n) =>
+                !MVP_ROUTES.has(n.r) ? (
+                  /* Ngoài MVP nhỏ (owner 17/08): mục ở lại cho thấy app còn những màn này, nhưng làm
+                     mờ và KHÔNG dựng `NavLink` — không có `href` thì bàn phím cũng không tab tới
+                     được, tức "không bấm được" đúng cả bằng chuột lẫn bàn phím. `aria-disabled` để
+                     trình đọc màn hình nói ra trạng thái thay vì đọc một dòng chữ im lặng. */
+                  <div
+                    key={n.r}
+                    aria-disabled="true"
+                    data-testid={`nav-off-${n.r}`}
+                    title={navCollapsed ? `${n.l} — ngoài phạm vi MVP` : undefined}
+                    className={`my-0.5 flex items-center gap-2.5 rounded-lg text-[13.5px] text-ink-3 opacity-40 ${
+                      navCollapsed ? 'mx-2 justify-center px-0 py-2' : 'mx-2 px-2.5 py-1.5'
+                    }`}
+                  >
+                    {navIcon(n.r)}
+                    {navCollapsed ? null : <span className="truncate">{n.l}</span>}
+                  </div>
+                ) : (
                 <NavLink
                   key={n.r}
                   to={`/${n.r}`}
@@ -175,7 +193,8 @@ function Shell() {
                   {navIcon(n.r)}
                   {navCollapsed ? null : <span className="truncate">{n.l}</span>}
                 </NavLink>
-              ))}
+                ),
+              )}
             </div>
           ))}
         </nav>
@@ -187,14 +206,26 @@ function Shell() {
             navCollapsed ? 'flex-col items-center' : 'items-center'
           }`}
         >
+          {/* Tắt cùng mười màn mờ (owner 17/08): tour dẫn qua 7 chặng nằm trên những màn đó, nên nút
+              sáng là một đường vòng vào đúng chỗ vừa tắt. `disabled` thật chứ không chỉ mờ — nút
+              disabled không nhận chuột và cũng rời khỏi thứ tự tab. */}
           <button
             type="button"
             data-testid="tour-start"
+            disabled={!TOUR_ENABLED}
             onClick={() => setTourOpen(true)}
-            title={navCollapsed ? 'Chạy bản giới thiệu' : undefined}
-            className={`flex items-center justify-center gap-1.5 rounded-lg border border-line bg-surface py-1.5 text-[12.5px] font-semibold text-ink-2 hover:border-primary-line hover:bg-primary-soft hover:text-ink ${
-              navCollapsed ? 'h-7 w-7 flex-none px-0' : 'min-w-0 flex-1 px-2.5'
-            }`}
+            title={
+              TOUR_ENABLED
+                ? navCollapsed
+                  ? 'Chạy bản giới thiệu'
+                  : undefined
+                : 'Bản giới thiệu — ngoài phạm vi MVP'
+            }
+            className={`flex items-center justify-center gap-1.5 rounded-lg border border-line bg-surface py-1.5 text-[12.5px] font-semibold ${
+              TOUR_ENABLED
+                ? 'text-ink-2 hover:border-primary-line hover:bg-primary-soft hover:text-ink'
+                : 'text-ink-3 opacity-40'
+            } ${navCollapsed ? 'h-7 w-7 flex-none px-0' : 'min-w-0 flex-1 px-2.5'}`}
           >
             <HelpCircle />
             {navCollapsed ? null : <span className="truncate">Chạy bản giới thiệu</span>}
@@ -218,7 +249,7 @@ function Shell() {
         <FilterToolbarContainer />
         <main className="flex-1 min-w-0 overflow-y-auto">
           <Routes>
-            <Route path="/" element={<Navigate to="/cxm" replace />} />
+            <Route path="/" element={<Navigate to={`/${HOME_ROUTE}`} replace />} />
             {ALL.map((n) => (
               <Route
                 key={n.r}

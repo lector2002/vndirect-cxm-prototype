@@ -1,6 +1,16 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../../App.tsx";
+
+/* `TOUR_ENABLED` mặc định FALSE từ 17/08 (tour dẫn qua những màn ngoài MVP nhỏ, xem nav.tsx). Bật
+   lại ĐÚNG cờ đó ở đây, không mock gì khác: cái file này chứng là mỗi chặng tour có mốc `data-tour`
+   thật trên màn của nó — bỏ bộ test đó theo cái cờ là mất thứ duy nhất canh tour khỏi mục vào hư,
+   trong khi tính năng vẫn còn nguyên và sẽ bật lại. Trạng thái TẮT được canh riêng ở
+   `shell-nav.test.tsx`. */
+vi.mock("../../nav.tsx", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../nav.tsx")>()),
+  TOUR_ENABLED: true,
+}));
 import { seed, seedTour } from "../../data/fixtures/seed.ts";
 import { flowStepsCopied } from "../../domain/index.ts";
 import { splitTour } from "./tourStops.ts";

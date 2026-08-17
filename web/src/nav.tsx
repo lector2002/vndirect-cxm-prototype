@@ -49,6 +49,33 @@ export const NAV_GROUPS: { g: string; items: { r: string; l: string }[] }[] = [
 
 export const NAV_ITEMS = NAV_GROUPS.flatMap((grp) => grp.items)
 
+/** Ba màn thuộc MVP nhỏ — owner chốt 17/08. Mười mục còn lại vẫn NẰM trong sidebar nhưng làm mờ và
+ *  không bấm được.
+ *
+ *  Vì sao mờ chứ không gỡ khỏi `NAV_GROUPS`: gỡ đi thì `navLabel`/`navIcon` NÉM cho mọi route đó
+ *  (chúng tra ngược từ `NAV_GROUPS`), tức mọi màn kia vỡ ngay khi tới được bằng hash — mà đây là
+ *  trạng thái TẠM. Giữ mục lại còn nói đúng sự thật: app có 13 màn, 10 màn đang ngoài phạm vi, chứ
+ *  không phải app chỉ có 3 màn.
+ *
+ *  Chỉ chặn đường BẤM, không chặn route (owner: *"user ko bấm vào được thôi"*). Gõ thẳng hash vẫn
+ *  mở được — cố ý, để còn đường vào lúc cần đối chiếu.
+ *
+ *  BẬT LẠI: thêm route vào Set này, không sửa chỗ nào khác. */
+export const MVP_ROUTES: ReadonlySet<string> = new Set(['signals', 'rules', 'settings'])
+
+/** Màn đầu tiên khi vào app. Phải là màn TRONG MVP — mặc định cũ trỏ `cxm`, nay là một màn mờ, nên
+ *  để nguyên là app tự mở vào đúng thứ sidebar vừa nói là ngoài phạm vi. */
+export const HOME_ROUTE = 'signals'
+
+/** Bản giới thiệu có dẫn — TẮT cùng lúc với mười màn kia (owner 17/08). `seedTour` dẫn qua 7 chặng
+ *  thuộc `atlas · cxm · sources · topics · voc · vocjourney · work`, toàn màn đang mờ; để nút sáng
+ *  là mở đúng một đường vòng vào những màn vừa tắt.
+ *
+ *  Là CỜ chứ không xoá nút: tính năng còn nguyên, `TourOverlay.test.tsx` bật cờ này lên để vẫn chứng
+ *  được mỗi chặng có mốc `data-tour` thật trên màn của nó — mất bộ test đó là mất cái duy nhất canh
+ *  tour khỏi mục vào hư. Bật lại: đổi thành `true`. */
+export const TOUR_ENABLED = false
+
 /* ===== Icon điều hướng (owner chốt 12/08 tối) =====
    Sinh ra vì sidebar thu gọn được: ở dải hẹp không còn chỗ cho nhãn chữ, mà một dải ô trống thì
    không bấm được vào đâu cả. Icon hiện Ở CẢ HAI trạng thái — mở rộng cũng có — vì nếu chỉ hiện lúc

@@ -1,7 +1,12 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import App from "./App.tsx";
-import { NAV_ITEMS, navIcon } from "./nav.tsx";
+import { MVP_ROUTES, NAV_ITEMS, navIcon } from "./nav.tsx";
+
+/** Đếm lại từ chính bản khai, không ghim số: đổi `MVP_ROUTES` thì test đi theo, còn đổi CÁCH DỰNG
+    sidebar mới làm test đỏ. */
+const MVP_ITEMS = NAV_ITEMS.filter((n) => MVP_ROUTES.has(n.r));
+const OFF_ITEMS = NAV_ITEMS.filter((n) => !MVP_ROUTES.has(n.r));
 
 /* Sidebar thu gọn + icon điều hướng (owner chốt 12/08 tối). Điều phải canh không phải bề rộng bao
    nhiêu px mà là hai luật:
@@ -30,6 +35,63 @@ describe("Icon điều hướng — mọi mục nav đều có, không mục nà
   });
 });
 
+/* MVP nhỏ (owner 17/08): chỉ ba màn bấm được, mười màn còn lại làm mờ. Ba điều phải canh, và cả ba
+   đều đếm lại từ `MVP_ROUTES` chứ không ghim tên màn — bật lại một màn thì test đi theo. */
+describe("MVP nhỏ — mười màn ngoài phạm vi làm mờ, không bấm được", () => {
+  it("chỉ màn TRONG MVP còn là link; màn ngoài không có link nào", () => {
+    render(<App />);
+    const side = screen.getByTestId("sidebar");
+    const hrefs = within(side)
+      .getAllByRole("link")
+      .map((a) => a.getAttribute("href"));
+    expect(hrefs.sort()).toEqual(MVP_ITEMS.map((n) => `#/${n.r}`).sort());
+    for (const n of OFF_ITEMS) expect(hrefs).not.toContain(`#/${n.r}`);
+  });
+
+  it("mục ngoài MVP vẫn CÓ MẶT và vẫn đọc được tên — mờ chứ không biến mất", () => {
+    render(<App />);
+    const side = screen.getByTestId("sidebar");
+    expect(OFF_ITEMS.length).toBeGreaterThan(0);
+    for (const n of OFF_ITEMS) {
+      expect(within(side).getByTestId(`nav-off-${n.r}`)).toBeInTheDocument();
+      expect(within(side).getByText(n.l)).toBeInTheDocument();
+    }
+  });
+
+  it("mục ngoài MVP khai aria-disabled, không để trình đọc màn hình đọc thành mục bình thường", () => {
+    render(<App />);
+    const side = screen.getByTestId("sidebar");
+    for (const n of OFF_ITEMS) {
+      expect(within(side).getByTestId(`nav-off-${n.r}`)).toHaveAttribute("aria-disabled", "true");
+    }
+  });
+
+  /* Nút bản giới thiệu tắt theo, vì `seedTour` dẫn qua 7 chặng nằm trên những màn vừa mờ — để nó bấm
+     được là mở một đường vòng vào đúng chỗ vừa tắt. Canh `disabled` THẬT: chỉ làm mờ bằng class thì
+     chuột vẫn bấm được và bàn phím vẫn tab tới. */
+  it("nút bản giới thiệu bị TẮT ở cả hai trạng thái sidebar, không chỉ mờ", () => {
+    render(<App />);
+    for (const collapsed of [false, true]) {
+      if (collapsed) fireEvent.click(screen.getByTestId("sidebar-toggle"));
+      expect(screen.getByTestId("tour-start")).toBeDisabled();
+    }
+  });
+
+  it("bấm nút bản giới thiệu KHÔNG mở được tour", () => {
+    render(<App />);
+    fireEvent.click(screen.getByTestId("tour-start"));
+    expect(screen.queryByTestId("tour-pop")).not.toBeInTheDocument();
+  });
+
+  /* Mặc định cũ trỏ `cxm` — nay là màn mờ. Không đổi thì app tự mở vào đúng thứ sidebar vừa nói là
+     ngoài phạm vi, tức luật mới tự mâu thuẫn ngay ở lần tải đầu. */
+  it("mở app ở '/' ⇒ rơi vào một màn TRONG MVP", () => {
+    window.location.hash = "#/";
+    render(<App />);
+    expect(MVP_ITEMS.some((n) => window.location.hash === `#/${n.r}`)).toBe(true);
+  });
+});
+
 describe("Sidebar thu gọn — hẹp lại nhưng không mất đường đi", () => {
   it("mặc định MỞ RỘNG: nhãn chữ của mọi mục nav đều đang hiện", () => {
     render(<App />);
@@ -46,8 +108,10 @@ describe("Sidebar thu gọn — hẹp lại nhưng không mất đường đi", 
     fireEvent.click(screen.getByTestId("sidebar-toggle"));
 
     expect(side).toHaveAttribute("data-collapsed", "true");
+    /* Luật của THU GỌN: nó không được đổi tập màn đi tới được. Số link trước = sau. Tập đó bằng
+       `MVP_ROUTES` là luật của MVP nhỏ, canh riêng ở describe dưới — trộn hai luật vào một phép so
+       thì sau này bật lại một màn sẽ không biết test đỏ vì luật nào. */
     expect(within(side).getAllByRole("link").length).toBe(linksBefore);
-    expect(within(side).getAllByRole("link").length).toBe(NAV_ITEMS.length);
     for (const n of NAV_ITEMS) expect(within(side).queryByText(n.l)).not.toBeInTheDocument();
   });
 
@@ -55,8 +119,12 @@ describe("Sidebar thu gọn — hẹp lại nhưng không mất đường đi", 
     render(<App />);
     fireEvent.click(screen.getByTestId("sidebar-toggle"));
     const side = screen.getByTestId("sidebar");
-    for (const n of NAV_ITEMS) {
+    for (const n of MVP_ITEMS) {
       expect(within(side).getByTitle(n.l).getAttribute("href")).toBe(`#/${n.r}`);
+    }
+    /* Mục ngoài MVP cũng phải nói được tên mình — mờ không có nghĩa là thành ô trống vô danh. */
+    for (const n of OFF_ITEMS) {
+      expect(within(side).getByTestId(`nav-off-${n.r}`).getAttribute("title")).toContain(n.l);
     }
   });
 

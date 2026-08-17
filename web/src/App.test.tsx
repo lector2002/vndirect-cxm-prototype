@@ -1,12 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import { test, expect } from 'vitest'
 import App from './App'
+import { HOME_ROUTE, navLabel } from './nav.tsx'
 
-test('render app: mặc định điều hướng tới Tổng quan CXM', () => {
+/* Mặc định TỪNG là '/cxm' (Tổng quan CXM). Owner chốt 17/08 chỉ ba màn thuộc MVP nhỏ và làm mờ mười
+   màn còn lại — `cxm` nằm trong nhóm mờ, nên mở app vào đó là tự mâu thuẫn ngay ở lần tải đầu.
+   Kiểm bằng `HOME_ROUTE` + `navLabel()` chứ không gõ tên màn: đổi màn chủ thì test đi theo, còn
+   route mặc định trỏ ra ngoài `NAV_GROUPS` thì `navLabel` NÉM và test đỏ. */
+test('render app: mặc định điều hướng tới màn chủ của MVP', () => {
   render(<App />)
-  // '/cxm' giờ render OverviewPage (S2.4) thay Placeholder. Hero (kick label + h1 lead() + intro)
-  // đã CẮT theo quyết định owner 01/08 (Worker Contract S2.5, docs/REDESIGN-PLAN-HANDOFF.md dòng
-  // 27) — 'overview-kick' không còn tồn tại. Kiểm bằng set mặc định (b-cxm-exec) render được thay
-  // thế cho phép kiểm cũ dựa vào kick label.
-  expect(screen.getByText('Điều hành CX')).toBeInTheDocument()
+  expect(screen.getByTestId('page-title')).toHaveTextContent(navLabel(HOME_ROUTE))
 })
