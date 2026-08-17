@@ -35,6 +35,10 @@ export type SigTrendResult =
           nói ra *"trống = chưa đo, cắm dd/mm/yyyy"* khi điểm đo cắm giữa cửa sổ (§11), và lấy mốc so
           sánh của lưới đường nhỏ là **kỳ đầu ĐO ĐƯỢC** chứ không phải kỳ đầu cửa sổ (§4b). */
       from: string;
+      /** MỐC CẮM ĐO của điểm đo, đã chắc chắn khác `null` — nhánh `draw` chỉ tồn tại sau khi hàm này
+          đã TỪ CHỐI ca `instAt === null`. Khai `string` (không phải `string | null`) để luật đó nằm
+          trong type: chỗ vẽ đọc thẳng, không phải chèn nhánh phòng hờ cho một ca không tới được. */
+      instAt: string;
       /** Điểm đo cắm SAU khi cửa sổ đã bắt đầu ⇒ phần đầu cửa sổ là trạng thái (3), phải tự khai. */
       startsMidWindow: boolean;
       /** Token điểm đo bắn ra mà `Signal.values` KHÔNG khai (§10). Vẫn là đường như mọi giá trị
@@ -124,5 +128,5 @@ export function projectSigTrend(
     }
   }
 
-  return { kind: "draw", rows, from, startsMidWindow: signal.instAt > win.from, undeclared };
+  return { kind: "draw", rows, from, instAt: signal.instAt, startsMidWindow: signal.instAt > win.from, undeclared };
 }

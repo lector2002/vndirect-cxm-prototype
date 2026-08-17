@@ -73,12 +73,16 @@ function volH(v: number, max: number, full: number): number {
     ép thang 0–100% thì mọi đường nằm bẹp sát đáy và cái người xem cần thấy — nó nhúc nhích bao
     nhiêu — biến mất. Sàn `0,08` chặn chiều ngược lại: một điểm đo quanh 0,3% mà thang bám sát dữ
     liệu sẽ phóng đại nhiễu thành sóng thần. Chừa 14% khoảng thở phía trên để đỉnh không dính trần. */
-function scaleTop(vals: readonly number[], unit: SigTrend["unit"]): number {
+/* `SigTrend` là union có nhánh `refuse` — nhánh đó không mang `unit`, nên phải rút nhánh `draw` ra
+   trước khi tra khoá. */
+type SigDraw = Extract<SigTrend, { kind: "draw" }>;
+
+function scaleTop(vals: readonly number[], unit: SigDraw["unit"]): number {
   const m = vals.length > 0 ? Math.max(...vals) : 0;
   return Math.max(m, unit === "ratio" ? 0.08 : 1) * 1.14;
 }
 
-function tickLabel(v: number, unit: SigTrend["unit"]): string {
+function tickLabel(v: number, unit: SigDraw["unit"]): string {
   return unit === "ratio" ? `${(v * 100).toFixed(v < 0.1 ? 1 : 0).replace(".", ",")}%` : nf(Math.round(v));
 }
 

@@ -54,7 +54,9 @@ export type SigTrendChart =
       /** Kỳ đầu ĐO ĐƯỢC — biên trái thật của chuỗi, không phải kỳ đầu cửa sổ. */
       firstMeasured: number;
       startsMidWindow: boolean;
-      instAt: string | null;
+      /** Mốc cắm đo, `yyyy-MM-dd`. Không bao giờ `null` ở nhánh này — `projectSigTrend` đã từ chối ca
+          chưa khai mốc trước khi tới đây (ADR-001 §6). Xem chú thích ở `SigTrendResult.instAt`. */
+      instAt: string;
       undeclared: string[];
     };
 
@@ -193,7 +195,7 @@ export function sigTrendChart(
     unit,
     firstMeasured,
     startsMidWindow: base.startsMidWindow,
-    instAt: signal.instAt,
+    instAt: base.instAt,
     undeclared: base.undeclared,
   };
 }
