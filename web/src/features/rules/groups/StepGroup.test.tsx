@@ -17,18 +17,19 @@ afterEach(() => {
 describe("StepGroup", () => {
   it("đổi step.failCrit qua ô nhập ⇒ nhãn trạng thái của bước s2 đổi trong cùng màn", () => {
     render(<StepGroup />);
+    fireEvent.click(screen.getByTestId("apply-toggle")); // 18/08: khối "áp ngay" gấp mặc định
 
     // s2 (Xác thực CCCD · VNeID/NFC): fail rate ~10,46% — dưới failCrit mặc định (15%) nên đang
     // 'watch'. Nằm trong top 6 hiện sẵn (2 bước 'crit' + 4 bước 'watch' đầu tiên theo thứ tự khai).
     const rowBefore = screen.getByTestId("step-apply-s2");
-    expect(rowBefore).toHaveTextContent("Cần theo dõi");
+    expect(rowBefore).toHaveTextContent("Warning");
 
-    const input = screen.getByLabelText("Ngưỡng xử lý ngay tỷ lệ thất bại");
+    const input = screen.getByLabelText("Fail-rate critical threshold");
     fireEvent.change(input, { target: { value: "8" } });
     fireEvent.blur(input);
 
     const rowAfter = screen.getByTestId("step-apply-s2");
-    expect(rowAfter).toHaveTextContent("Cần xử lý ngay");
+    expect(rowAfter).toHaveTextContent("Critical");
   });
 
   it("bước không có dòng quan sát KHÔNG xuất hiện trong khối kết quả, và số bị loại đếm ra chữ", () => {
@@ -39,6 +40,10 @@ describe("StepGroup", () => {
 
     render(<StepGroup />);
 
+    // Số bị loại KHÔNG im lặng biến mất kể cả khi khối đang gấp: dòng đếm phải khai nó.
+    expect(screen.getByTestId("apply-summary")).toHaveTextContent("1 not measured");
+
+    fireEvent.click(screen.getByTestId("apply-toggle"));
     expect(screen.queryByTestId("step-apply-s6")).not.toBeInTheDocument();
     expect(screen.getByTestId("step-excluded-note")).toHaveTextContent(
       "1 bước chưa có dữ liệu quan sát nên không chấm được",

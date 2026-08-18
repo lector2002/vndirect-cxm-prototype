@@ -243,7 +243,7 @@ export class MockRepository implements CxmRepository {
     const set: DashSet = {
       id, sec, def: false, name: "Set mới", owner: "Bạn", up: "hôm nay", shared: false,
       role: "tùy chỉnh", desc: "Set tự tạo — ghép chart từ Quantify.",
-      qs: [{ q: "Các chart đã chọn", sub: "", b: [] }],
+      qs: [{ q: "Các chart đã chọn", b: [] }],
     };
     this.data.dash.push(set);
     this.cfg.sub[id] = { f: "off", ch: "Email" };

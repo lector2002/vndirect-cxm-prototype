@@ -21,10 +21,10 @@ import { useCfgWrite } from "../useCfgWrite.ts";
    lại cầm quyền chấm sức khoẻ nguồn (`sourceHealth()` đọc `cfg.source[id]` làm nhịp giao). Mặc định
    khi nguồn chưa khai lấy từ `SOURCE_ALLOW_DAYS_DEFAULT` — KHÔNG gõ lại con số ở đây. */
 const HEALTH_LABEL: Record<SourceHealth, string> = {
-  ok: "Đang nhận",
-  stale: "Thiếu ngày dữ liệu",
-  down: "Ngừng gửi",
-  silent: "Im lặng, chưa phân định",
+  ok: "Receiving",
+  stale: "Missing days",
+  down: "Stopped",
+  silent: "Silent, unclassified",
 };
 const HEALTH_BADGE: Record<SourceHealth, "ok" | "watch" | "crit" | "unknown"> = {
   ok: "ok",
@@ -45,8 +45,8 @@ export function SourceGroup() {
 
   return (
     <Card
-      title="SLA độ tươi từng nguồn"
-      denomStrip={`${data.sources.length} nguồn`}
+      title="Source freshness SLAs"
+      denomStrip={`${data.sources.length} sources`}
     >
       {/* luật 12/08: bỏ cả Note "Bản tạm. Danh sách nguồn dưới đây sinh thẳng từ dữ liệu đang có…" —
           nó nói về XUẤT XỨ của bảng và tình trạng một quyết định ngoài app, không nói về dữ liệu
@@ -68,12 +68,12 @@ export function SourceGroup() {
         >
           <thead>
             <tr className="border-b border-line">
-              <th className={TH}>Nguồn</th>
-              <th className={TH}>Loại</th>
-              <th className={TH}>Độ trễ hiện tại</th>
-              <th className={TH}>SLA cho phép</th>
-              <th className={TH}>Trạng thái suy ra</th>
-              <th className={TH}>Chỉ số bị ảnh hưởng nếu nguồn sai</th>
+              <th className={TH}>Source</th>
+              <th className={TH}>Type</th>
+              <th className={TH}>Current lag</th>
+              <th className={TH}>Allowed SLA</th>
+              <th className={TH}>Derived status</th>
+              <th className={TH}>Metrics affected if source is wrong</th>
             </tr>
           </thead>
           <tbody>
@@ -96,7 +96,7 @@ export function SourceGroup() {
                     <NumField
                       value={sla}
                       onCommit={(v) => write({ source: { ...cfg.source, [s.id]: v } })}
-                      suffix="ngày"
+                      suffix="days"
                       label={`SLA ${s.name}`}
                     />
                   </td>
@@ -114,7 +114,7 @@ export function SourceGroup() {
                         </span>
                       ))
                     ) : (
-                      <span className="t-meta">không nối chỉ số nào</span>
+                      <span className="t-meta">no metrics linked</span>
                     )}
                   </td>
                 </tr>
@@ -129,7 +129,7 @@ export function SourceGroup() {
             lại thẩm quyền (owner giải C5), vừa là luận giải mà luật giao diện 11/08 đã cấm. */}
         <Note tone={badCount ? "crit" : "default"}>
           <b>
-            {badCount} trong {data.sources.length} nguồn không ở trạng thái "Đang nhận".
+            {badCount} trong {data.sources.length} nguồn không ở trạng thái "Receiving".
           </b>
         </Note>
       </div>

@@ -57,7 +57,6 @@ export type QuantifyShow = {
   /** Chỉ có nghĩa khi có `split`. Vắng ⇒ 'abs'. Xem StackMode. */
   stack?: StackMode;
   view?: QuantifyView;
-  note?: string;
 };
 
 // ----- Series item (time-series / cohort) -----
@@ -76,7 +75,6 @@ export type QuantifySeries = {
   shown: number;
   total: number;
   t: QuantifySeriesPoint[];
-  note?: string;
   by?: undefined;
   /* Cùng lý do `by?: undefined` đã có ở đây: khai tường minh là `undefined` để union QuantifyItem
      narrow được, và để `item.split` đọc trên QuantifyItem không lỗi type. Series là chuỗi thời gian
@@ -89,9 +87,11 @@ export type QuantifySeries = {
 export type QuantifyItem = QuantifyShow | QuantifySeries;
 
 // ----- Dashboard -----
+/* 18/08 tối (owner "sweep nốt note/sub"): field `note` (nhận định về chart, chỉ còn hiện ở
+   QuantifyDetail từ 03/08) và `sub` (phụ đề câu hỏi — KHÔNG màn nào render từ khi port) XOÁ HẲN
+   khỏi schema + fixture. `note` của Flow/Source KHÔNG thuộc đợt này — đó là dữ liệu nghiệp vụ. */
 export type DashQuestion = {
   q: string;
-  sub: string;
   b: string[];
 };
 

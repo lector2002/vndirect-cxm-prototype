@@ -67,15 +67,13 @@ describe("QuantifyBuilder — gate cross-tab: đổi show sang dim không evAttr
   });
 });
 
-/* (d) — port qSave(false) (harness §314-324, shape §252-263): Lưu đè giữ nguyên id, cập nhật
-   name/định nghĩa mới, và MERGE note cũ (không làm mất note khi builder không có ô sửa note). */
-describe("QuantifyBuilder — Lưu đè giữ id + merge note (harness §314-324)", () => {
-  it("Lưu đè: saveQuantify nhận item id cũ + name mới + note cũ", () => {
-    /* KHÔNG ghim vào `q1`: ý định của test là "lưu đè thì note cũ được merge", không phụ thuộc item
-       nào. Luật 11/08 đã bỏ note của q1 (nó là một định nghĩa), và test ghim id thì đỏ oan. Lấy item
-       `show` ĐẦU TIÊN còn note, kèm chốt chống rỗng để test không xanh vì fixture hết note. */
-    const item = seed.qt.find((q) => q.kind === "show" && !!q.note);
-    if (!item || item.kind !== "show" || !item.note) throw new Error("fixture phải còn ít nhất một show có note");
+/* (d) — port qSave(false) (harness §314-324, shape §252-263): Lưu đè giữ nguyên id + cập nhật
+   name/định nghĩa mới. Vế "merge note cũ" đã BỎ 18/08 tối (owner sweep note/sub): field `note`
+   không còn trong schema, builder không còn gì để merge. */
+describe("QuantifyBuilder — Lưu đè giữ id (harness §314-324)", () => {
+  it("Lưu đè: saveQuantify nhận item id cũ + name mới", () => {
+    const item = seed.qt.find((q) => q.kind === "show");
+    if (!item || item.kind !== "show") throw new Error("fixture phải còn ít nhất một item show");
     const saveQuantify = vi.fn();
     const qb: QbState = { show: item.show, metric: item.metric, chart: item.chart, by: item.by ?? null, view: item.view ?? "chart" };
     render(<QuantifyBuilder {...baseProps({ qb, editId: item.id, saveQuantify })} />);
@@ -85,7 +83,7 @@ describe("QuantifyBuilder — Lưu đè giữ id + merge note (harness §314-324
 
     expect(saveQuantify).toHaveBeenCalledTimes(1);
     expect(saveQuantify).toHaveBeenCalledWith(
-      expect.objectContaining({ id: item.id, name: "q1 sửa đè", note: item.note, show: item.show }),
+      expect.objectContaining({ id: item.id, name: "q1 sửa đè", show: item.show }),
     );
   });
 });

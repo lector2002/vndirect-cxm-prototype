@@ -7,9 +7,11 @@ import type { SearchResult } from "../../design-system/index.ts";
 import { useCxmStore } from "../../store/store.ts";
 import { TimeframeBar } from "./TimeframeBar.tsx";
 
-/* Toolbar 2 hàng GLOBAL kiểu Enterpret — mount 1 lần thay TimeframeBar trong Shell (App.tsx).
-   Hàng 1: khung thời gian + Reset/Save. Hàng 2: ô tìm-kiếm-để-điều-hướng (KHÔNG phải lọc) + nút
-   Áp dụng lọc.
+/* Toolbar GLOBAL kiểu Enterpret — mount 1 lần thay TimeframeBar trong Shell (App.tsx).
+   18/08 (redesign MVP, nước đi S1): 2 hàng nén còn MỘT hàng — khung thời gian trái, ô
+   tìm-kiếm-để-điều-hướng (KHÔNG phải lọc) co giãn ở giữa, ba nút phải. Hai hàng cũ tốn ~56px đầu
+   MỌI màn có timeframe trong khi cả hai hàng đều còn quá nửa bề ngang trống; nội dung chính của
+   màn phải vào tầm mắt sớm hơn (F-pattern). Không nút/nhãn nào bị bỏ — chỉ xếp lại.
    Nút "Ẩn bộ lọc" đã BỎ (owner chốt 04/08). Nó ẩn/hiện đúng một hàng mà bản thân nó lại chiếm một
    chỗ trên hàng trên nên chẳng tiết kiệm được chiều cao nào; và thứ nó ẩn là ô TÌM KIẾM — không phải
    bộ lọc — nên nhãn nút nói sai việc nó làm.
@@ -41,28 +43,13 @@ export function GlobalToolbar({ useStore = useCxmStore }: GlobalToolbarProps) {
     <div className="border-b border-line bg-surface">
       <div className="flex items-center gap-3 py-2.5 px-8">
         <TimeframeBar useStore={useStore} />
-        <div className="flex-1" />
-        <button type="button" className={btnEnabled} onClick={() => setQuery("")}>
-          Đặt lại
-        </button>
-        <button
-          type="button"
-          disabled
-          // luật 11/08: bỏ "tính năng chờ pipeline"
-          title="Cần lưu cấu hình (persistence)."
-          className={btnDisabled}
-        >
-          Lưu làm mặc định
-        </button>
-      </div>
-      <div className="flex items-center gap-3 pb-2.5 px-8">
         <div className="flex-1 min-w-0">
           <SearchBox
             value={query}
             onChange={setQuery}
             results={results}
             onSelect={onSelect}
-            placeholder="Tìm theo feature, lý do phản hồi, hoặc metadata"
+            placeholder="Search features, feedback reasons, or metadata"
           />
         </div>
         <button
@@ -72,7 +59,19 @@ export function GlobalToolbar({ useStore = useCxmStore }: GlobalToolbarProps) {
           title="Lọc toàn cục cần pipeline dữ liệu gắn feedback."
           className={btnDisabled}
         >
-          Áp dụng lọc
+          Apply filters
+        </button>
+        <button type="button" className={btnEnabled} onClick={() => setQuery("")}>
+          Reset
+        </button>
+        <button
+          type="button"
+          disabled
+          // luật 11/08: bỏ "tính năng chờ pipeline"
+          title="Cần lưu cấu hình (persistence)."
+          className={btnDisabled}
+        >
+          Save as default
         </button>
       </div>
     </div>

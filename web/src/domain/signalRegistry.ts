@@ -67,10 +67,10 @@ export function signalAllocationChain(data: CxmData, signal: Signal): SignalAllo
 /** Trục 2 D5 — "có tin dùng" suy TỪ NGƯỜI KHAI (`Signal.st`), KHÔNG suy từ lưu lượng. Bốn nhãn
     RỜI với trục 1 (`isSignalRunning`, suy từ `vol`) — hai trục không được gộp lại (charter D5). */
 const DECLARED_STATE_LABEL: Record<Signal["st"], string> = {
-  live: "tin dùng",
-  validating: "đang kiểm chứng",
-  designed: "dự định làm",
-  gap: "biết thiếu chưa làm",
+  live: "trusted",
+  validating: "validating",
+  designed: "spec ready",
+  gap: "not tracked",
 };
 export function declaredStateLabel(s: Signal): string {
   return DECLARED_STATE_LABEL[s.st];

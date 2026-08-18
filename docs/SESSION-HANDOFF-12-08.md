@@ -40,6 +40,73 @@ sẵn**: `validate` nhóm 22 gỡ luật "giá trị chưa khai là lỗi" (bù 
 đã biết, xem ⚠ dưới; chạy riêng 24/24), build xanh. **Vẫn CHƯA COMMIT đợt này** — owner chưa yêu
 cầu. **Chưa ai nhìn bằng mắt.**
 
+**Đợt 18/08 — redesign 3 màn MVP theo best practice SaaS dashboard (layout + màu).** Owner yêu cầu
+*"tìm hiểu nguyên tắc thiết kế và best practice của các SaaS dạng dashboard/báo cáo và redesign lại
+về layout + màu sắc của các màn hình đang cho phép hiển thị ở MVP"*. Quy trình đúng tiền lệ 12/08:
+nghiên cứu → dựng **ba hướng** thành bản thu nhỏ ở `output/mvp-redesign-options.html` (kèm §1 bảng
+nguyên tắc↦thay đổi, §2 các best practice bị LOẠI vì va luật dự án) → owner chọn **B · Trung tính
+lạnh** + chốt **nén GlobalToolbar còn 1 hàng** (đụng shell, 6 màn ngoài MVP có timeframe đổi theo).
+Đã làm, 10 file: (1) **token `:root`** (`index.css`) sang bộ xám lam — cam `#c9491a` GIỮ NGUYÊN mã,
+`--good` rời ô-liu ~75° sang lục ~141° (khoảng cách hue với watch rộng ra), contrast ĐO LẠI bằng
+máy và ghi trong comment (crit 6,5 · watch 5,6 · good 6,0 · ink3 4,7 trên trắng); 3 ràng buộc token
+giữ đủ. Nợ 14 màu chart xám LẠNH ngoài token (ghi 12/08) tự đóng vì nền nay lạnh. (2) hex dẫn xuất
+kéo theo: JourneySpine hatch `#7D1A12→#8A1D16` + viền `#C8BFAE→#C3CAD3`, AtlasPage
+`FLOW_DOT_PENDING #CFC6B6→#C6CDD6`; `TopicLineChart.PAL[0]` KHÔNG đổi (nó = primary, primary không
+đổi). (3) `GlobalToolbar` 1 hàng: chips · search co giãn · 3 nút — không nút/nhãn nào bị bỏ.
+(4) `PageTitle` t-hero 36px → t-block 22px (mọi màn). (5) khối ① `#/signals`: 3 ô lên mặt TRẮNG, tử
+số 19px đậm + "/30" nhạt (textContent vẫn "N / M" nguyên văn), đang-lọc = viền primary + vạch trái.
+(6) bảng: thead nền surface-2, vạch dòng hạ line-soft, Badge pill tròn font-semibold (prefix ✓/— và
+class token GIỮ — test ghim). (7) `#/rules`: mục nav đang mở = chữ primary + vạch trái; khối "Kết
+quả áp lên các bước" từ 6 card 2 cột → danh sách dòng zebra 1 cột, mọi testid giữ. `#/settings`
+không cần sửa (đã đúng khuôn max-w + hàng toggle). **Chuỗi mới trên màn: KHÔNG CÓ.** Không assert
+nào bị nới. Chứng thực: `npm run build` exit 0 · `vitest run` **109 file / 1300 test xanh** ·
+`detect.mjs --json` trên cả 10 file → `[]` · screenshot Playwright 1440×1000 cả 3 màn MVP + atlas
+(màn ngoài MVP, soi token lan đúng). Không đụng `data/`, không chạy lại oracle. **CHƯA COMMIT** —
+owner chưa yêu cầu. Việc owner còn nợ mắt: 3 màn MVP + lướt 10 màn mờ xem bảng màu lạnh có chỗ nào
+gãy (đã soi atlas, còn 9 màn chưa ai nhìn).
+
+*Bổ sung cùng đợt (advisor rà):* (i) soi thêm **1280×900** (min-width của body) — toolbar 1 hàng
+KHÔNG gãy, 3 ô kiểm kê vừa, placeholder ô tìm bị cắt trong input (chấp nhận, không wrap);
+(ii) soi **trạng thái tương tác**: tile đang-lọc viền primary + chip "Đang tô", hàng opacity-50
+vẫn đọc được trên nền lạnh, thead surface-2 dính đúng khi cuộn, profile mặt 1–4 lành;
+(iii) hai docblock trích số contrast CŨ theo "Giấy đậm" đã đo lại và sửa: `buttons.ts`
+(--line 1,6→**1,3** · --ink3 4,6→**4,7**, hai bên ngưỡng 3:1 không đổi — lập luận viền nút giữ
+nguyên) và comment `--cat-other` trong `index.css` (~2,2→**~2,1**). Chỉ sửa comment, không sửa
+dòng code nào; detect.mjs trên 2 file → `[]`.
+
+**Đợt 18/08 (chiều) — sidebar + thuật ngữ sang tiếng Anh quy ước, tinh chỉnh layout hai màn MVP.**
+Owner yêu cầu: *"chỉnh sidebar sang tiếng Anh trùng tên màn, redesign layout màn signal + rules dễ
+thao tác hơn, sửa cách dùng từ conventional hơn (vd 'Chỉ số được nuôi', 'Mốc thấy cuối')"*.
+
+RANH GIỚI NGÔN NGỮ đã chọn (ghi để đợt sau giữ nhất quán): NHÃN/THUẬT NGỮ UI hardcode (nav, tiêu đề
+cột, nhãn field, tên card, nút, option lọc, giá trị trạng thái, aria-label) → tiếng Anh quy ước
+ngành; CÂU VĂN tả dữ liệu (Note, câu kết quả "Quá nhịp giao N ngày…", câu lỗi cfgIssues, câu chờ
+pipeline) và MỌI CHUỖI trong `data/` (seedNav, tour, tên bước/chỉ số/nguồn) → giữ tiếng Việt.
+`data/` không đụng → không chạy lại oracle.
+
+Việc đã làm: (1) `NAV_GROUPS` 13 nhãn + 4 nhóm sang EN (Signals · Metrics & Thresholds · Settings…);
+tiêu đề màn TỰ trùng vì header = navLabel (luật 06/08). Nút "← Điểm đo" của hồ sơ đổi thành lấy từ
+`navLabel("signals")` — hết chỗ gõ tay trôi nhãn. (2) Bảng Signals: 6 cột sang thuật ngữ
+tracking-plan (Event · Traffic · Volume /day · Linked metrics · Last seen · Status), bề rộng cân
+lại 28/8/10/21/15/18. (3) Ba bảng thuật ngữ trạng thái dùng CHUNG đổi một chỗ ăn toàn app:
+`SIGNAL_STATUS` (Live · Validating · Spec ready · Not tracked), `Badge.ST_LABEL` (OK · Warning ·
+Critical · No data — kiểu Datadog), `DECLARED_STATE_LABEL` (trusted · validating · spec ready ·
+not tracked). (4) #/signals ba khối ① ② + governance, hồ sơ điểm đo (card/field/aria), filter
+(placeholder, option), chip "Highlighting N / M signals", xuất xứ mốc "system · source feed" /
+"self-reported" / "never". (5) #/rules: menu 8 nhóm + 4 tiêu đề cụm, mọi FieldRow/th/nút/suffix
+("days", "times", "cust."), ApplySection "Effect on current data". (6) Toolbar (Apply filters ·
+Reset · Save as default), tour footer "Start the guided tour", Settings ON/OFF. (7) Layout: ô tìm
+bảng Signals `w-[320px]` → `flex-1 min-w-[220px] max-w-[320px]` — cả hàng lọc nằm MỘT dòng ở 1280
+(nhãn EN ngắn hơn); "Spec ready" hết tràn cột Status từng thấy ở 1280.
+
+Test: các pin chuỗi cũ ĐỔI THEO (đổi tên, không nới assert — testid, ✓/—, "N / M", aria-pressed giữ
+nguyên byte). Chứng thực: tsc 0 · build 0 · **1300/1300 xanh** (full run; TourOverlay ca "flow
+ngoài pilot" flake 2 lần dưới tải rồi xanh — race waitFor có sẵn, không phải hồi quy, chạy riêng
+luôn xanh) · detect.mjs mọi file sửa → `[]` · screenshot 1280 + 1440 cả 4 màn + hồ sơ. **CHƯA
+COMMIT.** Nợ để lại: (a) câu văn VN đứng cạnh nhãn EN — màn hình song ngữ là CHỦ Ý theo ranh giới
+trên, owner muốn EN toàn phần thì mở đợt dịch câu văn + luật 11/08 soát lại từng câu; (b) 10 màn mờ
+ngoài MVP vẫn nhãn VN trong THÂN màn (sidebar đã EN) — cùng đợt đó.
+
 Hai việc owner để lại **sau chart**, chưa đụng: (A) redesign `#/work` — lịch sử khởi tạo điểm gãy,
 màn chi tiết, flow khởi tạo từ màn nào · (B) đưa *Chỉ số & ngưỡng* về màn hành trình và chuyện gộp
 màn (đo được 3/8 nhóm `#/rules` chuyển được, 4 nhóm buộc ở lại).
@@ -574,3 +641,121 @@ mang `--primary: #c9491a`, `--bg: #f3f0ea`, `--ink3: #7e756a` và **không còn 
   bão hoà đứng ngoài mọi token, nay lệch tông trên nền be. Kéo về token là một đợt riêng.
 - **Bảng nhãn `{ok, stale, down, silent}` chép ở 4 file** (`SourcesPage`, `SourceProfile`,
   `SourceGroup`, `SignalProfile`) — 3 bản đầu có từ trước. Gom về một map ~15 phút, owner chưa trả lời.
+
+**Bổ sung cuối đợt 18/08 (sau advisor vòng chốt):**
+- Ghi quyết định 18/08 vào hai docblock luật: `RuleLayout.tsx` (luật đặt tên 12/08 áp nguyên sang EN, luật 5 thành ranh giới ngôn ngữ) và `nav.tsx` (nhãn nav sang EN, route/ICON_PATHS giữ nguyên). Chỉ sửa comment; detect.mjs `[]`, tsc 0.
+- Full run 4 (sau toàn bộ delta): **1299/1300** — ca đỏ duy nhất là TourOverlay "mở sẵn flow ngoài pilot…", flake phụ thuộc thứ tự (2/4 full run đỏ, chạy riêng xanh 10/10 cả hai lần). KHÔNG sửa test đợt này — sửa waitFor là đổi ngữ nghĩa test, cần owner duyệt. Nợ ghi nhận.
+
+## Đợt 18/08 (tối) — redesign layout #/signals + #/rules theo phương án A (owner duyệt mockup ASCII trong chat)
+
+Owner yêu cầu: redesign hoàn toàn hai màn, chỉ hiện data cần thiết ở mặt ngoài, bấm mới xem chi
+tiết, tránh các lỗi "AI slop" (tường KPI card, mọi thứ hiện cùng lúc, viền quanh mọi thứ, số lặp).
+Duyệt qua bản mockup ASCII + bảng 7 điểm chạm luật; chọn Signals phương án A (drawer).
+
+**#/signals:**
+- Khối ① ba Ô TO → MỘT DÒNG CHIP: chữ trần "30 signals" (inv-total, mẫu số) + 3 chip facet pill
+  (testid/aria-pressed giữ nguyên) + 2 câu đếm bước/chỉ số vẫn là chữ nhạt. Vế spec ready/not
+  tracked ở lại TRONG chip not-running.
+- Bảng 6 cột → 4: Event 46 · Status 14 · Traffic 18 (chấm + volume GỘP một ô, testid
+  signal-running-* giữ) · Last seen 22 (xuất xứ NÉN cùng dòng "· source feed"/"· self-reported" —
+  GIỮ theo D6 dù mockup lược mất; không nowrap để drawer mở thì xuất xứ rơi xuống dòng).
+  Linked metrics + provenance dài rời mặt bảng → drawer.
+- TẦNG MỚI SignalDrawer.tsx (sửa charter I4b/"MÀN 2", owner duyệt 18/08, văn bản charter chưa sửa):
+  bấm dòng mở drawer 320px cạnh bảng (7 dòng tóm tắt + prev/next + vị trí n/30); hồ sơ đầy đủ sau
+  nút "Open full profile" (`profileOpen`); đóng hồ sơ về bảng + drawer vẫn mở.
+- Khối ② + khối bản-khai-không-khớp → HAI DẢI GẤP mặc định ở đáy (CollapsibleBlock.tsx — button +
+  render điều kiện, KHÔNG <details> vì jsdom query được con của details đóng). Dòng tiêu đề mang đủ
+  tử/mẫu số (charter §6 "buộc trưng" giữ ở mức số — sửa charter, owner duyệt, văn bản chưa sửa).
+
+**#/rules:**
+- ApplySection (RuleLayout) nhận `summary` → GẤP mặc định sau dòng đếm: Step "N Critical · N
+  Warning · N OK (· N not measured — không im lặng biến mất)", Alert "N Stopped · N repeat-contact
+  · N churn flags · N anomaly points", Sub "N / M reports on", Weight "N breakpoints ranked".
+  Nhánh không-summary giữ hành vi cũ.
+- Menu: ⚠ đúng nhóm có mâu thuẫn (cfgIssuesTyped MỚI ở domain/cfgIssues.ts — cfgIssues() giữ nguyên
+  chữ ký, test cũ 6/6 không sửa) + chấm primary ở nhóm đã sửa trong phiên (lát cắt cfg từng nhóm
+  khai một chỗ trong RulesPage; cfg.step tách field số vs bảng jc/reg của Per-step levels).
+
+**Kiểm chứng:** tsc 0 · build 0 · detect.mjs `[]` (14 file) · signals+rules 138/138 (+6 test mới:
+drawer ×3, marker menu ×2, tóm tắt gấp ×1; pin cũ đổi theo hành vi mới — mở hồ sơ nay đi qua
+drawer, khối gấp phải bung trước khi assert thân) · full suite 1305/1306 — ca đỏ duy nhất vẫn là
+TourOverlay flake thứ tự đã ghi nợ. Screenshot output/rd-*.png (1280 + 1440, drawer/dải gấp/rules
+gấp + bung). CHƯA COMMIT.
+
+**Không làm (đã khai với owner):** delta "(+2 Critical)" khi đang sửa dở (owner để ngỏ); Chevron
+SVG nay chép ở 3 chỗ (SignalTable · CollapsibleBlock · RuleLayout) — gom về design-system là một
+đợt riêng, ~15 phút.
+
+### Bổ sung 18/08 (tối, sau redesign): bỏ xuất xứ mốc ở hai tầng ngoài + Allocation tách dòng
+
+- Owner lệnh: "bỏ provenance đi" (bảng), rồi "drawer ko cần provenance, làm cho phần allocation rõ ràng hơn".
+- `SignalTable.tsx`: cột Last seen chỉ còn mốc trần (vẫn ưu tiên mốc máy của nguồn khi có).
+- `SignalDrawer.tsx`: Last seen trần; dòng Allocation breadcrumb "phase › flow › step" tách thành BA dòng có nhãn
+  Phase / Flow / Step (testid mới `signal-drawer-phase|flow|step`; nhánh đứt giữ `signal-drawer-chain`).
+- **D6 dời tầng**: vế "khai người gõ" nay neo duy nhất ở HỒ SƠ ("Last seen (self-reported)", "(self-reported)"
+  cạnh badge declared). Văn bản D6 còn ghi "ngay tại dòng" — CHƯA sửa, việc của owner (chồng thêm lên hai điều
+  sửa charter I4b + §6 đã ghi ở đợt trước).
+- Test D6 viết lại 3 bài: hai tầng ngoài mốc trần (khẳng định KHÔNG còn chữ xuất xứ), hồ sơ vẫn khai; mốc máy
+  vẫn thắng mốc gõ tay. Signals suite 100/100 (+1), tsc 0, detect `[]`, ảnh `output/rd-signals-drawer-1440.png`
+  chụp lại. Cũng vá 2 comment cũ "sáu số/bảy bề rộng" → "bốn" trong SignalTable.tsx; thêm ảnh
+  `output/rd-rules-1280-dirty-warn.png` (menu ⚠ + chấm dirty không tràn ở 1280). CHƯA COMMIT.
+- Đang chờ owner quyết: câu hỏi bỏ/dời hai khối "độ tin dữ liệu" + "bản khai không khớp" sang noti ở Overview —
+  mới là ĐÁNH GIÁ, chưa sửa code.
+
+### Bổ sung 18/08 (tối, đợt 3): hai khối điều-kiện-đọc rời #/signals, thành noti ngoại lệ ở CXM Overview
+
+- Owner hỏi "declared vs observed + data trust có cần không, noti trên overview có hợp lý hơn không"
+  → đánh giá: nội dung gov QUAN TRỌNG (drift config mà upstream không bắt được), chỗ đứng thì không;
+  cả hai là exception, không phải dashboard. Owner chốt "ok làm đi".
+- MỚI `overview/SignalHealthNoti.tsx`: hai dải warn CHỈ-HIỆN-KHI-LỆCH ở đầu #/cxm (không gắn #/voc);
+  bấm "Details" bung đúng khối chi tiết cũ. Dòng noti + thân khối cùng MỘT đường đếm: `govCounts()`
+  (export mới từ SignalGovernanceBlock.tsx) + `reliabilityGaps()` (export mới từ
+  SignalReliabilityBlock.tsx; "đo thiếu" chỉ tính MISSING, đúng chốt 07/08 (a); sigCounts rỗng cũng
+  là ngoại lệ "chưa nhận số đếm").
+- Hai khối đổi CollapsibleBlock → Card luôn mở (collapse thuộc noti); `CollapsibleBlock.tsx` XOÁ
+  (orphan do chính đợt 18/08 tạo) — nợ Chevron trùng còn ×2 (RuleLayout + SignalDrawer ✕).
+- `SignalsPage.tsx` bỏ hẳn hàng đáy; **SỬA CHARTER §6 lần BA trong ngày**: số T1·T3 + độ tin không
+  còn thường trực trên màn nào — chỉ trưng khi lệch, ở Overview. Văn bản charter CHƯA sửa (owner).
+- Test: `SignalHealthNoti.test.tsx` MỚI 5 bài (đếm lại N/M, gấp/bung, hai hướng (a)/(b) port từ
+  SignalsPage.test.tsx, bản-sao-hết-lệch → render null); OverviewPage.test.tsx +2 (có ở /cxm, không
+  ở /voc); SignalsPage.test.tsx thay 7 test cũ bằng 1 chốt chống tái phát; gov test bỏ 5 cú toggle.
+- Kiểm: tsc 0 · detect `[]` · signals+overview 214/214 · full 1307/1308 (fail duy nhất = flake
+  TourOverlay cũ) · ảnh `output/rd-overview-noti-1440.png`, `rd-overview-noti-open-1440.png`,
+  `rd-signals-bottom-1440.png`. CHƯA COMMIT.
+
+### Bổ sung 18/08 (tối, đợt 4): dọn tối giản — bỏ câu giải thích/đếm hộ người dùng không đọc
+
+- Owner: "lọc và bỏ hết các phần giải thích hoặc người dùng ko đọc khi vào trang... bỏ các câu giải
+  thích và đánh số như này [chú thích chart + đuôi 'X/Y điểm đo đang ở tình trạng này']".
+- `SignalProfile.tsx`: (1) bỏ chú thích "Đường:.../Dải dưới:..." dưới chart — GHI ĐÈ §4 ADR-001 vế
+  "mẫu số viết vào nhãn trục"; dòng lệch bản khai giữ lại, testid mới `sigtrend-undeclared`;
+  (2) note lát cắt rút còn "Kỳ X — lượt bắn theo kỳ, nhóm khách tính theo hôm nay" (§8 mức caveat,
+  bỏ câu hướng dẫn); (3) hai Note bỏ đuôi đếm toàn cục "X/Y điểm đo đang ở tình trạng này";
+  (4) XOÁ "Nguồn chở nó..." + "Chưa có trường nào nối điểm đo với nguồn" — hai dòng NÓI SAI từ khi
+  có `srcId` (§10c, 12/08); (5) note chuỗi đứt bỏ đuôi "— không tìm được bản ghi tương ứng".
+- `SignalInventoryBlock.tsx`: hai câu đếm T4·T7 RỜI khối ① → dòng `noti-coverage` mới trong
+  SignalHealthNoti (SỬA CHARTER §6 lần BỐN trong ngày; ràng T4 "hai số lồng một câu" đi theo).
+  Dòng coverage KHÔNG có Details — hai con số là toàn bộ nội dung. Chip T5 GIỮ (là bộ lọc bảng).
+- Test: SignalTrend đổi bài §4 (assert chú thích KHÔNG còn), SignalProfile 3 bài đổi theo,
+  SignalsPage bỏ describe T4 (port), gov test F6 thu về chip T5, SignalHealthNoti +2 bài coverage,
+  test hết-lệch thêm steps/metrics rỗng.
+- Kiểm: tsc 0 · detect `[]` · signals+overview 214/214 · full 1307/1308 (flake TourOverlay cũ) ·
+  ảnh `output/rd-signals-min-1440.png`, `rd-profile-min-1440.png`, `rd-overview-noti3-1440.png`.
+  CHƯA COMMIT.
+- Còn một nguồn giải thích CHƯA đụng: chuỗi `note:`/`sub:` trong data widget Quantify (seed.ts) —
+  là NỘI DUNG DỮ LIỆU, sweep tiếp cần owner gật riêng (đụng data/ + validateFixture).
+
+### Bổ sung 18/08 (tối, đợt 5): sweep `note`/`sub` của Quantify khỏi schema + fixture
+
+- Owner: "sweep nốt note/sub trong all". PHẠM VI: `note` của widget Quantify (16 chuỗi trong seed
+  `qt`, nơi hiện cuối cùng là QuantifyDetail từ 03/08) + `sub` của DashQuestion (20 chuỗi — KHÔNG
+  màn nào render từ khi port, dữ liệu chết). KHÔNG đụng `note` của Flow/Source — đó là dữ liệu
+  nghiệp vụ thật (ghi chú sơ đồ luồng, sự cố nguồn "Webhook lỗi từ 19/07"...), SrcMatrix/Journey
+  Map đang hiển thị.
+- Xoá field khỏi `schema/quantify.ts` (QuantifyShow.note, QuantifySeries.note, DashQuestion.sub),
+  xoá 36 chuỗi khỏi seed.ts (regex, đếm khớp 16+20), mock-repository bỏ `sub:""`, QuantifyDetail
+  bỏ khối render `qdetail-note`, QuantifyBuilder bỏ vế merge note khi Lưu đè.
+- Test: QuantifyBuilder (d) đổi thành "Lưu đè giữ id" (vế merge note bỏ theo schema);
+  QuantifyDetail thay bài "note hiện đúng 1 lần" bằng bài khẳng định KHÔNG còn qdetail-note.
+- Kiểm: tsc 0 · detect `[]` · full 1307/1308 (flake TourOverlay cũ; validate.test của fixture nằm
+  trong suite, xanh). CHƯA COMMIT.

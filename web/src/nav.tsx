@@ -10,39 +10,41 @@
    chạy bằng mảng hardcode này. Trỏ `PageTitle` sang seed là in ra một cái tên mà sidebar không
    dùng — đúng cái lệch đang muốn tránh. Khi nào nav về hẳn một nguồn thì sửa một chỗ này. */
 
-/** IA 13 view / 4 nhóm (giữ từ prototype). Tour đã dựng — xem features/tour/. */
+/** IA 13 view / 4 nhóm (giữ từ prototype). Tour đã dựng — xem features/tour/.
+ *  18/08 (owner): nhãn nav + tên nhóm sang TIẾNG ANH — tiêu đề màn tự đổi theo vì header đọc
+ *  navLabel() (luật 06/08). Route `r` và khoá ICON_PATHS GIỮ NGUYÊN — đổi là navLabel/navIcon ném. */
 export const NAV_GROUPS: { g: string; items: { r: string; l: string }[] }[] = [
   {
-    g: 'CXM · Quản trị trải nghiệm',
+    g: 'CXM · Experience Management',
     items: [
-      { r: 'cxm', l: 'Tổng quan CXM' },
-      { r: 'atlas', l: 'Bản đồ hành trình' },
-      { r: 'work', l: 'Bảng xử lý' },
+      { r: 'cxm', l: 'CXM Overview' },
+      { r: 'atlas', l: 'Journey Map' },
+      { r: 'work', l: 'Workboard' },
     ],
   },
   {
     g: 'Voice of Customer',
     items: [
-      { r: 'voc', l: 'Tổng quan VoC' },
-      { r: 'sources', l: 'Nguồn dữ liệu' },
-      { r: 'topics', l: 'Topic & xu hướng' },
-      { r: 'vocjourney', l: 'VoC theo hành trình' },
+      { r: 'voc', l: 'VoC Overview' },
+      { r: 'sources', l: 'Data Sources' },
+      { r: 'topics', l: 'Topics & Trends' },
+      { r: 'vocjourney', l: 'VoC by Journey' },
     ],
   },
   {
-    g: 'Công cụ',
+    g: 'Tools',
     items: [
       { r: 'quantify', l: 'Quantify' },
-      { r: 'assistant', l: 'Trợ lý' },
+      { r: 'assistant', l: 'Assistant' },
     ],
   },
   {
-    g: 'Quản trị',
+    g: 'Administration',
     items: [
-      { r: 'rules', l: 'Chỉ số & ngưỡng' },
-      { r: 'agents', l: 'Agent & cảnh báo' },
-      { r: 'signals', l: 'Điểm đo' },
-      { r: 'settings', l: 'Cài đặt' },
+      { r: 'rules', l: 'Metrics & Thresholds' },
+      { r: 'agents', l: 'Agents & Alerts' },
+      { r: 'signals', l: 'Signals' },
+      { r: 'settings', l: 'Settings' },
     ],
   },
 ]
@@ -165,7 +167,11 @@ export function navLabel(route: string): string {
  *  dựng ở shell sẽ lệch khỏi thân màn ở đúng màn đó. */
 export function PageTitle({ route }: { route: string }) {
   return (
-    <h1 className="t-hero mb-4" data-testid="page-title">
+    /* 18/08 (redesign MVP, nước đi S2): t-hero 36px → t-block 22px. Tên màn là MỘT từ định vị, không
+       phải nội dung — 36px cộng margin chiếm ~70px đầu mọi màn trong khi sidebar ngay bên trái đã
+       tô đậm đúng cái tên đó. Nội dung màn phải vào tầm mắt sớm hơn (F-pattern). Vẫn là <h1>, vẫn
+       navLabel() — luật đầu màn 06/08 không đổi. */
+    <h1 className="t-block mb-4" data-testid="page-title">
       {navLabel(route)}
     </h1>
   )

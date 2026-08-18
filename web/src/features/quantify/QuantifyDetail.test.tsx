@@ -49,13 +49,9 @@ describe("QuantifyDetail — render", () => {
     expect(screen.getByText("Đang dùng ở 1 set: b-voc-all")).toBeInTheDocument();
   });
 
-  it("item.note chỉ hiện đúng 1 lần (QuantifyWidget đã tự render note, không lặp lại ở metadata)", () => {
-    /* KHÔNG ghim vào `q1`: test hỏi "note hiện đúng một lần", không phụ thuộc item nào. Luật 11/08
-       đã bỏ note của q1, nên lấy item ĐẦU TIÊN còn note + chốt chống rỗng. */
-    const item = seed.qt.find((x) => !!x.note);
-    if (!item?.note) throw new Error("fixture phải còn ít nhất một item có note");
-    render(<QuantifyDetail {...baseProps(item)} />);
-    expect(screen.getAllByText(item.note).length).toBe(1);
+  it("18/08 tối (owner sweep note/sub): màn chi tiết KHÔNG còn dòng nhận định qdetail-note", () => {
+    render(<QuantifyDetail {...baseProps(findItem("q14"))} />);
+    expect(screen.queryByTestId("qdetail-note")).not.toBeInTheDocument();
   });
 
   it("usedByIds rỗng → hiện 'Chưa set nào dùng' trong popover ⓘ", () => {

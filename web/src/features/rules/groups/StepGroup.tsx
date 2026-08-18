@@ -50,6 +50,9 @@ export function StepGroup() {
   rows.sort((a, b) => RANK[a.state] - RANK[b.state]);
 
   const excluded = data.steps.length - rows.length;
+  const nCrit = rows.filter((r) => r.state === "crit").length;
+  const nWatch = rows.filter((r) => r.state === "watch").length;
+  const nOk = rows.filter((r) => r.state === "ok").length;
   const shown = expanded ? rows : rows.slice(0, TOP_N);
   const hidden = rows.length - shown.length;
 
@@ -58,7 +61,7 @@ export function StepGroup() {
   /* Câu giải thích dài KHÔNG đặt vào `subtitle` của Card: slot đó `truncate` một dòng (Card.tsx),
      nên câu bị cắt giữa chừng ngay ở bề rộng thật của cột phải màn này — đã thấy bằng mắt. */
   return (
-    <Card title="Ngưỡng trạng thái của một bước hành trình">
+    <Card title="Journey step status thresholds">
       {/* luật 11/08: bỏ đoạn giải thích áp ngưỡng */}
 
       {error ? (
@@ -73,52 +76,55 @@ export function StepGroup() {
           cách đọc màn thì bỏ, riêng CÔNG THỨC được giữ ở dạng tooltip. `title` là đường rẻ nhất và
           screen reader đọc được; không dựng popover cho một chuỗi bảy ký tự. */}
       <div>
-        <FieldRow label="Ngưỡng theo dõi tỷ lệ thất bại" formula="failed ÷ entered của bước">
+        <FieldRow label="Fail-rate watch threshold" formula="failed ÷ entered của bước">
           <NumField
             value={cfg.step.failWatch}
             onCommit={setStep("failWatch")}
             suffix="%"
             tone="watch"
-            label="Ngưỡng theo dõi tỷ lệ thất bại"
+            label="Fail-rate watch threshold"
           />
         </FieldRow>
 
         {/* luật 12/08: bỏ "phải cao hơn ngưỡng theo dõi" — đó là RÀNG BUỘC, không phải dữ liệu.
             Gõ sai thứ tự thì `cfgIssues()` báo bằng câu lỗi thật, không cần dặn trước. */}
-        <FieldRow label="Ngưỡng xử lý ngay tỷ lệ thất bại" formula="failed ÷ entered của bước">
+        <FieldRow label="Fail-rate critical threshold" formula="failed ÷ entered của bước">
           <NumField
             value={cfg.step.failCrit}
             onCommit={setStep("failCrit")}
             suffix="%"
             tone="crit"
-            label="Ngưỡng xử lý ngay tỷ lệ thất bại"
+            label="Fail-rate critical threshold"
           />
         </FieldRow>
 
         {/* luật 11/08: bỏ giải thích */}
-        <FieldRow label="Evidence coverage tối thiểu">
+        <FieldRow label="Minimum evidence coverage">
           <NumField
             value={cfg.step.covMin}
             onCommit={setStep("covMin")}
             suffix="%"
-            label="Evidence coverage tối thiểu"
+            label="Minimum evidence coverage"
           />
         </FieldRow>
 
         {/* luật 11/08 (bổ sung): bỏ hẳn định nghĩa đơn vị */}
-        <FieldRow label="Effort tối đa cho phép">
+        <FieldRow label="Maximum allowed effort">
           <NumField
             value={cfg.step.effortMax}
             onCommit={setStep("effortMax")}
-            suffix="lần"
-            label="Effort tối đa cho phép"
+            suffix="times"
+            label="Maximum allowed effort"
           />
         </FieldRow>
       </div>
 
+      {/* 18/08: dòng đếm ba trạng thái thay vế "showing N of M" trên tiêu đề — số bị loại vì chưa
+          đo KHÔNG được biến mất khi gấp (luật của khối này), nên nó đứng ngay trong dòng đếm. */}
       <ApplySection
-        title={`Kết quả áp lên các bước ngay lúc này${
-          rows.length > TOP_N ? ` · đang hiện ${shown.length} trên ${rows.length}` : ""
+        title="Effect on steps right now"
+        summary={`${nCrit} Critical · ${nWatch} Warning · ${nOk} OK${
+          excluded > 0 ? ` · ${excluded} not measured` : ""
         }`}
       >
         {excluded > 0 ? (
@@ -128,29 +134,27 @@ export function StepGroup() {
           </div>
         ) : null}
 
+        {/* 18/08 (redesign MVP, nước đi R2): lưới thẻ 2 cột → DANH SÁCH DÒNG một cột, zebra nhẹ.
+            Sáu thẻ be hai cột chiếm nửa màn cho sáu dữ kiện một-dòng-đọc-hết; dạng dòng cùng mật
+            độ với bảng Điểm đo, cùng thứ tự đọc (mã · tên · lý do · badge phải) trên MỘT đường
+            ngang nên so hai bước không phải nhảy mắt chéo lưới. Tên bước vẫn XUỐNG DÒNG chứ không
+            cắt (flex-wrap) — lý do cũ giữ nguyên: tên là thứ duy nhất dòng này cần nói. */}
         <div
-          className={`grid grid-cols-1 lg:grid-cols-2 gap-2.5${
-            expanded ? " max-h-[420px] overflow-y-auto pr-1" : ""
-          }`}
+          className={`flex flex-col${expanded ? " max-h-[420px] overflow-y-auto pr-1" : ""}`}
           data-testid="step-apply-rows"
         >
           {shown.map(({ step, state, why }) => (
             <div
               key={step.id}
               data-testid={`step-apply-${step.id}`}
-              className="rounded-[9px] border border-line-soft bg-surface-2 px-3 py-2.5 min-w-0"
+              className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5 rounded-md px-2.5 py-1.5 odd:bg-surface-2"
             >
-              {/* Tên bước XUỐNG DÒNG chứ không cắt: thẻ chỉ rộng ~220px nên `truncate` biến
-                  "Liveness · đối chiếu khuôn mặt" thành "Live…" — người đọc không còn biết đang
-                  nhìn bước nào, mà đó chính là thứ duy nhất thẻ này cần nói. */}
-              <div className="flex items-start gap-2">
-                <span className="font-mono text-[12px] text-ink-3 flex-none pt-px">{step.code}</span>
-                <b className="text-[13px] min-w-0 break-words">{step.name}</b>
-                <span className="ml-auto flex-none">
-                  <Badge state={state as BadgeState} />
-                </span>
-              </div>
-              <div className="t-meta text-[12px] mt-1.5">{why}</div>
+              <span className="font-mono text-[12px] text-ink-3 flex-none">{step.code}</span>
+              <b className="text-[13px] min-w-0 break-words">{step.name}</b>
+              <span className="t-meta ml-auto text-right text-[12px]">{why}</span>
+              <span className="flex-none">
+                <Badge state={state as BadgeState} />
+              </span>
             </div>
           ))}
         </div>
@@ -162,7 +166,7 @@ export function StepGroup() {
             onClick={() => setExpanded((v) => !v)}
             className="self-start text-[12px] font-semibold text-primary hover:underline"
           >
-            {expanded ? "Thu gọn" : `Xem hết ${rows.length} bước (+${hidden} nữa)`}
+            {expanded ? "Collapse" : `Show all ${rows.length} steps (+${hidden} more)`}
           </button>
         ) : null}
       </ApplySection>

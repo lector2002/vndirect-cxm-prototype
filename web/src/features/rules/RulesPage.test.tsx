@@ -21,19 +21,44 @@ afterEach(() => {
 const cfg = () => useCxmStore.getState().cfg;
 
 const GROUPS = [
-  "Bước hành trình",
-  "Chỉ số theo dõi",
-  "SLA từng nguồn",
-  "Cảnh báo & khảo sát",
-  "Phân khúc khách",
-  "Bản tin định kỳ",
-  "Trọng số ưu tiên",
+  "Journey steps",
+  "Metrics",
+  "Source SLAs",
+  "Alerts & surveys",
+  "Customer segments",
+  "Scheduled reports",
+  "Priority weights",
 ];
 
 describe("RulesPage — vỏ màn", () => {
   it("đầu màn chỉ có tên tab, lấy từ nguồn nav duy nhất", () => {
     render(<RulesPage />);
     expect(screen.getByTestId("page-title").textContent).toBe(navLabel("rules"));
+  });
+
+  it("sửa một ô của nhóm Journey steps ⇒ chấm 'đã sửa trong phiên' hiện đúng NHÓM đó trên menu", () => {
+    render(<RulesPage />);
+    expect(screen.queryByTestId("menu-dirty-step")).not.toBeInTheDocument();
+
+    const input = screen.getByLabelText("Fail-rate watch threshold");
+    fireEvent.change(input, { target: { value: String(cfg().step.failWatch + 1) } });
+    fireEvent.blur(input);
+
+    expect(screen.getByTestId("menu-dirty-step")).toBeInTheDocument();
+    expect(screen.queryByTestId("menu-dirty-metric")).not.toBeInTheDocument();
+  });
+
+  it("ngưỡng đặt ngược ⇒ dấu ⚠ treo đúng nhóm có mâu thuẫn trên menu", () => {
+    render(<RulesPage />);
+    expect(screen.queryByTestId("menu-warn-step")).not.toBeInTheDocument();
+
+    // failCrit == failWatch là mâu thuẫn theo cfgIssues (phải CAO HƠN) — đặt bằng, không ghim số.
+    const input = screen.getByLabelText("Fail-rate critical threshold");
+    fireEvent.change(input, { target: { value: String(cfg().step.failWatch) } });
+    fireEvent.blur(input);
+
+    expect(screen.getByTestId("menu-warn-step")).toBeInTheDocument();
+    expect(screen.queryByTestId("menu-warn-metric")).not.toBeInTheDocument();
   });
 
   it("bảy nhóm đều mở được, không nhóm nào câm", () => {
@@ -55,7 +80,7 @@ describe("RulesPage — vỏ màn", () => {
     // xong lúc assert, và test đỏ vì lý do chẳng liên quan gì tới nội dung đang canh.
     act(() => useCxmStore.getState().setCfg({ step: { ...cfg0.step, failCrit: 33 } }));
     expect(screen.getByTestId("rules-reset").hasAttribute("disabled")).toBe(false);
-    expect(screen.getByText(/Đang dùng ngưỡng đã sửa/)).toBeTruthy();
+    expect(screen.getByText(/Using thresholds edited/)).toBeTruthy();
   });
 
   it("trả về mặc định đưa cfg về đúng mặc định — KỂ CẢ sau khi tạo thêm một set", () => {
@@ -81,6 +106,6 @@ describe("RulesPage — vỏ màn", () => {
     // failCrit phải CAO hơn failWatch; đặt ngược lại là nhãn trạng thái mất nghĩa.
     act(() => useCxmStore.getState().setCfg({ step: { ...cfg0.step, failCrit: 1, failWatch: 20 } }));
     const box = screen.getByTestId("rules-contradictions");
-    expect(within(box).getByText(/ngưỡng đang đặt ngược nhau/)).toBeTruthy();
+    expect(within(box).getByText(/thresholds contradict each other/)).toBeTruthy();
   });
 });

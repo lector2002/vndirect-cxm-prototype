@@ -41,8 +41,8 @@ export function MetricGroup() {
      không tả dữ liệu; số bên trái đã là dữ liệu đủ. */
   return (
     <Card
-      title="Chỉ số đang theo dõi"
-      denomStrip={`${watched} trên ${data.metrics.length} chỉ số đang bật theo dõi`}
+      title="Tracked metrics"
+      denomStrip={`${watched} of ${data.metrics.length} metrics being watched`}
     >
       {/* luật 11/08: bỏ nửa còn lại của đoạn giải thích band riêng từng chỉ số */}
 
@@ -65,13 +65,13 @@ export function MetricGroup() {
         >
           <thead>
             <tr className="border-b border-line">
-              <th className={TH}>Chỉ số</th>
-              <th className={TH}>Theo dõi</th>
-              <th className={TH}>Giá trị</th>
-              <th className={TH}>Mục tiêu</th>
-              <th className={TH}>Ngưỡng theo dõi</th>
-              <th className={TH}>Ngưỡng xử lý</th>
-              <th className={TH}>Trạng thái</th>
+              <th className={TH}>Metric</th>
+              <th className={TH}>Watch</th>
+              <th className={TH}>Value</th>
+              <th className={TH}>Target</th>
+              <th className={TH}>Watch threshold</th>
+              <th className={TH}>Critical threshold</th>
+              <th className={TH}>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -104,7 +104,7 @@ export function MetricGroup() {
                     <label className="inline-flex items-center">
                       <input
                         type="checkbox"
-                        aria-label={`Theo dõi ${m.name}`}
+                        aria-label={`Watch ${m.name}`}
                         checked={on}
                         onChange={(e) => setMetric(m.id, { on: e.target.checked })}
                       />
@@ -123,7 +123,7 @@ export function MetricGroup() {
                           onCommit={(v) => setMetric(m.id, { watch: v })}
                           suffix={m.unit === "%" ? "%" : undefined}
                           tone="watch"
-                          label={`Ngưỡng theo dõi ${m.name}`}
+                          label={`Watch threshold — ${m.name}`}
                         />
                       </>
                     ) : (
@@ -139,7 +139,7 @@ export function MetricGroup() {
                           onCommit={(v) => setMetric(m.id, { crit: v })}
                           suffix={m.unit === "%" ? "%" : undefined}
                           tone="crit"
-                          label={`Ngưỡng xử lý ngay ${m.name}`}
+                          label={`Critical threshold — ${m.name}`}
                         />
                       </>
                     ) : (

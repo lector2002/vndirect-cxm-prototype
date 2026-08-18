@@ -19,9 +19,9 @@ import { useCfgWrite } from "../useCfgWrite.ts";
    đi qua danh sách bước ĐÚNG MỘT LẦN thay vì hai lần. */
 
 const LEVELS: { v: StepLevel; l: string }[] = [
-  { v: "low", l: "Thấp" },
-  { v: "mid", l: "Vừa" },
-  { v: "high", l: "Cao" },
+  { v: "low", l: "Low" },
+  { v: "mid", l: "Medium" },
+  { v: "high", l: "High" },
 ];
 
 const TH = "text-left font-medium text-ink-3 text-[11px] uppercase tracking-[0.04em] pb-[7px] px-1";
@@ -46,7 +46,7 @@ export function StepPriGroup() {
     data.steps.filter((s) => cfg.step[field][s.id] !== undefined).length;
 
   return (
-    <Card title="Mức của từng bước">
+    <Card title="Per-step levels">
       {error ? (
         <div className="mb-3" data-testid="steppri-write-error">
           <Note tone="crit">
@@ -70,7 +70,7 @@ export function StepPriGroup() {
         <table className="w-full border-collapse text-[12.5px]">
           <thead>
             <tr>
-              <th className={TH}>Bước</th>
+              <th className={TH}>Step</th>
               <th className={TH}>{PRI_LABEL.jc}</th>
               <th className={TH}>{PRI_LABEL.reg}</th>
             </tr>
@@ -93,7 +93,7 @@ export function StepPriGroup() {
                       value={cfg.step[field][s.id] ?? ""}
                       onChange={(e) => setLevel(field, s.id)(e.target.value)}
                     >
-                      <option value="">— chưa chọn —</option>
+                      <option value="">— not set —</option>
                       {LEVELS.map((L) => (
                         <option key={L.v} value={L.v}>
                           {L.l}

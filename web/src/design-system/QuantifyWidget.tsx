@@ -584,9 +584,8 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
           )}
         </VAxisLabel>
         {/* Dòng độ phủ KHÔNG phải "nhận định" mà là MẪU SỐ đếm được — bất biến của thiết kế (mẫu số
-            luôn là toàn bộ cohort nên nhóm chưa biết không bị lặng lẽ loại). Dòng `item.note` (nhận
-            định) đã bỏ khỏi mọi card theo owner chốt 03/08 "card nên clean nhất có thể"; note giờ chỉ
-            hiện ở màn chi tiết (QuantifyDetail). */}
+            luôn là toàn bộ cohort nên nhóm chưa biết không bị lặng lẽ loại). `item.note` (nhận định)
+            bỏ khỏi card 03/08, rồi 18/08 tối owner bỏ HẲN khỏi schema + fixture. */}
         <div className="text-[11.5px] text-ink-3 mt-2">{segDescription}</div>
         {splitNote ? <div data-testid="split-note" aria-live="polite" className="text-[11.5px] text-ink-3 mt-1">{splitNote}</div> : null}
         {/* Đặt TRONG Card cho gần chỗ sinh ra nó; Modal tự portal ra body nên không bị overflow của

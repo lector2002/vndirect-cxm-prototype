@@ -18,10 +18,10 @@ import { useCfgWrite } from "../useCfgWrite.ts";
 const SUB_CH = ["Email", "Slack", "Email + Slack"];
 
 const FREQ: readonly [string, string][] = [
-  ["off", "Không gửi"],
-  ["daily", "Hằng ngày"],
-  ["weekly", "Hằng tuần"],
-  ["monthly", "Hằng tháng"],
+  ["off", "Off"],
+  ["daily", "Daily"],
+  ["weekly", "Weekly"],
+  ["monthly", "Monthly"],
 ];
 const FREQ_LABEL: Record<string, string> = Object.fromEntries(FREQ);
 
@@ -35,7 +35,7 @@ export function SubGroup() {
   const on = data.dash.filter((d) => cfg.sub[d.id]?.f !== "off");
 
   return (
-    <Card title="Bản tin định kỳ">
+    <Card title="Scheduled reports">
       {error ? (
         <div className="mb-3">
           <Note tone="crit">
@@ -47,10 +47,10 @@ export function SubGroup() {
       <table className="w-full border-collapse text-[12.5px]">
         <thead>
           <tr>
-            <th className={TH}>Bảng</th>
-            <th className={TH}>Vai nhận</th>
-            <th className={TH}>Tần suất</th>
-            <th className={TH}>Kênh</th>
+            <th className={TH}>Report</th>
+            <th className={TH}>Recipient role</th>
+            <th className={TH}>Frequency</th>
+            <th className={TH}>Channel</th>
           </tr>
         </thead>
         <tbody>
@@ -69,7 +69,7 @@ export function SubGroup() {
                 <td className="t-meta px-1 py-1.5">{d.role}</td>
                 <td className="px-1 py-1.5">
                   <select
-                    aria-label={`Tần suất bản tin ${d.name}`}
+                    aria-label={`Frequency — ${d.name}`}
                     value={c.f}
                     onChange={(e) => write({ sub: { ...cfg.sub, [d.id]: { ...c, f: e.target.value } } })}
                     className="rounded-lg border border-line bg-surface px-2 py-1 text-[12.5px] text-ink"
@@ -83,7 +83,7 @@ export function SubGroup() {
                 </td>
                 <td className="px-1 py-1.5">
                   <select
-                    aria-label={`Kênh gửi bản tin ${d.name}`}
+                    aria-label={`Channel — ${d.name}`}
                     value={c.ch}
                     disabled={c.f === "off"}
                     onChange={(e) => write({ sub: { ...cfg.sub, [d.id]: { ...c, ch: e.target.value } } })}
@@ -102,7 +102,7 @@ export function SubGroup() {
         </tbody>
       </table>
 
-      <ApplySection title="Kết quả áp ngay lúc này">
+      <ApplySection title="Effect on current data" summary={`${on.length} / ${data.dash.length} reports on`}>
         <Note tone={on.length ? "default" : "warn"}>
           {on.length ? (
             <>

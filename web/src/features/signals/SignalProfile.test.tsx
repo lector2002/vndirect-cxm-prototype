@@ -34,6 +34,8 @@ describe("F2 — hồ sơ đi hết chuỗi allocate, quét MỌI signal trong d
     for (const sig of withoutMetric) {
       const { unmount } = render(<SignalProfile data={demoData} signal={sig} onBack={noop} dims={dims} cfg={cfgDefault} />);
       expect(screen.getByTestId("signal-profile-metrics").textContent).toMatch(/chưa nuôi chỉ số nào/i);
+      // Owner 18/08 tối: đuôi đếm toàn cục "X/Y điểm đo đang ở tình trạng này" đã bỏ.
+      expect(screen.getByTestId("signal-profile-metrics").textContent).not.toMatch(/tình trạng này/);
       unmount();
     }
   });
@@ -93,13 +95,13 @@ describe("D5 (UI) — 'đang chạy' suy từ vol, KHÔNG đọc st", () => {
   it("st='designed' mà vol>0 (dữ liệu giả) vẫn phải hiện ĐANG CHẠY", () => {
     const fake = { ...seed.signals[0], id: "sig-test-profile-d5", st: "designed" as const, vol: 777 };
     render(<SignalProfile data={{ ...seed, signals: [...seed.signals, fake] }} signal={fake} onBack={noop} dims={dims} cfg={cfgDefault} />);
-    expect(screen.getByTestId("signal-profile-running").textContent).toMatch(/ĐANG CHẠY/);
+    expect(screen.getByTestId("signal-profile-running").textContent).toMatch(/✓ RUNNING/);
   });
 
   it("st='live' mà vol=0 (dữ liệu giả, ngược lại) vẫn phải hiện CHƯA CHẠY", () => {
     const fake = { ...seed.signals[0], id: "sig-test-profile-d5b", st: "live" as const, vol: 0 };
     render(<SignalProfile data={{ ...seed, signals: [...seed.signals, fake] }} signal={fake} onBack={noop} dims={dims} cfg={cfgDefault} />);
-    expect(screen.getByTestId("signal-profile-running").textContent).toMatch(/CHƯA CHẠY/);
+    expect(screen.getByTestId("signal-profile-running").textContent).toMatch(/NOT RUNNING/);
   });
 
   it("ca thật trên demoData (validating ∧ vol>0) phải hiện cảnh báo 'chưa được đánh dấu tin dùng'", () => {
@@ -160,30 +162,28 @@ describe("Mặt 3 — phía client/server hiện đúng giá trị, kèm chuỗi
       expect(sig).toBeDefined();
       const { unmount } = render(<SignalProfile data={demoData} signal={sig!} onBack={noop} dims={dims} cfg={cfgDefault} />);
       const node = screen.getByTestId("signal-profile-es");
-      expect(node.textContent).toContain("Phía");
+      expect(node.textContent).toContain("Side");
       expect(node.textContent).toContain(es);
       expect(node.textContent).not.toMatch(/có thể mất/);
       unmount();
     }
   });
 
-  it("mọi signal: 'nguồn chở nó' nói rõ chưa nối được vào nguồn nào trong danh sách hiện tại", () => {
+  it("18/08 tối (owner): 'Nguồn chở nó...' + 'Chưa có trường nào nối...' đã XOÁ — sai từ khi có srcId (§10c)", () => {
     render(<SignalProfile data={demoData} signal={demoData.signals[0]} onBack={noop} dims={dims} cfg={cfgDefault} />);
-    expect(screen.getByTestId("signal-profile-source").textContent).toMatch(
-      /chưa nối được vào nguồn nào trong danh sách hiện tại/,
-    );
+    expect(screen.queryByTestId("signal-profile-source")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("signal-profile-freshness-hold")).not.toBeInTheDocument();
   });
 });
 
 describe("Mặt 4 — liệt kê values[] đã khai, KÈM chart phân bố giá trị (F5, I5)", () => {
-  it("values rỗng ⇒ nói rõ lý do đọc được (chưa chạy), kèm đếm lại số điểm đo khác cùng tình trạng", () => {
+  it("values rỗng ⇒ MỘT câu trạng thái ngắn, không đếm hộ toàn cục (owner 18/08 tối)", () => {
     const sig = demoData.signals.find((s) => s.values.length === 0);
     expect(sig).toBeDefined();
-    const expectedOthers = demoData.signals.filter((s) => s.values.length === 0).length;
     render(<SignalProfile data={demoData} signal={sig!} onBack={noop} dims={dims} cfg={cfgDefault} />);
     const node = screen.getByTestId("signal-profile-values-empty");
-    expect(node.textContent).toMatch(/chưa chạy nên chưa có giá trị nào/);
-    expect(node.textContent).toContain(`${expectedOthers}/${demoData.signals.length}`);
+    expect(node.textContent).toContain("Chưa có giá trị nào đã khai.");
+    expect(node.textContent).not.toMatch(/tình trạng này/);
     // Từ chối vẽ chart theo lý do #1 — KHÔNG dựng chart, KHÔNG hiện chip values.
     expect(screen.queryByTestId("signal-profile-values")).not.toBeInTheDocument();
     expect(screen.queryByTestId("signal-profile-value-chart")).not.toBeInTheDocument();

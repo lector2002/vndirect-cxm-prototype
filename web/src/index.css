@@ -5,17 +5,20 @@
 /* ===================== DESIGN TOKENS (port từ prototype) =====================
    Cam VNDIRECT — chỉ dùng cho TƯƠNG TÁC và ĐỊNH DANH, không bao giờ làm màu trạng thái.
 
-   12/08 tối — OWNER ĐỔI BẢNG MÀU CHUNG, chọn phương án "Giấy đậm" sau khi xem ba hướng dựng thành
-   ba bản màn Điểm đo thu nhỏ ở `output/palette-options.html`. Vẫn là THEME SÁNG và vẫn là tông giấy
-   ấm của hệ cũ, nhưng đậm hơn hẳn một nấc: nền ngả be thay vì gần trắng, viền rõ ra, chữ nâu-đen,
-   cam trầm xuống cho hợp nền. Kèm theo owner chốt BỎ NỀN LƯỚI 38px (xem @layer base bên dưới).
+   18/08 — OWNER ĐỔI BẢNG MÀU LẦN HAI, chọn hướng "Trung tính lạnh" sau khi xem ba hướng dựng thành
+   ba bản màn thu nhỏ ở `output/mvp-redesign-options.html` (redesign 3 màn MVP theo best practice
+   SaaS dashboard). Thay tông giấy ấm 12/08 bằng bộ xám lam: nền xám lạnh, chữ đen-lam, viền xám
+   lam — cam VNDIRECT giữ NGUYÊN mã và nổi hơn hẳn trên nền lạnh. Vẫn THEME SÁNG. Bộ 14 màu chart
+   ngoài token (TopicLineChart.PAL · Donut.DONUT_PALETTE) vốn là xám lạnh nên hết lệch tông — món
+   nợ màu ghi 12/08 tự đóng.
 
    Đổi màu ở dự án này là đổi ĐÚNG BẢNG TOKEN NÀY, không đụng một dòng component nào — mọi lớp
    Tailwind màu trong TSX đều trỏ về đây qua `tailwind.config.js`. Ba ràng buộc phải giữ khi sửa
    tiếp bảng này, cả ba đều đã tính lại cho bộ màu mới:
    · `--surface` PHẢI ở lại `#ffffff` — mọi tỉ lệ tương phản ghi trong file này đo trên nền đó;
-   · bốn màu trạng thái phải giữ hue tách rời (đỏ ~5° · cam ~15° · hổ phách ~40° · ô-liu ~75°), nếu
-     không một trạng thái sẽ đọc nhầm thành mức báo động khác;
+   · bốn màu trạng thái phải giữ hue tách rời (18/08: đỏ ~3° · cam ~16° · hổ phách ~41° · lục ~141°
+     — good rời ô-liu ~75° sang lục cho hợp bộ lạnh, khoảng cách hue với watch RỘNG RA chứ không
+     hẹp lại), nếu không một trạng thái sẽ đọc nhầm thành mức báo động khác;
    · bốn sắc xám của bốn nghĩa "không biết" phải còn phân biệt được bằng mắt. */
 :root {
   --primary: #c9491a;
@@ -24,33 +27,34 @@
   --primary-line: #e9c6ae;
   --primary-ring: rgba(201, 73, 26, 0.22);
 
-  /* Giấy ấm đậm — ~90% giao diện */
-  --bg: #f3f0ea;
+  /* Xám lam trung tính — ~90% giao diện */
+  --bg: #f4f5f7;
   --surface: #ffffff;
-  --surface2: #efebe3;
-  --line: #ddd6ca;
-  --line-soft: #ebe6dc;
-  --ink-dark: #241d18;
-  --ink: #171310;
-  --ink2: #4c443c;
-  --ink3: #7e756a;
+  --surface2: #f7f8fa;
+  --line: #dfe3e8;
+  --line-soft: #eceff3;
+  --ink-dark: #262b33;
+  --ink: #191c21;
+  --ink2: #454c56;
+  --ink3: #6b7481;
 
-  /* 4 trạng thái. "Đang kiểm soát" KHÔNG có màu riêng — chủ ý. */
-  --watch: #8a5a04;
-  --watch-bg: #fbf6e6;
-  --watch-line: #e4d59a;
-  --crit: #a52218;
-  --crit-bg: #fbeeec;
-  --crit-line: #eec4bd;
-  --unk: #7e756a;
+  /* 4 trạng thái. "Đang kiểm soát" KHÔNG có màu riêng — chủ ý.
+     Đo 18/08 trên --surface: crit 6,5:1 · watch 5,6:1 · good 6,0:1 · ink3 4,7:1 — đều làm chữ được. */
+  --watch: #8a6003;
+  --watch-bg: #fbf5e3;
+  --watch-line: #e6d494;
+  --crit: #b3261e;
+  --crit-bg: #fceeed;
+  --crit-line: #f0c6c3;
+  --unk: #6b7481;
   /* Thang riêng cho 4 nghĩa "không biết" của chart theme (module-f-charter.md, F1) — `--unk` và
-     `--ink3` hôm nay TRÙNG mã màu #7e756a, nên nếu chỉ dùng `--unk` cho mọi đoạn "không biết" thì
+     `--ink3` hôm nay TRÙNG mã màu #6b7481, nên nếu chỉ dùng `--unk` cho mọi đoạn "không biết" thì
      chưa-biết/thiếu/Ẩn danh/Chưa đối chiếu được sẽ ra CÙNG MÀU, người xem không phân biệt được bốn
      nghĩa khác nhau (data/segment.ts cấm gộp chưa-biết/thiếu; F1 charter cấm gộp Ẩn danh/Chưa đối
      chiếu được). `--unk` giữ nguyên cho "chưa-biết"; ba token dưới cho ba nghĩa còn lại. */
-  --unk-gap: #625a4f;
-  --unk-anon: #a1978a;
-  --unk-join: #c0b6a7;
+  --unk-gap: #59616c;
+  --unk-anon: #98a1ad;
+  --unk-join: #b9c1cb;
   /* Owner chốt 05/08 sau khi xem trên màn: ở ĐUÔI THANH của chart chia màu, các sắc xám trên đứng
      cạnh nhau đọc gần như một màu. Nên ở đó chúng GỘP LÀM MỘT KHỐI mang token này (nhãn "Chưa xếp
      được nhóm"), từng số tách ra ở tooltip. Token RIÊNG chứ không mượn `--unk-anon`: ở kia nghĩa là
@@ -59,11 +63,11 @@
      Áp cho: chart chia màu ở Quantify + chart theme (Tổng quan CXM). KHÔNG áp cho chart điểm đo
      (SignalColumns) — owner chốt riêng 05/08: ở đó việc tách ba nghĩa CHÍNH LÀ nội dung của chart,
      nó là danh sách việc phải đi đòi bên data, gộp là xoá mất danh sách đó. */
-  --unk-nocust: #a1978a;
-  --rem: #d8d0c3;
-  --good: #3a5c10;
-  --good-bg: #f5f8ec;
-  --good-line: #d7e2bc;
+  --unk-nocust: #98a1ad;
+  --rem: #d3d8de;
+  --good: #20713d;
+  --good-bg: #eef7f0;
+  --good-line: #c9e5d2;
 
   /* Tone thứ 5 — THÔNG TIN / CHƯA HOÀN THIỆN. Không phải trạng thái sức khỏe: dùng cho
      Note tone="info" và nhãn in-development/placeholder (REDESIGN-PLAN-HANDOFF.md:28 chốt
@@ -78,19 +82,19 @@
      không phải màu ở đây. Lý do tồn tại: trước đây mọi bar mặc định --ink3 nên donut 14 lát
      là 14 lát xám giống nhau, và cats phải đi vay --crit/--good làm màu phân loại — khiến
      mọi chart intent trông như báo động và đỏ mất nghĩa "cần xử lý ngay".
-     Hue tách hẳn khỏi 4 màu đã dùng (primary cam ~15°, crit đỏ ~5°, watch hổ phách ~40°,
-     good ô-liu ~75°). Cả 5 đạt contrast >= 5,9:1 trên --surface nên dùng làm CHỮ được.
-     12/08 tối: cả 5 hạ một nấc theo bảng màu "Giấy đậm" — nền be đậm hơn nên bản cũ đứng trên card
-     trắng trông nhạt hơn hẳn phần còn lại của màn. Tỉ lệ dưới đây ĐO LẠI trên `--surface: #ffffff`
-     sau khi đổi, không chép lại số cũ. */
+     Hue tách hẳn khỏi 4 màu đã dùng (primary cam ~16°, crit đỏ ~3°, watch hổ phách ~41°,
+     good lục ~141°). Cả 5 đạt contrast >= 5,9:1 trên --surface nên dùng làm CHỮ được.
+     18/08: 5 màu GIỮ NGUYÊN qua đợt "Trung tính lạnh" — tỉ lệ đo trên --surface trắng nên không
+     đổi theo nền; --cat-4 lục lam (~168°) và --good lục (~141°) vẫn cách nhau và --cat-4 chỉ đứng
+     trong chart phân loại, không đứng cạnh badge trạng thái. Tỉ lệ dưới đây đo trên #ffffff. */
   --cat-1: #35558f; /* indigo   7,4:1 */
   --cat-2: #654389; /* tím      7,7:1 */
   --cat-3: #953d61; /* hồng đất 6,7:1 */
   --cat-4: #2b6f5e; /* lục lam  5,9:1 */
   --cat-5: #565f68; /* xám lam  6,5:1 */
   /* Nhóm "Khác (+N)" — chủ ý nhạt để lùi về sau. CHỈ làm nền thanh/lát, KHÔNG dùng cho chữ
-     (contrast ~2,2:1, không đạt AA). */
-  --cat-other: #b5aa99;
+     (contrast ~2,1:1, đo lại 18/08 với #aeb5be, không đạt AA). */
+  --cat-other: #aeb5be;
 
   /* Thang TUẦN TỰ — dùng cho chiều CÓ THỨ TỰ (độ tuổi, phân khúc NAV: Dim.cut.kind === 'band'),
      thay cho --cat-* ở đúng những chiều đó. Lý do: --cat-* là năm màu KHÔNG hơn kém nhau, đúng cho
@@ -108,7 +112,7 @@
   --seq-5: #1c4780;
 
   --radius: 12px;
-  --shadow: 0 1px 2px rgba(23, 19, 16, 0.05), 0 10px 26px rgba(23, 19, 16, 0.07);
+  --shadow: 0 1px 2px rgba(25, 28, 33, 0.05), 0 10px 26px rgba(25, 28, 33, 0.07);
 }
 
 @layer base {

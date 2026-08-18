@@ -8,7 +8,10 @@ import { SignalInventoryBlock } from "./SignalInventoryBlock.tsx";
 /* module-i-signal-registry-charter.md §6/§14 lát I5 — T1·T3·T4·T5·T7. Mọi số ĐẾM LẠI từ fixture
    ngay trong test bằng chính các hàm domain component dùng, không ghim số (§7 charter — dự án đã
    dính ba lần). Chốt chống rỗng ở mỗi tình trạng để vòng lặp/điều kiện không xanh vì dữ liệu không
-   chứa ca lệch (luật 2 của contract). */
+   chứa ca lệch (luật 2 của contract).
+
+   18/08 tối (owner): khối LUÔN MỞ — phần gấp/bung dời sang noti ngoại lệ ở CXM Overview, test ở
+   overview/SignalHealthNoti.test.tsx. */
 
 describe("T1 — flow đã trích dẫn sơ đồ mà chưa chép bước, tách 'chưa đánh giá được' khỏi mẫu số", () => {
   it("N/M đếm lại đúng bằng flowHasSourceCitation/flowStepsCopied, kèm số flow chưa đánh giá được", () => {
@@ -57,31 +60,18 @@ describe("T3 — nguồn đã ngừng gửi (down) mà vẫn khai nuôi ít nh�
   });
 });
 
-/* T5 và T7 trưng ở KHỐI ① (`SignalInventoryBlock`), không ở khối này — bản đầu của lát I5 hiện chúng
-   ở CẢ HAI khối trên cùng một màn, đã cắt (xem docblock `SignalGovernanceBlock.tsx`). Hai test dưới
-   đây KHÔNG xoá theo, chỉ đổi khối soi: trước lát này chưa có test nào chạm `inv-signal-no-metric` /
-   `inv-metric-no-signal`, xoá đi là mất hẳn phần phủ chứ không phải dọn trùng.
-   T4 không lặp ở đây vì `inv-steps-nested` ĐÃ có test riêng ở `SignalsPage.test.tsx`. */
+/* T5 trưng ở KHỐI ① (`SignalInventoryBlock`, chip lọc — GIỮ vì nó là bộ lọc bảng). 18/08 tối
+   (owner): T4·T7 rời khối ① sang noti ngoại lệ ở Overview — test PORT sang
+   overview/SignalHealthNoti.test.tsx (dòng noti-coverage), ở đây chỉ còn T5. */
 
 describe("T5 — điểm đo không nuôi chỉ số nào (trưng ở khối ①)", () => {
   it("N/M đếm lại đúng bằng signalsWithoutMetric", () => {
     const withoutMetric = seed.signals.filter((s) => s.metrics.length === 0);
     expect(withoutMetric.length).toBeGreaterThan(0);
     render(<SignalInventoryBlock data={seed} facet={null} onFacet={() => {}} />);
+    // 18/08: chip chỉ mang tử số + nhãn; mẫu số đứng ở "N signals" (inv-total) cùng dòng.
     expect(screen.getByTestId("inv-signal-no-metric").textContent).toContain(
-      `${withoutMetric.length} / ${seed.signals.length}`,
-    );
-  });
-});
-
-describe("T7 — chỉ số không có điểm đo nào nuôi (trưng ở khối ①)", () => {
-  it("N/M đếm lại đúng bằng metricsWithoutSignal", () => {
-    const fed = new Set(seed.signals.flatMap((s) => s.metrics));
-    const withoutSignal = seed.metrics.filter((m) => !fed.has(m.id));
-    expect(withoutSignal.length).toBeGreaterThan(0); // m-ces, m-repeat (charter §6 T7)
-    render(<SignalInventoryBlock data={seed} facet={null} onFacet={() => {}} />);
-    expect(screen.getByTestId("inv-metric-no-signal").textContent).toContain(
-      `${withoutSignal.length} / ${seed.metrics.length}`,
+      `${withoutMetric.length} no linked metric`,
     );
   });
 });
@@ -106,8 +96,8 @@ describe("F6 — flow chưa chép bước KHÔNG vào mẫu số của bất k�
     // T1, không phải dòng thứ sáu) — nên so sánh phải TÁCH RA đúng phần "N / M" bằng regex, KHÔNG so
     // toàn bộ textContent của cả <li> (ô đuôi thay đổi là ĐÚNG chủ ý, không phải hồi quy).
     const ratioOf = (text: string | null) => text?.match(/^\s*\d+\s*\/\s*\d+/)?.[0];
-    /* Dựng CẢ HAI khối của màn, không riêng khối này: F6 nói "mọi tỉ lệ", nên phép so phải phủ luôn
-       ba tỉ lệ ở khối ① — chỗ T4/T5/T7 thật sự đang hiện sau khi cắt trùng lặp. */
+    /* Dựng CẢ HAI khối, không riêng khối này: F6 nói "mọi tỉ lệ", nên phép so phủ luôn chip T5
+       của khối ① (T4/T7 đã rời sang noti Overview 18/08 tối). */
     const Man = ({ d }: { d: typeof seed }) => (
       <>
         <SignalInventoryBlock data={d} facet={null} onFacet={() => {}} />
@@ -119,13 +109,9 @@ describe("F6 — flow chưa chép bước KHÔNG vào mẫu số của bất k�
       t1Ratio: ratioOf(screen.getByTestId("gov-t1").textContent),
       stub: screen.getByTestId("gov-t1-not-evaluated").textContent,
       t3: screen.getByTestId("gov-t3").textContent,
-      /* Ba tình trạng của khối ① kiểm ngay tại khối ① — cùng bản sao dữ liệu, cùng phép so. Thêm một
-         flow trống KHÔNG được đổi số nào ở đó (F6 áp cho MỌI tỉ lệ trên màn, không riêng khối này). */
-      inv: [
-        screen.getByTestId("inv-steps-nested").textContent,
-        screen.getByTestId("inv-signal-no-metric").textContent,
-        screen.getByTestId("inv-metric-no-signal").textContent,
-      ],
+      /* 18/08 tối (owner): T4/T7 rời sang noti Overview — hai số đó đếm BƯỚC/CHỈ SỐ, không đọc
+         flows nên bất biến với flow trống là hiển nhiên; ở đây chỉ còn chip T5 của khối ①. */
+      inv: [screen.getByTestId("inv-signal-no-metric").textContent],
     };
     expect(before.t1Ratio).toBeTruthy(); // tiền đề: dòng T1 có đúng khuôn "N / M"
     const evaluatedBefore = seed.flows.filter(
@@ -143,11 +129,7 @@ describe("F6 — flow chưa chép bước KHÔNG vào mẫu số của bất k�
     render(<Man d={copy} />);
     expect(ratioOf(screen.getByTestId("gov-t1").textContent)).toBe(before.t1Ratio);
     expect(screen.getByTestId("gov-t3").textContent).toBe(before.t3);
-    expect([
-      screen.getByTestId("inv-steps-nested").textContent,
-      screen.getByTestId("inv-signal-no-metric").textContent,
-      screen.getByTestId("inv-metric-no-signal").textContent,
-    ]).toEqual(before.inv);
+    expect([screen.getByTestId("inv-signal-no-metric").textContent]).toEqual(before.inv);
 
     const evaluatedAfter = copy.flows.filter(
       (f) => flowHasSourceCitation(f) || flowStepsCopied(f, copy.steps),

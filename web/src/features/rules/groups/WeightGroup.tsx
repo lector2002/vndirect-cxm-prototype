@@ -49,7 +49,7 @@ export function WeightGroup() {
     .sort((a, b) => totalOf(b.id) - totalOf(a.id));
 
   return (
-    <Card title="Trọng số ưu tiên">
+    <Card title="Priority weights">
       {error ? (
         <div className="mb-3" data-testid="weight-write-error">
           <Note tone="crit">
@@ -69,7 +69,7 @@ export function WeightGroup() {
       {/* Tổng hiện ra LUÔN, không chỉ khi sai: nó là ràng buộc duy nhất giữa bảy ô, và người vận
           hành đang sửa ô thứ ba cần biết mình còn thừa/thiếu bao nhiêu để chia cho bốn ô còn lại. */}
       <div className="mt-2 flex items-center gap-2.5" data-testid="weight-sum">
-        <b className="text-[13px]">{`Tổng: ${sum}`}</b>
+        <b className="text-[13px]">{`Total: ${sum}`}</b>
         {sum !== 100 ? (
           <span className="text-[12.5px] text-crit">{`còn ${100 - sum} nữa mới đủ 100`}</span>
         ) : null}
@@ -82,12 +82,13 @@ export function WeightGroup() {
           }}
           className="ml-auto flex-none rounded-lg border border-line bg-surface px-2.5 py-1 text-[12.5px] font-semibold text-ink-2 disabled:cursor-default disabled:opacity-45 enabled:hover:border-primary-line enabled:hover:bg-primary-soft enabled:hover:text-ink"
         >
-          Lưu trọng số
+          Save weights
         </button>
       </div>
 
       <ApplySection
-        title={`Thứ hạng ${dirty ? "sẽ thành" : "đang là"}${ranked.length ? "" : " — chưa xếp được điểm gãy nào"}`}
+        title={`Ranking ${dirty ? "after save" : "right now"}`}
+        summary={ranked.length ? `${ranked.length} breakpoints ranked` : "no breakpoint ranked yet"}
       >
         {ranked.length === 0 ? (
           /* Trạng thái ĐÚNG khi chưa ai điền `jc`/`reg` cho bước nào và chưa map điểm đo: không
@@ -102,8 +103,8 @@ export function WeightGroup() {
             <thead>
               <tr>
                 <th className={TH}>#</th>
-                <th className={TH}>Điểm gãy</th>
-                <th className={TH}>Điểm</th>
+                <th className={TH}>Breakpoint</th>
+                <th className={TH}>Score</th>
               </tr>
             </thead>
             <tbody>

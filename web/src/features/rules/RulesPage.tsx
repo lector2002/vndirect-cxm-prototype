@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ComponentType } from "react";
-import { cfgIssues, metricState, resetCfgPatch, sourceHealth, stepState } from "../../domain/index.ts";
+import { cfgIssuesTyped, metricState, resetCfgPatch, sourceHealth, stepState } from "../../domain/index.ts";
+import type { Cfg } from "../../data/schema/index.ts";
 import { Note } from "../../design-system/index.ts";
 import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
@@ -90,7 +91,28 @@ export function RulesPage() {
   const [group, setGroup] = useState<GroupKey>("step");
 
   const dirty = JSON.stringify(stable(cfg)) !== JSON.stringify(stable(cfgDefault));
-  const warns = cfgIssues(data, cfg);
+  const warnsTyped = cfgIssuesTyped(data, cfg);
+  const warns = warnsTyped.map((i) => i.msg);
+  /* 18/08 (owner chốt redesign): menu treo dấu ⚠ đúng nhóm có mâu thuẫn và chấm primary ở nhóm đã
+     sửa trong phiên — nhìn menu biết phải vào đâu, không phải đọc banner rồi tự dò. Lát cắt cfg
+     của từng nhóm khai Ở ĐÂY, một chỗ: `cfg.step` mang cả hai bảng jc/reg của nhóm Per-step levels
+     nên "Journey steps" chỉ so các field SỐ (cùng phép lọc với số ô trên menu). */
+  const warnGroups = new Set<string>(warnsTyped.map((i) => i.group));
+  const SECTION: Record<GroupKey, (c: Cfg) => unknown> = {
+    step: (c) => Object.fromEntries(Object.entries(c.step).filter(([, v]) => typeof v === "number")),
+    metric: (c) => c.metric,
+    source: (c) => c.source,
+    alert: (c) => ({ data: c.data, anomaly: c.anomaly }),
+    segment: (c) => c.segment,
+    sub: (c) => c.sub,
+    weight: (c) => c.pri,
+    steppri: (c) => ({ jc: c.step.jc, reg: c.step.reg }),
+  };
+  const dirtyGroups = new Set(
+    (Object.keys(SECTION) as GroupKey[]).filter(
+      (k) => JSON.stringify(stable(SECTION[k](cfg))) !== JSON.stringify(stable(SECTION[k](cfgDefault))),
+    ),
+  );
 
   // Chấm đỏ: chỉ đếm bước CÓ dòng quan sát. Bước chưa đo trả 'unknown' chứ không phải 'ok' — gộp nó
   // vào đây là biến "chưa biết" thành "đang ổn", đúng cái luật đọc số của dự án cấm.
@@ -104,24 +126,24 @@ export function RulesPage() {
 
   const menu: { g: string; items: { k: GroupKey; l: string; n: number; bad: number }[] }[] = [
     {
-      g: "Ngưỡng đánh giá",
+      g: "Evaluation thresholds",
       items: [
         /* Đếm Ô NGƯỠNG, không đếm khoá của `cfg.step`: từ 14/08 `cfg.step` còn mang hai BẢNG khai
            theo bước (`jc`/`reg`, ADR-002 §5-§6) — đếm cả chúng thì con số cạnh tên nhóm nhảy từ 4
            lên 6 trong khi nhóm vẫn có đúng bốn ô ngưỡng. Lọc theo kiểu chứ không liệt kê tên field,
            giữ đúng lý do docblock trên: thêm ô ngưỡng mới thì số tự lên. */
-        { k: "step", l: "Bước hành trình", n: Object.values(cfg.step).filter((v) => typeof v === "number").length, bad: stepBad },
-        { k: "metric", l: "Chỉ số theo dõi", n: data.metrics.length, bad: metricBad },
-        { k: "source", l: "SLA từng nguồn", n: data.sources.length, bad: sourceBad },
-        { k: "alert", l: "Cảnh báo & khảo sát", n: Object.keys(cfg.data).length + 1, bad: 0 },
+        { k: "step", l: "Journey steps", n: Object.values(cfg.step).filter((v) => typeof v === "number").length, bad: stepBad },
+        { k: "metric", l: "Metrics", n: data.metrics.length, bad: metricBad },
+        { k: "source", l: "Source SLAs", n: data.sources.length, bad: sourceBad },
+        { k: "alert", l: "Alerts & surveys", n: Object.keys(cfg.data).length + 1, bad: 0 },
       ],
     },
     {
-      g: "Cách chia dữ liệu",
+      g: "Segmentation",
       items: [
         {
           k: "segment",
-          l: "Phân khúc khách",
+          l: "Customer segments",
           n: Object.keys(cfg.segment.band).length + Object.keys(cfg.segment.values).length,
           bad: 0,
         },
@@ -133,20 +155,20 @@ export function RulesPage() {
        Chấm đỏ của "Mức của từng bước" đếm số bước CHƯA điền đủ hai mức: đó là việc còn phải làm, và
        là lý do trực tiếp khiến điểm gãy nằm ở khối "chưa đủ dữ liệu để xếp" của #/work. */
     {
-      g: "Điểm ưu tiên điểm gãy",
+      g: "Breakpoint priority",
       items: [
-        { k: "weight", l: "Trọng số ưu tiên", n: Object.keys(cfg.pri.w).length, bad: 0 },
+        { k: "weight", l: "Priority weights", n: Object.keys(cfg.pri.w).length, bad: 0 },
         {
           k: "steppri",
-          l: "Mức của từng bước",
+          l: "Per-step levels",
           n: data.steps.length,
           bad: data.steps.filter((s) => cfg.step.jc[s.id] === undefined || cfg.step.reg[s.id] === undefined).length,
         },
       ],
     },
     {
-      g: "Gửi đi & chính sách",
-      items: [{ k: "sub", l: "Bản tin định kỳ", n: data.dash.length, bad: 0 }],
+      g: "Delivery & policy",
+      items: [{ k: "sub", l: "Scheduled reports", n: data.dash.length, bad: 0 }],
     },
   ];
 
@@ -165,7 +187,7 @@ export function RulesPage() {
         <div className="mb-4 ml-auto flex items-center gap-2.5">
           {dirty ? (
             <b className="rounded-lg border border-primary-line bg-primary-soft px-2.5 py-1 text-[12.5px] text-ink-2">
-              Đang dùng ngưỡng đã sửa trong phiên này.
+              Using thresholds edited in this session.
             </b>
           ) : null}
           <button
@@ -175,7 +197,7 @@ export function RulesPage() {
             onClick={() => write(resetCfgPatch(cfg, cfgDefault))}
             className="flex-none rounded-lg border border-line bg-surface px-2.5 py-1 text-[12.5px] font-semibold text-ink-2 disabled:cursor-default disabled:opacity-45 enabled:hover:border-primary-line enabled:hover:bg-primary-soft enabled:hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
           >
-            ↺ Trả về mặc định
+            ↺ Reset to defaults
           </button>
         </div>
       </div>
@@ -192,7 +214,7 @@ export function RulesPage() {
         <div className="mb-4" data-testid="rules-contradictions">
           <Note tone="crit">
             {/* luật 11/08: bỏ "vẫn chạy được nhưng nhãn trạng thái sẽ vô nghĩa" */}
-            <b>⚠ {warns.length} ngưỡng đang đặt ngược nhau</b>
+            <b>⚠ {warns.length} thresholds contradict each other</b>
             <ul className="mt-2 flex list-disc flex-col gap-1 pl-5">
               {warns.map((w) => (
                 <li key={w}>{w}</li>
@@ -204,7 +226,7 @@ export function RulesPage() {
 
       <div className="grid grid-cols-[232px_minmax(0,1fr)] items-start gap-5">
         <nav
-          aria-label="Nhóm ngưỡng"
+          aria-label="Threshold groups"
           className="sticky top-4 flex flex-col gap-3 rounded border border-line bg-surface py-3 shadow-card"
         >
           {menu.map((grp) => (
@@ -216,9 +238,12 @@ export function RulesPage() {
                   type="button"
                   onClick={() => setGroup(it.k)}
                   aria-pressed={group === it.k}
+                  /* 18/08 (redesign MVP, nước đi R1): mục đang mở thêm vạch primary dọc mép trái +
+                     chữ primary — cùng thành ngữ "đang đứng ở đây" với ô kiểm kê đang lọc của
+                     #/signals, và nhìn thấy được cả khi nền primary-soft nhạt gần lẫn với hover. */
                   className={`mx-2 flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary ${
                     group === it.k
-                      ? "bg-primary-soft font-semibold text-ink"
+                      ? "bg-primary-soft font-semibold text-primary [box-shadow:inset_2.5px_0_0_var(--primary)]"
                       : "text-ink-2 hover:bg-surface-2 hover:text-ink"
                   }`}
                 >
@@ -227,6 +252,22 @@ export function RulesPage() {
                     className={`h-1.5 w-1.5 flex-none rounded-full ${it.bad ? "bg-crit" : "bg-line"}`}
                   />
                   <span className="min-w-0 truncate">{it.l}</span>
+                  {warnGroups.has(it.k) ? (
+                    <span
+                      data-testid={`menu-warn-${it.k}`}
+                      aria-hidden="true"
+                      className="flex-none text-[11px] font-bold text-crit"
+                    >
+                      ⚠
+                    </span>
+                  ) : null}
+                  {dirtyGroups.has(it.k) ? (
+                    <i
+                      data-testid={`menu-dirty-${it.k}`}
+                      aria-hidden="true"
+                      className="h-1.5 w-1.5 flex-none rounded-full bg-primary"
+                    />
+                  ) : null}
                   <span className="t-meta ml-auto flex-none text-[12px] tabular-nums">{it.n}</span>
                 </button>
               ))}

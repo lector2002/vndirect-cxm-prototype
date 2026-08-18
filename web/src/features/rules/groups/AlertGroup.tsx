@@ -52,7 +52,7 @@ export function AlertGroup() {
   );
 
   return (
-    <Card title="Cảnh báo & khảo sát">
+    <Card title="Alerts & surveys">
       {error ? (
         <div className="mb-3">
           <Note tone="crit">
@@ -63,9 +63,9 @@ export function AlertGroup() {
 
       <div>
         {/* luật 11/08 (bổ sung): bỏ hẳn định nghĩa đơn vị z-score */}
-        <FieldRow label="Ngưỡng Z-score đánh dấu bất thường trên chart">
+        <FieldRow label="Z-score anomaly threshold (charts)">
           <NumField
-            label="Ngưỡng Z-score đánh dấu bất thường"
+            label="Z-score anomaly threshold"
             value={cfg.anomaly.z}
             suffix="σ"
             onCommit={(v) => write({ anomaly: { ...cfg.anomaly, z: v } })}
@@ -75,27 +75,27 @@ export function AlertGroup() {
         {/* luật 12/08: bỏ hết dòng phụ dưới nhãn ô nhập — "Quality Monitor dùng ngưỡng này" nói
             màn nào tiêu thụ, "mỗi khách tối đa 1 khảo sát trong khoảng này" và "hiển thị trên tab
             Ảnh hưởng" dạy cách đọc. Không cái nào nói về dữ liệu của chính ô. */}
-        <FieldRow label="Ngưỡng Ngừng gửi (ngày quá nhịp giao)">
+        <FieldRow label="Stopped-source threshold (days past cadence)">
           <NumField
-            label="Ngưỡng Ngừng gửi (ngày quá nhịp giao)"
+            label="Stopped-source threshold (days past cadence)"
             value={cfg.data.deadDays}
-            suffix="ngày"
+            suffix="days"
             onCommit={(v) => write({ data: { ...cfg.data, deadDays: v } })}
           />
         </FieldRow>
 
-        <FieldRow label="Cooldown khảo sát toàn cục">
+        <FieldRow label="Global survey cooldown">
           <NumField
-            label="Cooldown khảo sát toàn cục"
+            label="Global survey cooldown"
             value={cfg.data.cooldown}
-            suffix="ngày"
+            suffix="days"
             onCommit={(v) => write({ data: { ...cfg.data, cooldown: v } })}
           />
         </FieldRow>
 
-        <FieldRow label="Ngưỡng tô đỏ repeat contact">
+        <FieldRow label="Repeat-contact red threshold">
           <NumField
-            label="Ngưỡng tô đỏ repeat contact"
+            label="Repeat-contact red threshold"
             value={cfg.data.repeatWarn}
             suffix="%"
             tone="crit"
@@ -103,21 +103,26 @@ export function AlertGroup() {
           />
         </FieldRow>
 
-        <FieldRow label="Ngưỡng tô đỏ số khách có tín hiệu churn">
+        <FieldRow label="Churn-signal red threshold (customers)">
           <NumField
-            label="Ngưỡng tô đỏ số khách có tín hiệu churn"
+            label="Churn-signal red threshold (customers)"
             value={cfg.data.churnWarn}
-            suffix="khách"
+            suffix="cust."
             tone="crit"
             onCommit={(v) => write({ data: { ...cfg.data, churnWarn: v } })}
           />
         </FieldRow>
       </div>
 
-      <ApplySection title="Kết quả áp ngay lúc này">
+      <ApplySection
+        title="Effect on current data"
+        summary={`${dead.length} sources Stopped · ${redRep.length} repeat-contact · ${redChurn.length} churn flags${
+          anomalyItems.length ? ` · ${anomalyHits} anomaly points` : ""
+        }`}
+      >
         <div className="flex flex-col gap-2.5" data-testid="alert-apply-now">
           <Note tone={dead.length ? "crit" : "default"}>
-            Quá nhịp giao <b>{cfg.data.deadDays} ngày</b> là Ngừng gửi → <b>{dead.length} nguồn</b> bị coi
+            Quá nhịp giao <b>{cfg.data.deadDays} ngày</b> là "Stopped" → <b>{dead.length} nguồn</b> bị coi
             là ngừng gửi{dead.length ? `: ${dead.map((s) => s.name).join(", ")}` : ""}.
           </Note>
 

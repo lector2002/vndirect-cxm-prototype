@@ -24,8 +24,8 @@ describe("SubGroup — bản tin định kỳ", () => {
 
   it("đặt tần suất một bản tin về off ⇒ ô chọn kênh của đúng dòng đó bị khoá", () => {
     render(<SubGroup />);
-    const freqField = screen.getByLabelText("Tần suất bản tin Điều hành CX");
-    const chanField = screen.getByLabelText("Kênh gửi bản tin Điều hành CX") as HTMLSelectElement;
+    const freqField = screen.getByLabelText("Frequency — Điều hành CX");
+    const chanField = screen.getByLabelText("Channel — Điều hành CX") as HTMLSelectElement;
     expect(chanField.disabled).toBe(false);
 
     fireEvent.change(freqField, { target: { value: "off" } });
@@ -34,12 +34,13 @@ describe("SubGroup — bản tin định kỳ", () => {
     expect(chanField.disabled).toBe(true);
 
     // Dòng khác không bị ảnh hưởng — chỉ đúng dòng vừa sửa bị khoá.
-    const otherChan = screen.getByLabelText("Kênh gửi bản tin Toàn cảnh tiếng nói") as HTMLSelectElement;
+    const otherChan = screen.getByLabelText("Channel — Toàn cảnh tiếng nói") as HTMLSelectElement;
     expect(otherChan.disabled).toBe(false);
   });
 
   it("câu tổng kết cuối nhóm liệt kê đúng các bản tin đang bật, sinh từ cfg.sub", () => {
     render(<SubGroup />);
+    fireEvent.click(screen.getByTestId("apply-toggle")); // 18/08: khối gấp mặc định
     const { data, cfg } = useCxmStore.getState();
     const on = data.dash.filter((d) => cfg.sub[d.id].f !== "off");
     expect(on.length).toBeGreaterThan(0);
@@ -50,9 +51,10 @@ describe("SubGroup — bản tin định kỳ", () => {
      ghim nó đi theo. Điều test canh KHÔNG đổi: tắt hết thì khối phải NÓI RA tình trạng đó, không im. */
   it("tắt hết bản tin ⇒ khối tổng kết nói ra là không còn bản tin nào bật", () => {
     render(<SubGroup />);
+    fireEvent.click(screen.getByTestId("apply-toggle"));
     const { data } = useCxmStore.getState();
     for (const d of data.dash) {
-      const f = screen.getByLabelText(`Tần suất bản tin ${d.name}`);
+      const f = screen.getByLabelText(`Frequency — ${d.name}`);
       fireEvent.change(f, { target: { value: "off" } });
     }
     expect(screen.getByText(/Không có bản tin nào đang bật/)).toBeTruthy();

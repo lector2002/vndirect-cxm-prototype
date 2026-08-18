@@ -23,35 +23,49 @@ import { pv } from "../../design-system/format.ts";
 
 const PENDING_CELLS: { label: string; waiting: string }[] = [
   {
-    label: "Giá trị lạ",
+    label: "Odd values",
     // luật 11/08: bỏ vế "số đang có sinh từ chính bản khai... không phải bằng chứng dữ liệu sạch"
     waiting: "chờ số đếm giá trị ĐỘC LẬP với bản khai từ team data.",
   },
   {
-    label: "Trùng lặp",
+    label: "Duplicates",
     waiting: "chờ dòng event thô (case id + mốc phát sinh) từ team data.",
   },
   {
-    label: "Mồ côi tham chiếu",
+    label: "Orphaned references",
     waiting: "chờ dòng event thô từ team data.",
   },
   {
-    label: "Đến muộn",
+    label: "Late arrivals",
     waiting: "chờ mốc phát sinh + mốc nhận từ team data/pipeline.",
   },
   {
-    label: "Manifest giao hàng",
+    label: "Delivery manifest",
     waiting:
       "chờ manifest giao hàng theo ngày (số dòng gửi · load thành công/thất bại/một phần) từ team data/pipeline.",
   },
 ];
 
+/* Một đường đếm cho dòng noti ở Overview lẫn thân khối (cùng lý do govCounts bên
+   SignalGovernanceBlock.tsx): "đo thiếu" CHỈ tính nhãn MISSING — đúng chốt 07/08 (a),
+   "chưa định danh"/"chưa-biết" không phải lỗi đo. */
+export function reliabilityGaps(data: CxmData) {
+  const rows = sigCountReliability(data);
+  return {
+    hasCounts: data.sigCounts.length > 0,
+    total: rows.length,
+    dimsWithGaps: rows.filter((r) => r.missing > 0).length,
+  };
+}
+
 export function SignalReliabilityBlock({ data, dims }: { data: CxmData; dims: Record<string, Dim> }) {
   const rows = sigCountReliability(data);
   const hasCounts = data.sigCounts.length > 0;
 
+  /* 18/08 tối (owner): khối RỜI màn #/signals — nay là thân chi tiết của noti ngoại lệ ở CXM
+     Overview (SignalHealthNoti.tsx), luôn mở vì noti đã cầm phần gấp/bung. */
   return (
-    <Card title="② Độ tin của dữ liệu đã nhận">
+    <Card title="Data trust">
       {!hasCounts ? (
         <div data-testid="reliability-empty">
           {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
@@ -62,7 +76,7 @@ export function SignalReliabilityBlock({ data, dims }: { data: CxmData; dims: Re
           <table className="w-full border-collapse text-[13px]">
             <thead>
               <tr>
-                {["Chiều", "Mẫu số", "Lỗi đo (thiếu)", "Chưa định danh", "Chưa-biết"].map((h, i) => (
+                {["Dimension", "Denominator", "Measurement gaps", "Unidentified", "Unknown"].map((h, i) => (
                   <th
                     key={h}
                     className={`border-b-2 border-line px-2.5 py-1.5 text-xs font-semibold text-ink-2 whitespace-nowrap ${
@@ -97,7 +111,7 @@ export function SignalReliabilityBlock({ data, dims }: { data: CxmData; dims: Re
       )}
 
       <div className="mt-4 border-t border-line-soft pt-3">
-        <div className="t-lbl mb-2">Năm ô đang chờ pipeline</div>
+        <div className="t-lbl mb-2">Five slots waiting on the pipeline</div>
         <ul
           className="grid grid-cols-1 gap-x-6 gap-y-1.5 text-[12.5px] text-ink-2 lg:grid-cols-2"
           data-testid="reliability-pending"

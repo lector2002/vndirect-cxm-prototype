@@ -36,7 +36,7 @@ describe("SourceGroup", () => {
     render(<SourceGroup />);
 
     const row = screen.getByTestId(`rules-source-row-${stale.id}`);
-    expect(row).toHaveTextContent("Thiếu ngày dữ liệu");
+    expect(row).toHaveTextContent("Missing days");
 
     /* Nới nhịp lên đúng số ngày nguồn đang thiếu — tính lại từ data, không gõ số. Nới VỪA ĐỦ (không
        phải 999999) mới chứng minh được ngưỡng đọc theo ngày thật: một số khổng lồ cũng cho "ok" dưới
@@ -47,6 +47,6 @@ describe("SourceGroup", () => {
     fireEvent.blur(input);
 
     expect(useCxmStore.getState().cfg.source[stale.id]).toBe(missing);
-    expect(screen.getByTestId(`rules-source-row-${stale.id}`)).toHaveTextContent("Đang nhận");
+    expect(screen.getByTestId(`rules-source-row-${stale.id}`)).toHaveTextContent("Receiving");
   });
 });

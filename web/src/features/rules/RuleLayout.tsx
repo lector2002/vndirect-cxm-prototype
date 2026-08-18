@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 /* Hai khuôn dùng chung cho bảy nhóm ngưỡng của #/rules — dựng 12/08 khi redesign layout màn.
 
@@ -22,7 +22,13 @@ import type { ReactNode } from "react";
         "(người khai)", "(ngày quá nhịp giao)", "/ngày".
      5. Đây là luật cho TÊN GỌI, không phải cho DỮ LIỆU: nhãn tình trạng ("chưa định danh",
         "chưa-biết", "thiếu", "Ngừng gửi") và câu tả số đếm giữ nguyên văn — chúng là dữ liệu.
-   Luật 12/08 không đổi: đây vẫn là đổi TÊN, không phải thêm chữ giải thích. */
+   Luật 12/08 không đổi: đây vẫn là đổi TÊN, không phải thêm chữ giải thích.
+
+   18/08 (owner): nhãn chuyển sang TIẾNG ANH quy ước ngành. Bốn luật 1-4 áp NGUYÊN sang tiếng Anh
+   (cụm danh từ, mở đầu danh từ chính, không từ để hỏi, bổ nghĩa trong ngoặc/sau gạch — "Fail-rate
+   watch threshold", "Stopped-source threshold (days past cadence)"). Luật 5 nay đồng thời là RANH
+   GIỚI NGÔN NGỮ: nhãn/thuật ngữ → EN, còn câu văn tả dữ liệu và chuỗi trong `data/` → giữ tiếng
+   Việt (chi tiết ở SESSION-HANDOFF-12-08.md đợt 18/08 chiều). */
 
 export function FieldRow({
   label,
@@ -53,11 +59,62 @@ export function FieldRow({
   );
 }
 
-export function ApplySection({ title, children }: { title: ReactNode; children: ReactNode }) {
+/* 18/08 (owner chốt redesign): khối "áp ngay lúc này" GẤP MẶC ĐỊNH sau một dòng đếm trạng thái
+   (`summary`) — sửa một ô ngưỡng thì dòng đếm nhảy ngay, đủ thấy tác động; muốn soi từng dòng mới
+   bung. Cùng tinh thần luật owner 05-06/08 "hiện phần đáng nhìn, đếm phần còn lại ra chữ". Nhánh
+   không-summary giữ hành vi cũ (luôn mở) cho nhóm nào chưa có dòng đếm hợp lý. */
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      className={`h-3.5 w-3.5 flex-none text-ink-3 transition-transform duration-150 ${open ? "rotate-90" : ""}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m6 3.5 5 4.5-5 4.5" />
+    </svg>
+  );
+}
+
+export function ApplySection({
+  title,
+  summary,
+  children,
+}: {
+  title: ReactNode;
+  /** Dòng đếm thật của thân khối — phần còn lại trên màn khi khối gấp. */
+  summary?: ReactNode;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  if (summary === undefined) {
+    return (
+      <section className="mt-4 border-t border-line pt-4">
+        <div className="t-lbl mb-2.5">{title}</div>
+        <div className="flex flex-col gap-2.5">{children}</div>
+      </section>
+    );
+  }
   return (
     <section className="mt-4 border-t border-line pt-4">
-      <div className="t-lbl mb-2.5">{title}</div>
-      <div className="flex flex-col gap-2.5">{children}</div>
+      <button
+        type="button"
+        aria-expanded={open}
+        data-testid="apply-toggle"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full flex-wrap items-center gap-x-2.5 gap-y-0.5 rounded text-left hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+      >
+        <Chevron open={open} />
+        <span className="t-lbl">{title}</span>
+        <span className="text-[12.5px] tabular-nums text-ink-2" data-testid="apply-summary">
+          {summary}
+        </span>
+      </button>
+      {open ? <div className="mt-2.5 flex flex-col gap-2.5">{children}</div> : null}
     </section>
   );
 }

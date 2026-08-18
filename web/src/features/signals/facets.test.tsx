@@ -38,6 +38,13 @@ function ratioOf(text: string | null): [number, number] {
   return [Number(m[1]), Number(m[2])];
 }
 
+/** Số ĐẦU TIÊN trong một chuỗi — chip 18/08 chỉ mang TỬ SỐ, mẫu số nằm ở "N signals" (inv-total). */
+function firstIntOf(text: string | null): number {
+  const m = text?.match(/\d+/);
+  if (!m) throw new Error(`không đọc được số từ: ${text}`);
+  return Number(m[0]);
+}
+
 /** Dòng đang được tô = dòng KHÔNG mang class làm mờ. Đọc từ DOM thật, không đoán theo state. */
 function litRowIds(): string[] {
   return screen
@@ -188,8 +195,9 @@ describe("Khối ① bấm được — số trên chip bằng số dòng đư�
       const { data } = store.getState();
 
       const chip = screen.getByTestId(c.testId);
-      const [n, of] = ratioOf(chip.textContent);
-      expect(of).toBe(data.signals.length); // mẫu số của chip đúng là tổng điểm đo
+      // 18/08: chip chỉ mang TỬ SỐ; mẫu số của cả dòng đứng ở "N signals" ngay bên trái.
+      const n = firstIntOf(chip.textContent);
+      expect(firstIntOf(screen.getByTestId("inv-total").textContent)).toBe(data.signals.length);
       expect(n).toBeGreaterThan(0); // tiền đề: chip này có dữ liệu để tô
 
       fireEvent.click(chip);
@@ -327,12 +335,12 @@ describe("Ô tìm — tô, không cắt dòng", () => {
    3. thu gọn KHÔNG đổi một con số đếm nào;
    4. thu gọn là việc của mắt: hồ sơ vẫn đi hết mọi điểm đo. */
 describe("Thu gọn nhóm — ẩn thân, giữ mẫu số", () => {
-  /** Số "tổng" mà một tiêu đề nhóm đang khai: "N điểm đo" hoặc "K / N khớp". */
+  /** Số "tổng" mà một tiêu đề nhóm đang khai: "N signals" hoặc "K / N match". */
   function headerTotal(phaseId: string): number {
     const text = screen.getByTestId(`signal-group-toggle-${phaseId.trim()}`).textContent ?? "";
     const ratio = text.match(/(\d+)\s*\/\s*(\d+)/);
     if (ratio) return Number(ratio[2]);
-    const plain = text.match(/(\d+)\s*điểm đo/);
+    const plain = text.match(/(\d+)\s*signals/);
     if (!plain) throw new Error(`tiêu đề nhóm không khai số nào: ${text}`);
     return Number(plain[1]);
   }
@@ -429,6 +437,7 @@ describe("Thu gọn nhóm — ẩn thân, giữ mẫu số", () => {
 
     fireEvent.click(screen.getByTestId(`signal-group-toggle-${target.phaseId.trim()}`));
     fireEvent.click(screen.getByTestId(`signal-row-${other.signals[0].id}`));
+    fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
 
     expect(screen.getByTestId("signal-profile-nav").textContent).toContain(`/ ${data.signals.length}`);
   });
@@ -443,6 +452,7 @@ describe("Thu gọn nhóm — ẩn thân, giữ mẫu số", () => {
 
     fireEvent.click(screen.getByTestId(`signal-group-toggle-${target.phaseId.trim()}`));
     fireEvent.click(screen.getByTestId(`signal-row-${other.signals[0].id}`));
+    fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
     fireEvent.click(screen.getByTestId("signal-profile-back"));
 
     expect(screen.getByTestId(`signal-group-toggle-${target.phaseId.trim()}`)).toHaveAttribute(
@@ -461,6 +471,7 @@ describe("Hồ sơ — đi tới/lui theo đúng thứ tự đang thấy trên b
     const shown = orderedSignals(groupSignalsByPhase(data, null));
 
     fireEvent.click(screen.getByTestId(`signal-row-${shown[0].id}`));
+    fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
     expect(screen.getByTestId("signal-profile-prev")).toBeDisabled();
     expect(screen.getByTestId("signal-profile-nav").textContent).toContain(`1 / ${data.signals.length}`);
 
@@ -475,6 +486,7 @@ describe("Hồ sơ — đi tới/lui theo đúng thứ tự đang thấy trên b
     const shown = orderedSignals(groupSignalsByPhase(data, null));
 
     fireEvent.click(screen.getByTestId(`signal-row-${shown[0].id}`));
+    fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
     fireEvent.click(screen.getByTestId("signal-profile-next"));
 
     expect(screen.getByTestId("signal-profile-title").textContent).toBe(shown[1].desc);
@@ -487,18 +499,19 @@ describe("Hồ sơ — đi tới/lui theo đúng thứ tự đang thấy trên b
     const target = data.signals[2];
 
     fireEvent.click(screen.getByTestId(`signal-row-${target.id}`));
+    fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
     fireEvent.click(screen.getByTestId("signal-profile-back"));
 
     expect(screen.getByTestId(`signal-row-${target.id}`)).toHaveAttribute("aria-current", "true");
   });
 
-  it("bàn phím: Enter trên một dòng mở hồ sơ đúng dòng đó", () => {
+  it("bàn phím: Enter trên một dòng mở drawer đúng dòng đó", () => {
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
     const { data } = store.getState();
     const target = data.signals[1];
 
     fireEvent.keyDown(screen.getByTestId(`signal-row-${target.id}`), { key: "Enter" });
-    expect(screen.getByTestId("signal-profile-title").textContent).toBe(target.desc);
+    expect(screen.getByTestId("signal-drawer")).toHaveAttribute("aria-label", target.name);
   });
 });

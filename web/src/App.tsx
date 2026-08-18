@@ -217,7 +217,7 @@ function Shell() {
             title={
               TOUR_ENABLED
                 ? navCollapsed
-                  ? 'Chạy bản giới thiệu'
+                  ? 'Start the guided tour'
                   : undefined
                 : 'Bản giới thiệu — ngoài phạm vi MVP'
             }
@@ -228,13 +228,13 @@ function Shell() {
             } ${navCollapsed ? 'h-7 w-7 flex-none px-0' : 'min-w-0 flex-1 px-2.5'}`}
           >
             <HelpCircle />
-            {navCollapsed ? null : <span className="truncate">Chạy bản giới thiệu</span>}
+            {navCollapsed ? null : <span className="truncate">Start the guided tour</span>}
           </button>
           <button
             type="button"
             data-testid="sidebar-toggle"
             aria-expanded={!navCollapsed}
-            aria-label={navCollapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
+            aria-label={navCollapsed ? 'Expand navigation' : 'Collapse navigation'}
             title={navCollapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}
             onClick={() => setNavCollapsed((v) => !v)}
             className="grid h-7 w-7 flex-none place-items-center rounded-lg border border-line text-ink-3 hover:border-primary-line hover:bg-primary-soft hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"

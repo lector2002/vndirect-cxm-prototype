@@ -437,7 +437,7 @@ describe("AtlasPage — #/atlas", () => {
     expect(within(inspector).getByText(tp.name)).toBeInTheDocument();
     const gapRow = within(inspector).getByTestId(`atlas-signal-${gapSignal.id}`);
     expect(gapRow).toHaveTextContent(gapSignal.name);
-    expect(gapRow).toHaveTextContent("Chưa đo (gap)");
+    expect(gapRow).toHaveTextContent("Not tracked");
   });
 
   it("đổi flow xoá lựa chọn bước cũ: hồ sơ biến mất hẳn, không hiện lại bước của flow khác", () => {

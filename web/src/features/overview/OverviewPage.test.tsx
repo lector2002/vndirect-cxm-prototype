@@ -262,3 +262,20 @@ describe("OverviewPage — bộ lọc thời gian GLOBAL kiểu Enterpret (Timef
     expect(statValue()).toBe(before);
   });
 });
+
+describe("SignalHealthNoti — noti ngoại lệ điểm đo chỉ ở phần CXM (owner 18/08 tối)", () => {
+  /* Hành vi noti (đếm, gấp/bung, ẩn khi hết lệch) test ở SignalHealthNoti.test.tsx — ở đây chỉ
+     kiểm điểm gắn trang: có ở #/cxm (seed đang lệch thật: sigCounts rỗng + T1/T3 > 0), KHÔNG có
+     ở #/voc (tình trạng vận hành điểm đo không thuộc VoC). */
+  it("#/cxm hiện noti", () => {
+    const store = createCxmStore(new MockRepository());
+    renderAt("/cxm", store);
+    expect(screen.getByTestId("signal-health-noti")).toBeInTheDocument();
+  });
+
+  it("#/voc KHÔNG có noti", () => {
+    const store = createCxmStore(new MockRepository());
+    renderAt("/voc", store);
+    expect(screen.queryByTestId("signal-health-noti")).not.toBeInTheDocument();
+  });
+});

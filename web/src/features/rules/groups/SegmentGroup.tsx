@@ -123,20 +123,20 @@ function AxisEditor({ dimId }: { dimId: string }) {
     <div data-testid={`axis-${dimId}`}>
       <Card
         title={dim?.label ?? dimId}
-        subtitle={`Cắt trên dữ kiện: ${RAW_LABEL[source] ?? source} · đơn vị ${draft.unit}`}
-        denomStrip={`${draft.cuts.length} ranh giới ⇒ ${draft.cuts.length + 1} dải · đang xếp ${nf(cust.length)} khách`}
+        subtitle={`Cut on: ${RAW_LABEL[source] ?? source} · unit: ${draft.unit}`}
+        denomStrip={`${draft.cuts.length} boundaries ⇒ ${draft.cuts.length + 1} bands · placing ${nf(cust.length)} customers`}
       >
       <div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <div className="t-lbl mb-2">Ranh giới</div>
+            <div className="t-lbl mb-2">Boundaries</div>
             <div className="grid gap-1.5">
               {draft.cuts.map((c, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <span className="t-meta w-14 flex-none text-[12px]">Mốc {i + 1}</span>
+                  <span className="t-meta w-14 flex-none text-[12px]">Cut {i + 1}</span>
                   <NumField
                     value={c}
-                    label={`Ranh giới thứ ${i + 1} của ${dim?.label ?? dimId}`}
+                    label={`Boundary ${i + 1} — ${dim?.label ?? dimId}`}
                     suffix={draft.unit}
                     wide
                     hint={boundHint(c, draft.unit)}
@@ -145,7 +145,7 @@ function AxisEditor({ dimId }: { dimId: string }) {
                   <button
                     type="button"
                     onClick={() => dropCut(i)}
-                    aria-label={`Bỏ ranh giới thứ ${i + 1}`}
+                    aria-label={`Remove boundary ${i + 1}`}
                     className="rounded-lg border border-line px-2 py-1 text-[12px] text-ink-2 hover:border-crit-line hover:text-crit"
                   >
                     ×
@@ -158,20 +158,20 @@ function AxisEditor({ dimId }: { dimId: string }) {
                   onClick={addCut}
                   className="rounded-lg border border-line bg-surface px-2.5 py-1 text-[12.5px] font-semibold text-ink-2 hover:border-primary-line hover:bg-primary-soft hover:text-ink"
                 >
-                  + Thêm ranh giới
+                  + Add boundary
                 </button>
               </div>
             </div>
 
             <div className="mt-3">
-              <div className="t-lbl mb-1.5">Sàn của dải đầu</div>
+              <div className="t-lbl mb-1.5">Floor of first band</div>
               {draft.min === null ? (
                 /* luật 11/08: bỏ giải thích ý nghĩa "không có sàn" */
                 null
               ) : (
                 <NumField
                   value={draft.min}
-                  label={`Sàn của dải đầu, trục ${dim?.label ?? dimId}`}
+                  label={`Floor of first band — ${dim?.label ?? dimId}`}
                   suffix={draft.unit}
                   wide
                   hint={boundHint(draft.min, draft.unit)}
@@ -183,19 +183,19 @@ function AxisEditor({ dimId }: { dimId: string }) {
 
           <div>
             <div className="t-lbl mb-2">
-              {dirty ? "Dải sẽ thành thế này sau khi lưu" : "Dải đang dùng"}
+              {dirty ? "Bands after save" : "Bands in use"}
             </div>
             <div className="grid gap-1">
               {[...byLabel.entries()].map(([l, n]) => (
                 <div key={l} className="flex items-baseline gap-2 text-[12.5px]">
                   <span className="min-w-0 truncate font-semibold text-ink">{l}</span>
-                  <span className="ml-auto flex-none tabular-nums text-ink-2">{nf(n)} khách</span>
+                  <span className="ml-auto flex-none tabular-nums text-ink-2">{nf(n)} customers</span>
                 </div>
               ))}
               {[...unknown.entries()].map(([l, n]) => (
                 <div key={l} className="flex items-baseline gap-2 border-t border-line-soft pt-1 text-[12.5px]">
                   <span className="min-w-0 truncate text-ink-3">{l}</span>
-                  <span className="ml-auto flex-none tabular-nums text-ink-3">{nf(n)} khách</span>
+                  <span className="ml-auto flex-none tabular-nums text-ink-3">{nf(n)} customers</span>
                 </div>
               ))}
               {unreadable ? (
@@ -231,7 +231,7 @@ function AxisEditor({ dimId }: { dimId: string }) {
             onClick={save}
             className="rounded-lg border border-primary-line bg-primary-soft px-2.5 py-1 text-[12.5px] font-semibold text-ink disabled:cursor-default disabled:border-line disabled:bg-surface disabled:text-ink-3 disabled:opacity-60"
           >
-            Lưu ranh giới
+            Save boundaries
           </button>
           <button
             type="button"
@@ -239,10 +239,10 @@ function AxisEditor({ dimId }: { dimId: string }) {
             onClick={() => setDraft(saved)}
             className="rounded-lg border border-line bg-surface px-2.5 py-1 text-[12.5px] font-semibold text-ink-2 disabled:cursor-default disabled:opacity-45"
           >
-            Hoàn tác
+            Undo
           </button>
           {dirty ? (
-            <span className="t-meta text-[12px]">Bản nháp — chưa áp lên chart nào.</span>
+            <span className="t-meta text-[12px]">Draft — not applied to any chart yet.</span>
           ) : null}
           </div>
         </div>
@@ -268,8 +268,8 @@ export function SegmentGroup() {
 
       {valueDims.length ? (
         <Card
-          title="Chiều lấy nguyên giá trị"
-          denomStrip={`${valueDims.length} chiều đã chốt danh sách đóng`}
+          title="Dimensions used as-is"
+          denomStrip={`${valueDims.length} closed-list dimensions`}
         >
           <div className="grid gap-3">
             {valueDims.map((id) => (

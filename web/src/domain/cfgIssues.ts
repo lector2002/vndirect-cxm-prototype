@@ -14,13 +14,19 @@ import { metricDirection } from "../data/metric-direction.ts";
    Hướng so sánh của từng chỉ số lấy từ metricDirection() (data/metric-direction.ts, tương đương
    mdir() của prototype) — dùng lại ĐÚNG luật mà metricState() đang dùng để xếp hạng, không tự suy
    luận hướng riêng ở đây kẻo hai nơi lệch nhau theo thời gian. */
-export function cfgIssues(data: CxmData, cfg: Cfg): string[] {
-  const issues: string[] = [];
+/* 18/08 (redesign #/rules): menu nhóm cần biết mâu thuẫn nằm Ở NHÓM NÀO để treo dấu ⚠ đúng chỗ.
+   Tách dạng có nhóm ra hàm riêng thay vì để RulesPage tự đoán lại từ câu chữ — hai đường đếm là
+   hai đường lệch. `cfgIssues()` giữ nguyên chữ ký cũ (mọi chỗ gọi + test không đổi). */
+export type CfgIssueGroup = "step" | "metric";
+
+export function cfgIssuesTyped(data: CxmData, cfg: Cfg): { group: CfgIssueGroup; msg: string }[] {
+  const issues: { group: CfgIssueGroup; msg: string }[] = [];
 
   if (cfg.step.failCrit <= cfg.step.failWatch) {
-    issues.push(
-      `Bước: ngưỡng cần xử lý (${cfg.step.failCrit}%) phải cao hơn ngưỡng cần theo dõi (${cfg.step.failWatch}%).`,
-    );
+    issues.push({
+      group: "step",
+      msg: `Bước: ngưỡng cần xử lý (${cfg.step.failCrit}%) phải cao hơn ngưỡng cần theo dõi (${cfg.step.failWatch}%).`,
+    });
   }
 
   for (const m of data.metrics) {
@@ -28,15 +34,21 @@ export function cfgIssues(data: CxmData, cfg: Cfg): string[] {
     if (!band || !band.on) continue;
     const dir = metricDirection(m);
     if (dir === "down" && band.crit <= band.watch) {
-      issues.push(
-        `${m.name}: mục tiêu là càng thấp càng tốt, nên ngưỡng cần xử lý (${band.crit}) phải cao hơn ngưỡng cần theo dõi (${band.watch}).`,
-      );
+      issues.push({
+        group: "metric",
+        msg: `${m.name}: mục tiêu là càng thấp càng tốt, nên ngưỡng cần xử lý (${band.crit}) phải cao hơn ngưỡng cần theo dõi (${band.watch}).`,
+      });
     } else if (dir === "up" && band.crit >= band.watch) {
-      issues.push(
-        `${m.name}: mục tiêu là càng cao càng tốt, nên ngưỡng cần xử lý (${band.crit}) phải thấp hơn ngưỡng cần theo dõi (${band.watch}).`,
-      );
+      issues.push({
+        group: "metric",
+        msg: `${m.name}: mục tiêu là càng cao càng tốt, nên ngưỡng cần xử lý (${band.crit}) phải thấp hơn ngưỡng cần theo dõi (${band.watch}).`,
+      });
     }
   }
 
   return issues;
+}
+
+export function cfgIssues(data: CxmData, cfg: Cfg): string[] {
+  return cfgIssuesTyped(data, cfg).map((i) => i.msg);
 }

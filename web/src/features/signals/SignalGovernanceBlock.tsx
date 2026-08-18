@@ -20,21 +20,29 @@ import { Card } from "../../design-system/index.ts";
    mẫu số thì thêm một flow vừa map (chưa kịp làm gì cả) sẽ pha loãng tỉ lệ T1 dù chẳng có gì đổi.
    Đếm tách riêng, hiện cạnh T1 bằng chính testid của nó (không phải dòng thứ sáu) — test F6 thêm
    một flow trống vào BẢN SAO dữ liệu: N/M của T1 không đổi, chỉ số đếm này tăng đúng 1. */
-export function SignalGovernanceBlock({ data, cfg }: { data: CxmData; cfg: Cfg }) {
+/* Một đường đếm cho cả dòng noti ở Overview lẫn thân khối này (SignalHealthNoti.tsx hiện N/M
+   rồi bấm mới bung khối) — hai chỗ mà đếm riêng thì sớm muộn lệch nhau. */
+export function govCounts(data: CxmData, cfg: Cfg) {
   const evaluated = data.flows.filter((f) => flowHasSourceCitation(f) || flowStepsCopied(f, data.steps));
   const notEvaluated = data.flows.length - evaluated.length;
   const citedNotCopied = evaluated.filter(
     (f) => flowHasSourceCitation(f) && !flowStepsCopied(f, data.steps),
   );
-
   // T3 — "đã ngừng gửi" = sourceHealth 'down' (khác 'stale'/'silent': hai hạng đó là *chưa-biết*
   // hoặc *đang trễ*, chưa phải kết luận đứt hẳn — luật không trộn chưa-biết với thiếu).
   const brokenFeeding = data.sources.filter(
     (s) => sourceHealth(s, cfg, data.asOf) === "down" && s.metrics.length > 0,
   );
+  return { evaluated, notEvaluated, citedNotCopied, brokenFeeding };
+}
 
+export function SignalGovernanceBlock({ data, cfg }: { data: CxmData; cfg: Cfg }) {
+  const { evaluated, notEvaluated, citedNotCopied, brokenFeeding } = govCounts(data, cfg);
+
+  /* 18/08 tối (owner): khối RỜI màn #/signals — nay là thân chi tiết của noti ngoại lệ ở CXM
+     Overview (SignalHealthNoti.tsx), luôn mở vì noti đã cầm phần gấp/bung. */
   return (
-    <Card title="Bản khai không khớp thực tế">
+    <Card title="Declared vs observed">
       {/* Hai dòng cách nhau bằng một vạch chứ chỉ bằng khoảng trắng: khối này đứng ở cột hẹp nên mỗi
           dòng tự xuống hai-ba dòng chữ, và khi đó khoảng cách giữa hai mục không còn phân biệt được
           với khoảng cách giữa hai dòng trong cùng một mục. */}

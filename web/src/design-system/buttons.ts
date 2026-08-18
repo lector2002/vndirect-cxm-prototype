@@ -1,12 +1,12 @@
 /* Tầng nút — hằng chuỗi class THUẦN (không JSX/component) cho 3 loại nút dùng chung toàn app.
 
    Vì sao viền dùng --ink3 chứ không phải --line:
-   --line (#ddd6ca) chỉ đạt ~1,6:1 contrast trên nền trắng (--surface) — dưới xa ngưỡng WCAG 1.4.11
+   --line (#dfe3e8) chỉ đạt ~1,3:1 contrast trên nền trắng (--surface) — dưới xa ngưỡng WCAG 1.4.11
    (non-text contrast, tối thiểu 3:1 cho viền UI component). Một nút viền --line trông như nhãn chữ
-   không viền, không đọc ra "đây là nút bấm được". --ink3 (#7e756a) đạt 4,6:1 trên --surface, qua
+   không viền, không đọc ra "đây là nút bấm được". --ink3 (#6b7481) đạt 4,7:1 trên --surface, qua
    ngưỡng 3:1 mà không tối tới mức cạnh tranh với text-ink (chữ chính).
-   (Hai tỉ lệ trên ĐO LẠI 12/08 tối theo bảng màu "Giấy đậm"; bản cũ là 1,2:1 và 3,4:1 — lập luận
-   không đổi, cả hai vẫn nằm đúng phía của ngưỡng 3:1.)
+   (Hai tỉ lệ trên ĐO LẠI 18/08 theo bảng màu "Trung tính lạnh"; bản 12/08 "Giấy đậm" là 1,6:1 và
+   4,6:1 — lập luận không đổi, cả hai vẫn nằm đúng phía của ngưỡng 3:1.)
 
    Vì sao nút phụ phải chịu được CẢ nền trắng LẪN Card.footer:
    Nút phụ (Sửa/Hủy/Đóng/Đặt lại…) phần lớn nằm trong Card.footer, nền `bg-surface-2/40` (Card.tsx) —

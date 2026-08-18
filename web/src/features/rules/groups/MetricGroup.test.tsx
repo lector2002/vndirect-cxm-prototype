@@ -17,13 +17,13 @@ describe("MetricGroup", () => {
     // Đang bật: có ô nhập ngưỡng, không có ô nào hiện "—".
     expect(within(rowBefore).queryByText("—")).not.toBeInTheDocument();
 
-    const toggle = screen.getByLabelText("Theo dõi Liveness completion");
+    const toggle = screen.getByLabelText("Watch Liveness completion");
     fireEvent.click(toggle);
 
     const rowAfter = screen.getByTestId("metric-row-m-liveness");
-    // Tắt xong: hai ô ngưỡng (watch + crit) đều thành "—", và badge trạng thái đổi thành "Chưa đo được".
+    // Tắt xong: hai ô ngưỡng (watch + crit) đều thành "—", và badge trạng thái đổi thành "No data".
     expect(within(rowAfter).getAllByText("—")).toHaveLength(2);
-    expect(within(rowAfter).getByTestId("badge")).toHaveTextContent("Chưa đo được");
+    expect(within(rowAfter).getByTestId("badge")).toHaveTextContent("No data");
   });
 
   /* Luật 11/08: chuỗi độ tươi (Metric.freshness, gõ tay) đã bỏ khỏi bảng — bảng giờ KHÔNG khai gì

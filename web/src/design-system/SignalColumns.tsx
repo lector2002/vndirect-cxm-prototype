@@ -329,7 +329,7 @@ export function SignalColumns({ groups, dimLabel }: SignalColumnsProps): JSX.Ele
 
   return (
     <div data-testid="signal-columns" className="min-w-0">
-      <div className="text-[13px] font-semibold text-ink-2 mb-1">Nhìn theo: {dimLabel}</div>
+      <div className="text-[13px] font-semibold text-ink-2 mb-1">View by: {dimLabel}</div>
       {/* Rule 4 (sửa lại) đổi lấy nguy cơ đọc nhầm mà Đ1 đã cảnh báo ("rất dễ muốn đọc 410 trên 920 =
           45%… hai nhóm đứng cạnh nhau để so, không để chia") — giờ thang riêng từng nhóm nên NGAY CẢ
           chiều cao cũng không so được giữa hai nhóm nữa. luật 11/08: bỏ hẳn câu nói thẳng bằng chữ,

@@ -26,7 +26,7 @@ export function SettingsPage({ useStore = useCxmStore }: SettingsPageProps) {
           <p className="t-meta mt-1">Dữ liệu thật từ DB chưa kết nối — tắt Demo Mode thì app trống.</p>
         </div>
         <div className="flex items-center gap-2 flex-none">
-          <span className="t-meta">{demoMode ? "Đang BẬT" : "Đang TẮT"}</span>
+          <span className="t-meta">{demoMode ? "ON" : "OFF"}</span>
           <button
             type="button"
             role="switch"

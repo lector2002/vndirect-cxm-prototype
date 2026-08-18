@@ -5,12 +5,12 @@
    --ink3/#7e756a, không phải --line/#ddd6ca). Theo constraint "không bịa hex mới", dùng --ink3
    (gần nhất về tông xám ấm) cho viền chấm — lệch nhẹ so với hex gốc, ghi rõ trong báo cáo. */
 
-/** Nhãn mặc định theo trạng thái — port ST_LABEL. */
+/** Nhãn mặc định theo trạng thái — port ST_LABEL; 18/08 (owner) chuyển sang thuật ngữ Anh quy ước (OK · Warning · Critical · No data, kiểu monitor Datadog). */
 const ST_LABEL = {
-  ok: "Đang kiểm soát",
-  watch: "Cần theo dõi",
-  crit: "Cần xử lý ngay",
-  unknown: "Chưa đo được",
+  ok: "OK",
+  watch: "Warning",
+  crit: "Critical",
+  unknown: "No data",
 } as const;
 
 export type BadgeState = keyof typeof ST_LABEL;
@@ -33,7 +33,10 @@ export function Badge({ state, text }: BadgeProps) {
   return (
     <span
       data-testid="badge"
-      className={`inline-flex items-center gap-1.5 px-[9px] py-[3px] rounded-[7px] text-[12px] font-bold border whitespace-nowrap ${STATE_CLASS[state]}`}
+      /* 18/08 (redesign MVP, nước đi S4): pill tròn hẳn + font-semibold thay font-bold — badge đứng
+         trong bảng vài trăm dòng, mỗi dòng một viên đậm là bảng ồn hơn dữ liệu. Prefix ✓/— và bộ
+         class token GIỮ NGUYÊN (test ghim cả hai — chúng là cách trạng thái đọc được không cần màu). */
+      className={`inline-flex items-center gap-1.5 px-2.5 py-[2px] rounded-full text-[12px] font-semibold border whitespace-nowrap ${STATE_CLASS[state]}`}
     >
       {`${prefix}${text || ST_LABEL[state]}`}
     </span>

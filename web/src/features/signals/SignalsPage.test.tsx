@@ -1,10 +1,8 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { MockRepository } from "../../data/mock-repository.ts";
 import { demoData, recountDemoSignals } from "../../data/fixtures/demo.ts";
 import { createCxmStore } from "../../store/store.ts";
-import { sigCountReliability, stepsWithoutRunningSignal } from "../../domain/index.ts";
-import { MISSING } from "../../data/segment.ts";
 import { SignalsPage } from "./SignalsPage.tsx";
 
 /* module-i-signal-registry-charter.md §14 lát I4a — mỗi test dùng store CÔ LẬP tiêm qua `useStore`
@@ -51,6 +49,9 @@ describe("Bất biến 9 (bị owner ghi đè 11/08) — câu giới hạn đã 
       const { container, unmount } = render(<SignalsPage useStore={store} />);
       const { data } = store.getState();
       fireEvent.click(screen.getByTestId(`signal-row-${data.signals[0].id}`));
+      expect(screen.getByTestId("signal-drawer")).toBeInTheDocument();
+      expect(container.textContent ?? "").not.toMatch(/độ phủ/i); // quét cả mặt drawer
+      fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
       expect(screen.getByTestId("signal-profile")).toBeInTheDocument();
       expect(container.textContent ?? "").not.toMatch(/độ phủ/i);
       unmount();
@@ -58,18 +59,8 @@ describe("Bất biến 9 (bị owner ghi đè 11/08) — câu giới hạn đã 
   });
 });
 
-describe("Khối ① — hai số bước LỒNG NHAU, không phải hai ô rời (tiêu chí 7)", () => {
-  it("một câu chứa cả hai số ĐÚNG (đếm lại), theo thứ tự noneRunning rồi 'trong đó' none", () => {
-    const store = demoStore();
-    render(<SignalsPage useStore={store} />);
-    const { data } = store.getState();
-    const { none, noneRunning } = stepsWithoutRunningSignal(data);
-    const node = screen.getByTestId("inv-steps-nested");
-    expect(node.textContent).toMatch(
-      new RegExp(`${noneRunning.length}\\s*/\\s*${data.steps.length}.*trong đó.*${none.length}`, "s"),
-    );
-  });
-});
+/* T4 (hai số bước lồng nhau, tiêu chí 7) rời khối ① sang noti Overview 18/08 tối (owner) — test
+   PORT sang overview/SignalHealthNoti.test.tsx, ràng "một câu duy nhất" đi theo. */
 
 describe("D5 (qua UI) — 'có chạy' hiện đúng số đếm từ vol, không đọc st", () => {
   it("running.n trên màn khớp đếm lại vol>0 trên fixture đang dùng", () => {
@@ -78,52 +69,14 @@ describe("D5 (qua UI) — 'có chạy' hiện đúng số đếm từ vol, khôn
     const { data } = store.getState();
     const expectedRunning = data.signals.filter((s) => s.vol > 0).length;
     const node = screen.getByTestId("inv-running");
-    expect(node.textContent).toContain(`${expectedRunning} / ${data.signals.length}`);
+    expect(node.textContent).toContain(`${expectedRunning} receiving traffic`);
+    expect(screen.getByTestId("inv-total").textContent).toContain(`${data.signals.length} signals`);
   });
 });
 
-describe("Khối ② — hai hướng của owner chốt 07/08 phương án (a)", () => {
-  it("(a) seed: sigCounts rỗng ⇒ nói CHƯA NHẬN số đếm, KHÔNG hiện 0%", () => {
-    const store = seedStore();
-    expect(store.getState().data.sigCounts.length).toBe(0);
-    render(<SignalsPage useStore={store} />);
-    expect(screen.getByTestId("reliability-empty")).toBeInTheDocument();
-    expect(screen.queryByTestId("reliability-table")).not.toBeInTheDocument();
-    expect(screen.queryByText(/0%/)).not.toBeInTheDocument();
-  });
-
-  it("(b) demoData: sigCounts có dữ liệu ⇒ hiện bảng, tách 'thiếu' khỏi 'chưa định danh'/'chưa-biết' (luật 11/08: đã bỏ legend giải thích ba nghĩa)", () => {
-    const store = demoStore();
-    expect(store.getState().data.sigCounts.length).toBeGreaterThan(0);
-    render(<SignalsPage useStore={store} />);
-    expect(screen.getByTestId("reliability-table")).toBeInTheDocument();
-    expect(screen.queryByTestId("reliability-empty")).not.toBeInTheDocument();
-    // Ba cột không-biết phải hiện tách rời nhau, làm cột riêng — không còn legend giải thích bằng văn.
-    expect(screen.getByText("Lỗi đo (thiếu)")).toBeInTheDocument();
-    expect(screen.getByText("Chưa định danh")).toBeInTheDocument();
-    expect(screen.getByText("Chưa-biết")).toBeInTheDocument();
-    expect(screen.queryByText(/Chỉ cột "Lỗi đo \(thiếu\)" là lỗi đo/)).not.toBeInTheDocument();
-  });
-
-  it("(b) cột 'Lỗi đo (thiếu)' đúng là số MISSING đếm lại — không lặng lẽ đổi sang notIdentified/unknownYet", () => {
-    const store = demoStore();
-    const { data } = store.getState();
-    // Chọn một chiều có MISSING > 0 thật trên demoData (đếm lại, không ghim) để test không xanh rỗng
-    // nếu ai đó nối sai cột hiển thị với trường dữ liệu khác trong DimReliability.
-    const rows = sigCountReliability(data);
-    const target = rows.find((r) => r.missing > 0);
-    expect(target).toBeDefined();
-    const dimRows = data.sigCounts.filter((c) => c.dim === target!.dim);
-    const expectedMissing = dimRows.filter((c) => c.band === MISSING).reduce((a, c) => a + c.n, 0);
-    expect(expectedMissing).toBeGreaterThan(0);
-    expect(expectedMissing).toBe(target!.missing);
-
-    render(<SignalsPage useStore={store} />);
-    const row = screen.getByTestId(`reliability-row-${target!.dim}`);
-    const cells = within(row).getAllByRole("cell");
-    expect(cells[2].textContent).toContain(String(expectedMissing));
-  });
-});
+/* Khối ② ("Data trust") rời màn 18/08 tối (owner) — test hai hướng (a)/(b) chốt 07/08 PORT sang
+   overview/SignalHealthNoti.test.tsx, không xoá phần phủ. Chốt chống tái phát nằm ở describe
+   "18/08 tối..." phía dưới. */
 
 describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngày im lặng", () => {
   /* 12/08 (owner): tên cột đổi theo quy ước cụm danh từ, rồi chiều cùng ngày owner chốt lối (i) của
@@ -131,11 +84,13 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
      dùng `Signal.seen` người gõ. Vì hai xuất xứ nay nằm cùng một cột nên phần "(người khai)" rời
      khỏi NHÃN CỘT và xuống TỪNG Ô.
 
-     Điều D6 cưỡng chế hai vế, cả hai vẫn nguyên: (1) không được suy tuổi/số ngày im lặng từ `seen`;
-     (2) chỗ nào hiện `seen` thì KHÔNG ĐƯỢC IM về việc số đó do người gõ. Vế 2 nay kiểm theo từng
-     dòng chứ không theo nhãn cột — chặt hơn bản trước, vì trước đây một nhãn cột đúng có thể che
-     cho mọi ô bên dưới. */
-  it("mỗi dòng dùng `seen` phải nói rõ 'người khai' NGAY TRÊN DÒNG ĐÓ, không im", () => {
+     Điều D6 cưỡng chế hai vế: (1) không được suy tuổi/số ngày im lặng từ `seen`; (2) chỗ nào hiện
+     `seen` thì KHÔNG ĐƯỢC IM về việc số đó do người gõ.
+
+     18/08 tối (owner): bảng LẪN drawer bỏ xuất xứ — vế 2 nay neo ở tầng HỒ SƠ ("Last seen
+     (self-reported)"), hai tầng ngoài hiện mốc trần. Văn bản D6 "ngay tại dòng" chưa sửa theo —
+     việc của owner. */
+  it("mốc gõ tay: bảng và drawer hiện mốc TRẦN — không còn chữ xuất xứ ở hai tầng ngoài", () => {
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
     const { data } = store.getState();
@@ -144,11 +99,27 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
     for (const sig of handTyped) {
       const row = screen.getByTestId(`signal-row-${sig.id}`);
       expect(row.textContent).toContain(sig.seen as string);
-      expect(row.textContent).toContain("người khai");
+      expect(row.textContent).not.toContain("self-reported");
+      fireEvent.click(row);
+      const drawerSeen = screen.getByTestId("signal-drawer-seen").textContent;
+      expect(drawerSeen).toContain(sig.seen as string);
+      expect(drawerSeen).not.toContain("self-reported");
     }
   });
 
-  it("dòng đã nối nguồn hiện MỐC CỦA NGUỒN và khai là mốc máy — không trộn với mốc gõ tay", () => {
+  it("D6 vế 2 neo ở hồ sơ: mở profile của mốc gõ tay vẫn thấy 'self-reported'", () => {
+    const store = demoStore();
+    render(<SignalsPage useStore={store} />);
+    const { data } = store.getState();
+    const sig = data.signals.find((s) => s.seen && s.srcId === null)!;
+    fireEvent.click(screen.getByTestId(`signal-row-${sig.id}`));
+    fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
+    const profileSeen = screen.getByTestId("signal-profile-seen").textContent;
+    expect(profileSeen).toContain("self-reported");
+    expect(profileSeen).toContain(sig.seen as string);
+  });
+
+  it("dòng đã nối nguồn: bảng lẫn drawer hiện MỐC CỦA NGUỒN trần — mốc máy vẫn thắng mốc gõ tay", () => {
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
     const { data } = store.getState();
@@ -158,8 +129,11 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
       const src = data.sources.find((s) => s.id === sig.srcId)!;
       const row = screen.getByTestId(`signal-row-${sig.id}`);
       expect(row.textContent).toContain(src.last);
-      expect(row.textContent).toContain("máy");
-      expect(row.textContent).not.toContain("người khai");
+      expect(row.textContent).not.toContain("source feed");
+      fireEvent.click(row);
+      const drawerSeen = screen.getByTestId("signal-drawer-seen").textContent;
+      expect(drawerSeen).toContain(src.last);
+      expect(drawerSeen).not.toContain("source feed");
     }
   });
 
@@ -181,6 +155,12 @@ describe("I4b tiêu chí 8 — mở hồ sơ từ bảng, đóng lại được 
 
     fireEvent.click(screen.getByTestId(`signal-row-${target.id}`));
 
+    // 18/08 (phương án A): bấm dòng mở DRAWER cạnh bảng — bảng KHÔNG mất; hồ sơ sau một nút nữa.
+    expect(screen.getByTestId("signal-table")).toBeInTheDocument();
+    expect(screen.getByTestId("signal-drawer")).toHaveAttribute("aria-label", target.name);
+
+    fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
+
     expect(screen.queryByTestId("signal-table")).not.toBeInTheDocument();
     expect(screen.getByTestId("signal-profile")).toBeInTheDocument();
     expect(screen.getByTestId("signal-profile-title").textContent).toBe(target.desc);
@@ -194,35 +174,22 @@ describe("I4b tiêu chí 8 — mở hồ sơ từ bảng, đóng lại được 
   });
 });
 
-describe("I5 — khối bản-khai-không-khớp (T1·T3), chỉ hiện ở nhánh danh sách", () => {
-  /* T4/T5/T7 KHÔNG ở khối này: chúng đã trưng ở khối ① phía trên, hiện lại là trưng một tình trạng
-     hai lần trên cùng một màn (xem docblock SignalGovernanceBlock.tsx). Bản đầu lát I5 quét cả năm
-     testid ở đây — đã sửa theo. */
-  it("khối hiện đủ hai dòng khi đang ở bảng danh sách", () => {
+describe("18/08 tối (owner) — hai khối điều-kiện-đọc RỜI màn signals, thành noti ở CXM Overview", () => {
+  /* Hành vi của noti + hai khối chi tiết (I5 T1·T3, khối ② hai hướng) test ở
+     overview/SignalHealthNoti.test.tsx. Ở đây chỉ chốt chống tái phát: không ai dựng lại
+     khối nào trên màn này — dựng lại là trưng thường trực thứ owner đã chuyển thành ngoại lệ. */
+  it("màn không còn 'Data trust' lẫn 'Declared vs observed' dưới bảng", () => {
     render(<SignalsPage useStore={demoStore()} />);
-    for (const testId of ["gov-t1", "gov-t3"]) {
-      expect(screen.getByTestId(testId)).toBeInTheDocument();
+    for (const id of [
+      "gov-block-toggle",
+      "gov-t1",
+      "gov-t3",
+      "reliability-block-toggle",
+      "reliability-table",
+      "reliability-empty",
+    ]) {
+      expect(screen.queryByTestId(id)).not.toBeInTheDocument();
     }
-  });
-
-  it("khối KHÔNG hiện khi đang mở hồ sơ một điểm đo", () => {
-    const store = demoStore();
-    render(<SignalsPage useStore={store} />);
-    const { data } = store.getState();
-    fireEvent.click(screen.getByTestId(`signal-row-${data.signals[0].id}`));
-    expect(screen.getByTestId("signal-profile")).toBeInTheDocument();
-    for (const testId of ["gov-t1", "gov-t3"]) {
-      expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
-    }
-  });
-
-  it("đóng hồ sơ lại thì khối hiện trở lại", () => {
-    const store = demoStore();
-    render(<SignalsPage useStore={store} />);
-    const { data } = store.getState();
-    fireEvent.click(screen.getByTestId(`signal-row-${data.signals[0].id}`));
-    fireEvent.click(screen.getByTestId("signal-profile-back"));
-    expect(screen.getByTestId("gov-t1")).toBeInTheDocument();
   });
 });
 
@@ -240,5 +207,57 @@ describe("asOf — mốc số liệu đọc qua store, không gõ tay", () => {
     const { data } = store.getState();
     expect(data.asOf).toBeTruthy();
     expect(screen.getByTestId("signal-table-asof-note").textContent).toContain(data.asOf);
+  });
+});
+
+describe("Drawer — tầng tóm tắt giữa bảng và hồ sơ (owner 18/08, phương án A)", () => {
+  it("bấm dòng mở drawer đúng signal, tóm tắt đếm lại từ data; ✕ đóng — bảng còn nguyên mọi dòng", () => {
+    const store = demoStore();
+    render(<SignalsPage useStore={store} />);
+    const { data } = store.getState();
+    const target = data.signals[0];
+
+    fireEvent.click(screen.getByTestId(`signal-row-${target.id}`));
+    expect(screen.getByTestId("signal-drawer")).toHaveAttribute("aria-label", target.name);
+
+    const m0 = target.metrics[0];
+    if (m0) {
+      const name = data.metrics.find((m) => m.id === m0)?.name ?? m0;
+      expect(screen.getByTestId("signal-drawer-metrics").textContent).toContain(name);
+    } else {
+      expect(screen.getByTestId("signal-drawer-metrics").textContent).toContain("no linked metrics");
+    }
+
+    fireEvent.click(screen.getByTestId("signal-drawer-close"));
+    expect(screen.queryByTestId("signal-drawer")).not.toBeInTheDocument();
+    expect(screen.getAllByTestId(/^signal-row-/).length).toBe(data.signals.length);
+  });
+
+  it("prev/next trong drawer đi theo thứ tự bảng, vị trí khai 'n / tổng'", () => {
+    const store = demoStore();
+    render(<SignalsPage useStore={store} />);
+    const { data } = store.getState();
+
+    fireEvent.click(screen.getByTestId(`signal-row-${data.signals[0].id}`));
+    expect(screen.getByTestId("signal-drawer-pos").textContent).toContain(`/ ${data.signals.length}`);
+
+    const posBefore = screen.getByTestId("signal-drawer-pos").textContent;
+    fireEvent.click(screen.getByTestId("signal-drawer-next"));
+    expect(screen.getByTestId("signal-drawer-pos").textContent).not.toBe(posBefore);
+  });
+
+  it("đóng hồ sơ quay về bảng + drawer VẪN MỞ ở đúng điểm đo đang xem", () => {
+    const store = demoStore();
+    render(<SignalsPage useStore={store} />);
+    const { data } = store.getState();
+    const target = data.signals[1];
+
+    fireEvent.click(screen.getByTestId(`signal-row-${target.id}`));
+    fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
+    expect(screen.getByTestId("signal-profile")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("signal-profile-back"));
+    expect(screen.getByTestId("signal-table")).toBeInTheDocument();
+    expect(screen.getByTestId("signal-drawer")).toHaveAttribute("aria-label", target.name);
   });
 });

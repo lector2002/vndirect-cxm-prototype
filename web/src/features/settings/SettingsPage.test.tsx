@@ -15,7 +15,7 @@ describe("SettingsPage", () => {
     render(<SettingsPage useStore={store} />);
     const sw = screen.getByRole("switch");
     expect(sw).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByText("Đang BẬT")).toBeInTheDocument();
+    expect(screen.getByText("ON")).toBeInTheDocument();
   });
 
   it("click switch → tắt Demo Mode, aria-checked=false và store.demoMode=false", () => {
@@ -25,7 +25,7 @@ describe("SettingsPage", () => {
     fireEvent.click(sw);
 
     expect(sw).toHaveAttribute("aria-checked", "false");
-    expect(screen.getByText("Đang TẮT")).toBeInTheDocument();
+    expect(screen.getByText("OFF")).toBeInTheDocument();
     expect(store.getState().demoMode).toBe(false);
     expect(store.getState().data.tax.length).toBe(0);
   });

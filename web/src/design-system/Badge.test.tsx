@@ -5,17 +5,17 @@ import { Badge } from "./Badge.tsx";
 describe("Badge", () => {
   it("state=ok: prefix ✓ và nhãn mặc định", () => {
     render(<Badge state="ok" />);
-    expect(screen.getByTestId("badge")).toHaveTextContent("✓ Đang kiểm soát");
+    expect(screen.getByTestId("badge")).toHaveTextContent("✓ OK");
   });
 
   it("state=unknown: prefix — và nhãn mặc định", () => {
     render(<Badge state="unknown" />);
-    expect(screen.getByTestId("badge")).toHaveTextContent("— Chưa đo được");
+    expect(screen.getByTestId("badge")).toHaveTextContent("— No data");
   });
 
   it("state=watch/crit: không prefix, nhãn mặc định", () => {
     render(<Badge state="watch" />);
-    expect(screen.getByTestId("badge")).toHaveTextContent("Cần theo dõi");
+    expect(screen.getByTestId("badge")).toHaveTextContent("Warning");
     expect(screen.getByTestId("badge").textContent).not.toMatch(/^[✓—]/);
   });
 

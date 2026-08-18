@@ -2,10 +2,9 @@ import { useMemo, useState } from "react";
 import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
 import { SignalInventoryBlock } from "./SignalInventoryBlock.tsx";
-import { SignalReliabilityBlock } from "./SignalReliabilityBlock.tsx";
-import { SignalGovernanceBlock } from "./SignalGovernanceBlock.tsx";
 import { SignalTable } from "./SignalTable.tsx";
 import { SignalProfile } from "./SignalProfile.tsx";
+import { SignalDrawer } from "./SignalDrawer.tsx";
 import {
   EMPTY_SIGNAL_FILTER,
   groupSignalsByPhase,
@@ -37,6 +36,15 @@ import {
    phải của store). Mở hồ sơ thì THAY hẳn hai khối kiểm kê + bảng, không xếp chồng — khớp bố cục
    "MÀN 2" của output/ascii-man-diem-do.txt. Đóng hồ sơ (nút "← Điểm đo") quay lại đúng bảng cũ.
 
+   18/08 chiều (owner chốt redesign, phương án A) — SỬA I4b/"MÀN 2": bấm dòng nay mở DRAWER tóm tắt
+   đứng CẠNH bảng (SignalDrawer.tsx), hồ sơ đầy đủ lùi một nấc sau nút "Open full profile"
+   (`profileOpen`). Đóng hồ sơ quay về bảng + drawer đang mở, không về bảng trần — người dùng đang
+   đứng ở điểm đo đó. Văn bản charter I4b chưa sửa theo — việc của owner.
+
+   18/08 tối (owner) — SỬA CHARTER §6 "buộc trưng" lần nữa: T1·T3 và khối độ tin dữ liệu RỜI HẲN
+   màn này, thành noti chỉ-hiện-khi-lệch ở đầu CXM Overview (overview/SignalHealthNoti.tsx) — hai
+   khối chỉ còn là thân chi tiết của noti đó. Văn bản charter chưa sửa theo — việc của owner.
+
    12/08 (redesign): cả bộ lọc (`filter`) là state của MÀN, cùng loại với `selectedSignalId` — không
    vào store. Nó CHỈ đổi độ đậm của bảng, không cắt dòng nào (F1). Đi tới/lui trong hồ sơ chạy theo
    ĐÚNG thứ tự đang thấy trên bảng, không theo thứ tự `data.signals` gốc: bảng nay chia nhóm theo
@@ -67,6 +75,9 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
   const dims = useStore((s) => s.dims);
   const cfg = useStore((s) => s.cfg);
   const [selectedSignalId, setSelectedSignalId] = useState<string | null>(null);
+  /* Hồ sơ đầy đủ chỉ mở qua nút trong drawer — openSignal KHÔNG đụng cờ này, để prev/next dùng
+     chung được cho cả hai tầng (đang ở tầng nào thì đi tới/lui ở tầng đó). */
+  const [profileOpen, setProfileOpen] = useState(false);
   /* Dòng vừa mở hồ sơ — KHÔNG xoá khi đóng hồ sơ, để bảng tô lại đúng chỗ vừa rời đi. Tách khỏi
      `selectedSignalId` vì hai câu hỏi khác nhau: "đang mở hồ sơ nào" và "vừa xem dòng nào". */
   const [lastOpenedId, setLastOpenedId] = useState<string | null>(null);
@@ -102,20 +113,20 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
         {/* Khi hồ sơ đang mở thì mốc số liệu ở đây IM: thanh đầu hồ sơ ngay dưới đã in đúng chuỗi
             đó, và thanh kia mới là cái còn dính lại khi cuộn. Hai lần cùng một mốc cách nhau 40px
             là một dữ kiện đọc thành hai. */}
-        {data.asOf && !selectedSignal ? (
+        {data.asOf && !(selectedSignal && profileOpen) ? (
           <p className="mb-4 ml-auto text-[12px] text-ink-3" data-testid="signals-asof">
-            Số liệu tính đến {data.asOf}
+            Data as of {data.asOf}
           </p>
         ) : null}
       </div>
 
       {/* luật 11/08 (bổ sung, ghi đè bất biến 9 charter Module I theo owner 11/08): bỏ câu giới hạn đầu màn */}
 
-      {selectedSignal ? (
+      {selectedSignal && profileOpen ? (
         <SignalProfile
           data={data}
           signal={selectedSignal}
-          onBack={() => setSelectedSignalId(null)}
+          onBack={() => setProfileOpen(false)}
           dims={dims}
           cfg={cfg}
           nav={{
@@ -134,21 +145,39 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
             onFacet={(next) => setFilter((f) => ({ ...f, facet: next }))}
           />
 
-          <SignalTable
-            data={data}
-            onSelect={openSignal}
-            matched={matched}
-            selectedId={lastOpenedId}
-            filter={filter}
-            onFilter={setFilter}
-            groups={groups}
-            collapsed={collapsed}
-            onCollapsed={setCollapsed}
-          />
-
-          <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1fr)] items-start gap-4">
-            <SignalReliabilityBlock data={data} dims={dims} />
-            <SignalGovernanceBlock data={data} cfg={cfg} />
+          {/* Drawer đứng CẠNH bảng, không đè: bảng co lại (min-w-0), drawer 320px dính mép trên.
+              Đóng drawer thì bảng giãn về hết bề ngang — cùng một cây DOM, không remount bảng. */}
+          <div className="flex items-start gap-4">
+            <div className="min-w-0 flex-1">
+              <SignalTable
+                data={data}
+                onSelect={openSignal}
+                matched={matched}
+                selectedId={selectedSignalId ?? lastOpenedId}
+                filter={filter}
+                onFilter={setFilter}
+                groups={groups}
+                collapsed={collapsed}
+                onCollapsed={setCollapsed}
+              />
+            </div>
+            {selectedSignal ? (
+              <SignalDrawer
+                data={data}
+                signal={selectedSignal}
+                onClose={() => setSelectedSignalId(null)}
+                onOpenProfile={() => setProfileOpen(true)}
+                nav={{
+                  index: selectedIndex,
+                  total: rows.length,
+                  onPrev: selectedIndex > 0 ? () => openSignal(rows[selectedIndex - 1].id) : undefined,
+                  onNext:
+                    selectedIndex < rows.length - 1
+                      ? () => openSignal(rows[selectedIndex + 1].id)
+                      : undefined,
+                }}
+              />
+            ) : null}
           </div>
         </div>
       )}

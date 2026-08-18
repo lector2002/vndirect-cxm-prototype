@@ -6,10 +6,12 @@ import type { Signal } from "../../data/schema/index.ts";
    nói đúng những chữ đó về cùng một điểm đo, nên tách ra một chỗ. Chép sang file thứ hai là mở đường
    cho hai tab của CÙNG một hồ sơ bước nói hai kiểu về cùng một trạng thái.
 
-   Câu chữ giữ NGUYÊN VĂN, kể cả dấu phẩy trong 'designed'. */
+   18/08 (owner): thuật ngữ UI chuyển sang tiếng Anh quy ước ngành (tracking-plan status kiểu
+   Amplitude/Avo: Live · Validating · Spec ready · Not tracked). 'designed' rút gọn từ câu đầy đủ
+   "Đã có spec, chưa implement" — "Spec ready" đã hàm ý chưa implement, và câu cũ tràn ô ở 1280. */
 export const SIGNAL_STATUS: Record<Signal["st"], { badge: BadgeState; label: string }> = {
-  live: { badge: "ok", label: "Đang đo" },
-  validating: { badge: "watch", label: "Đang validate" },
-  designed: { badge: "watch", label: "Đã có spec, chưa implement" },
-  gap: { badge: "unknown", label: "Chưa đo (gap)" },
+  live: { badge: "ok", label: "Live" },
+  validating: { badge: "watch", label: "Validating" },
+  designed: { badge: "watch", label: "Spec ready" },
+  gap: { badge: "unknown", label: "Not tracked" },
 };

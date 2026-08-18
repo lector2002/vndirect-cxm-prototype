@@ -148,10 +148,10 @@ describe("signalAllocationChain — F2, đi hết tpId → stepId → flowId →
 describe("declaredStateLabel — trục 2 D5, suy từ st (KHÁC trục 1 isSignalRunning suy từ vol)", () => {
   it("bốn nhãn khớp đúng bốn giá trị st, đếm lại trên seed không ghim danh sách tay", () => {
     const LABEL: Record<string, string> = {
-      live: "tin dùng",
-      validating: "đang kiểm chứng",
-      designed: "dự định làm",
-      gap: "biết thiếu chưa làm",
+      live: "trusted",
+      validating: "validating",
+      designed: "spec ready",
+      gap: "not tracked",
     };
     for (const sig of seed.signals) {
       expect(declaredStateLabel(sig)).toBe(LABEL[sig.st]);

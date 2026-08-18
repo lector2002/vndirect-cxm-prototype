@@ -50,7 +50,7 @@ describe("SegmentGroup — xem trước ranh giới dải", () => {
     expect(inBands + unknown).toBe(cust().length);
     for (const l of labels) {
       const n = countIn("nav", l);
-      if (n > 0) expect(screen.getAllByText(`${nf(n)} khách`).length).toBeGreaterThan(0);
+      if (n > 0) expect(screen.getAllByText(`${nf(n)} customers`).length).toBeGreaterThan(0);
     }
   });
 
@@ -59,11 +59,11 @@ describe("SegmentGroup — xem trước ranh giới dải", () => {
     const nav = within(screen.getByTestId("axis-nav"));
     const before = cfg().segment.band.nav.cuts.slice();
 
-    const field = screen.getByLabelText("Ranh giới thứ 1 của Phân khúc NAV");
+    const field = screen.getByLabelText("Boundary 1 — Phân khúc NAV");
     fireEvent.change(field, { target: { value: "1" } });
     fireEvent.blur(field);
 
-    expect(nav.getByText("Dải sẽ thành thế này sau khi lưu")).toBeTruthy();
+    expect(nav.getByText("Bands after save")).toBeTruthy();
     expect(cfg().segment.band.nav.cuts).toEqual(before);
 
     // Dải mới phải hiện được nhãn sinh từ ranh giới nháp — đây là cái E7 gọi là "xem trước".
@@ -76,12 +76,12 @@ describe("SegmentGroup — xem trước ranh giới dải", () => {
     const nav = within(screen.getByTestId("axis-nav"));
     const before = cfg().segment.band.nav.cuts.slice();
 
-    const field = screen.getByLabelText("Ranh giới thứ 2 của Phân khúc NAV");
+    const field = screen.getByLabelText("Boundary 2 — Phân khúc NAV");
     fireEvent.change(field, { target: { value: "1" } });
     fireEvent.blur(field);
 
     expect(nav.getByText(/Ranh giới phải tăng dần/)).toBeTruthy();
-    const save = nav.getByRole("button", { name: "Lưu ranh giới" });
+    const save = nav.getByRole("button", { name: "Save boundaries" });
     expect(save.hasAttribute("disabled")).toBe(true);
     fireEvent.click(save);
     expect(cfg().segment.band.nav.cuts).toEqual(before);
@@ -102,10 +102,10 @@ describe("SegmentGroup — xem trước ranh giới dải", () => {
     const axisBefore = cfg().segment.band.nav;
     expect(bandOf(zero!.navVnd, axisBefore)).toBe(bandOf(small!.navVnd, axisBefore));
 
-    const field = screen.getByLabelText("Ranh giới thứ 1 của Phân khúc NAV");
+    const field = screen.getByLabelText("Boundary 1 — Phân khúc NAV");
     fireEvent.change(field, { target: { value: "1" } });
     fireEvent.blur(field);
-    fireEvent.click(nav.getByRole("button", { name: "Lưu ranh giới" }));
+    fireEvent.click(nav.getByRole("button", { name: "Save boundaries" }));
 
     // Sửa MỘT mốc là THAY mốc đó, không phải chèn thêm — số dải giữ nguyên.
     expect(cfg().segment.band.nav.cuts).toEqual([1, ...before.slice(1)]);
@@ -124,8 +124,8 @@ describe("SegmentGroup — xem trước ranh giới dải", () => {
     const nav = within(screen.getByTestId("axis-nav"));
     const before = cfg().segment.band.nav.cuts.length;
 
-    fireEvent.click(nav.getByRole("button", { name: "+ Thêm ranh giới" }));
-    fireEvent.click(nav.getByRole("button", { name: "Lưu ranh giới" }));
+    fireEvent.click(nav.getByRole("button", { name: "+ Add boundary" }));
+    fireEvent.click(nav.getByRole("button", { name: "Save boundaries" }));
 
     expect(cfg().segment.band.nav.cuts.length).toBe(before + 1);
     expect(bandLabels(cfg().segment.band.nav).length).toBe(before + 2);
@@ -142,7 +142,7 @@ describe("SegmentGroup — xem trước ranh giới dải", () => {
     expect(read).not.toBeNull();
     expect(screen.getAllByText(`= ${read}`).length).toBeGreaterThan(0);
 
-    const field = screen.getByLabelText("Ranh giới thứ 1 của Phân khúc NAV") as HTMLInputElement;
+    const field = screen.getByLabelText("Boundary 1 — Phân khúc NAV") as HTMLInputElement;
     fireEvent.change(field, { target: { value: "1" } });
     fireEvent.blur(field);
 

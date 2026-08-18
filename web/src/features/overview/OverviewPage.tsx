@@ -20,6 +20,7 @@ import {
 import { CustomBanner } from "./CustomBanner.tsx";
 import { effectiveMonths, maxRealMonths, SEC, type SecKey } from "./sec.ts";
 import { SetChips } from "./SetChips.tsx";
+import { SignalHealthNoti } from "./SignalHealthNoti.tsx";
 
 export type OverviewPageProps = {
   sec: SecKey;
@@ -159,6 +160,10 @@ export function OverviewPage({ sec, useStore = useCxmStore }: OverviewPageProps)
         </p>
       ) : null}
       {custom ? <CustomBanner onReset={() => resetBoard(cur.id)} /> : <div className="h-3.5" />}
+
+      {/* Noti ngoại lệ điểm đo (owner 18/08 tối) — chỉ phần CXM, ẩn hẳn khi không có gì lệch;
+          lý do dời khỏi #/signals: docblock SignalHealthNoti.tsx. */}
+      {sec === "cxm" ? <SignalHealthNoti data={data} cfg={cfg} dims={dims} /> : null}
 
       {cur.qs.map((qq, qi) => {
         const bs = curBlocks(qi);

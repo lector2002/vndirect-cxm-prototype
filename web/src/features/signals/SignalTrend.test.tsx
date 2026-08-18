@@ -27,11 +27,13 @@ const lineSignal = demoData.signals.find(
 )!;
 
 describe("Mặt 4 — đường theo thời gian nối vào lát cắt", () => {
-  it("Demo Mode BẬT: có chart trục thời gian, và nhãn nói rõ mẫu số của đường", () => {
+  it("Demo Mode BẬT: có chart trục thời gian — KHÔNG còn chú thích cách đọc dưới trục (owner 18/08 tối ghi đè §4)", () => {
     open(lineSignal);
     expect(screen.getByTestId("sigtrend-chart")).toBeInTheDocument();
-    /* §4: "tỉ lệ" mà không nói tỉ lệ trên cái gì là chỗ người đọc tự điền một mẫu số họ đoán. */
-    expect(screen.getByTestId("sigtrend-unit").textContent).toMatch(/tổng lượt bắn của chính điểm đo trong kỳ/);
+    /* Owner 18/08 tối ghi đè §4 ADR-001: bỏ câu "Đường:.../Dải dưới:..." — người dùng không đọc.
+       Chỉ còn dòng lệch bản khai (sigtrend-undeclared) khi có giá trị ngoài bản khai. */
+    expect(screen.queryByText(/tổng lượt bắn của chính điểm đo trong kỳ/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Đường:/)).not.toBeInTheDocument();
   });
 
   /* Owner 14/08 nhìn bản dựng đầu: *"chart đang ko hiển thị số lượng của cột hoặc trục dọc để biết

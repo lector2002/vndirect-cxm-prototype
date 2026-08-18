@@ -41,8 +41,8 @@ import { AtlasStepInspector } from "./AtlasStepInspector.tsx";
 /** Xám "chờ nguồn" của chấm flow — không có token nào mang đúng nghĩa này (nhạt hơn `--ink3`, đậm
     hơn `--line`), nên nó là hằng ở đây. XUẤT RA để test và chú giải cùng đọc MỘT chỗ: bản trước gõ
     lại mã màu này trong test, nên đổi bảng màu là test đỏ vì một con số bị ghim chứ không phải vì
-    luật nào gãy. 12/08 tối: #D6D1CB → #CFC6B6 theo bảng màu "Giấy đậm". */
-export const FLOW_DOT_PENDING = "#CFC6B6";
+    luật nào gãy. 12/08 tối: #D6D1CB → #CFC6B6 theo "Giấy đậm"; 18/08: → #C6CDD6 theo "Trung tính lạnh". */
+export const FLOW_DOT_PENDING = "#C6CDD6";
 
 /** Màu chấm trạng thái flow trên rail/chip — port dotOf() (prototype dòng 3370). PHÉP SUY ba nhánh là
     port 1-1; hex xám chờ nguồn thì KHÔNG còn: 12\08 tối #D6D1CB (hex prototype) được kéo về "Giấy đậm"

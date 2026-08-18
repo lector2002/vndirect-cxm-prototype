@@ -52,9 +52,10 @@ const STATE_CARD_CLASS: Record<SpineStep["state"], string> = {
 
 /** Port 1-1 .cxloss (prototype dòng 308) — hatch chéo, KHÔNG phải màu đặc, để phân biệt được dải
     rơi mà không chỉ dựa vào hue (rule 6, accessibility). CẤU TRÚC là port 1-1; MÃ MÀU thì không:
-    12/08 tối hex sẫm được kéo theo bảng màu "Giấy đậm", #8F2A23 (bản prototype) → #7D1A12. */
+    12/08 tối hex sẫm được kéo theo bảng màu "Giấy đậm", #8F2A23 (bản prototype) → #7D1A12;
+    18/08 kéo tiếp theo "Trung tính lạnh" (crit #a52218 → #b3261e) thành #8A1D16. */
 const LOSS_HATCH =
-  "repeating-linear-gradient(45deg, var(--crit), var(--crit) 3px, #7D1A12 3px, #7D1A12 6px)";
+  "repeating-linear-gradient(45deg, var(--crit), var(--crit) 3px, #8A1D16 3px, #8A1D16 6px)";
 
 function StepCard({
   step,
@@ -118,9 +119,9 @@ function Connector({ from, to, base }: { from: SpineStep; to: SpineStep; base: n
           className="absolute left-0 right-0 top-0"
           style={{
             height: `${passPx}px`,
-            background: "linear-gradient(90deg, rgba(140,134,129,.34), rgba(140,134,129,.14))",
-            borderTop: "1px solid #C8BFAE",
-            borderBottom: "1px solid #C8BFAE",
+            background: "linear-gradient(90deg, rgba(132,138,146,.34), rgba(132,138,146,.14))",
+            borderTop: "1px solid #C3CAD3",
+            borderBottom: "1px solid #C3CAD3",
           }}
         />
         <div

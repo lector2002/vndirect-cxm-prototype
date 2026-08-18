@@ -230,7 +230,6 @@ export function QuantifyBuilder({
       ...(qb.by ? { by: qb.by } : {}),
       ...splitFields,
       ...stackFields,
-      ...(existing.note ? { note: existing.note } : {}),
     };
     saveQuantify(next);
     onSaved();

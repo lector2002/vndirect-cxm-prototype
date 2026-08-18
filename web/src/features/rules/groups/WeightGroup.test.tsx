@@ -25,7 +25,7 @@ describe("WeightGroup — trọng số sửa được, xem trước trước khi
     const { cfg } = useCxmStore.getState();
     const sum = PRI_KEYS.reduce((a, k) => a + cfg.pri.w[k], 0);
     expect(sum).toBe(100);
-    expect(screen.getByTestId("weight-sum").textContent).toContain(`Tổng: ${sum}`);
+    expect(screen.getByTestId("weight-sum").textContent).toContain(`Total: ${sum}`);
   });
 
   it("sửa một ô làm tổng lệch 100 → nút lưu bị khoá và nói còn thiếu bao nhiêu", () => {
@@ -45,6 +45,7 @@ describe("WeightGroup — trọng số sửa được, xem trước trước khi
 
   it("bảng xem trước khớp đúng kết quả của scoreIssues, tính độc lập trong test", () => {
     render(<WeightGroup />);
+    fireEvent.click(screen.getByTestId("apply-toggle")); // 18/08: khối gấp mặc định
     const { data, cfg, dims } = useCxmStore.getState();
     const scores = scoreIssues(data, cfg, dims);
     const rankable = data.iss.filter((i) => {

@@ -80,19 +80,30 @@ import {
 /* `width` là bề rộng THẬT của cột — bảng chạy `table-fixed` (xem chỗ khai `<table>` bên dưới). Để
    layout auto thì trình duyệt chia theo chữ dài nhất trong cột: cột "Tên event" có tên event dài
    nhất màn nên nó nuốt gần một phần ba bảng, cột chỉ số bị bóp xuống ba dòng chữ mỗi ô, và hàng
-   tiêu đề gãy 1/2/3 dòng lởm chởm. Sáu số dưới đây cộng đúng 100%, đo bằng mắt ở 1280px.
+   tiêu đề gãy 1/2/3 dòng lởm chởm. Bốn số dưới đây cộng đúng 100%, đo bằng mắt ở 1280px.
 
    12/08 (owner) — TÊN CỘT THEO MỘT QUY ƯỚC, không còn câu hỏi: mỗi tên là một CỤM DANH TỪ, mở đầu
-   bằng danh từ chỉ thứ mà cột chứa (Tên · Trạng thái · Lưu lượng · Chỉ số · Mốc), không kết bằng từ
-   để hỏi ("nào", "không"), phần bổ nghĩa xuất xứ/mẫu số nằm trong ngoặc hoặc sau dấu gạch.
-   Hai cột trạng thái CỐ Ý cùng mở đầu "Trạng thái" — đó là quy ước, không phải trùng lặp. */
+   bằng danh từ chỉ thứ mà cột chứa, không kết bằng từ để hỏi, phần bổ nghĩa xuất xứ/mẫu số nằm
+   trong ngoặc hoặc sau dấu gạch.
+
+   18/08 (owner) — THUẬT NGỮ SANG TIẾNG ANH QUY ƯỚC NGÀNH, thay các cụm tự chế: "Chỉ số được nuôi"
+   → "Linked metrics", "Mốc thấy cuối" → "Last seen" (chuẩn Segment/Amplitude), "Trạng thái tin
+   dùng" → "Status" (tracking-plan status), "Trạng thái chạy" → "Traffic" (chấm = đang nhận event).
+   Quy ước cụm-danh-từ 12/08 vẫn áp — chỉ đổi ngôn ngữ.
+
+   18/08 chiều (owner chốt redesign, phương án A) — BẢNG 6 CỘT CO CÒN 4: mặt bảng chỉ giữ thứ cần
+   để QUÉT (tên, trạng thái, lưu lượng, mốc cuối); phần tra cứu (Linked metrics, source feed, chuỗi
+   allocate) dời sang drawer mở khi bấm dòng. Hai cột gộp làm một: chấm Traffic + số Volume /day là
+   HAI MẶT của cùng dữ kiện (chấm suy từ vol>0) — đứng hai cột là đếm một chuyện hai lần.
+
+   18/08 tối (owner) — BỎ XUẤT XỨ KHỎI MẶT BẢNG: cột Last seen chỉ còn mốc trần. Vế "khai người
+   gõ" của D6 dời xuống drawer + hồ sơ (một cú bấm, SignalDrawer.tsx vẫn khai "self-reported" /
+   "source feed" ở từng mốc). Văn bản D6 còn ghi "ngay tại dòng" — chưa sửa theo, việc của owner. */
 const HEADERS: readonly { label: string; align: "left" | "right" | "center"; width: string }[] = [
-  { label: "Tên event", align: "left", width: "26%" },
-  { label: "Trạng thái chạy", align: "center", width: "10%" },
-  { label: "Lưu lượng /ngày", align: "right", width: "11%" },
-  { label: "Chỉ số được nuôi", align: "left", width: "22%" },
-  { label: "Mốc thấy cuối", align: "left", width: "15%" },
-  { label: "Trạng thái tin dùng", align: "left", width: "16%" },
+  { label: "Event", align: "left", width: "46%" },
+  { label: "Status", align: "left", width: "14%" },
+  { label: "Traffic", align: "right", width: "18%" },
+  { label: "Last seen", align: "left", width: "22%" },
 ];
 
 const ALIGN: Record<"left" | "right" | "center", string> = {
@@ -168,11 +179,6 @@ function useElementHeight<T extends HTMLElement>(ref: React.RefObject<T | null>)
     return () => ro.disconnect();
   }, [ref]);
   return h;
-}
-
-function metricNames(data: CxmData, sig: Signal): string {
-  if (sig.metrics.length === 0) return "chưa nuôi chỉ số nào";
-  return sig.metrics.map((id) => data.metrics.find((m) => m.id === id)?.name ?? id).join(", ");
 }
 
 /* Ô lọc theo trường. `<select>` chứ không phải chip: bốn trường này có 4–8 giá trị mỗi trường (và
@@ -259,14 +265,14 @@ export function SignalTable({
   return (
     <div className="rounded border border-line bg-surface shadow-card">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
-        <div className="flex w-[320px] items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 focus-within:border-primary-line focus-within:ring-2 focus-within:ring-[var(--primary-ring)]">
+        <div className="flex min-w-[220px] max-w-[320px] flex-1 items-center gap-2 rounded-lg border border-line bg-surface px-2.5 py-1.5 focus-within:border-primary-line focus-within:ring-2 focus-within:ring-[var(--primary-ring)]">
           <SearchIcon />
           <input
             type="text"
             value={filter.query}
             onChange={(e) => set({ query: e.target.value })}
-            aria-label="Tìm điểm đo"
-            placeholder="Tên event, nhãn, chỉ số, bước, phase"
+            aria-label="Search signals"
+            placeholder="Event, label, metric, step, phase"
             data-testid="signal-table-search"
             className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-3"
           />
@@ -274,7 +280,7 @@ export function SignalTable({
             <button
               type="button"
               onClick={() => set({ query: "" })}
-              aria-label="Xoá ô tìm"
+              aria-label="Clear search"
               data-testid="signal-table-search-clear"
               className="flex-none rounded text-ink-3 hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
             >
@@ -284,12 +290,12 @@ export function SignalTable({
         </div>
 
         <FilterSelect
-          label="Lọc theo phase"
+          label="Filter by phase"
           testId="signal-filter-phase"
           value={filter.phaseId ?? ""}
           onChange={(v) => set({ phaseId: v === "" ? null : v })}
         >
-          <option value="">Mọi phase</option>
+          <option value="">All phases</option>
           {data.phases.map((p) => (
             <option key={p.id} value={p.id}>
               {p.code} {p.name}
@@ -301,12 +307,12 @@ export function SignalTable({
         </FilterSelect>
 
         <FilterSelect
-          label="Lọc theo trạng thái tin dùng"
+          label="Filter by status"
           testId="signal-filter-st"
           value={filter.st ?? ""}
           onChange={(v) => set({ st: v === "" ? null : (v as Signal["st"]) })}
         >
-          <option value="">Mọi trạng thái tin dùng</option>
+          <option value="">All statuses</option>
           {(Object.keys(SIGNAL_STATUS) as Signal["st"][]).map((st) => (
             <option key={st} value={st}>
               {SIGNAL_STATUS[st].label}
@@ -315,12 +321,12 @@ export function SignalTable({
         </FilterSelect>
 
         <FilterSelect
-          label="Lọc theo chỉ số"
+          label="Filter by metric"
           testId="signal-filter-metric"
           value={filter.metricId ?? ""}
           onChange={(v) => set({ metricId: v === "" ? null : v })}
         >
-          <option value="">Mọi chỉ số</option>
+          <option value="">All metrics</option>
           {metricsInUse.map((m) => (
             <option key={m.id} value={m.id}>
               {m.name}
@@ -329,18 +335,18 @@ export function SignalTable({
         </FilterSelect>
 
         <FilterSelect
-          label="Lọc theo nguồn giao"
+          label="Filter by source"
           testId="signal-filter-src"
           value={filter.srcId ?? ""}
           onChange={(v) => set({ srcId: v === "" ? null : v })}
         >
-          <option value="">Mọi nguồn giao</option>
+          <option value="">All sources</option>
           {sourcesInUse.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
             </option>
           ))}
-          {hasUnlinked ? <option value={SRC_UNLINKED}>Chưa nối nguồn</option> : null}
+          {hasUnlinked ? <option value={SRC_UNLINKED}>No source linked</option> : null}
         </FilterSelect>
 
         {/* Một nút cho cả bảng: ở vài trăm điểm đo, thu gọn tám phase bằng tám cú bấm là việc thừa.
@@ -352,7 +358,7 @@ export function SignalTable({
           className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] text-ink-2 hover:border-primary-line hover:bg-primary-soft hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
         >
           <Chevron open={!allCollapsed} />
-          {allCollapsed ? "Mở mọi nhóm" : "Thu gọn mọi nhóm"}
+          {allCollapsed ? "Expand all groups" : "Collapse all groups"}
         </button>
 
         <div className="ml-auto flex items-baseline gap-3 text-[12px]">
@@ -361,7 +367,7 @@ export function SignalTable({
               className="rounded-[7px] border border-primary-line bg-primary-soft px-2 py-0.5 text-ink-2 tabular-nums"
               data-testid="signal-table-count"
             >
-              Đang tô {matched.size} / {data.signals.length} điểm đo
+              Highlighting {matched.size} / {data.signals.length} signals
             </span>
           ) : null}
           {/* luật 12/08: bỏ hai vế dạy cách đọc cột ("Lưu lượng là số của MỘT NGÀY", "Cột Thấy lần
@@ -369,7 +375,7 @@ export function SignalTable({
               nằm ngay trong từng ô của cột. Còn lại đúng MỘT dữ kiện: mốc số liệu của lô đang xem. */}
           {data.asOf ? (
             <span className="t-meta text-[12px]" data-testid="signal-table-asof-note">
-              Mốc số liệu {data.asOf}
+              Data as of {data.asOf}
             </span>
           ) : null}
         </div>
@@ -377,7 +383,7 @@ export function SignalTable({
 
       {/* `table-fixed`: với layout auto, bề rộng ở `<colgroup>` chỉ là GỢI Ý — trình duyệt vẫn kéo
           cột theo chữ dài nhất, nên hàng tiêu đề gãy 1/2/3 dòng lởm chởm và hai cột tên dài nhất
-          vẫn nuốt phần của cột bên cạnh. Cố định thì bảy bề rộng dưới đây là bề rộng THẬT, hàng
+          vẫn nuốt phần của cột bên cạnh. Cố định thì bốn bề rộng dưới đây là bề rộng THẬT, hàng
           tiêu đề gãy đúng chỗ mình chọn. Ô nào dài hơn thì xuống dòng — không cắt chữ. */}
       <table className="w-full table-fixed border-collapse text-[13px]" data-testid="signal-table">
         <colgroup>
@@ -393,7 +399,9 @@ export function SignalTable({
                 /* Vạch chân tiêu đề vẽ bằng inset shadow, KHÔNG bằng border-b: trong bảng
                    border-collapse, viền của ô dính (sticky) bị gộp vào ô dưới nên nó biến mất ngay
                    khi bảng cuộn — đúng lúc cần nhất. */
-                className={`sticky top-0 z-10 bg-surface px-3 py-2 text-xs font-semibold text-ink-2 shadow-[inset_0_-2px_0_var(--line)] ${ALIGN[h.align]}`}
+                /* 18/08 (S4): hàng tiêu đề cột mang nền surface-2 — trước đây cùng bg-surface với
+                   thân bảng nên ranh giới "đây là nhãn, dưới là dữ liệu" chỉ còn mỗi vạch chân. */
+                className={`sticky top-0 z-10 bg-surface-2 px-3 py-2 text-xs font-semibold text-ink-2 shadow-[inset_0_-2px_0_var(--line)] ${ALIGN[h.align]}`}
               >
                 {h.label}
               </th>
@@ -432,10 +440,10 @@ export function SignalTable({
                       phá F1: mẫu số không rời khỏi màn. */}
                   <span className="font-normal tabular-nums text-ink-3">
                     {grp.matched === null ? (
-                      `${grp.signals.length} điểm đo`
+                      `${grp.signals.length} signals`
                     ) : (
                       <span data-testid={`signal-group-count-${key}`}>
-                        {grp.matched} / {grp.signals.length} khớp
+                        {grp.matched} / {grp.signals.length} match
                       </span>
                     )}
                   </span>
@@ -445,7 +453,6 @@ export function SignalTable({
             {(open ? grp.signals : []).map((sig) => {
               const running = isSignalRunning(sig);
               const status = SIGNAL_STATUS[sig.st];
-              const noMetric = sig.metrics.length === 0;
               const dimmed = matched ? !matched.has(sig.id) : false;
               const feedLast = signalFeedLast(sig, data.sources);
               return (
@@ -460,48 +467,37 @@ export function SignalTable({
                     sig.id === selectedId ? "bg-primary-soft" : "hover:bg-surface-2"
                   } ${dimmed ? "opacity-50" : ""}`}
                 >
-                  <td className="border-b border-line px-3 py-2">
+                  <td className="border-b border-line-soft px-3 py-2">
                     <code className="font-mono text-[12px] text-primary">{sig.name}</code>
                     <div className="t-meta text-[12px] mt-0.5">{sig.desc}</div>
                   </td>
+                  <td className="border-b border-line-soft px-3 py-2 whitespace-nowrap">
+                    <Badge state={status.badge} text={status.label} />
+                  </td>
                   <td
-                    className="border-b border-line px-3 py-2 text-center"
+                    className="border-b border-line-soft px-3 py-2 text-right tabular-nums whitespace-nowrap"
                     data-testid={`signal-running-${sig.id}`}
-                    aria-label={running ? "đang chạy" : "chưa chạy"}
+                    aria-label={running ? "receiving traffic" : "no traffic"}
                   >
                     {/* Chấm vẽ bằng hộp chứ không bằng ký tự ●/○: hai ký tự đó khác nhau cả cỡ lẫn
                         trọng lượng nét tuỳ font, nên cột này lúc nhìn lướt không thành hai mức rõ. */}
                     <span
-                      className={`inline-block h-2 w-2 rounded-full align-middle ${
+                      className={`mr-1.5 inline-block h-2 w-2 rounded-full align-middle ${
                         running ? "bg-ink" : "border border-ink-3"
                       }`}
                     />
+                    {sig.vol ? `${nf(sig.vol)}/day` : "—"}
                   </td>
-                  <td className="border-b border-line px-3 py-2 text-right tabular-nums whitespace-nowrap">
-                    {sig.vol ? `${nf(sig.vol)}/ngày` : "—"}
-                  </td>
-                  <td className={`border-b border-line px-3 py-2 ${noMetric ? "text-ink-3 italic" : ""}`}>
-                    {metricNames(data, sig)}
-                  </td>
-                  {/* Hai xuất xứ KHÁC NHAU trong cùng một cột, nên mỗi ô tự khai xuất xứ của nó —
-                      đây là điều D6 buộc: không được để người đọc tưởng mốc người gõ là mốc máy. */}
-                  <td className="border-b border-line px-3 py-2 whitespace-nowrap">
+                  {/* 18/08 tối (owner): mốc trần, không kèm xuất xứ — xuất xứ nằm ở drawer/hồ sơ
+                      (D6 khai ở đó). Vẫn ưu tiên mốc máy của nguồn khi có, y hệ trước. */}
+                  <td className="border-b border-line-soft px-3 py-2">
                     {feedLast ? (
-                      <>
-                        <div className="t-meta">{feedLast}</div>
-                        <div className="text-[11px] text-ink-3">máy · nguồn giao</div>
-                      </>
+                      <span className="t-meta">{feedLast}</span>
                     ) : sig.seen ? (
-                      <>
-                        <div className="t-meta">{sig.seen}</div>
-                        <div className="text-[11px] text-ink-3">người khai</div>
-                      </>
+                      <span className="t-meta">{sig.seen}</span>
                     ) : (
-                      <span className="text-ink-3">chưa từng</span>
+                      <span className="text-ink-3">never</span>
                     )}
-                  </td>
-                  <td className="border-b border-line px-3 py-2 whitespace-nowrap">
-                    <Badge state={status.badge} text={status.label} />
                   </td>
                 </tr>
               );

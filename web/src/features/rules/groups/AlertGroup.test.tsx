@@ -23,6 +23,7 @@ function deadCount(): number {
 describe("AlertGroup — các ngưỡng cảnh báo + áp ngay lúc này", () => {
   it("hiện đúng số nguồn Ngừng gửi ứng với deadDays mặc định", () => {
     render(<AlertGroup />);
+    fireEvent.click(screen.getByTestId("apply-toggle")); // 18/08: khối "áp ngay" gấp mặc định
     const n = deadCount();
     expect(n).toBeGreaterThan(0); // seed hôm nay có src-zalo im lặng 192h > 2 ngày mặc định
     expect(screen.getAllByText(new RegExp(`${n} nguồn`)).length).toBeGreaterThan(0);
@@ -30,10 +31,11 @@ describe("AlertGroup — các ngưỡng cảnh báo + áp ngay lúc này", () =>
 
   it("đổi data.deadDays qua ô nhập ⇒ câu 'bao nhiêu nguồn bị coi là Ngừng gửi' đổi theo", () => {
     render(<AlertGroup />);
+    fireEvent.click(screen.getByTestId("apply-toggle"));
     const before = deadCount();
     expect(before).toBeGreaterThan(0);
 
-    const field = screen.getByLabelText("Ngưỡng Ngừng gửi (ngày quá nhịp giao)");
+    const field = screen.getByLabelText("Stopped-source threshold (days past cadence)");
     fireEvent.change(field, { target: { value: "30" } });
     fireEvent.blur(field);
 
@@ -45,7 +47,8 @@ describe("AlertGroup — các ngưỡng cảnh báo + áp ngay lúc này", () =>
 
   it("đổi repeatWarn/churnWarn ⇒ số điểm gãy bị tô đỏ đổi theo, tính độc lập trên data.iss", () => {
     render(<AlertGroup />);
-    const field = screen.getByLabelText("Ngưỡng tô đỏ repeat contact");
+    fireEvent.click(screen.getByTestId("apply-toggle"));
+    const field = screen.getByLabelText("Repeat-contact red threshold");
     fireEvent.change(field, { target: { value: "0" } });
     fireEvent.blur(field);
 
@@ -61,7 +64,7 @@ describe("AlertGroup — các ngưỡng cảnh báo + áp ngay lúc này", () =>
     render(<AlertGroup />);
     const before = cfg().data.deadDays;
 
-    const field = screen.getByLabelText("Ngưỡng Ngừng gửi (ngày quá nhịp giao)");
+    const field = screen.getByLabelText("Stopped-source threshold (days past cadence)");
     fireEvent.change(field, { target: { value: "0" } });
     fireEvent.blur(field);
 
@@ -87,9 +90,9 @@ describe("AlertGroup — các ngưỡng cảnh báo + áp ngay lúc này", () =>
   it("mỗi ô số đều ghi đúng khoá cfg tương ứng", () => {
     render(<AlertGroup />);
     const cases: [string, number, "data" | "anomaly", string][] = [
-      ["Ngưỡng Z-score đánh dấu bất thường", 1, "anomaly", "z"],
-      ["Cooldown khảo sát toàn cục", 7, "data", "cooldown"],
-      ["Ngưỡng tô đỏ số khách có tín hiệu churn", 40, "data", "churnWarn"],
+      ["Z-score anomaly threshold", 1, "anomaly", "z"],
+      ["Global survey cooldown", 7, "data", "cooldown"],
+      ["Churn-signal red threshold (customers)", 40, "data", "churnWarn"],
     ];
     for (const [label, value, group, key] of cases) {
       const field = screen.getByLabelText(label);

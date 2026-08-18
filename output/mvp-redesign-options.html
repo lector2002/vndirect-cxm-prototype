@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Redesign 3 màn MVP — nguyên tắc + 3 hướng</title>
+<style>
+  /* ============ khung trang trình bày (không phải token của app) ============ */
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    font: 15px/1.6 -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #26221e; color: #e8e4de; padding: 40px 24px 120px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 26px; margin-bottom: 6px; }
+  .sub { color: #a89e92; margin-bottom: 36px; }
+  h2 { font-size: 19px; margin: 48px 0 14px; padding-top: 24px; border-top: 1px solid #46403a; }
+  h3 { font-size: 15px; margin: 22px 0 10px; }
+  p.note { color: #a89e92; font-size: 13.5px; margin: 8px 0 16px; }
+  table.doc { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 12px 0; }
+  table.doc th, table.doc td { border: 1px solid #46403a; padding: 8px 10px; text-align: left; vertical-align: top; }
+  table.doc th { background: #322d28; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  table.doc td.src { color: #a89e92; font-size: 12.5px; }
+  code { font: 12.5px ui-monospace, Menlo, monospace; background: #322d28; padding: 1px 5px; border-radius: 4px; }
+  .tag { display: inline-block; font: 700 11px/1 ui-monospace, monospace; letter-spacing: .08em;
+         padding: 4px 8px; border-radius: 4px; margin-right: 8px; }
+  .tag.a { background: #6b4a2f; } .tag.b { background: #2f4a6b; } .tag.c { background: #4a4a4a; }
+  ul { padding-left: 22px; } li { margin: 6px 0; }
+
+  /* ============ khung preview: mỗi hướng một bộ biến cục bộ ============ */
+  .opt { margin: 26px 0 60px; }
+  .opt-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+  .opt-head b { font-size: 17px; }
+  .opt-head span { color: #a89e92; font-size: 13px; }
+  .swatches { display: flex; gap: 6px; margin: 10px 0 14px; flex-wrap: wrap; }
+  .sw { width: 88px; font: 10.5px ui-monospace, monospace; color: #a89e92; }
+  .sw i { display: block; height: 26px; border-radius: 4px; border: 1px solid #46403a; margin-bottom: 3px; }
+
+  /* canvas mô phỏng app — dùng biến --p* của từng .opt */
+  .mock {
+    background: var(--bg); color: var(--ink); border-radius: 10px; overflow: hidden;
+    border: 1px solid #55504a; font: 12px/1.5 -apple-system, 'Segoe UI', Roboto, sans-serif;
+    display: grid; grid-template-columns: 168px 1fr;
+  }
+  .mock + .mock { margin-top: 14px; }
+
+  /* sidebar */
+  .sb { background: var(--sb-bg); border-right: 1px solid var(--line); padding: 10px 8px; }
+  .sb .logo { display: flex; gap: 7px; align-items: center; font-weight: 700; font-size: 11.5px;
+              color: var(--ink); padding: 4px 6px 12px; }
+  .sb .logo i { width: 20px; height: 20px; border-radius: 5px; background: var(--primary); color: #fff;
+                display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 11px; }
+  .sb .grp { font: 700 9px/1 ui-monospace, monospace; letter-spacing: .09em; color: var(--ink3);
+             text-transform: uppercase; padding: 10px 6px 5px; }
+  .sb .it { padding: 5px 8px; border-radius: 6px; color: var(--ink2); display: flex; gap: 6px; align-items: center; }
+  .sb .it.dim { opacity: .38; }
+  .sb .it.on { background: var(--primary); color: #fff; font-weight: 600; }
+  .sb .it::before { content: ''; width: 10px; height: 10px; border: 1.4px solid currentColor;
+                    border-radius: 3px; opacity: .75; }
+
+  /* vùng nội dung */
+  .cv { padding: 12px 16px 16px; min-width: 0; }
+  .topbar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .chips { display: flex; background: var(--surface2); border: 1px solid var(--line); border-radius: 7px; padding: 2px; }
+  .chips b { padding: 3px 9px; border-radius: 5px; color: var(--ink3); font-weight: 500; }
+  .chips b.on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .gsearch { flex: 1; display: flex; align-items: center; gap: 6px; background: var(--surface);
+             border: 1px solid var(--line); border-radius: 7px; padding: 4px 10px; color: var(--ink3); }
+  .ttl { display: flex; align-items: baseline; gap: 10px; margin: 2px 0 10px; }
+  .ttl b { font-size: 16px; font-weight: 700; }
+  .ttl span { margin-left: auto; color: var(--ink3); font-size: 11px; }
+
+  /* hàng KPI */
+  .kpis { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+  .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+         padding: 8px 12px; position: relative; cursor: pointer; }
+  .kpi.on { border-color: var(--primary); box-shadow: inset 3px 0 0 var(--primary); }
+  .kpi .n { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .kpi .n small { font-size: 12px; color: var(--ink3); font-weight: 500; }
+  .kpi .l { color: var(--ink2); font-size: 11px; }
+  .quiet { color: var(--ink3); font-size: 11px; padding: 2px 2px 8px; display: flex; gap: 18px; }
+  .quiet b { color: var(--ink2); }
+
+  /* bảng */
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+          overflow: hidden; box-shadow: var(--sh); }
+  .tools { display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .tools .in { flex: 1; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; color: var(--ink3);
+               background: var(--surface); }
+  .tools .sel { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; color: var(--ink2);
+                background: var(--surface); }
+  tbl, table.t { border-collapse: collapse; width: 100%; font-size: 11.5px; }
+  table.t th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .05em;
+               color: var(--ink3); font-weight: 600; padding: 6px 10px; background: var(--th-bg);
+               border-bottom: 1px solid var(--line); }
+  table.t th.r, table.t td.r { text-align: right; }
+  table.t td { padding: 6px 10px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  table.t tr.hov td { background: var(--hov); }
+  table.t td .ev { font: 600 11px ui-monospace, Menlo, monospace; color: var(--link); }
+  table.t td .de { color: var(--ink3); font-size: 10.5px; }
+  table.t td.num { font-variant-numeric: tabular-nums; }
+  tr.ph td { background: var(--ph-bg); color: var(--ink2); font-weight: 700; font-size: 10.5px;
+             padding: 4px 10px; border-bottom: 1px solid var(--line); }
+  tr.ph td small { color: var(--ink3); font-weight: 500; margin-left: 8px; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ink2); }
+  .bdg { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600;
+         padding: 2px 8px; border-radius: 99px; }
+  .bdg::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .bdg.ok  { color: var(--good); background: var(--good-bg); }
+  .bdg.wt  { color: var(--watch); background: var(--watch-bg); }
+  .bdg.cr  { color: var(--crit); background: var(--crit-bg); }
+
+  /* rules mock */
+  .rgrid { display: grid; grid-template-columns: 150px 1fr; gap: 10px; align-items: start; }
+  .rnav { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 6px; }
+  .rnav .g { font: 700 9px ui-monospace, monospace; letter-spacing: .08em; color: var(--ink3);
+             text-transform: uppercase; padding: 7px 8px 4px; }
+  .rnav .i { display: flex; justify-content: space-between; padding: 4px 8px; border-radius: 5px; color: var(--ink2); }
+  .rnav .i em { font-style: normal; color: var(--ink3); font-variant-numeric: tabular-nums; }
+  .rnav .i.on { background: var(--primary-soft); color: var(--primary); font-weight: 700;
+                box-shadow: inset 2.5px 0 0 var(--primary); }
+  .rbody .sect { padding: 9px 12px; border-bottom: 1px solid var(--line-soft); font-weight: 700; font-size: 12px; }
+  .frow { display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center;
+          padding: 7px 12px; border-bottom: 1px solid var(--line-soft); }
+  .frow label { color: var(--ink2); }
+  .frow .fin { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .frow input { width: 62px; text-align: right; font: 600 11.5px ui-monospace, monospace;
+                border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px;
+                background: var(--surface); color: var(--ink); }
+  .frow .u { color: var(--ink3); font-size: 10.5px; width: 26px; }
+  .rres { padding: 8px 12px 4px; }
+  .rres .h { font: 700 9.5px ui-monospace, monospace; letter-spacing: .07em; text-transform: uppercase;
+             color: var(--ink3); margin-bottom: 6px; }
+  .rrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; }
+  .rrow:nth-child(odd) { background: var(--surface2); }
+  .rrow .st { font: 500 10px ui-monospace, monospace; color: var(--ink3); }
+  .rrow .nm { font-weight: 600; }
+  .rrow .why { color: var(--ink3); font-size: 10.5px; margin-left: auto; }
+
+  /* ===== BIẾN CỦA TỪNG HƯỚNG ===== */
+  .optA .mock {
+    --bg:#f3f0ea; --surface:#ffffff; --surface2:#f7f4ee; --sb-bg:#ffffff;
+    --line:#ddd6ca; --line-soft:#ece7dc; --ink:#171310; --ink2:#4c443c; --ink3:#7e756a;
+    --primary:#c9491a; --primary-soft:#fbeee6; --link:#a63c13;
+    --good:#3a5c10; --good-bg:#f5f8ec; --watch:#8a5a04; --watch-bg:#fbf6e6;
+    --crit:#a52218; --crit-bg:#fbeeec;
+    --th-bg:#f7f4ee; --ph-bg:#efebe3; --hov:#faf8f3; --r:10px;
+    --sh:0 1px 2px rgba(23,19,16,.05);
+  }
+  .optB .mock {
+    --bg:#f4f5f7; --surface:#ffffff; --surface2:#f7f8fa; --sb-bg:#ffffff;
+    --line:#dfe3e8; --line-soft:#ecEFf3; --ink:#191c21; --ink2:#454c56; --ink3:#767f8c;
+    --primary:#c9491a; --primary-soft:#fbeee6; --link:#b03d12;
+    --good:#20713d; --good-bg:#eef7f0; --watch:#8a6003; --watch-bg:#fbf5e3;
+    --crit:#b3261e; --crit-bg:#fceeed;
+    --th-bg:#f7f8fa; --ph-bg:#eef0f3; --hov:#f8f9fb; --r:10px;
+    --sh:0 1px 2px rgba(25,28,33,.05);
+  }
+  .optC .mock {
+    --bg:#fafaf9; --surface:#ffffff; --surface2:#f6f6f5; --sb-bg:#f4f4f2;
+    --line:#e6e5e2; --line-soft:#efeeeb; --ink:#141311; --ink2:#484540; --ink3:#807b73;
+    --primary:#c9491a; --primary-soft:#fbeee6; --link:#a63c13;
+    --good:#39631a; --good-bg:#f3f8ee; --watch:#8a5a04; --watch-bg:#faf5e6;
+    --crit:#a8241a; --crit-bg:#fbefed;
+    --th-bg:#fafaf9; --ph-bg:#f4f4f2; --hov:#f8f8f7; --r:8px;
+    --sh:none;
+  }
+  .optC .mock .card { box-shadow: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Redesign 3 màn MVP — nguyên tắc rút ra + 3 hướng để chọn</h1>
+<p class="sub">Phạm vi: <code>#/signals</code> · <code>#/rules</code> · <code>#/settings</code> (3 màn MVP theo commit <code>c99c852</code>).
+Mỗi hướng dưới đây dựng bằng đúng bộ token của nó — chọn bằng mắt, không chọn bằng mô tả.</p>
+
+<h2>§1 · Nguyên tắc từ nghiên cứu — mỗi dòng map vào một thay đổi cụ thể</h2>
+<table class="doc">
+<tr><th>Nguyên tắc</th><th>Nguồn</th><th>Hiện trạng đang lệch</th><th>Thay đổi cụ thể</th></tr>
+<tr>
+  <td>Nội dung chính phải vào tầm mắt ngay: người dùng dành 80% thời gian ở nửa trên–trái màn (F-pattern)</td>
+  <td class="src">NN/g eye-tracking</td>
+  <td>Ở <code>#/signals</code>, ~430px đầu màn là toolbar 2 hàng + tiêu đề 32px + 3 thẻ kiểm kê — dòng dữ liệu đầu tiên nằm sát mép dưới</td>
+  <td>Toolbar toàn cục nén còn 1 hàng (chips trái · ô tìm phải); tiêu đề màn hạ cỡ về một hàng gọn; hàng KPI thấp hơn → bảng bắt đầu ở ~230px</td>
+</tr>
+<tr>
+  <td>5–7 con số mức tổng quan là trần hiểu được; số lớn phải có thứ bậc chữ rõ (số to · mẫu số nhỏ · nhãn nhỏ)</td>
+  <td class="src">DataCamp · Boundev</td>
+  <td>3 thẻ <code>25/30</code>… hai số cùng cỡ, nền be <code>--surface2</code> đọc như panel bị disable</td>
+  <td>KPI đứng trên nền TRẮNG, số chính 19–22px đậm + <code>/30</code> nhạt nhỏ; thẻ đang bấm có vạch cam trái (trạng thái aria-pressed nhìn thấy được)</td>
+</tr>
+<tr>
+  <td>Tách lớp figure-ground: canvas một tông, mặt giấy trắng nổi trên nó; không lồng be-trong-be</td>
+  <td class="src">Refactoring UI · Carbon dashboards</td>
+  <td>Nền be + card be + ô be lồng nhau ba lớp; viền và nền cùng gánh việc phân tầng</td>
+  <td>Quy tắc mới: <code>--surface2</code> CHỈ dành cho header bảng / tiêu đề nhóm / hàng chẵn — không bao giờ làm nền cả một khối nội dung</td>
+</tr>
+<tr>
+  <td>Bảng dày: số căn phải + tabular-nums, chữ mô tả phụ nhạt hơn hẳn, hover row, header bảng tương phản thấp nhưng phân biệt được</td>
+  <td class="src">Pencil&amp;Paper · Setproduct · UX Movement</td>
+  <td>Đã căn phải số; nhưng header bảng cùng nền với dòng, thiếu hover, badge viền dày gây ồn</td>
+  <td>Header bảng nền <code>--th-bg</code>; hover <code>--hov</code>; badge đổi kiểu <b>chấm màu + chữ</b> nền nhạt không viền — bớt 1 lớp viền ở mọi dòng</td>
+</tr>
+<tr>
+  <td>Màu là kênh mã hoá TRẠNG THÁI, không phải trang trí; dùng ít hue, mỗi hue một nghĩa cố định</td>
+  <td class="src">Carbon data-viz · NN/g preattentive</td>
+  <td>Đúng luật rồi (cam = tương tác, 4 hue trạng thái) — giữ nguyên, chỉ chỉnh nền badge cho tách khỏi nền be</td>
+  <td>Giữ 4 hue; nền badge tính lại trên từng hướng; KHÔNG thêm hue mới</td>
+</tr>
+<tr>
+  <td>Drill-down phải giữ ngữ cảnh: từ tổng quan vào chi tiết không mất chỗ đang đứng</td>
+  <td class="src">Boundev · NN/g</td>
+  <td>Đã tốt (hồ sơ có ←, prev/next theo thứ tự bảng, tô lại dòng vừa xem) — không đụng</td>
+  <td>Không đổi cơ chế; chỉ ăn theme mới</td>
+</tr>
+<tr>
+  <td>Form cấu hình: nhãn trái – ô nhập phải trên một trục thẳng, đơn vị dính vào ô, nhóm điều hướng có trạng thái đang-đứng rõ</td>
+  <td class="src">Stephanie Walter · Halo Lab</td>
+  <td><code>#/rules</code> đã có FieldRow; menu nhóm active chỉ đổi nền nhẹ; kết quả áp ngưỡng là 6 card be to chiếm nửa màn</td>
+  <td>Menu nhóm: vạch cam trái + số đếm căn phải; khối kết quả đổi từ 6 card 2 cột → <b>danh sách dòng gọn</b> (bước · lý do · badge phải) — cùng mật độ với bảng Điểm đo</td>
+</tr>
+<tr>
+  <td>Trang settings ít mục vẫn phải có khung: khối nội dung có bề rộng tối đa, không trôi giữa canvas trống</td>
+  <td class="src">Pencil&amp;Paper patterns</td>
+  <td><code>#/settings</code>: 1 card lơ lửng trên canvas trống toàn màn</td>
+  <td>Khối nội dung <code>max-width ~640px</code>, hàng toggle theo khuôn FieldRow của <code>#/rules</code> — hai màn cấu hình cùng nhịp</td>
+</tr>
+</table>
+
+<h2>§2 · Best practice bị LOẠI vì va luật dự án — loại có chủ ý, không phải sót</h2>
+<ul>
+  <li><b>“Thêm chú giải/hướng dẫn đọc dashboard”</b> — va thẳng luật 11/08 <i>“app hiển thị dữ liệu, không luận giải”</i>. Mọi cải thiện phải đến từ bố cục/thứ bậc/màu, <b>0 chuỗi giải thích mới</b>.</li>
+  <li><b>“Ẩn mục nav chưa dùng được”</b> — QĐ owner 17/08: 10 màn ngoài MVP <b>làm mờ</b>, không ẩn. Giữ nguyên.</li>
+  <li><b>“Dark-mode-first cho tool vận hành”</b> — owner đã chốt theme sáng (12/08). Cả 3 hướng đều sáng.</li>
+  <li><b>“Red/Amber/Green mặc định”</b> — hệ này 4 trạng thái có chủ ý và “Đang kiểm soát” cố ý KHÔNG có màu; cam không bao giờ làm status. Giữ.</li>
+  <li><b>“Zebra striping toàn bảng”</b> — bảng Điểm đo đã có cơ chế mờ-50% cho dòng không khớp lọc; zebra chồng lên sẽ thành hai hệ nền đánh nhau. Chỉ dùng zebra ở danh sách kết quả <code>#/rules</code> (nơi không có cơ chế mờ).</li>
+</ul>
+
+<h2>§3 · Nước đi layout chung — áp cho CẢ BA hướng, khác nhau chỉ ở màu</h2>
+<ul>
+  <li><b>S1</b> — Toolbar toàn cục 2 hàng → 1 hàng: chips kỳ hạn trái, ô tìm toàn cục phải. Tiết kiệm ~56px mọi màn có timeframe.</li>
+  <li><b>S2</b> — Hàng tiêu đề màn: tên tab (giữ luật 06/08, chỉ <code>navLabel</code>) cỡ hạ xuống ~20px + “Số liệu tính đến …” cùng hàng (đã có).</li>
+  <li><b>S3</b> — Khối ① kiểm kê: 3 ô bấm được thành KPI trắng có vạch cam khi đang lọc; 2 số không bấm được giữ dạng dòng chữ nhạt (khác hẳn hình dạng — giữ nguyên chủ ý cũ).</li>
+  <li><b>S4</b> — Bảng: header nền nhạt phân biệt; hover row; badge trạng thái đổi sang chấm-màu + nền nhạt (bỏ viền); tiêu đề nhóm phase mỏng hơn, số đếm nhóm căn phải. Mọi hook hợp đồng giữ nguyên: F1, mờ-50%, sticky, Enter/Space, testid, aria.</li>
+  <li><b>R1</b> — <code>#/rules</code>: menu nhóm active = vạch cam trái + chữ cam; số đếm căn phải cột riêng.</li>
+  <li><b>R2</b> — Khối “Kết quả áp lên các bước”: 6 card 2 cột → danh sách dòng (mã bước · tên · lý do nhạt · badge phải), zebra nhẹ. Cùng dữ liệu, ít hơn ~40% chiều cao.</li>
+  <li><b>T1</b> — <code>#/settings</code>: nội dung max-width 640px, hàng toggle theo khuôn FieldRow.</li>
+  <li><b>Chuỗi mới trên màn: KHÔNG CÓ.</b> Toàn bộ là bố cục + màu.</li>
+</ul>
+
+<!-- ===================== HƯỚNG A ===================== -->
+<div class="opt optA">
+<h2><span class="tag a">A</span> Giấy đậm — giữ nguyên bảng màu 12/08, chỉ sửa CÁCH DÙNG</h2>
+<p class="note">Token gần như không đổi (nền <code>#f3f0ea</code>, cam <code>#c9491a</code>). Đổi luật dùng: be chỉ còn ở header bảng/nhóm, mọi khối nội dung lên mặt trắng. Rẻ nhất, không lật quyết định màu nào.</p>
+<div class="swatches">
+  <div class="sw"><i style="background:#f3f0ea"></i>--bg</div>
+  <div class="sw"><i style="background:#ffffff"></i>--surface</div>
+  <div class="sw"><i style="background:#f7f4ee"></i>--surface2</div>
+  <div class="sw"><i style="background:#ddd6ca"></i>--line</div>
+  <div class="sw"><i style="background:#c9491a"></i>--primary</div>
+  <div class="sw"><i style="background:#171310"></i>--ink</div>
+</div>
+<div class="mock">
+  <div class="sb">
+    <div class="logo"><i>V</i>VNDIRECT CXM</div>
+    <div class="grp">CXM</div>
+    <div class="it dim">Tổng quan CXM</div><div class="it dim">Bản đồ hành trình</div>
+    <div class="grp">Quản trị</div>
+    <div class="it dim">Agent &amp; cảnh báo</div><div class="it on">Điểm đo</div><div class="it">Cài đặt</div>
+  </div>
+  <div class="cv">
+    <div class="topbar">
+      <div class="chips"><b>7D</b><b>4W</b><b class="on">6M</b><b>12M</b></div>
+      <div class="gsearch">🔍 Tìm theo feature, lý do phản hồi, hoặc metadata</div>
+    </div>
+    <div class="ttl"><b>Điểm đo</b><span>Số liệu tính đến 27/07/2026</span></div>
+    <div class="kpis">
+      <div class="kpi on"><div class="n">25<small> / 30</small></div><div class="l">điểm đo đang chở lưu lượng</div></div>
+      <div class="kpi"><div class="n">5<small> / 30</small></div><div class="l">khai mà chưa chạy</div></div>
+      <div class="kpi"><div class="n">20<small> / 30</small></div><div class="l">không nuôi chỉ số nào</div></div>
+    </div>
+    <div class="quiet"><span><b>9/30</b> bước không có điểm đo đang chạy</span><span><b>2/6</b> chỉ số không được nuôi</span></div>
+    <div class="card">
+      <div class="tools"><div class="in">🔍 Tên event, nhãn, chỉ số, bước, phase</div><div class="sel">Mọi phase ▾</div><div class="sel">Mọi nguồn giao ▾</div></div>
+      <table class="t">
+        <tr><th>Tên event</th><th>Trạng thái chạy</th><th class="r">Lưu lượng/ngày</th><th>Chỉ số được nuôi</th><th>Mốc thấy cuối</th><th>Trạng thái tin dùng</th></tr>
+        <tr class="ph"><td colspan="6">▾ 02 · Mở tài khoản <small>10 điểm đo</small></td></tr>
+        <tr><td><span class="ev">account_open_started</span><div class="de">Khách bấm Mở tài khoản</div></td><td><span class="dot"></span></td><td class="r num">614</td><td>Hoàn tất mở tài khoản</td><td class="num">27/07 · 14:52 <span class="de">máy · nguồn giao</span></td><td><span class="bdg ok">Đang đo</span></td></tr>
+        <tr class="hov"><td><span class="ev">ekyc_document_fail_reason</span><div class="de">Lý do thất bại: blur / glare / crop</div></td><td><span class="dot"></span></td><td class="r num">410</td><td>Evidence coverage bước OCR</td><td class="num">27/07 · 14:48 <span class="de">máy · nguồn giao</span></td><td><span class="bdg wt">Đang validate</span></td></tr>
+        <tr><td><span class="ev">ekyc_face_liveness_result</span><div class="de">Kết quả mỗi lần liveness</div></td><td><span class="dot"></span></td><td class="r num">1.180</td><td>Liveness completion</td><td class="num">27/07 · 14:48 <span class="de">máy · nguồn giao</span></td><td><span class="bdg ok">Đang đo</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="mock">
+  <div class="sb">
+    <div class="logo"><i>V</i>VNDIRECT CXM</div>
+    <div class="grp">Quản trị</div>
+    <div class="it on">Chỉ số &amp; ngưỡng</div><div class="it">Điểm đo</div><div class="it">Cài đặt</div>
+  </div>
+  <div class="cv">
+    <div class="ttl"><b>Chỉ số &amp; ngưỡng</b><span>↺ Trả về mặc định</span></div>
+    <div class="rgrid">
+      <div class="rnav">
+        <div class="g">Ngưỡng đánh giá</div>
+        <div class="i on">Bước hành trình <em>4</em></div>
+        <div class="i">Chỉ số theo dõi <em>6</em></div>
+        <div class="i">SLA từng nguồn <em>7</em></div>
+        <div class="g">Điểm ưu tiên</div>
+        <div class="i">Trọng số ưu tiên <em>7</em></div>
+        <div class="i">Mức của từng bước <em>30</em></div>
+      </div>
+      <div class="card rbody">
+        <div class="sect">Ngưỡng trạng thái của một bước hành trình</div>
+        <div class="frow"><label>Ngưỡng theo dõi tỷ lệ thất bại</label><div class="fin"><input value="5"><span class="u">%</span></div></div>
+        <div class="frow"><label>Ngưỡng xử lý ngay tỷ lệ thất bại</label><div class="fin"><input value="15"><span class="u">%</span></div></div>
+        <div class="rres">
+          <div class="h">Kết quả áp lên các bước ngay lúc này · 6 / 30</div>
+          <div class="rrow"><span class="st">03</span><span class="nm">Liveness &amp; Face match</span><span class="why">thất bại 16,7% ≥ ngưỡng xử lý 15% · effort 2,4</span><span class="bdg cr">Cần xử lý ngay</span></div>
+          <div class="rrow"><span class="st">01</span><span class="nm">Kiểm tra điều kiện mở PS</span><span class="why">thất bại 15,3% ≥ ngưỡng xử lý 15%</span><span class="bdg cr">Cần xử lý ngay</span></div>
+          <div class="rrow"><span class="st">02</span><span class="nm">Xác thực CCCD · VNeID/NFC</span><span class="why">thất bại 10,5% ≥ ngưỡng theo dõi 5%</span><span class="bdg wt">Cần theo dõi</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===================== HƯỚNG B ===================== -->
+<div class="opt optB">
+<h2><span class="tag b">B</span> Trung tính lạnh — bộ xám lam kiểu SaaS chuẩn (Linear / Stripe / Datadog)</h2>
+<p class="note">Canvas xám lạnh <code>#f4f5f7</code>, chữ đen-lam, viền xám lam. Cam VNDIRECT nổi hơn hẳn trên nền lạnh — định danh thương hiệu mạnh hơn. Đây là tông "mặc định ngành" mà đa số dashboard SaaS 2024–2026 dùng. Đánh đổi: mất cá tính "giấy ấm"; 14 màu chart ngoài token (TopicLineChart · Donut) vốn là xám LẠNH sẽ tự nhiên khớp lại — trả luôn món nợ màu 12/08 ghi lại.</p>
+<div class="swatches">
+  <div class="sw"><i style="background:#f4f5f7"></i>--bg</div>
+  <div class="sw"><i style="background:#ffffff"></i>--surface</div>
+  <div class="sw"><i style="background:#f7f8fa"></i>--surface2</div>
+  <div class="sw"><i style="background:#dfe3e8"></i>--line</div>
+  <div class="sw"><i style="background:#c9491a"></i>--primary</div>
+  <div class="sw"><i style="background:#191c21"></i>--ink</div>
+</div>
+<div class="mock">
+  <div class="sb">
+    <div class="logo"><i>V</i>VNDIRECT CXM</div>
+    <div class="grp">CXM</div>
+    <div class="it dim">Tổng quan CXM</div><div class="it dim">Bản đồ hành trình</div>
+    <div class="grp">Quản trị</div>
+    <div class="it dim">Agent &amp; cảnh báo</div><div class="it on">Điểm đo</div><div class="it">Cài đặt</div>
+  </div>
+  <div class="cv">
+    <div class="topbar">
+      <div class="chips"><b>7D</b><b>4W</b><b class="on">6M</b><b>12M</b></div>
+      <div class="gsearch">🔍 Tìm theo feature, lý do phản hồi, hoặc metadata</div>
+    </div>
+    <div class="ttl"><b>Điểm đo</b><span>Số liệu tính đến 27/07/2026</span></div>
+    <div class="kpis">
+      <div class="kpi on"><div class="n">25<small> / 30</small></div><div class="l">điểm đo đang chở lưu lượng</div></div>
+      <div class="kpi"><div class="n">5<small> / 30</small></div><div class="l">khai mà chưa chạy</div></div>
+      <div class="kpi"><div class="n">20<small> / 30</small></div><div class="l">không nuôi chỉ số nào</div></div>
+    </div>
+    <div class="quiet"><span><b>9/30</b> bước không có điểm đo đang chạy</span><span><b>2/6</b> chỉ số không được nuôi</span></div>
+    <div class="card">
+      <div class="tools"><div class="in">🔍 Tên event, nhãn, chỉ số, bước, phase</div><div class="sel">Mọi phase ▾</div><div class="sel">Mọi nguồn giao ▾</div></div>
+      <table class="t">
+        <tr><th>Tên event</th><th>Trạng thái chạy</th><th class="r">Lưu lượng/ngày</th><th>Chỉ số được nuôi</th><th>Mốc thấy cuối</th><th>Trạng thái tin dùng</th></tr>
+        <tr class="ph"><td colspan="6">▾ 02 · Mở tài khoản <small>10 điểm đo</small></td></tr>
+        <tr><td><span class="ev">account_open_started</span><div class="de">Khách bấm Mở tài khoản</div></td><td><span class="dot"></span></td><td class="r num">614</td><td>Hoàn tất mở tài khoản</td><td class="num">27/07 · 14:52 <span class="de">máy · nguồn giao</span></td><td><span class="bdg ok">Đang đo</span></td></tr>
+        <tr class="hov"><td><span class="ev">ekyc_document_fail_reason</span><div class="de">Lý do thất bại: blur / glare / crop</div></td><td><span class="dot"></span></td><td class="r num">410</td><td>Evidence coverage bước OCR</td><td class="num">27/07 · 14:48 <span class="de">máy · nguồn giao</span></td><td><span class="bdg wt">Đang validate</span></td></tr>
+        <tr><td><span class="ev">ekyc_face_liveness_result</span><div class="de">Kết quả mỗi lần liveness</div></td><td><span class="dot"></span></td><td class="r num">1.180</td><td>Liveness completion</td><td class="num">27/07 · 14:48 <span class="de">máy · nguồn giao</span></td><td><span class="bdg ok">Đang đo</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="mock">
+  <div class="sb">
+    <div class="logo"><i>V</i>VNDIRECT CXM</div>
+    <div class="grp">Quản trị</div>
+    <div class="it on">Chỉ số &amp; ngưỡng</div><div class="it">Điểm đo</div><div class="it">Cài đặt</div>
+  </div>
+  <div class="cv">
+    <div class="ttl"><b>Chỉ số &amp; ngưỡng</b><span>↺ Trả về mặc định</span></div>
+    <div class="rgrid">
+      <div class="rnav">
+        <div class="g">Ngưỡng đánh giá</div>
+        <div class="i on">Bước hành trình <em>4</em></div>
+        <div class="i">Chỉ số theo dõi <em>6</em></div>
+        <div class="i">SLA từng nguồn <em>7</em></div>
+        <div class="g">Điểm ưu tiên</div>
+        <div class="i">Trọng số ưu tiên <em>7</em></div>
+        <div class="i">Mức của từng bước <em>30</em></div>
+      </div>
+      <div class="card rbody">
+        <div class="sect">Ngưỡng trạng thái của một bước hành trình</div>
+        <div class="frow"><label>Ngưỡng theo dõi tỷ lệ thất bại</label><div class="fin"><input value="5"><span class="u">%</span></div></div>
+        <div class="frow"><label>Ngưỡng xử lý ngay tỷ lệ thất bại</label><div class="fin"><input value="15"><span class="u">%</span></div></div>
+        <div class="rres">
+          <div class="h">Kết quả áp lên các bước ngay lúc này · 6 / 30</div>
+          <div class="rrow"><span class="st">03</span><span class="nm">Liveness &amp; Face match</span><span class="why">thất bại 16,7% ≥ ngưỡng xử lý 15% · effort 2,4</span><span class="bdg cr">Cần xử lý ngay</span></div>
+          <div class="rrow"><span class="st">01</span><span class="nm">Kiểm tra điều kiện mở PS</span><span class="why">thất bại 15,3% ≥ ngưỡng xử lý 15%</span><span class="bdg cr">Cần xử lý ngay</span></div>
+          <div class="rrow"><span class="st">02</span><span class="nm">Xác thực CCCD · VNeID/NFC</span><span class="why">thất bại 10,5% ≥ ngưỡng theo dõi 5%</span><span class="bdg wt">Cần theo dõi</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===================== HƯỚNG C ===================== -->
+<div class="opt optC">
+<h2><span class="tag c">C</span> Trắng tối giản mật độ cao — hairline, gần trắng, radius nhỏ (kiểu Linear/Notion)</h2>
+<p class="note">Canvas gần trắng <code>#fafaf9</code> (xám ấm trung tính — vẫn họ hàng với giấy nhưng bỏ độ be), phân tầng bằng viền mảnh thay vì bóng đổ, radius 8px, sidebar xám nhạt. Bảng vài trăm dòng lợi nhất ở hướng này: nhiều dòng vào một màn nhất, mắt ít lớp nền phải bóc nhất. Đánh đổi: dễ "trôi trắng" nếu màn ít nội dung (như <code>#/settings</code>).</p>
+<div class="swatches">
+  <div class="sw"><i style="background:#fafaf9"></i>--bg</div>
+  <div class="sw"><i style="background:#ffffff"></i>--surface</div>
+  <div class="sw"><i style="background:#f4f4f2"></i>--sb-bg</div>
+  <div class="sw"><i style="background:#e6e5e2"></i>--line</div>
+  <div class="sw"><i style="background:#c9491a"></i>--primary</div>
+  <div class="sw"><i style="background:#141311"></i>--ink</div>
+</div>
+<div class="mock">
+  <div class="sb">
+    <div class="logo"><i>V</i>VNDIRECT CXM</div>
+    <div class="grp">CXM</div>
+    <div class="it dim">Tổng quan CXM</div><div class="it dim">Bản đồ hành trình</div>
+    <div class="grp">Quản trị</div>
+    <div class="it dim">Agent &amp; cảnh báo</div><div class="it on">Điểm đo</div><div class="it">Cài đặt</div>
+  </div>
+  <div class="cv">
+    <div class="topbar">
+      <div class="chips"><b>7D</b><b>4W</b><b class="on">6M</b><b>12M</b></div>
+      <div class="gsearch">🔍 Tìm theo feature, lý do phản hồi, hoặc metadata</div>
+    </div>
+    <div class="ttl"><b>Điểm đo</b><span>Số liệu tính đến 27/07/2026</span></div>
+    <div class="kpis">
+      <div class="kpi on"><div class="n">25<small> / 30</small></div><div class="l">điểm đo đang chở lưu lượng</div></div>
+      <div class="kpi"><div class="n">5<small> / 30</small></div><div class="l">khai mà chưa chạy</div></div>
+      <div class="kpi"><div class="n">20<small> / 30</small></div><div class="l">không nuôi chỉ số nào</div></div>
+    </div>
+    <div class="quiet"><span><b>9/30</b> bước không có điểm đo đang chạy</span><span><b>2/6</b> chỉ số không được nuôi</span></div>
+    <div class="card">
+      <div class="tools"><div class="in">🔍 Tên event, nhãn, chỉ số, bước, phase</div><div class="sel">Mọi phase ▾</div><div class="sel">Mọi nguồn giao ▾</div></div>
+      <table class="t">
+        <tr><th>Tên event</th><th>Trạng thái chạy</th><th class="r">Lưu lượng/ngày</th><th>Chỉ số được nuôi</th><th>Mốc thấy cuối</th><th>Trạng thái tin dùng</th></tr>
+        <tr class="ph"><td colspan="6">▾ 02 · Mở tài khoản <small>10 điểm đo</small></td></tr>
+        <tr><td><span class="ev">account_open_started</span><div class="de">Khách bấm Mở tài khoản</div></td><td><span class="dot"></span></td><td class="r num">614</td><td>Hoàn tất mở tài khoản</td><td class="num">27/07 · 14:52 <span class="de">máy · nguồn giao</span></td><td><span class="bdg ok">Đang đo</span></td></tr>
+        <tr class="hov"><td><span class="ev">ekyc_document_fail_reason</span><div class="de">Lý do thất bại: blur / glare / crop</div></td><td><span class="dot"></span></td><td class="r num">410</td><td>Evidence coverage bước OCR</td><td class="num">27/07 · 14:48 <span class="de">máy · nguồn giao</span></td><td><span class="bdg wt">Đang validate</span></td></tr>
+        <tr><td><span class="ev">ekyc_face_liveness_result</span><div class="de">Kết quả mỗi lần liveness</div></td><td><span class="dot"></span></td><td class="r num">1.180</td><td>Liveness completion</td><td class="num">27/07 · 14:48 <span class="de">máy · nguồn giao</span></td><td><span class="bdg ok">Đang đo</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="mock">
+  <div class="sb">
+    <div class="logo"><i>V</i>VNDIRECT CXM</div>
+    <div class="grp">Quản trị</div>
+    <div class="it on">Chỉ số &amp; ngưỡng</div><div class="it">Điểm đo</div><div class="it">Cài đặt</div>
+  </div>
+  <div class="cv">
+    <div class="ttl"><b>Chỉ số &amp; ngưỡng</b><span>↺ Trả về mặc định</span></div>
+    <div class="rgrid">
+      <div class="rnav">
+        <div class="g">Ngưỡng đánh giá</div>
+        <div class="i on">Bước hành trình <em>4</em></div>
+        <div class="i">Chỉ số theo dõi <em>6</em></div>
+        <div class="i">SLA từng nguồn <em>7</em></div>
+        <div class="g">Điểm ưu tiên</div>
+        <div class="i">Trọng số ưu tiên <em>7</em></div>
+        <div class="i">Mức của từng bước <em>30</em></div>
+      </div>
+      <div class="card rbody">
+        <div class="sect">Ngưỡng trạng thái của một bước hành trình</div>
+        <div class="frow"><label>Ngưỡng theo dõi tỷ lệ thất bại</label><div class="fin"><input value="5"><span class="u">%</span></div></div>
+        <div class="frow"><label>Ngưỡng xử lý ngay tỷ lệ thất bại</label><div class="fin"><input value="15"><span class="u">%</span></div></div>
+        <div class="rres">
+          <div class="h">Kết quả áp lên các bước ngay lúc này · 6 / 30</div>
+          <div class="rrow"><span class="st">03</span><span class="nm">Liveness &amp; Face match</span><span class="why">thất bại 16,7% ≥ ngưỡng xử lý 15% · effort 2,4</span><span class="bdg cr">Cần xử lý ngay</span></div>
+          <div class="rrow"><span class="st">01</span><span class="nm">Kiểm tra điều kiện mở PS</span><span class="why">thất bại 15,3% ≥ ngưỡng xử lý 15%</span><span class="bdg cr">Cần xử lý ngay</span></div>
+          <div class="rrow"><span class="st">02</span><span class="nm">Xác thực CCCD · VNeID/NFC</span><span class="why">thất bại 10,5% ≥ ngưỡng theo dõi 5%</span><span class="bdg wt">Cần theo dõi</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<h2>§4 · Ràng buộc giữ nguyên ở mọi hướng — không thương lượng</h2>
+<ul>
+  <li><b>Token là toàn cục</b>: đổi bảng màu là đổi cho CẢ 13 màn (10 màn mờ vẫn mở được bằng hash) — không fork token theo màn.</li>
+  <li><code>--surface</code> ở lại <code>#ffffff</code> · 4 hue trạng thái tách rời (đỏ ~5° · cam ~15° · hổ phách ~40° · ô-liu ~75°) · 4 sắc xám của 4 nghĩa "không biết" còn phân biệt được. Cả ba hướng đều đã tính theo ràng buộc này; contrast đo lại khi implement.</li>
+  <li>Cam <code>--primary</code> chỉ cho tương tác &amp; định danh — cả ba hướng giữ đúng cam VNDIRECT.</li>
+  <li>Mọi hook hợp đồng của <code>#/signals</code> + <code>#/rules</code>: F1 (mẫu số 30 không rời màn), mờ 50% + vạch ngăn, tiêu đề nhóm giữ số đếm, sticky header, Enter/Space, aria-pressed/current, testid, nhãn "người khai"/"máy · nguồn giao" từng dòng — không assert nào bị nới.</li>
+  <li>0 chuỗi giải thích mới (luật 11/08) · đầu màn chỉ tên tab từ <code>navLabel</code> (luật 06/08) · nav mờ 10 màn giữ nguyên (QĐ 17/08).</li>
+</ul>
+
+</div>
+</body>
+</html>
