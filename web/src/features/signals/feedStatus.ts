@@ -19,24 +19,21 @@ export const FEED_LABEL: Record<SignalFeedHealth, string> = {
   unknown: "No source linked",
 };
 
+/* 18/08 tối (owner, sau đợt đảo thứ bậc): "bỏ cái tick đi và cho màu đánh màu cho tình trạng nữa"
+   — Receiving thôi mượn state `ok` (✓, không màu), sang `good` (lục, không prefix — đợt trước đã
+   bỏ ✓ ở good). Trạng thái đang-nhận giờ cũng đọc được bằng màu như ba trạng thái còn lại. */
 export const FEED_BADGE: Record<SignalFeedHealth, BadgeState> = {
-  ok: "ok",
+  ok: "good",
   stale: "watch",
   down: "crit",
   silent: "unknown",
   unknown: "unknown",
 };
 
-/* Tông chữ cho dòng trạng thái dưới mốc Last seen (bảng). ok KHÔNG xanh lục: badge "ok" của app
-   vốn không màu (spec Badge.tsx), tô lục ở đây là cùng một tình trạng hai giọng — và để dòng có
-   vấn đề là THỨ MÀU DUY NHẤT trong cột thì mắt bắt được ngay, đúng yêu cầu "thấy được ngay". */
-export const FEED_TONE: Record<SignalFeedHealth, string> = {
-  ok: "text-ink-2",
-  stale: "text-watch",
-  down: "text-crit",
-  silent: "text-ink-3",
-  unknown: "text-ink-3",
-};
+/* FEED_TONE (map tông chữ trần cho dòng trạng thái của bảng) sống đúng MỘT đợt 18/08 rồi bỏ cùng
+   tối: owner đảo thứ bậc ô — trạng thái giao nhận lên làm thông tin chính và mang khung/màu của
+   Badge (FEED_BADGE ở trên, CÙNG badge với hồ sơ), nên một map tông chữ riêng cho bảng thành
+   giọng thứ hai của cùng một tình trạng. */
 
 /** Câu trạng thái giao nhận, kèm SỐ NGÀY THIẾU đo bằng máy (`sourceDaysMissing` — mốc feed của
     nguồn so với Data as of). `daysMissing` null/0 hoặc bậc không có gì để đếm thì trả nhãn trần.

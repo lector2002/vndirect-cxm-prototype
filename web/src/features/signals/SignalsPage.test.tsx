@@ -7,7 +7,7 @@ import { sourceDaysMissing, sourceHealth } from "../../domain/index.ts";
 import { feedStatusText } from "./feedStatus.ts";
 import { createCxmStore } from "../../store/store.ts";
 import { SignalsPage } from "./SignalsPage.tsx";
-import { stampText } from "./stamp.ts";
+import { stampParts, stampText } from "./stamp.ts";
 
 /* module-i-signal-registry-charter.md §14 lát I4a — mỗi test dùng store CÔ LẬP tiêm qua `useStore`
    (precedent OverviewPage.test.tsx), vì hai hướng của Khối ② cần hai fixture khác nhau: `seed`
@@ -96,8 +96,12 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
 
      18/08 tối (owner, đợt chỉnh ba cột): mốc được ĐỊNH DẠNG lại "27 Jul · 14:52" (stamp.ts) — chỉ
      đổi cách viết. Các bài dưới đối chiếu qua stampText() (một đường định dạng duy nhất); nghĩa
-     của chính stampText ghim ở stamp.test.ts bằng cặp vào/ra chữ. */
-  it("mốc gõ tay: bảng và drawer hiện mốc TRẦN — không còn chữ xuất xứ ở hai tầng ngoài", () => {
+     của chính stampText ghim ở stamp.test.ts bằng cặp vào/ra chữ.
+
+     18/08 tối (owner, đợt đảo thứ bậc ô): trên BẢNG mốc chỉ còn NGÀY (stampParts().date) đứng nhỏ
+     dưới badge trạng thái giao nhận — GIỜ rời mặt bảng, nên các bài dưới đối chiếu bảng bằng
+     phần ngày và chốt luôn "giờ không còn trên dòng". Drawer và hồ sơ VẪN mốc đầy đủ stampText(). */
+  it("mốc gõ tay: bảng chỉ còn NGÀY nhỏ (bỏ giờ), drawer vẫn mốc đầy đủ — không chữ xuất xứ ở hai tầng ngoài", () => {
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
     const { data } = store.getState();
@@ -105,7 +109,9 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
     expect(handTyped.length).toBeGreaterThan(0); // tiền đề: fixture còn mốc gõ tay
     for (const sig of handTyped) {
       const row = screen.getByTestId(`signal-row-${sig.id}`);
-      expect(row.textContent).toContain(stampText(sig.seen as string));
+      const p = stampParts(sig.seen as string);
+      expect(row.textContent).toContain(p ? p.date : (sig.seen as string));
+      if (p?.time) expect(row.textContent).not.toContain(p.time);
       expect(row.textContent).not.toContain("self-reported");
       fireEvent.click(row);
       const drawerSeen = screen.getByTestId("signal-drawer-seen").textContent;
@@ -126,7 +132,7 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
     expect(profileSeen).toContain(stampText(sig.seen as string));
   });
 
-  it("dòng đã nối nguồn: bảng lẫn drawer hiện MỐC CỦA NGUỒN trần — mốc máy vẫn thắng mốc gõ tay", () => {
+  it("dòng đã nối nguồn: bảng hiện NGÀY của NGUỒN (bỏ giờ), drawer mốc nguồn đầy đủ — mốc máy vẫn thắng mốc gõ tay", () => {
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
     const { data } = store.getState();
@@ -135,7 +141,9 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
     for (const sig of linked) {
       const src = data.sources.find((s) => s.id === sig.srcId)!;
       const row = screen.getByTestId(`signal-row-${sig.id}`);
-      expect(row.textContent).toContain(stampText(src.last));
+      const p = stampParts(src.last);
+      expect(row.textContent).toContain(p ? p.date : src.last);
+      if (p?.time) expect(row.textContent).not.toContain(p.time);
       expect(row.textContent).not.toContain("source feed");
       fireEvent.click(row);
       const drawerSeen = screen.getByTestId("signal-drawer-seen").textContent;
@@ -276,7 +284,7 @@ describe("Drawer — tầng tóm tắt giữa bảng và hồ sơ (owner 18/08, 
    down/stale bằng cách đếm lại `sourceHealth` trên seed (không ghim id), rồi nối điểm đo đầu bảng
    vào nguồn đó. Bài thứ ba là chốt D6: điểm đo CHƯA NỐI NGUỒN (đang hiện mốc người gõ) không bao
    giờ được tô — tô nghĩa là suy "có vấn đề" từ `Signal.seen`. */
-describe("Cột Last seen — tô màu theo signalFeedHealth (18/08 tối)", () => {
+describe("Cột Feed status — badge trạng thái giao nhận là thông tin chính (18/08 tối)", () => {
   function storeWithFirstSignalOn(srcHealth: "down" | "stale") {
     const store = seedStore();
     const { cfg } = store.getState();
@@ -286,7 +294,7 @@ describe("Cột Last seen — tô màu theo signalFeedHealth (18/08 tối)", () 
     return { store: createCxmStore(new MockRepository({ ...seed, signals })), sigId: signals[0].id, src };
   }
 
-  it("điểm đo nối nguồn ĐỨT HẲN (down) → mốc text-crit + dòng 'Stopped · missing N days' (N máy đếm)", () => {
+  it("điểm đo nối nguồn ĐỨT HẲN (down) → badge đỏ 'Stopped · missing N days' (N máy đếm)", () => {
     const { store, sigId, src } = storeWithFirstSignalOn("down");
     render(<SignalsPage useStore={store} />);
     const td = screen.getByTestId(`signal-seen-${sigId}`);
@@ -299,7 +307,7 @@ describe("Cột Last seen — tô màu theo signalFeedHealth (18/08 tối)", () 
     );
   });
 
-  it("điểm đo nối nguồn THIẾU NGÀY (stale) → text-watch + dòng 'Missing N days', không phải đỏ", () => {
+  it("điểm đo nối nguồn THIẾU NGÀY (stale) → badge hổ phách 'Missing N days', không phải đỏ", () => {
     const { store, sigId, src } = storeWithFirstSignalOn("stale");
     render(<SignalsPage useStore={store} />);
     const td = screen.getByTestId(`signal-seen-${sigId}`);
@@ -320,10 +328,11 @@ describe("Cột Last seen — tô màu theo signalFeedHealth (18/08 tối)", () 
     const td = screen.getByTestId(`signal-seen-${unlinked.id}`);
     expect(td.querySelector(".text-crit")).toBeNull();
     expect(td.querySelector(".text-watch")).toBeNull();
-    expect(screen.getByTestId(`signal-feedstatus-${unlinked.id}`).textContent).toBe("No source linked");
+    /* Prefix "— " là của Badge state unknown (Badge.test ghim) — trạng thái đọc được không cần màu. */
+    expect(screen.getByTestId(`signal-feedstatus-${unlinked.id}`).textContent).toBe("— No source linked");
   });
 
-  it("điểm đo nối nguồn ĐANG NHẬN (ok) → dòng 'Receiving', mực thường không màu trạng thái", () => {
+  it("điểm đo nối nguồn ĐANG NHẬN (ok) → badge lục 'Receiving' — không tick, màu nói thay", () => {
     const store = seedStore();
     render(<SignalsPage useStore={store} />);
     const { data, cfg } = store.getState();
@@ -333,6 +342,7 @@ describe("Cột Last seen — tô màu theo signalFeedHealth (18/08 tối)", () 
     if (!okSig) throw new Error("fixture phải còn ít nhất một điểm đo nối nguồn đang ok");
     const line = screen.getByTestId(`signal-feedstatus-${okSig.id}`);
     expect(line.textContent).toBe("Receiving");
-    expect(line.className).not.toMatch(/text-(crit|watch|good)/);
+    expect(line.querySelector(".text-good")).not.toBeNull();
+    expect(line.querySelector(".text-crit, .text-watch")).toBeNull();
   });
 });

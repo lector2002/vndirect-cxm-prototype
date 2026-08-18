@@ -4,7 +4,7 @@ import { stampParts } from "./stamp.ts";
 import { isSignalRunning, signalFeedHealth, signalFeedLast, sourceDaysMissing } from "../../domain/index.ts";
 import { Badge } from "../../design-system/index.ts";
 import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
-import { FEED_TONE, feedStatusText } from "./feedStatus.ts";
+import { FEED_BADGE, feedStatusText } from "./feedStatus.ts";
 import {
   PHASE_BROKEN,
   PHASE_BROKEN_LABEL,
@@ -124,12 +124,21 @@ import {
    `Signal.seen` (D6 nguyên). Dòng ok/unknown để mực thường — dòng có vấn đề là thứ màu duy nhất
    trong cột. Cùng đợt: BỎ chú thích "Data as of" ở đầu trang (SignalsPage) — nó đứng cách chú
    thích cùng chuỗi của thanh công cụ bảng ~40px, chính cái lỗi "một dữ kiện đọc thành hai" mà
-   comment ở đó tự nêu; mốc neo duy nhất là của bảng, nơi các dòng trạng thái đọc số từ đó. */
+   comment ở đó tự nêu; mốc neo duy nhất là của bảng, nơi các dòng trạng thái đọc số từ đó.
+
+   18/08 tối (owner, đợt tiếp): Ô CỘT CUỐI ĐẢO THỨ BẬC — "phần chữ [trạng thái giao nhận] nên là
+   thông tin chính và có màu hoặc card gì đó", "time thì bỏ giờ đi và để nhỏ ở dưới cho user biết
+   khi cần", "đổi tên cột cho phù hợp". Badge trạng thái (FEED_BADGE — CÙNG badge với "Source
+   feed" ở hồ sơ, không chế khung mới) đứng trên; mốc chỉ còn NGÀY, cỡ nhỏ mực nhạt, đứng dưới;
+   GIỜ RỜI MẶT BẢNG — vẫn tra được ở drawer và hồ sơ (stampText đầy đủ sống ở hai tầng đó). Cột
+   đổi tên "Last seen" → "Feed status" cho khớp thông tin chính mới. FEED_TONE (map tông chữ trần
+   của đợt trước) bỏ theo — màu nay là việc của Badge; mốc ngày KHÔNG mang màu nữa: một ô hai thứ
+   cùng đỏ là nói một chuyện hai lần. D6 nguyên: ngày là cách VIẾT LẠI chuỗi mốc, không suy tuổi. */
 const HEADERS: readonly { label: string; align: "left" | "right" | "center"; width: string }[] = [
   { label: "Event", align: "left", width: "46%" },
   { label: "Status", align: "left", width: "14%" },
   { label: "Traffic per day", align: "right", width: "18%" },
-  { label: "Last seen", align: "right", width: "22%" },
+  { label: "Feed status", align: "right", width: "22%" },
 ];
 
 const ALIGN: Record<"left" | "right" | "center", string> = {
@@ -138,28 +147,14 @@ const ALIGN: Record<"left" | "right" | "center", string> = {
   center: "text-center",
 };
 
-/* Mốc thấy cuối, hai tông: ngày là phần người ta quét, giờ là chi tiết. Parse không ra thì hiện
-   nguyên chuỗi một tông như cũ (stamp.ts).
-
-   `tone` (18/08 tối, đợt tiếp): nguồn chở điểm đo đang gặp sự cố thì CẢ mốc đổi màu — "crit" (đứt
-   hẳn) / "watch" (thiếu ngày). Chỉ là màu chữ: textContent vẫn bằng đúng stampText(), các test D6
-   đối chiếu chuỗi không bị đụng. Vì sao không dùng t-meta khi có tone: .t-meta tự mang màu ink2
-   trong index.css, đè lẫn với text-crit thì thắng thua do thứ tự stylesheet quyết — mang màu bằng
-   MỘT lớp duy nhất cho khỏi mơ hồ. */
-function SeenStamp({ s, tone }: { s: string | null; tone?: "crit" | "watch" }) {
-  if (!s) return <span className="text-ink-3">never</span>;
+/* Ngày thấy cuối — nay là DÒNG PHỤ dưới badge trạng thái giao nhận (18/08 tối, đợt đảo thứ bậc):
+   chỉ còn NGÀY, bỏ giờ — giờ là chi tiết tra ở drawer/hồ sơ, nơi stampText đầy đủ vẫn sống.
+   Parse không ra thì hiện nguyên chuỗi; null thì "never". KHÔNG mang màu — màu là việc của badge
+   ngay trên, một ô hai thứ cùng đỏ là nói một chuyện hai lần. */
+function SeenDate({ s }: { s: string | null }) {
+  if (!s) return <>never</>;
   const p = stampParts(s);
-  const color = tone === "crit" ? "text-crit" : tone === "watch" ? "text-watch" : null;
-  if (!p) return <span className={color ? `text-[14.5px] ${color}` : "t-meta"}>{s}</span>;
-  return (
-    <>
-      <span className={`text-[13px] ${color ?? "text-ink-2"}`}>{p.date}</span>
-      {/* Span giờ mang luôn "· " để textContent của ô bằng đúng stampText() — một mốc một cách viết. */}
-      {p.time ? (
-        <span className={`${color ? `text-[14.5px] ${color}` : "t-meta"} tabular-nums`}>{` · ${p.time}`}</span>
-      ) : null}
-    </>
-  );
+  return <>{p ? p.date : s}</>;
 }
 
 function SearchIcon() {
@@ -511,7 +506,6 @@ export function SignalTable({
               /* "unknown" (chưa nối nguồn) và "silent"/"ok" đều KHÔNG tô — chỉ hai bậc mà màn
                  Nguồn dữ liệu cũng coi là sự cố mới đổi màu mốc. */
               const feedHealth = signalFeedHealth(sig, data.sources, cfg, data.asOf);
-              const seenTone = feedHealth === "down" ? "crit" : feedHealth === "stale" ? "watch" : undefined;
               const feedSrc = data.sources.find((x) => x.id === sig.srcId);
               const daysMissing = feedSrc ? sourceDaysMissing(feedSrc, data.asOf) : null;
               return (
@@ -544,18 +538,18 @@ export function SignalTable({
                         cột ("Traffic per day"), ô chỉ còn con số. */}
                     {sig.vol ? sig.vol : "—"}
                   </td>
-                  {/* 18/08 tối (owner): mốc trần, không kèm xuất xứ — xuất xứ khai ở tầng hồ sơ
-                      (D6 dời tầng). Vẫn ưu tiên mốc máy của nguồn khi có, y hệ trước. */}
+                  {/* 18/08 tối (owner, đợt đảo thứ bậc): badge trạng thái giao nhận là thông
+                      tin chính; ngày (mốc máy của nguồn khi có, mốc người gõ khi chưa nối — D6
+                      dời tầng, xuất xứ khai ở hồ sơ) là dòng phụ nhỏ bên dưới. */}
                   <td
                     className="border-b border-line-soft px-3 py-2 text-right whitespace-nowrap"
                     data-testid={`signal-seen-${sig.id}`}
                   >
-                    <SeenStamp s={feedLast ?? sig.seen} tone={seenTone} />
-                    <div
-                      className={`mt-0.5 text-[11px] leading-4 ${FEED_TONE[feedHealth]}`}
-                      data-testid={`signal-feedstatus-${sig.id}`}
-                    >
-                      {feedStatusText(feedHealth, daysMissing)}
+                    <div data-testid={`signal-feedstatus-${sig.id}`}>
+                      <Badge state={FEED_BADGE[feedHealth]} text={feedStatusText(feedHealth, daysMissing)} />
+                    </div>
+                    <div className="mt-1 text-[11px] leading-4 text-ink-3">
+                      <SeenDate s={feedLast ?? sig.seen} />
                     </div>
                   </td>
                 </tr>

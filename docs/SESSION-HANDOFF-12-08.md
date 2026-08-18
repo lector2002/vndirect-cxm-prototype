@@ -858,3 +858,73 @@ Yêu cầu owner: nhìn Last seen và Data as of phải thấy NGAY data đang �
 
 Drawer KHÔNG đụng (Source feed row vẫn chỉ tên nguồn). Full suite đợt 9: 1320/1321 pass (fail duy nhất = TourOverlay flake đã ghi nợ).
 CHƯA COMMIT (đợt 6+7+8+9 đều chưa).
+
+
+## 18/08 tối — đợt 10 (owner): bản vẽ schema data để verify rồi đi xin team data
+
+Owner: "mình sẽ vẽ ra schema data cần thiết để verify, ổn r thì đi xin team data". Hai artifact:
+
+1. **`web/docs/ideal-data-model.md` §6 MỚI** — bản danh sách duy nhất (luật 14/08) nhận thêm phần
+   bản vẽ, KHÔNG đẻ doc thứ hai. 8 khối: T1 signal_registry (Bảng D + `src_id` nối nguồn — chính
+   là đường (a) đóng fixture gap đợt 8–9), T2 source_registry (nhịp giao + bản đồ nguồn↔chỉ số),
+   T3 event_fire_raw (ĐÃ CẤP 13/08 — chỉ xác nhận hình dạng, khớp SigFire + fired_at/received_at;
+   mốc thấy-cuối từng điểm đo = MAX(fired_at), truy vấn chứ không phải field xin thêm),
+   T4 step_obs_daily, T5 step_fail_reason_daily, T6 delivery_manifest (nơi sourceHealth đọc mốc
+   máy thật), T7 asof_watermark, T8 snapshot NAV/tier (chỉ XÁC NHẬN có sẵn — lối (b) ADR-001 §8).
+   Điều khoản giao 5 khoản (ISO có năm — nghỉ hưu hack năm-2000; hạt NGÀY; chưa-đo vắng mặt;
+   0 dòng vẫn có manifest; Signal.seen ở lại chỉ làm provenance). Bảng đối chiếu 6.3 verify hai
+   chiều: mọi cột có người tiêu thụ nêu tên, §5 "KHÔNG xin" không lọt mục nào.
+2. **`output/ban-ve-schema-data.html`** — trang một tờ tự chứa để owner review và gửi bên data.
+   Owner xin thêm: mục 1 của trang là SƠ ĐỒ QUAN HỆ dạng ERD (SVG vẽ bằng script inline, 900px,
+   9 hộp bảng + PK/FK + đường N:1; nét đứt = quan hệ đọc/join, không phải FK giao hàng).
+
+Ba câu hỏi mở, mỗi câu một người trả lời: Q1 (data) lượt bắn thô có customer_id không — quyết mục
+A; Q2 (data) bảng NAV/tier cuối ngày có sẵn ≥12 tháng không; Q3 (BÊN CASE, không phải data) case
+gắn với bước/lý do bằng trường nào — quyết số phận `rep`.
+
+Luật "không khai type trong web/ cho dữ liệu chưa có" GIỮ — không file nào trong src/ bị đụng.
+CHƯA COMMIT (đợt 6–9 đã commit dcfd9c7; đợt 10 chờ owner verify — "ổn r thì đi xin").
+
+
+## 18/08 tối — đợt 11 (owner): ô cột cuối ĐẢO THỨ BẬC — badge trạng thái là chính, ngày nhỏ bỏ giờ, cột đổi tên
+
+Owner: "phần chữ của cột last seen nên là thông tin chính và có màu hoặc card gì đó để show có đang
+gặp vấn đề gì ko nhanh hơn, phần time thì bỏ giờ đi và để nhỏ ở dưới cho user biết khi cần thôi,
+đổi tên cột cho phù hợp". Bốn việc:
+
+1. **Badge trạng thái giao nhận lên làm thông tin chính** — dùng CHÍNH Badge + FEED_BADGE (cùng
+   badge với "Source feed" ở hồ sơ, không chế khung mới): ✓ Receiving (không màu) / Missing N days
+   (hổ phách) / Stopped · missing N days (đỏ) / — No source linked (nét đứt xám).
+2. **Mốc chỉ còn NGÀY** (SeenDate, stampParts().date), cỡ 11px mực nhạt, đứng DƯỚI badge — GIỜ rời
+   mặt bảng, vẫn đầy đủ ở drawer + hồ sơ (stampText). Ngày KHÔNG mang màu nữa — màu là việc của
+   badge, một ô hai thứ cùng đỏ là nói một chuyện hai lần.
+3. **Cột đổi tên "Last seen" → "Feed status"** (HEADERS) cho khớp thông tin chính mới.
+4. **FEED_TONE bỏ** (feedStatus.ts) — map tông chữ trần sống đúng một đợt, thành mồ côi khi badge
+   nhận việc màu; SeenStamp (tone crit/watch) thay bằng SeenDate.
+
+Test đổi theo nghĩa mới (không nới): hai bài D6 bảng đối chiếu bằng stampParts().date và chốt
+"giờ không còn trên dòng"; unlinked chốt textContent "— No source linked" (prefix — của Badge
+unknown); ok chốt "✓ Receiving" + soi màu bằng querySelector trong wrapper. Charter D6 nối thêm
+mệnh đề đợt 11. Focused signals+Badge 111/111, tsc -b 0, oxlint chỉ 2 warning pre-existing ở file
+không đụng (SignalGovernanceBlock/SignalReliabilityBlock — fast-refresh). detect.mjs KHÔNG còn
+(tool scratchpad phiên cũ, đã mất theo session) — thay bằng oxlint từ nay.
+
+Ảnh: rd-signals-feed2-1440.png (fixture thật — toàn ✓ Receiving/— No source linked, fixture gap
+VẪN TREO) · rd-signals-feed2-tinted-1440.png (minh hoạ: sg8→src-zalo "Stopped · missing 8 days"
+đỏ + 19 Jul; sg10→src-survey "Missing 1 day" hổ phách; seed revert sạch, đã xác nhận). Bộ ảnh
+rd-signals-feed-*.png đợt 9 nay LỖI THỜI. Full suite đợt 11: 1321/1321 pass — sạch tuyệt đối, cả TourOverlay flake lần này cũng xanh.
+CHƯA COMMIT (đợt 10 schema + đợt 11 này; đợt 6–9 đã commit dcfd9c7).
+
+
+## 18/08 tối — đợt 11b (owner): Receiving bỏ tick, mang màu lục
+
+Owner ngay sau đợt 11: "bỏ cái tick đi và cho màu đánh màu cho tình trạng nữa". Một chỗ đổi:
+FEED_BADGE.ok (feedStatus.ts) "ok" → "good" — Receiving thôi mượn state ✓-không-màu, sang badge
+lục không prefix (good đã bỏ ✓ từ đợt 8). Bốn trạng thái giờ đều đọc được bằng màu: lục / hổ
+phách / đỏ / xám nét đứt. Ăn theo cả badge "Source feed" ở hồ sơ (một map chung — chủ đích).
+Bài test ok đổi nghĩa: textContent "Receiving" + .text-good phải có, crit/watch phải không.
+Ảnh feed2 (thường + tinted) CHỤP LẠI đè lên bản đợt 11. Focused 111/111, tsc 0. Full suite đợt
+11b: 1321/1321 pass — sạch tuyệt đối. CHƯA COMMIT (đợt 10 + 11 + 11b).
+
+Ghi chú kỹ thuật: heredoc bash-python lại phá pattern nhiều dòng (rep 3 dòng đếm 0 dù từng dòng
+đếm 1) — file .py qua Write vẫn là đường an toàn duy nhất cho sửa chữa nhiều dòng.
