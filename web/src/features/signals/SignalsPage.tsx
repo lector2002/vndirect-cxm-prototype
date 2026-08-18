@@ -39,11 +39,11 @@ import {
    18/08 chiều (owner chốt redesign, phương án A) — SỬA I4b/"MÀN 2": bấm dòng nay mở DRAWER tóm tắt
    đứng CẠNH bảng (SignalDrawer.tsx), hồ sơ đầy đủ lùi một nấc sau nút "Open full profile"
    (`profileOpen`). Đóng hồ sơ quay về bảng + drawer đang mở, không về bảng trần — người dùng đang
-   đứng ở điểm đo đó. Văn bản charter I4b chưa sửa theo — việc của owner.
+   đứng ở điểm đo đó. Văn bản charter I4b đã sửa theo 18/08 (§14).
 
    18/08 tối (owner) — SỬA CHARTER §6 "buộc trưng" lần nữa: T1·T3 và khối độ tin dữ liệu RỜI HẲN
    màn này, thành noti chỉ-hiện-khi-lệch ở đầu CXM Overview (overview/SignalHealthNoti.tsx) — hai
-   khối chỉ còn là thân chi tiết của noti đó. Văn bản charter chưa sửa theo — việc của owner.
+   khối chỉ còn là thân chi tiết của noti đó. Văn bản §6 đã sửa theo 18/08.
 
    12/08 (redesign): cả bộ lọc (`filter`) là state của MÀN, cùng loại với `selectedSignalId` — không
    vào store. Nó CHỈ đổi độ đậm của bảng, không cắt dòng nào (F1). Đi tới/lui trong hồ sơ chạy theo
@@ -110,14 +110,11 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
           xuống thêm một nấc. */}
       <div className="flex flex-wrap items-end gap-x-4">
         <PageTitle route="signals" />
-        {/* Khi hồ sơ đang mở thì mốc số liệu ở đây IM: thanh đầu hồ sơ ngay dưới đã in đúng chuỗi
-            đó, và thanh kia mới là cái còn dính lại khi cuộn. Hai lần cùng một mốc cách nhau 40px
-            là một dữ kiện đọc thành hai. */}
-        {data.asOf && !(selectedSignal && profileOpen) ? (
-          <p className="mb-4 ml-auto text-[12px] text-ink-3" data-testid="signals-asof">
-            Data as of {data.asOf}
-          </p>
-        ) : null}
+        {/* 18/08 tối (owner, đợt "last seen + data as of"): chú thích asOf đầu trang BỎ HẲN —
+            ở mặt bảng nó đứng cách chú thích CÙNG CHUỖI của thanh công cụ bảng ~40px, đúng cái
+            lỗi "một dữ kiện đọc thành hai" mà comment cũ ở đây tự nêu (comment đó mới chỉ xử ca
+            hồ sơ mở). Mốc neo duy nhất nay là `signal-table-asof-note` trong thanh công cụ bảng
+            — nơi các dòng Missing N days đọc số từ đó. */}
       </div>
 
       {/* luật 11/08 (bổ sung, ghi đè bất biến 9 charter Module I theo owner 11/08): bỏ câu giới hạn đầu màn */}
@@ -151,6 +148,7 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
             <div className="min-w-0 flex-1">
               <SignalTable
                 data={data}
+                cfg={cfg}
                 onSelect={openSignal}
                 matched={matched}
                 selectedId={selectedSignalId ?? lastOpenedId}

@@ -759,3 +759,102 @@ SVG nay chép ở 3 chỗ (SignalTable · CollapsibleBlock · RuleLayout) — go
   QuantifyDetail thay bài "note hiện đúng 1 lần" bằng bài khẳng định KHÔNG còn qdetail-note.
 - Kiểm: tsc 0 · detect `[]` · full 1307/1308 (flake TourOverlay cũ; validate.test của fixture nằm
   trong suite, xanh). CHƯA COMMIT.
+
+## Bổ sung 18/08 (tối, đợt 6) — TRẢ NỢ VĂN BẢN CHARTER theo các amendment 18/08
+
+- `module-i-signal-registry-charter.md`: §6 thêm khối "Sửa 18/08" (bốn lần sửa trong ngày, ghi
+  trạng thái cuối: T1·T3 → noti-gov, Data trust → noti-reliability, T4·T7 → noti-coverage, T5 ở
+  lại làm chip lọc; bất biến một-đường-đếm govCounts/reliabilityGaps); năm dòng T1/T3/T4/T5/T7 và
+  đoạn "Còn 5 dòng phải trưng" thêm ghi chú mũi tên; D6 (§5) vế hiển thị đổi tầng (nhãn xuất xứ
+  chỉ còn ở hồ sơ, vế CẤM tính tuổi giữ nguyên mọi tầng); §14 sửa dòng I4a (khối độ tin cậy rời
+  đi), I4b (drawer cạnh bảng, hồ sơ sau "Open full profile"), I5 (trỏ về §6).
+- `adr-001`: §4 gạch vế "viết đủ vào nhãn trục" (luật mẫu số GIỮ — dải khối lượng là vết mẫu số
+  trên màn, caption chỉ là phát biểu thứ hai); §8 ghi note lát cắt rút về caveat một dòng.
+- 7 docblock trong code đang ghi "văn bản charter chưa sửa theo — việc của owner" lật thành "đã
+  sửa theo 18/08" (SignalHealthNoti, SignalDrawer ×2, SignalsPage ×2, SignalTable ×2 — trong đó
+  SignalTable sửa luôn hai comment cũ còn nói drawer khai xuất xứ, đã sai từ lượt sửa giữa chừng).
+- Ghi nhận: cụm "ngay tại dòng" các docblock trích dẫn KHÔNG có trong charter (trích sai) — vế
+  thật đã sửa là "chỉ hiện nguyên chuỗi kèm nhãn mốc do người khai" ở dòng D6. Quyết định 03/08
+  "note ở màn chi tiết" không nằm trong file docs nào — chỉ sống ở docblock code, đã cập nhật đợt 5.
+- Kiểm: chỉ sửa markdown + comment; tsc -b sạch, không chạy lại suite. CHƯA COMMIT (đợt 6).
+
+## Bổ sung 18/08 (tối, đợt 7) — CHỈNH BA CỘT BẢNG SIGNALS (owner yêu cầu trực tiếp)
+
+- Status: Badge thêm state `good` (token --good lục, prefix ✓ giữ như ok — đọc được không cần
+  màu); SIGNAL_STATUS.live → good. Spec cũ "ok cố ý không màu" KHÔNG bị phá: spec đó nói về
+  trạng thái SUY RA, còn tracking-plan status là bản KHAI. Vì SIGNAL_STATUS dùng chung, Live
+  cũng xanh ở Atlas — đúng luật cùng-điểm-đo-cùng-giọng.
+- Traffic: bỏ chấm tròn chạy/không-chạy (phát biểu thứ hai của vol>0; "—" đã nói không có
+  traffic) và bỏ dấu chấm ngăn nghìn ("9.510" dễ đọc nhầm 9,51 cạnh chữ Anh; vol tối đa 4 chữ
+  số). Diễn giải "trafic bỏ dấu ." của owner thành CẢ HAI loại dấu chấm — owner veto được.
+- Last seen: "27/07 · 14:52" → "27 Jul · 14:52" (features/signals/stamp.ts — parse không ra thì
+  hiện NGUYÊN chuỗi); bảng vẽ hai tông (ngày đậm, giờ nhạt), drawer + profile cùng phép định dạng.
+  D6: đây là đổi CÁCH VIẾT, vế cấm suy tuổi giữ nguyên — đã ghi addendum vào dòng D6 charter §5.
+  "2 days ago" vẫn là thứ KHÔNG được làm.
+- Test: stamp.test.ts mới (cặp vào/ra ghim chữ — hợp đồng định dạng, tránh test tự chứng bằng
+  chính implementation); Badge.test +2 bài good; SignalsPage.test D6 + SignalProfile.test đổi
+  kỳ vọng qua stampText().
+- Kiểm: tsc 0 · detect sạch · screenshot output/rd-signals-cols-1440.png + -drawer-. CHƯA COMMIT.
+
+
+## 18/08 tối — đợt 8 (owner, nối tiếp đợt 7): tick Live · Last seen căn phải + tô màu · Traffic per day
+
+Bốn yêu cầu owner (mid-turn): bỏ tick cạnh Live; cột Last seen về mép phải thay vì "treo ở giữa";
+mốc ĐỎ khi "data ở đây đang gặp vấn đề và ko nhận được gần đây"; cột Traffic chỉ còn số, tên đổi
+"Traffic per day".
+
+1. **Tick ✓ bỏ ở state `good`** (Badge.tsx) — ✓ ở `ok` (RUNNING…) GIỮ: `ok` không màu, tick vẫn là
+   thứ duy nhất tách nó khỏi chữ thường. Badge.test đổi theo (textContent === "Live").
+2. **Last seen căn phải** — HEADERS align "right" + ô `text-right`; ô mang testid mới
+   `signal-seen-{id}`.
+3. **Tô màu mốc theo `signalFeedHealth`** — KHÔNG dựng bậc thang mới: down → `text-crit` (đỏ),
+   stale → `text-watch` (hổ phách), silent/ok/unknown không tô — CÙNG bậc với badge "Source feed"
+   ở hồ sơ (FEED_BADGE). Owner nói "màu đỏ" nhưng bậc thang hiện hành nói stale là hổ phách —
+   **owner veto được** (muốn đỏ cho cả stale thì nói). D6 nguyên vẹn: srcId null (mốc người gõ)
+   KHÔNG BAO GIỜ tô — test chốt riêng. SignalTable nhận thêm prop `cfg` (SignalsPage truyền).
+   **LƯU Ý fixture**: hiện KHÔNG điểm đo nào (seed lẫn demo) nối vào 2 nguồn đang sự cố
+   (src-survey stale, src-zalo down) ⇒ trên màn chưa dòng nào đổi màu. Ảnh minh hoạ
+   `rd-signals-cols2-tinted-1440.png` chụp bằng cách TẠM nối sg8→src-zalo, sg10→src-survey rồi
+   revert seed.ts ngay (git checkout, đã xác nhận sạch). Muốn thấy màu thật: đội dữ liệu khai nối,
+   hoặc owner duyệt cho demoData nối tất định — CHƯA làm, chờ quyết.
+4. **Traffic per day** — nhãn cột mang đơn vị, ô chỉ còn số; drawer "Volume" → "Traffic per day"
+   (giá trị số trần), profile "Volume: X/day" → "Traffic per day: X" — một dữ kiện một tên trên cả
+   ba tầng. Atlas panel "Volume/ngày" KHÔNG đụng (nợ bilingual đã ghi).
+
+Tests: signals+Badge+atlas 145/145; 3 test tô màu mới (down/stale/không-nối) dựng dữ liệu bằng đếm
+lại `sourceHealth`, không ghim id. Full suite đợt 7 đã xanh 1313/1314 (chỉ TourOverlay flake); full
+suite đợt 8: 1316/1317 xanh — bài đỏ duy nhất là TourOverlay flake đã ghi nợ. Detect: `--json` in `[]` (mấy lần trước chạy text-mode nên
+0 finding = im lặng — từ nay dùng --json để có tín hiệu dương). tsc -b exit 0.
+
+Ảnh: rd-signals-cols2-1440.png (bảng thường) · rd-signals-cols2-drawer-1440.png (drawer) ·
+rd-signals-cols2-tinted-1440.png (minh hoạ tô màu, fixture tạm). CHƯA COMMIT (đợt 6+7+8 đều chưa).
+
+
+## 18/08 tối — đợt 9 (owner): Last seen + Data as of phải nói ngay "data có về định kì không"
+
+Yêu cầu owner: nhìn Last seen và Data as of phải thấy NGAY data đang được chuyển về định kì hay
+đang thiếu các ngày gần đây.
+
+1. **Dòng trạng thái giao nhận dưới mỗi mốc Last seen** — `features/signals/feedStatus.ts` (MỚI):
+   Receiving / Missing N days / Stopped · missing N days / No source linked. N = `sourceDaysMissing`
+   máy đếm từ mốc feed của NGUỒN so với Data as of — KHÔNG đếm gì từ `Signal.seen` (D6 nguyên; điểm
+   đo chưa nối chỉ được nói "No source linked"). ok/unknown mực thường, chỉ stale/down có màu —
+   dòng có vấn đề là thứ màu duy nhất trong cột. FEED_LABEL/FEED_BADGE dời từ SignalProfile ra
+   feedStatus.ts (kèm ĐÍNH CHÍNH: câu "chép nguyên văn từ SourcesPage" đã sai từ đợt EN 18/08 —
+   SourcesPage vẫn tiếng Việt, nợ bilingual). Badge Source feed ở hồ sơ nay cũng mang số ngày
+   ("Missing 3 days") — một giọng với bảng.
+2. **Bỏ chú thích asOf đầu trang** (`signals-asof`) — mặt bảng in "Data as of" hai lần cách ~40px
+   (đầu trang + thanh công cụ bảng), đúng lỗi "một dữ kiện đọc thành hai" mà comment cũ tự nêu.
+   Mốc neo duy nhất: `signal-table-asof-note`. Đây là CÁCH EM ĐỌC "date as" — owner veto được
+   (nếu ý là làm asOf nổi bật hơn thì nói).
+3. Charter D6: nối thêm câu về dòng trạng thái vào clause 18/08. Tests: feedStatus.test.ts (hợp
+   đồng câu chữ, precedent stamp.test.ts); 4 test tô màu/nhãn trong SignalsPage.test đếm lại
+   `sourceDaysMissing`, không ghim số; signals+overview 225/225 xanh; tsc 0; detect --json [].
+4. **Fixture gap VẪN TREO (giờ chặn chính tính năng owner vừa xin)**: không điểm đo nào nối vào 2
+   nguồn sự cố ⇒ màn thật chỉ thấy Receiving/No source linked, không bao giờ thấy Missing/Stopped
+   cho tới khi (a) đội dữ liệu khai nối hoặc (b) owner duyệt demoData nối tất định. Ảnh
+   `rd-signals-feed-tinted-1440.png` là minh hoạ (tạm nối sg8→src-zalo, sg10→src-survey rồi revert
+   seed.ts — đã xác nhận sạch). Ảnh thường: rd-signals-feed-1440.png · rd-signals-feed-drawer-1440.png.
+
+Drawer KHÔNG đụng (Source feed row vẫn chỉ tên nguồn). Full suite đợt 9: 1320/1321 pass (fail duy nhất = TourOverlay flake đã ghi nợ).
+CHƯA COMMIT (đợt 6+7+8+9 đều chưa).

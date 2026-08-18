@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import type { CxmData, Signal } from "../../data/schema/index.ts";
-import { isSignalRunning, signalFeedLast } from "../../domain/index.ts";
+import type { Cfg, CxmData, Signal } from "../../data/schema/index.ts";
+import { stampParts } from "./stamp.ts";
+import { isSignalRunning, signalFeedHealth, signalFeedLast, sourceDaysMissing } from "../../domain/index.ts";
 import { Badge } from "../../design-system/index.ts";
-import { nf } from "../../design-system/format.ts";
 import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
+import { FEED_TONE, feedStatusText } from "./feedStatus.ts";
 import {
   PHASE_BROKEN,
   PHASE_BROKEN_LABEL,
@@ -97,13 +98,38 @@ import {
    HAI MẶT của cùng dữ kiện (chấm suy từ vol>0) — đứng hai cột là đếm một chuyện hai lần.
 
    18/08 tối (owner) — BỎ XUẤT XỨ KHỎI MẶT BẢNG: cột Last seen chỉ còn mốc trần. Vế "khai người
-   gõ" của D6 dời xuống drawer + hồ sơ (một cú bấm, SignalDrawer.tsx vẫn khai "self-reported" /
-   "source feed" ở từng mốc). Văn bản D6 còn ghi "ngay tại dòng" — chưa sửa theo, việc của owner. */
+   gõ" của D6 nay neo ở tầng HỒ SƠ (SignalProfile "Last seen (self-reported)") — drawer cũng chỉ
+   mốc trần (SignalDrawer.tsx). Văn bản D6 đã sửa theo 18/08 (charter §5, dòng D6).
+
+   18/08 tối (owner, đợt chỉnh ba cột): (1) Status — Live mang badge `good` lục (signalStatus.ts);
+   (2) Traffic — BỎ chấm tròn (nó là phát biểu thứ hai của vol>0, "—" đã nói "không có traffic")
+   và số bỏ dấu chấm ngăn nghìn ("9.510" đọc nhầm thành 9,51 khi cạnh chữ Anh; vol lớn nhất 4 chữ
+   số, không cần nhóm hàng nghìn); (3) Last seen — "27/07 · 14:52" viết lại "27 Jul · 14:52"
+   (stamp.ts), ngày đậm giờ nhạt.
+
+   18/08 tối (owner, đợt tiếp — 4 chỉnh): (1) bỏ tick ✓ cạnh Live (Badge.tsx, state `good` thôi
+   prefix); (2) cột Traffic đổi tên "Traffic per day", ô chỉ còn CON SỐ — đơn vị dời hết lên nhãn
+   cột, khỏi lặp "/day" ba mươi lần; (3) cột Last seen CĂN PHẢI — cột cuối bảng mà căn trái thì
+   mốc treo giữa khoảng trống 22%, căn phải cho nó tựa vào mép bảng; (4) mốc TÔ MÀU theo
+   `signalFeedHealth` (bậc thang sourceHealth của #/rules, cùng bậc với badge "Source feed" ở hồ
+   sơ — không dựng bậc thang thứ hai): down → đỏ --crit, stale → hổ phách --watch, còn lại giữ
+   nguyên. Điểm đo CHƯA NỐI NGUỒN (srcId null, đang hiện `Signal.seen` người gõ) KHÔNG BAO GIỜ tô
+   — suy "đang gặp vấn đề" từ mốc người gõ chính là điều D6 cấm.
+
+   18/08 tối (owner, đợt tiếp nữa): "nhìn cái phải thấy được ngay… data có đang được chuyển về
+   định kì không hay đang thiếu data từ các ngày gần đây" — mỗi ô Last seen mang thêm MỘT DÒNG
+   TRẠNG THÁI GIAO NHẬN dưới mốc (feedStatus.ts, cùng câu chữ với badge "Source feed" ở hồ sơ):
+   Receiving / Missing N days / Stopped · missing N days / No source linked. Số ngày là
+   `sourceDaysMissing` — máy đếm từ mốc feed của NGUỒN so với Data as of, không phải từ
+   `Signal.seen` (D6 nguyên). Dòng ok/unknown để mực thường — dòng có vấn đề là thứ màu duy nhất
+   trong cột. Cùng đợt: BỎ chú thích "Data as of" ở đầu trang (SignalsPage) — nó đứng cách chú
+   thích cùng chuỗi của thanh công cụ bảng ~40px, chính cái lỗi "một dữ kiện đọc thành hai" mà
+   comment ở đó tự nêu; mốc neo duy nhất là của bảng, nơi các dòng trạng thái đọc số từ đó. */
 const HEADERS: readonly { label: string; align: "left" | "right" | "center"; width: string }[] = [
   { label: "Event", align: "left", width: "46%" },
   { label: "Status", align: "left", width: "14%" },
-  { label: "Traffic", align: "right", width: "18%" },
-  { label: "Last seen", align: "left", width: "22%" },
+  { label: "Traffic per day", align: "right", width: "18%" },
+  { label: "Last seen", align: "right", width: "22%" },
 ];
 
 const ALIGN: Record<"left" | "right" | "center", string> = {
@@ -111,6 +137,30 @@ const ALIGN: Record<"left" | "right" | "center", string> = {
   right: "text-right",
   center: "text-center",
 };
+
+/* Mốc thấy cuối, hai tông: ngày là phần người ta quét, giờ là chi tiết. Parse không ra thì hiện
+   nguyên chuỗi một tông như cũ (stamp.ts).
+
+   `tone` (18/08 tối, đợt tiếp): nguồn chở điểm đo đang gặp sự cố thì CẢ mốc đổi màu — "crit" (đứt
+   hẳn) / "watch" (thiếu ngày). Chỉ là màu chữ: textContent vẫn bằng đúng stampText(), các test D6
+   đối chiếu chuỗi không bị đụng. Vì sao không dùng t-meta khi có tone: .t-meta tự mang màu ink2
+   trong index.css, đè lẫn với text-crit thì thắng thua do thứ tự stylesheet quyết — mang màu bằng
+   MỘT lớp duy nhất cho khỏi mơ hồ. */
+function SeenStamp({ s, tone }: { s: string | null; tone?: "crit" | "watch" }) {
+  if (!s) return <span className="text-ink-3">never</span>;
+  const p = stampParts(s);
+  const color = tone === "crit" ? "text-crit" : tone === "watch" ? "text-watch" : null;
+  if (!p) return <span className={color ? `text-[14.5px] ${color}` : "t-meta"}>{s}</span>;
+  return (
+    <>
+      <span className={`text-[13px] ${color ?? "text-ink-2"}`}>{p.date}</span>
+      {/* Span giờ mang luôn "· " để textContent của ô bằng đúng stampText() — một mốc một cách viết. */}
+      {p.time ? (
+        <span className={`${color ? `text-[14.5px] ${color}` : "t-meta"} tabular-nums`}>{` · ${p.time}`}</span>
+      ) : null}
+    </>
+  );
+}
 
 function SearchIcon() {
   return (
@@ -214,6 +264,8 @@ function FilterSelect({
 
 export type SignalTableProps = {
   data: CxmData;
+  /** Luật độ tươi từ #/rules — cần cho `signalFeedHealth` tô màu cột Last seen (18/08 tối). */
+  cfg: Cfg;
   onSelect: (id: string) => void;
   matched: Set<string> | null;
   selectedId: string | null;
@@ -230,6 +282,7 @@ export type SignalTableProps = {
 
 export function SignalTable({
   data,
+  cfg,
   onSelect,
   matched,
   selectedId,
@@ -455,6 +508,12 @@ export function SignalTable({
               const status = SIGNAL_STATUS[sig.st];
               const dimmed = matched ? !matched.has(sig.id) : false;
               const feedLast = signalFeedLast(sig, data.sources);
+              /* "unknown" (chưa nối nguồn) và "silent"/"ok" đều KHÔNG tô — chỉ hai bậc mà màn
+                 Nguồn dữ liệu cũng coi là sự cố mới đổi màu mốc. */
+              const feedHealth = signalFeedHealth(sig, data.sources, cfg, data.asOf);
+              const seenTone = feedHealth === "down" ? "crit" : feedHealth === "stale" ? "watch" : undefined;
+              const feedSrc = data.sources.find((x) => x.id === sig.srcId);
+              const daysMissing = feedSrc ? sourceDaysMissing(feedSrc, data.asOf) : null;
               return (
                 <tr
                   key={sig.id}
@@ -479,25 +538,25 @@ export function SignalTable({
                     data-testid={`signal-running-${sig.id}`}
                     aria-label={running ? "receiving traffic" : "no traffic"}
                   >
-                    {/* Chấm vẽ bằng hộp chứ không bằng ký tự ●/○: hai ký tự đó khác nhau cả cỡ lẫn
-                        trọng lượng nét tuỳ font, nên cột này lúc nhìn lướt không thành hai mức rõ. */}
-                    <span
-                      className={`mr-1.5 inline-block h-2 w-2 rounded-full align-middle ${
-                        running ? "bg-ink" : "border border-ink-3"
-                      }`}
-                    />
-                    {sig.vol ? `${nf(sig.vol)}/day` : "—"}
+                    {/* 18/08 tối (owner): bỏ chấm chạy/không-chạy — số đã nói điều đó ("—" = không
+                        có traffic); aria-label của ô giữ nguyên cho máy đọc. Số KHÔNG nhóm hàng
+                        nghìn (xem docblock HEADERS). Đợt tiếp cùng tối: đơn vị "/day" dời lên nhãn
+                        cột ("Traffic per day"), ô chỉ còn con số. */}
+                    {sig.vol ? sig.vol : "—"}
                   </td>
-                  {/* 18/08 tối (owner): mốc trần, không kèm xuất xứ — xuất xứ nằm ở drawer/hồ sơ
-                      (D6 khai ở đó). Vẫn ưu tiên mốc máy của nguồn khi có, y hệ trước. */}
-                  <td className="border-b border-line-soft px-3 py-2">
-                    {feedLast ? (
-                      <span className="t-meta">{feedLast}</span>
-                    ) : sig.seen ? (
-                      <span className="t-meta">{sig.seen}</span>
-                    ) : (
-                      <span className="text-ink-3">never</span>
-                    )}
+                  {/* 18/08 tối (owner): mốc trần, không kèm xuất xứ — xuất xứ khai ở tầng hồ sơ
+                      (D6 dời tầng). Vẫn ưu tiên mốc máy của nguồn khi có, y hệ trước. */}
+                  <td
+                    className="border-b border-line-soft px-3 py-2 text-right whitespace-nowrap"
+                    data-testid={`signal-seen-${sig.id}`}
+                  >
+                    <SeenStamp s={feedLast ?? sig.seen} tone={seenTone} />
+                    <div
+                      className={`mt-0.5 text-[11px] leading-4 ${FEED_TONE[feedHealth]}`}
+                      data-testid={`signal-feedstatus-${sig.id}`}
+                    >
+                      {feedStatusText(feedHealth, daysMissing)}
+                    </div>
                   </td>
                 </tr>
               );

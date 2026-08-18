@@ -118,7 +118,12 @@ cả hai biến thể dựng thật rồi mới chọn.
 Kèm theo, phần mẫu số:
 
 - Tỉ lệ **chỉ mở** ở điểm đo có các giá trị **loại trừ nhau**.
-- Mẫu số **luôn** là lượt bắn của **chính điểm đo trong kỳ**, và phải viết đủ vào nhãn trục.
+- Mẫu số **luôn** là lượt bắn của **chính điểm đo trong kỳ**, ~~và phải viết đủ vào nhãn trục~~
+  — **GẠCH 18/08 tối (owner, dọn tối giản):** câu chú thích *"Đường:… / Dải dưới:…"* dưới chart bỏ
+  hẳn — chú thích cách đọc, người dùng không đọc. Luật mẫu số KHÔNG đổi, và vết mẫu số trên màn vẫn
+  còn: chính **dải khối lượng dưới đường** là dấu vết đó (lý do bác công tắc ở trên vẫn đứng
+  nguyên) — câu caption chỉ là lần phát biểu THỨ HAI của cùng dữ kiện. Trên màn chỉ giữ dòng lệch
+  bản khai (`sigtrend-undeclared`) vì đó là dữ liệu, không phải giải thích.
 - **Cấm tỉ lệ liên-điểm-đo** ở vòng này. `sg4 ÷ sg3` là tầng công thức của chỉ số — chỗ đó đang có
   khớp đứt riêng (`Metric.value` là chuỗi gõ tay, `Metric.formula` là văn bản hiển thị) và không
   được giải quyết lén qua chart điểm đo. Xem §9.
@@ -310,6 +315,11 @@ Bốn luật của phép nối này, phần dễ làm sai:
    nằm trên chính dòng lượt bắn.
 
 Nhãn *"nhóm NAV tính theo hôm nay"* **bỏ đi** cho phần cửa sổ có snapshot phủ.
+
+**Sửa 18/08 tối (owner, dọn tối giản):** note lát cắt trên màn rút về MỨC CAVEAT một dòng —
+*"Kỳ {label} — lượt bắn theo kỳ, nhóm khách tính theo hôm nay."* — bỏ câu hướng dẫn thao tác
+*"bấm lại để xem cả cửa sổ"*. Nhãn vẫn BẮT BUỘC chừng nào còn chạy lối (c); luật *"bỏ nhãn khi có
+snapshot phủ"* ngay trên giữ nguyên.
 
 **Trigger lật lại:** bảng cuối ngày hoá ra không có, hoặc chỉ giữ ngắn hơn 12 tháng, hoặc không có
 `tier` theo ngày ⇒ quay về mặc định (c) + nhãn cho phần thiếu, và bật ghi snapshot **đúng hai

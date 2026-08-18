@@ -10,8 +10,8 @@ import { reliabilityGaps, SignalReliabilityBlock } from "../signals/SignalReliab
    govCounts/reliabilityGaps — một đường đếm duy nhất, cùng lý do cfgIssuesTyped ở Rules.
 
    Không có gì lệch → không render gì. Đây là SỬA CHARTER §6 "buộc trưng" lần ba trong đợt 18/08
-   (số chỉ trưng khi có lệch, không còn thường trực); văn bản charter chưa sửa theo — việc của
-   owner. Chỉ gắn ở sec="cxm" (OverviewPage): tình trạng vận hành điểm đo, không thuộc VoC.
+   (số chỉ trưng khi có lệch, không còn thường trực); văn bản §6 đã sửa theo 18/08
+   (khối "Sửa 18/08" đầu mục). Chỉ gắn ở sec="cxm" (OverviewPage): tình trạng vận hành điểm đo, không thuộc VoC.
 
    18/08 tối (đợt 4, owner "lọc và bỏ hết"): T4·T7 (câu đếm bước/chỉ số của khối ① màn signals)
    cũng RỜI sang đây thành dòng noti-coverage — sửa §6 lần BỐN. Dòng này không có Details: hai con

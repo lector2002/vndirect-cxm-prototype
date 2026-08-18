@@ -2,8 +2,12 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { MockRepository } from "../../data/mock-repository.ts";
 import { demoData, recountDemoSignals } from "../../data/fixtures/demo.ts";
+import { seed } from "../../data/fixtures/seed.ts";
+import { sourceDaysMissing, sourceHealth } from "../../domain/index.ts";
+import { feedStatusText } from "./feedStatus.ts";
 import { createCxmStore } from "../../store/store.ts";
 import { SignalsPage } from "./SignalsPage.tsx";
+import { stampText } from "./stamp.ts";
 
 /* module-i-signal-registry-charter.md §14 lát I4a — mỗi test dùng store CÔ LẬP tiêm qua `useStore`
    (precedent OverviewPage.test.tsx), vì hai hướng của Khối ② cần hai fixture khác nhau: `seed`
@@ -88,8 +92,11 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
      `seen` thì KHÔNG ĐƯỢC IM về việc số đó do người gõ.
 
      18/08 tối (owner): bảng LẪN drawer bỏ xuất xứ — vế 2 nay neo ở tầng HỒ SƠ ("Last seen
-     (self-reported)"), hai tầng ngoài hiện mốc trần. Văn bản D6 "ngay tại dòng" chưa sửa theo —
-     việc của owner. */
+     (self-reported)"), hai tầng ngoài hiện mốc trần. Văn bản D6 đã sửa theo 18/08 (charter §5, dòng D6).
+
+     18/08 tối (owner, đợt chỉnh ba cột): mốc được ĐỊNH DẠNG lại "27 Jul · 14:52" (stamp.ts) — chỉ
+     đổi cách viết. Các bài dưới đối chiếu qua stampText() (một đường định dạng duy nhất); nghĩa
+     của chính stampText ghim ở stamp.test.ts bằng cặp vào/ra chữ. */
   it("mốc gõ tay: bảng và drawer hiện mốc TRẦN — không còn chữ xuất xứ ở hai tầng ngoài", () => {
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
@@ -98,11 +105,11 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
     expect(handTyped.length).toBeGreaterThan(0); // tiền đề: fixture còn mốc gõ tay
     for (const sig of handTyped) {
       const row = screen.getByTestId(`signal-row-${sig.id}`);
-      expect(row.textContent).toContain(sig.seen as string);
+      expect(row.textContent).toContain(stampText(sig.seen as string));
       expect(row.textContent).not.toContain("self-reported");
       fireEvent.click(row);
       const drawerSeen = screen.getByTestId("signal-drawer-seen").textContent;
-      expect(drawerSeen).toContain(sig.seen as string);
+      expect(drawerSeen).toContain(stampText(sig.seen as string));
       expect(drawerSeen).not.toContain("self-reported");
     }
   });
@@ -116,7 +123,7 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
     fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
     const profileSeen = screen.getByTestId("signal-profile-seen").textContent;
     expect(profileSeen).toContain("self-reported");
-    expect(profileSeen).toContain(sig.seen as string);
+    expect(profileSeen).toContain(stampText(sig.seen as string));
   });
 
   it("dòng đã nối nguồn: bảng lẫn drawer hiện MỐC CỦA NGUỒN trần — mốc máy vẫn thắng mốc gõ tay", () => {
@@ -128,11 +135,11 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
     for (const sig of linked) {
       const src = data.sources.find((s) => s.id === sig.srcId)!;
       const row = screen.getByTestId(`signal-row-${sig.id}`);
-      expect(row.textContent).toContain(src.last);
+      expect(row.textContent).toContain(stampText(src.last));
       expect(row.textContent).not.toContain("source feed");
       fireEvent.click(row);
       const drawerSeen = screen.getByTestId("signal-drawer-seen").textContent;
-      expect(drawerSeen).toContain(src.last);
+      expect(drawerSeen).toContain(stampText(src.last));
       expect(drawerSeen).not.toContain("source feed");
     }
   });
@@ -194,11 +201,13 @@ describe("18/08 tối (owner) — hai khối điều-kiện-đọc RỜI màn si
 });
 
 describe("asOf — mốc số liệu đọc qua store, không gõ tay", () => {
-  it("hiện đúng data.asOf khi có, không hiện dòng đó khi rỗng", () => {
+  it("18/08 tối (owner): chú thích asOf đầu trang ĐÃ BỎ — mốc neo duy nhất là của thanh công cụ bảng", () => {
+    /* Trước đây mặt bảng in "Data as of …" HAI lần cách nhau ~40px (đầu trang + thanh công cụ
+       bảng) — một dữ kiện đọc thành hai. Test cũ ("hiện đúng data.asOf") đổi nghĩa thành chốt
+       chiều ngược lại; vế "bảng mang đúng asOf" sống ở test ngay dưới. */
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
-    const { data } = store.getState();
-    expect(screen.getByTestId("signals-asof").textContent).toContain(data.asOf);
+    expect(screen.queryByTestId("signals-asof")).not.toBeInTheDocument();
   });
 
   it("chú thích lưu lượng dưới bảng cũng mang đúng data.asOf (đọc qua store, không gõ tay)", () => {
@@ -259,5 +268,71 @@ describe("Drawer — tầng tóm tắt giữa bảng và hồ sơ (owner 18/08, 
     fireEvent.click(screen.getByTestId("signal-profile-back"));
     expect(screen.getByTestId("signal-table")).toBeInTheDocument();
     expect(screen.getByTestId("signal-drawer")).toHaveAttribute("aria-label", target.name);
+  });
+});
+/* 18/08 tối (owner, đợt tiếp) — cột Last seen TÔ MÀU theo `signalFeedHealth`: down → text-crit,
+   stale → text-watch, còn lại không tô. Fixture thật hiện KHÔNG có điểm đo nào nối vào nguồn đang
+   sự cố (hai nguồn sự cố của seed đều chưa được nối), nên hai bài đầu DỰNG dữ liệu: nhặt nguồn
+   down/stale bằng cách đếm lại `sourceHealth` trên seed (không ghim id), rồi nối điểm đo đầu bảng
+   vào nguồn đó. Bài thứ ba là chốt D6: điểm đo CHƯA NỐI NGUỒN (đang hiện mốc người gõ) không bao
+   giờ được tô — tô nghĩa là suy "có vấn đề" từ `Signal.seen`. */
+describe("Cột Last seen — tô màu theo signalFeedHealth (18/08 tối)", () => {
+  function storeWithFirstSignalOn(srcHealth: "down" | "stale") {
+    const store = seedStore();
+    const { cfg } = store.getState();
+    const src = seed.sources.find((x) => sourceHealth(x, cfg, seed.asOf) === srcHealth);
+    if (!src) throw new Error(`fixture phải còn ít nhất một nguồn ${srcHealth}`);
+    const signals = seed.signals.map((sig, i) => (i === 0 ? { ...sig, srcId: src.id } : sig));
+    return { store: createCxmStore(new MockRepository({ ...seed, signals })), sigId: signals[0].id, src };
+  }
+
+  it("điểm đo nối nguồn ĐỨT HẲN (down) → mốc text-crit + dòng 'Stopped · missing N days' (N máy đếm)", () => {
+    const { store, sigId, src } = storeWithFirstSignalOn("down");
+    render(<SignalsPage useStore={store} />);
+    const td = screen.getByTestId(`signal-seen-${sigId}`);
+    expect(td.querySelector(".text-crit")).not.toBeNull();
+    expect(td.querySelector(".text-watch")).toBeNull();
+    /* Số ngày ĐẾM LẠI từ chính nguồn vừa nhặt — không ghim số. */
+    const { data } = store.getState();
+    expect(screen.getByTestId(`signal-feedstatus-${sigId}`).textContent).toBe(
+      feedStatusText("down", sourceDaysMissing(src, data.asOf)),
+    );
+  });
+
+  it("điểm đo nối nguồn THIẾU NGÀY (stale) → text-watch + dòng 'Missing N days', không phải đỏ", () => {
+    const { store, sigId, src } = storeWithFirstSignalOn("stale");
+    render(<SignalsPage useStore={store} />);
+    const td = screen.getByTestId(`signal-seen-${sigId}`);
+    expect(td.querySelector(".text-watch")).not.toBeNull();
+    expect(td.querySelector(".text-crit")).toBeNull();
+    const { data } = store.getState();
+    expect(screen.getByTestId(`signal-feedstatus-${sigId}`).textContent).toBe(
+      feedStatusText("stale", sourceDaysMissing(src, data.asOf)),
+    );
+  });
+
+  it("điểm đo CHƯA NỐI NGUỒN không bao giờ tô — mốc người gõ không được suy ra 'có vấn đề' (D6); dòng trạng thái nói 'No source linked'", () => {
+    const store = seedStore();
+    render(<SignalsPage useStore={store} />);
+    const { data } = store.getState();
+    const unlinked = data.signals.find((sig) => sig.srcId === null && sig.seen !== null);
+    if (!unlinked) throw new Error("fixture phải còn ít nhất một điểm đo chưa nối nguồn mà có seen");
+    const td = screen.getByTestId(`signal-seen-${unlinked.id}`);
+    expect(td.querySelector(".text-crit")).toBeNull();
+    expect(td.querySelector(".text-watch")).toBeNull();
+    expect(screen.getByTestId(`signal-feedstatus-${unlinked.id}`).textContent).toBe("No source linked");
+  });
+
+  it("điểm đo nối nguồn ĐANG NHẬN (ok) → dòng 'Receiving', mực thường không màu trạng thái", () => {
+    const store = seedStore();
+    render(<SignalsPage useStore={store} />);
+    const { data, cfg } = store.getState();
+    const okSig = data.signals.find(
+      (sig) => sig.srcId !== null && sourceHealth(data.sources.find((x) => x.id === sig.srcId)!, cfg, data.asOf) === "ok",
+    );
+    if (!okSig) throw new Error("fixture phải còn ít nhất một điểm đo nối nguồn đang ok");
+    const line = screen.getByTestId(`signal-feedstatus-${okSig.id}`);
+    expect(line.textContent).toBe("Receiving");
+    expect(line.className).not.toMatch(/text-(crit|watch|good)/);
   });
 });

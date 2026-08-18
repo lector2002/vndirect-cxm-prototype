@@ -8,6 +8,18 @@ describe("Badge", () => {
     expect(screen.getByTestId("badge")).toHaveTextContent("✓ OK");
   });
 
+  it("state=good: KHÔNG prefix ✓ (owner 18/08 tối bỏ tick cạnh Live) — nhãn tự phân biệt", () => {
+    render(<Badge state="good" text="Live" />);
+    expect(screen.getByTestId("badge").textContent).toBe("Live");
+  });
+
+  it("good dùng token màu good (bg/border/text) — khác ok vốn không màu", () => {
+    render(<Badge state="good" />);
+    const el = screen.getByTestId("badge");
+    expect(el.className).toContain("bg-good-bg");
+    expect(el.className).toContain("text-good");
+  });
+
   it("state=unknown: prefix — và nhãn mặc định", () => {
     render(<Badge state="unknown" />);
     expect(screen.getByTestId("badge")).toHaveTextContent("— No data");

@@ -4,6 +4,7 @@ import { cfgDefault, dims, seed } from "../../data/fixtures/seed.ts";
 import { demoData } from "../../data/fixtures/demo.ts";
 import { seenAfterAsOf, signalAllocationChain, signalChart } from "../../domain/index.ts";
 import { SignalProfile } from "./SignalProfile.tsx";
+import { stampText } from "./stamp.ts";
 
 /* module-i-signal-registry-charter.md §14 lát I4b — F2/F4/D5/D6. Mọi con số/tập hợp ĐẾM LẠI từ
    fixture bằng find()/filter() thô ngay trong test, không ghim id/số theo §7 charter. */
@@ -122,12 +123,12 @@ describe("D5 (UI) — 'đang chạy' suy từ vol, KHÔNG đọc st", () => {
 });
 
 describe("D6 (UI) — Signal.seen hiện verbatim, KHÔNG suy số ngày/giờ im lặng", () => {
-  it("chuỗi seen thật hiện nguyên văn", () => {
+  it("chuỗi seen hiện qua stampText — đổi CÁCH VIẾT (18/08 tối), không suy tuổi", () => {
     const sig = demoData.signals.find((s) => s.seen);
     expect(sig).toBeDefined();
     render(<SignalProfile data={demoData} signal={sig!} onBack={noop} dims={dims} cfg={cfgDefault} />);
     const node = screen.getByTestId("signal-profile-seen");
-    expect(node.textContent).toContain(sig!.seen as string);
+    expect(node.textContent).toContain(stampText(sig!.seen as string));
   });
 
   it("không nơi nào trên hồ sơ hiện cụm 'im lặng N ngày/giờ' suy ra từ seen", () => {

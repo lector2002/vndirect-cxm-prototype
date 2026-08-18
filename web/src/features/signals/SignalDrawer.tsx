@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import type { CxmData, Signal } from "../../data/schema/index.ts";
 import { isSignalRunning, signalAllocationChain, signalFeedLast } from "../../domain/index.ts";
 import { Badge } from "../../design-system/index.ts";
-import { nf } from "../../design-system/format.ts";
 import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
 import type { SignalProfileNav } from "./SignalProfile.tsx";
 
@@ -10,7 +9,7 @@ import type { SignalProfileNav } from "./SignalProfile.tsx";
    hồ sơ: bấm dòng mở drawer NÀY (bảng vẫn đứng cạnh, không mất ngữ cảnh), hồ sơ đầy đủ bốn mặt +
    chart (SignalProfile, lát I4b) lùi xuống một nấc sau nút "Open full profile". Đây là SỬA charter
    I4b/"MÀN 2" (bấm dòng thay cả màn bằng hồ sơ) — owner duyệt 18/08 qua bản mockup ASCII; văn bản
-   charter chưa sửa, việc của owner.
+   charter I4b đã sửa theo (§14).
 
    Drawer chỉ TÓM TẮT — mỗi dữ kiện một dòng, không chart, không bảng: thứ gì cần đọc kỹ đã có hồ
    sơ. Câu chữ lấy đúng thành ngữ của hồ sơ (RUNNING "(inferred from traffic)" cùng chữ với mặt
@@ -18,8 +17,10 @@ import type { SignalProfileNav } from "./SignalProfile.tsx";
 
    18/08 tối (owner): bảng LẪN drawer bỏ xuất xứ mốc ("source feed"/"self-reported") — vế "khai
    người gõ" của D6 nay neo ở tầng HỒ SƠ (SignalProfile: "Last seen (self-reported)"). Văn bản D6
-   "ngay tại dòng" chưa sửa theo — việc của owner. Chuỗi allocate cũng tách BA DÒNG có nhãn
+   đã sửa theo 18/08 (charter §5, dòng D6). Chuỗi allocate cũng tách BA DÒNG có nhãn
    (Phase/Flow/Step) thay breadcrumb "›" nén một dòng — cùng đợt owner yêu cầu. */
+
+import { stampText } from "./stamp.ts";
 
 function Row({ label, testId, children }: { label: string; testId: string; children: ReactNode }) {
   return (
@@ -89,12 +90,17 @@ export function SignalDrawer({
       </div>
 
       <div className="mt-3 flex flex-col">
-        <Row label="Volume" testId="signal-drawer-vol">
-          {signal.vol ? `${nf(signal.vol)}/day` : "—"}
+        {/* 18/08 tối (owner, đợt tiếp): cùng giọng với nhãn cột bảng "Traffic per day" — đơn vị
+            nằm trong nhãn, giá trị chỉ còn con số. Hai tầng cạnh nhau không được gọi cùng một dữ
+            kiện bằng hai tên ("Volume" cũ). */}
+        <Row label="Traffic per day" testId="signal-drawer-vol">
+          {signal.vol ? signal.vol : "—"}
         </Row>
-        {/* Mốc trần, ưu tiên mốc máy của nguồn — xuất xứ khai ở hồ sơ (D6 dời tầng, 18/08 tối). */}
+        {/* Mốc trần, ưu tiên mốc máy của nguồn — xuất xứ khai ở hồ sơ (D6 dời tầng, 18/08 tối).
+            Cùng phép định dạng "27 Jul · 14:52" với bảng (stamp.ts) — hai tầng cạnh nhau không
+            được viết một mốc hai kiểu. */}
         <Row label="Last seen" testId="signal-drawer-seen">
-          {feedLast ?? signal.seen ?? <span className="text-ink-3">never</span>}
+          {feedLast ?? signal.seen ? stampText((feedLast ?? signal.seen) as string) : <span className="text-ink-3">never</span>}
         </Row>
         <Row label="Linked metrics" testId="signal-drawer-metrics">
           {signal.metrics.length === 0 ? (

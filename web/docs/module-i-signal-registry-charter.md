@@ -222,7 +222,7 @@ Test biên của cả hai vẫn chỉ một điều: **màn hình không đổi*
 | # | Lỗi | Chứng cứ đo 07/08 | Cách dọn |
 |---|---|---|---|
 | **D5** | `Signal.st` **gộp hai trục** — đúng bệnh của `verified`/`observed` ở D2, chỉ chưa ai gọi tên | `st` ⟷ `vol > 0` **khớp 30/30**: `live` 21 + `validating` 4 đều `vol>0`; `designed` 3 + `gap` 2 đều `vol=0` **và** `seen=null`. Tức nửa *"có chạy hay không"* của `st` là **suy được hoàn toàn từ `vol`**. **Khác D2 ở một điểm quan trọng: không luật nào ép quan hệ này** — nó khớp do may, không do luật | Tách hai trục: **có chạy** = suy từ `vol` · **có tin dùng** = người khai (`live` vs `validating`), và **dự định** (`designed` = định làm) vs (`gap` = biết thiếu chưa làm). **KHÔNG thêm luật ép quan hệ này** — xem ô dưới. ⚠️ **Suy "có chạy" phải dùng CỬA SỔ NHIỀU NGÀY, không dùng `vol` của một ngày** — xem §12.2, dưới pipeline T-1 thì `vol=0` một ngày không còn nghĩa "không chạy" |
-| **D6** | `Signal.seen` **không dùng được để tính "im lặng bao lâu"** — và đây là cách dễ nhất để màn mới nói dối | Là **chuỗi gõ tay**, **không có năm** (`"27/07 · 14:52"`). Cả fixture chỉ **2 ngày phân biệt**: `27/07` và `04/08`. Hôm nay 07/08 ⇒ ai tính tuổi từ nó sẽ hiện **hầu hết điểm đo im lặng 11 ngày** = **báo chết hàng loạt sai** | Hai lối: (a) **cấm** tính tuổi từ `seen`, chỉ hiện nguyên chuỗi kèm nhãn *"mốc do người khai"*; (b) xin team data một **timestamp thật**. **Owner nêu pipeline T-1 (07/08) ⇒ (b) thành mục CHÍNH ở §10, không còn là việc vòng sau.** Trong module này vẫn làm (a) vì pipeline chưa có; khi có thì tuổi tính được nhưng **đơn vị nhỏ nhất là NGÀY** — xem §12.2 |
+| **D6** | `Signal.seen` **không dùng được để tính "im lặng bao lâu"** — và đây là cách dễ nhất để màn mới nói dối | Là **chuỗi gõ tay**, **không có năm** (`"27/07 · 14:52"`). Cả fixture chỉ **2 ngày phân biệt**: `27/07` và `04/08`. Hôm nay 07/08 ⇒ ai tính tuổi từ nó sẽ hiện **hầu hết điểm đo im lặng 11 ngày** = **báo chết hàng loạt sai** | Hai lối: (a) **cấm** tính tuổi từ `seen`, chỉ hiện nguyên chuỗi kèm nhãn *"mốc do người khai"*; (b) xin team data một **timestamp thật**. **Owner nêu pipeline T-1 (07/08) ⇒ (b) thành mục CHÍNH ở §10, không còn là việc vòng sau.** Trong module này vẫn làm (a) vì pipeline chưa có; khi có thì tuổi tính được nhưng **đơn vị nhỏ nhất là NGÀY** — xem §12.2. **Sửa 18/08 tối (owner):** vế hiển thị của (a) đổi TẦNG — nhãn xuất xứ chỉ còn ở HỒ SƠ (*"Last seen (self-reported)"* / *"(self-reported)"* cạnh từng mốc đã khai); bảng và drawer hiện mốc trần, ưu tiên mốc máy của nguồn (`srcId`, §10c) khi có. Vế CẤM tính tuổi từ `seen` giữ nguyên ở MỌI tầng — mốc trần không phải giấy phép suy tuổi. **18/08 tối (nối tiếp, cùng owner):** mốc được ĐỊNH DẠNG LẠI cho dễ đọc — "27/07 · 14:52" → "27 Jul · 14:52" (`features/signals/stamp.ts`; parse không ra thì hiện nguyên chuỗi). Đây là đổi CÁCH VIẾT, không phải phép tính thời gian — vế cấm suy tuổi vẫn nguyên; "2 days ago" vẫn là thứ KHÔNG được làm. Cùng tối: mốc trên bảng ĐỔI MÀU (đỏ/hổ phách) khi nguồn chở điểm đo đang sự cố — màu lấy từ `signalFeedHealth` (bậc thang máy của §10c lối (i)), KHÔNG suy từ `seen`; điểm đo chưa nối nguồn không bao giờ tô. Cùng tối (nối tiếp): dưới mốc thêm dòng trạng thái giao nhận — Receiving / Missing N days / Stopped · missing N days / No source linked (`features/signals/feedStatus.ts`, cùng câu chữ với badge Source feed ở hồ sơ); N là `sourceDaysMissing` máy đếm từ mốc feed của nguồn so với Data as of. Điểm đo chưa nối nguồn chỉ được nói "No source linked" — không câu nào đếm gì từ `seen` |
 
 > **Vì sao D5 KHÔNG kèm luật mới — quan trọng, đừng tự ý thêm lại.** Bản đầu tôi đề xuất thêm nhóm
 > luật 24 ép `vol>0 ⟺ st ∈ {live, validating}`. **Sai hướng.** D1–D4 đều là *"thôi tin một trường
@@ -238,15 +238,36 @@ Test biên của cả hai vẫn chỉ một điều: **màn hình không đổi*
 
 ## 6. TRƯNG — tình trạng thật, **phải thấy được, không được dọn**
 
+> **Sửa 18/08 (owner) — CHỖ TRƯNG ĐỔI, bốn lần trong một ngày, đây là trạng thái CUỐI.** Diễn tiến
+> để các docblock "sửa §6 lần hai/ba/bốn" có chỗ trỏ về: lần 1 (chiều, redesign phương án A) hai
+> khối tầng ② thu gọn được nhưng tiêu đề giữ nguyên số đếm → lần 2 (tối) T1·T3 + khối độ tin dữ
+> liệu RỜI HẲN `#/signals`, thành noti ở đầu CXM Overview → lần 3: noti CHỈ-HIỆN-KHI-LỆCH, không
+> có gì lệch thì không render gì → lần 4: T4·T7 nhập vào cùng noti. Trạng thái cuối
+> (`overview/SignalHealthNoti.tsx`):
+>
+> - **T1 · T3** trưng qua dòng `noti-gov` — dòng mang CẢ HAI cặp N/M (kể cả cặp đang 0, vì chúng là
+>   hai vế của cùng chuyện "bản khai không khớp thực tế"); bấm Details bung đúng khối "Declared vs
+>   observed" cũ làm thân chi tiết.
+> - **Khối độ tin dữ liệu** ("Data trust", vốn ở I4a) → dòng `noti-reliability`; `sigCounts` rỗng
+>   cũng là một ngoại lệ phải hiện (*"Chưa nhận được số đếm từ bên dữ liệu."*).
+> - **T4 · T7** → dòng `noti-coverage`, KHÔNG có Details — hai con số là toàn bộ nội dung; ràng T4
+>   *"hai số lồng trong MỘT câu"* đi theo nguyên vẹn sang dòng noti.
+> - **T5 ở lại** `#/signals` làm chip lọc của bảng — nó là tập con của chính bảng, không phải noti.
+> - Bất biến giữ F6 ở nhà mới: dòng noti và thân chi tiết **cùng MỘT đường đếm**
+>   (`govCounts`/`reliabilityGaps` export chung, cùng khuôn `cfgIssuesTyped` bên Rules).
+>
+> "Phải thấy được" nay nghĩa là **hiện ra khi có lệch, ở màn người ta mở mỗi sáng** — không phải một
+> khối thường trực trên màn quản trị. Không dòng nào bị DỌN: mọi phép đếm giữ nguyên định nghĩa.
+
 | # | Tình trạng | Số neo |
 |---|---|---|
-| T1 | Flow đã trích dẫn sơ đồ mà chưa chép bước | ~~19/32~~ → **19/25**, cộng **7 flow chưa đánh giá được đếm riêng** (I5 sửa mẫu số, số 19 không đổi). Mẫu số 32 là **trộn *chưa-biết* với *thiếu***: flow chưa trích dẫn **và** chưa chép bước thì chưa có thông tin nào để xếp loại, khác hẳn flow **đã** trích dẫn mà chưa chép bước. Để chung mẫu số thì thêm một flow vừa map xong sẽ **pha loãng tỉ lệ** dù chẳng có gì đổi — đúng ca F6 cấm. Đã đếm lại độc lập: 25 + 7 = 32, khớp tổng flow. ⚠️ Hôm nay *"đã đánh giá được"* (có trích dẫn **hoặc** đã chép bước) **tình cờ bằng** *"có trích dẫn"* = 25, vì **0 flow** chép bước mà không trích dẫn; hai định nghĩa sẽ tách nhau khi dữ liệu đổi, đừng đọc 25 thành "số flow có trích dẫn" |
+| T1 | Flow đã trích dẫn sơ đồ mà chưa chép bước | ~~19/32~~ → **19/25**, cộng **7 flow chưa đánh giá được đếm riêng** (I5 sửa mẫu số, số 19 không đổi). Mẫu số 32 là **trộn *chưa-biết* với *thiếu***: flow chưa trích dẫn **và** chưa chép bước thì chưa có thông tin nào để xếp loại, khác hẳn flow **đã** trích dẫn mà chưa chép bước. Để chung mẫu số thì thêm một flow vừa map xong sẽ **pha loãng tỉ lệ** dù chẳng có gì đổi — đúng ca F6 cấm. Đã đếm lại độc lập: 25 + 7 = 32, khớp tổng flow. ⚠️ Hôm nay *"đã đánh giá được"* (có trích dẫn **hoặc** đã chép bước) **tình cờ bằng** *"có trích dẫn"* = 25, vì **0 flow** chép bước mà không trích dẫn; hai định nghĩa sẽ tách nhau khi dữ liệu đổi, đừng đọc 25 thành "số flow có trích dẫn". **→ Sửa 18/08: trưng qua dòng `noti-gov` ở CXM Overview — khối "Sửa 18/08" đầu mục** |
 | ~~T2~~ | ~~Chỉ số khai nguồn bằng chữ mà không nối được vào nguồn nào~~ — **gộp vào D1, một gốc chứ không hai dòng** | Đúng **1 ca**: `m-contract` (`Metric.source = "SmartCA + Account service"`, không dòng nguồn nào tên đó). Nhưng đây **cùng một gốc** với ô D1 *"`m-contract` khai trễ 4 giờ mà 0 nguồn"* — một sự thật, đang kể ở hai chỗ. Giữ **câu nói** ở dưới, bỏ dòng đếm |
-| T3 | Nguồn đứt mà vẫn khai nuôi chỉ số | `src-zalo` vol 0, trễ 8 ngày, khai nuôi `m-repeat` — và `m-repeat` đang neo `CXI-028` |
-| T4 | Bước không có thiết bị đo nào chạy — **các số LỒNG nhau, không cộng được** | **9/30** bước không có điểm đo nào **đang chạy** (số không phụ thuộc định nghĩa) — **trong đó 7 không có điểm đo nào cả**, 2 có nhưng im (`s-tra-4`, `s-rut-4`). ~~Trong 9 đó, 8 vẫn khai `cov ≥ 70`~~ — **GẠCH sau I1: `obs.cov` đã gỡ khỏi mọi chỗ đọc trong `src/` (F9), trưng lại ở I5 là phá chính tiêu chí vừa nghiệm thu.** Phần còn lại của dòng đủ mang thông điệp T4. Con số 11/30 là **cùng một tình trạng đếm theo nhãn tin dùng**; chênh đúng 2 bước (`s-nap-3`, `s-rut-3`) vì signal của chúng là `validating` mà chở **9.510** và **236** lượt/ngày. ⚠️ **Không viết 7 và 9 cạnh nhau như hai nhóm rời** — người đọc sẽ cộng thành 16 |
-| T5 | Điểm đo không nuôi chỉ số nào | 20/30 |
+| T3 | Nguồn đứt mà vẫn khai nuôi chỉ số | `src-zalo` vol 0, trễ 8 ngày, khai nuôi `m-repeat` — và `m-repeat` đang neo `CXI-028`. **→ Sửa 18/08: trưng qua dòng `noti-gov` ở CXM Overview — khối "Sửa 18/08" đầu mục** |
+| T4 | Bước không có thiết bị đo nào chạy — **các số LỒNG nhau, không cộng được** | **9/30** bước không có điểm đo nào **đang chạy** (số không phụ thuộc định nghĩa) — **trong đó 7 không có điểm đo nào cả**, 2 có nhưng im (`s-tra-4`, `s-rut-4`). ~~Trong 9 đó, 8 vẫn khai `cov ≥ 70`~~ — **GẠCH sau I1: `obs.cov` đã gỡ khỏi mọi chỗ đọc trong `src/` (F9), trưng lại ở I5 là phá chính tiêu chí vừa nghiệm thu.** Phần còn lại của dòng đủ mang thông điệp T4. Con số 11/30 là **cùng một tình trạng đếm theo nhãn tin dùng**; chênh đúng 2 bước (`s-nap-3`, `s-rut-3`) vì signal của chúng là `validating` mà chở **9.510** và **236** lượt/ngày. ⚠️ **Không viết 7 và 9 cạnh nhau như hai nhóm rời** — người đọc sẽ cộng thành 16. **→ Sửa 18/08: rời sang dòng `noti-coverage` ở CXM Overview; ràng "hai số lồng trong MỘT câu" đi theo nguyên vẹn** |
+| T5 | Điểm đo không nuôi chỉ số nào | 20/30. **→ Sửa 18/08: Ở LẠI bảng `#/signals` làm chip lọc (`inv-signal-no-metric`)** |
 | ~~T6~~ | ~~`stationId` chưa ai đối chiếu~~ — **chuyển sang §10, không trưng trên màn** | 30/30 bước, `stationId` **distinct 30/30 và đúng khuôn** (`JS-MTK-01`…). Là **hằng số**, không phải trạng thái — hiện *"30/30 chưa đối chiếu"* thì tháng sau vẫn thế, người xem không làm gì được. Đây là việc **giao người**, không phải việc **hiện số** |
-| T7 | Chỉ số không có điểm đo nào nuôi | `m-ces`, `m-repeat` |
+| T7 | Chỉ số không có điểm đo nào nuôi | `m-ces`, `m-repeat`. **→ Sửa 18/08: rời sang dòng `noti-coverage` ở CXM Overview, cùng T4** |
 | ~~T8~~ | ~~Điểm đo chở lưu lượng thật mà chưa được tin dùng~~ — **gộp vào T4, không đếm hai lần** | 4/30 `validating` mà `vol>0` (`sg-nap-3` 9.510 · `sg4` 410 · `sg-rut-3` 236 · `sg11` 197). Hai trong bốn cái này **chính là toàn bộ khoảng chênh 9↔11 của T4** — tách thành dòng riêng là trưng cùng một tình trạng ở hai chỗ với hai mẫu số khác nhau. Việc **giao người** cho `sg-nap-3` đã ở §10 |
 
 **Câu chữ cho ca `m-contract` (T2 cũ, giờ nằm trong D1) — giữ nguyên, đây là chỗ dễ nói quá:**
@@ -256,6 +277,8 @@ nên lỗi có thể ở danh sách chứ không ở chỉ số.
 
 **Còn 5 dòng phải trưng: T1 · T3 · T4 · T5 · T7.** T2, T6, T8 đã rời khỏi danh sách vì các lý do
 ghi ngay trên dòng — **không phải vì hết quan trọng**, mà vì trưng lên màn thì trùng hoặc vô dụng.
+**Sửa 18/08 (owner):** vẫn đúng 5 tình trạng ấy, nhưng CHỖ trưng tách hai — T1·T3·T4·T7 là noti
+chỉ-hiện-khi-lệch ở CXM Overview, T5 là chip lọc trên bảng; xem khối "Sửa 18/08" đầu mục.
 
 ---
 
@@ -511,9 +534,9 @@ Theo khuôn Module G: mỗi lát một khối việc + tiêu chí ghim. **Một 
 | **I1** | **Mốc số liệu + gỡ số gõ tay khỏi quyền quyết định** | `asOf` (§13) · D4 (gỡ 6 chỗ tiêu thụ `obs.cov`) · D3 (chết theo D4) · F9 | — **làm đầu tiên**: không có mốc thì mọi con số sau đều đọc sai thành "bây giờ" |
 | **I2** | **Bỏ hai cờ không mang thông tin** | D2 · F8 · nhóm luật 13/14 thành **khuyết** (bất biến 8) | Độc lập với I1 |
 | **I3** | **Phả hệ nguồn + độ tươi chỉ số** | D1 (4 ca, gồm `m-ces` đúng số mà che trạng thái) · F7 · ca `m-contract` (T2 cũ) | ✅ **XONG 07/08** — gỡ chặn, xem dưới |
-| **I4a** | **Màn Điểm đo: route + bảng 30 điểm + hai khối tầng ①/②** | F1 · bất biến 9 (~~câu giới hạn IN TRÊN MÀN~~ — **vế in-ra-màn gỡ 11/08**, xem §9 mục 9; vế "không khai độ phủ" còn nguyên) · khối kiểm kê · khối độ tin cậy (1 số thật + 5 ô chờ) · nav vào nhóm Quản trị | I1 (mốc số liệu) |
-| **I4b** | **Hồ sơ một điểm đo — bốn mặt** | F2 · F4 · D5 · D6 | I4a. **F3 phần độ tươi nguồn HOÃN** — chặn bởi A1 |
-| **I5** | **Chart giá trị + khối đếm + 5 tình trạng trưng** | F5 · F6 · T1 · T3 · T4 · T5 · T7 | ✅ **XONG 07/08** — xem cuối §14 |
+| **I4a** | **Màn Điểm đo: route + bảng 30 điểm + hai khối tầng ①/②** | F1 · bất biến 9 (~~câu giới hạn IN TRÊN MÀN~~ — **vế in-ra-màn gỡ 11/08**, xem §9 mục 9; vế "không khai độ phủ" còn nguyên) · khối kiểm kê · khối độ tin cậy (1 số thật + 5 ô chờ) (**Sửa 18/08: rời sang dòng `noti-reliability` ở CXM Overview — §6**) · nav vào nhóm Quản trị | I1 (mốc số liệu) |
+| **I4b** | **Hồ sơ một điểm đo — bốn mặt**. **Sửa 18/08 (owner, redesign phương án A):** bấm dòng nay mở DRAWER tóm tắt đứng CẠNH bảng (`SignalDrawer.tsx`), hồ sơ đầy đủ bốn mặt lùi một nấc sau nút "Open full profile"; đóng hồ sơ quay về bảng + drawer đang mở, không về bảng trần | F2 · F4 · D5 · D6 | I4a. **F3 phần độ tươi nguồn HOÃN** — chặn bởi A1 |
+| **I5** | **Chart giá trị + khối đếm + 5 tình trạng trưng** | F5 · F6 · T1 · T3 · T4 · T5 · T7 (**chỗ trưng T1·T3·T4·T7 đổi 18/08 — §6**) | ✅ **XONG 07/08** — xem cuối §14 |
 
 **Hoãn sang lát 2:** F10 (khối ở Tổng quan) · mọi việc cần pipeline thật (Bảng D, mã lý do rớt, mốc
 thấy cuối máy sinh, lưu lượng theo cửa sổ, tách trễ-pipeline khỏi trễ-nguồn — §10 và §12).

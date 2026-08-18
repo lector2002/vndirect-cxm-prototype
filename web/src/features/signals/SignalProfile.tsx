@@ -9,8 +9,9 @@ import {
   seenAfterAsOf,
   signalAllocationChain,
   signalFeedHealth,
+  sourceDaysMissing,
 } from "../../domain/index.ts";
-import type { DimState, SigCol, SigGroup, SigSlice, SignalFeedHealth } from "../../domain/index.ts";
+import type { DimState, SigCol, SigGroup, SigSlice } from "../../domain/index.ts";
 import { Badge, Card, Note, SignalColumns } from "../../design-system/index.ts";
 import { SigTrendChart } from "../../design-system/SigTrendChart.tsx";
 import { sigTrendChart } from "../../domain/sigTrendChart.ts";
@@ -18,9 +19,10 @@ import { sigCut } from "../../domain/sigCut.ts";
 import { isoFromVn, vnFromIso } from "../../data/projectSigTrend.ts";
 import { useTimeframeStore } from "../../store/timeframe.ts";
 import { navLabel } from "../../nav.tsx";
-import type { BadgeState, SigColBar, SigColGroup, SigColSlice } from "../../design-system/index.ts";
-import { nf } from "../../design-system/format.ts";
+import type { SigColBar, SigColGroup, SigColSlice } from "../../design-system/index.ts";
+import { stampText } from "./stamp.ts";
 import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
+import { FEED_BADGE, feedStatusText } from "./feedStatus.ts";
 
 /* Hồ sơ MỘT điểm đo — MÀN 2 của output/ascii-man-diem-do.txt (bấm một dòng ở bảng I4a mở ra),
    trả lời BỐN MẶT của QĐ 9 (module-i-signal-registry-charter.md §3, §14 lát I4b). Đây là ĐÍCH
@@ -53,25 +55,6 @@ import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
    về chính điểm đo đang mở. */
 
 const PLACEHOLDER_D = "▨ chờ Bảng D — team data/mobile, chưa có dữ liệu";
-
-/* Nhãn + tông của độ tươi nguồn giao. Bốn nhãn đầu CHÉP NGUYÊN VĂN từ SourcesPage.tsx — cùng một
-   tình trạng của cùng một nguồn thì hai màn không được nói hai kiểu. Nhánh "unknown" là của riêng
-   điểm đo (chưa nối nguồn ⇒ không có gì để chấm), và nó KHÔNG được mượn nhãn "Im lặng, chưa phân
-   định": im lặng là nguồn có mà không giao, còn đây là chưa biết nguồn nào. */
-const FEED_LABEL: Record<SignalFeedHealth, string> = {
-  ok: "Receiving",
-  stale: "Missing days",
-  down: "Stopped",
-  silent: "Silent, unclassified",
-  unknown: "No source linked",
-};
-const FEED_BADGE: Record<SignalFeedHealth, BadgeState> = {
-  ok: "ok",
-  stale: "watch",
-  down: "crit",
-  silent: "unknown",
-  unknown: "unknown",
-};
 
 function metricNamesOf(data: CxmData, signal: Signal): string {
   return signal.metrics.map((id) => data.metrics.find((m) => m.id === id)?.name ?? id).join(", ");
@@ -412,7 +395,12 @@ export function SignalProfile({
               {feedSource ? (
                 <span className="flex flex-wrap items-center gap-1.5">
                   {feedSource.name}
-                  <Badge state={FEED_BADGE[feedHealth]} text={FEED_LABEL[feedHealth]} />
+                  {/* 18/08 tối (owner): nhãn kèm SỐ NGÀY THIẾU đo bằng máy — cùng câu chữ với
+                      dòng trạng thái dưới cột Last seen của bảng (feedStatus.ts). */}
+                  <Badge
+                    state={FEED_BADGE[feedHealth]}
+                    text={feedStatusText(feedHealth, feedSource ? sourceDaysMissing(feedSource, data.asOf) : null)}
+                  />
                 </span>
               ) : (
                 <span className="text-ink-3">no source linked</span>
@@ -500,12 +488,14 @@ export function SignalProfile({
                 sống không", và cột phải đủ rộng để không phải xếp dọc. */}
             <div className="grid grid-cols-2 items-start gap-x-4 gap-y-2 border-y border-line-soft py-2.5">
             <div className="text-[13px]" data-testid="signal-profile-vol">
-              Volume: <b className="tabular-nums">{signal.vol ? `${nf(signal.vol)}/day` : "—"}</b>
+              {/* 18/08 tối (owner, đợt tiếp): "Volume" đổi gọi "Traffic per day" — một dữ kiện
+                  một tên trên cả ba tầng (bảng · drawer · hồ sơ), đơn vị nằm trong nhãn. */}
+              Traffic per day: <b className="tabular-nums">{signal.vol ? signal.vol : "—"}</b>
             </div>
 
             <div className="text-[13px]" data-testid="signal-profile-seen">
               Last seen (self-reported):{" "}
-              <b>{signal.seen ?? <span className="text-ink-3">never</span>}</b>
+              <b>{signal.seen ? stampText(signal.seen) : <span className="text-ink-3">never</span>}</b>
               {seenLate ? (
                 <div data-testid="signal-profile-seen-late">
                   <Note tone="warn">
