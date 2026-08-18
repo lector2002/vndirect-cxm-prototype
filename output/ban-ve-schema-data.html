@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bản vẽ schema data — CXM cần gì từ pipeline</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --card:#ffffff; --ink:#1a2233; --ink2:#4a5568; --ink3:#8a94a6;
+    --line:#e3e7ee; --accent:#0b5fff; --accent-soft:#eef4ff;
+    --watch:#b45309; --watch-soft:#fef3e2; --crit:#b91c1c; --crit-soft:#fdeaea;
+    --good:#15803d; --good-soft:#e8f5ec; --mono:ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 "Segoe UI",system-ui,-apple-system,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:26px;line-height:1.3;margin:0 0 6px}
+  .sub{color:var(--ink2);margin:0 0 28px;max-width:70ch}
+  h2{font-size:19px;margin:40px 0 12px;padding-top:8px;border-top:2px solid var(--line)}
+  h3{font-size:15.5px;margin:22px 0 8px}
+  code{font-family:var(--mono);font-size:13px;background:#eef1f6;padding:1px 5px;border-radius:4px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:18px 20px;margin:14px 0}
+  .card h3{margin-top:0}
+  .grain{color:var(--ink3);font-size:13px;margin-left:8px;font-weight:400}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin:10px 0}
+  .tblwrap{overflow-x:auto}
+  th{color:var(--ink3);font-weight:600;text-align:left;font-size:12px;
+    text-transform:uppercase;letter-spacing:.04em}
+  th,td{border-bottom:1px solid var(--line);padding:7px 12px 7px 0;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:99px;
+    padding:2px 10px;vertical-align:middle}
+  .pill.q{background:var(--watch-soft);color:var(--watch)}
+  .pill.new{background:var(--accent-soft);color:var(--accent)}
+  .pill.confirm{background:var(--good-soft);color:var(--good)}
+  .note{background:var(--accent-soft);border:1px solid #d5e3ff;
+    padding:10px 14px;border-radius:8px;font-size:14px;margin:12px 0}
+  .warn{background:var(--crit-soft);border:1px solid #f3cfcf;
+    padding:10px 14px;border-radius:8px;font-size:14px;margin:12px 0}
+  ol.terms{padding-left:22px}
+  ol.terms li{margin:6px 0}
+  .muted{color:var(--ink3)}
+  footer{margin-top:48px;color:var(--ink3);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Bản vẽ schema data — CXM cần gì từ pipeline</h1>
+<p class="sub">Sơ đồ quan hệ + tám khối dữ liệu + ba câu hỏi mở, vẽ từ bản đòi hỏi duy nhất
+<code>web/docs/ideal-data-model.md</code> (§6, 18/08/2026). Mỗi cột dưới đây đều nêu tên
+hàm/màn đang chờ nó — không cột nào xin "cho chắc".</p>
+
+<h2>1 · Sơ đồ quan hệ</h2>
+<div class="card">
+<p class="muted" style="margin-top:0">Ô xanh dương: bảng <b>xin mới</b> · ô xanh lục: <b>đã có, chỉ xác
+nhận hình dạng</b> · ô nét đứt: thực thể phía app, không phải bảng phải giao · đường nét đứt: quan hệ
+<b>đọc</b> (join lúc truy vấn), không phải ràng buộc FK phía pipeline. Chi tiết từng cột ở mục 3.</p>
+<div class="tblwrap"><svg id="erd" width="900" height="830" style="min-width:900px;display:block"></svg></div>
+</div>
+
+<script>
+(function () {
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg = document.getElementById('erd');
+  var W = 210, HH = 32, RH = 22, PB = 8;
+
+  var T = {
+    source_registry: { x: 15, y: 80, badge: 'new', title: 'T2 · source_registry',
+      cols: [['src_id','PK'],['name',''],['kind',''],['cadence_days',''],['metric_ids','']] },
+    signal_registry: { x: 345, y: 40, badge: 'new', title: 'T1 · signal_registry',
+      cols: [['sig_id','PK'],['screen',''],['route',''],['element',''],['build_from',''],['instrumented_at',''],['src_id','FK']] },
+    asof_watermark: { x: 675, y: 40, badge: 'new', title: 'T7 · asof_watermark',
+      cols: [['data_date',''],['run_at','']],
+      note: 'mẫu số của mọi phép đếm ngày thiếu' },
+    delivery_manifest: { x: 15, y: 330, badge: 'new', title: 'T6 · delivery_manifest',
+      cols: [['src_id','FK'],['period_day',''],['rows_sent',''],['rows_loaded',''],['rows_failed',''],['delivered_at','']] },
+    event_fire_raw: { x: 345, y: 330, badge: 'confirm', title: 'T3 · event_fire_raw',
+      cols: [['event_id','PK'],['sig_id','FK'],['val',''],['customer_id','FK?'],['pf',''],['fired_at',''],['received_at','']],
+      note: 'đã cấp 13/08 — chỉ xác nhận hình dạng' },
+    nav_tier_snapshot: { x: 675, y: 380, badge: 'confirm', title: 'T8 · nav_tier_snapshot',
+      cols: [['customer_id',''],['period_day',''],['nav_vnd',''],['tier','']],
+      note: 'chỉ xác nhận có sẵn (Q2)' },
+    step_obs_daily: { x: 15, y: 640, badge: 'new', title: 'T4 · step_obs_daily',
+      cols: [['step_id','FK'],['period_day',''],['entered',''],['completed',''],['failed','']] },
+    journey_steps: { x: 305, y: 690, badge: 'app', title: 'bước hành trình (app)',
+      cols: [['step_id','PK']] },
+    step_fail_reason_daily: { x: 595, y: 640, badge: 'new', title: 'T5 · step_fail_reason_daily',
+      cols: [['step_id','FK'],['period_day',''],['reason_code',''],['n_cases','']] }
+  };
+
+  var LINKS = [
+    ['signal_registry.src_id', 'source_registry.src_id', 'N : 1', false],
+    ['delivery_manifest.src_id', 'source_registry.src_id', 'N : 1', false],
+    ['event_fire_raw.sig_id', 'signal_registry.sig_id', 'N : 1', false],
+    ['event_fire_raw.customer_id', 'nav_tier_snapshot.customer_id', 'nối temporal theo ngày', true],
+    ['step_obs_daily.step_id', 'journey_steps.step_id', '', true],
+    ['step_fail_reason_daily.step_id', 'journey_steps.step_id', '', true]
+  ];
+
+  var STYLE = {
+    'new':     { hf: '#eef4ff', st: '#b9d0ff', tc: '#0b5fff' },
+    'confirm': { hf: '#e8f5ec', st: '#bfe3cb', tc: '#15803d' },
+    'app':     { hf: 'none',    st: '#9aa4b5', tc: '#4a5568' }
+  };
+
+  function el(name, attrs, parent) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(e);
+    return e;
+  }
+  function txt(x, y, str, attrs) {
+    var a = attrs || {}; a.x = x; a.y = y;
+    var e = el('text', a); e.textContent = str; return e;
+  }
+
+  // Mũi tên chỉ về phía bảng "1"
+  var defs = el('defs', {});
+  var marker = el('marker', { id: 'arr', markerWidth: 10, markerHeight: 8, refX: 9, refY: 4, orient: 'auto' }, defs);
+  el('path', { d: 'M0,0 L9,4 L0,8 Z', fill: '#8a94a6' }, marker);
+
+  // Vẽ đường trước, hộp sau (hộp đè lên đầu mút thừa)
+  function anchorFor(t, idx, otherCx, otherCy) {
+    var cx = t.x + W / 2;
+    if (Math.abs(cx - otherCx) > 200) {
+      var y = t.y + HH + idx * RH + 11;
+      return otherCx > cx ? { x: t.x + W, y: y } : { x: t.x, y: y };
+    }
+    return otherCy > t.y ? { x: cx, y: t.y + t.h } : { x: cx, y: t.y };
+  }
+
+  for (var id in T) { T[id].h = HH + T[id].cols.length * RH + PB; }
+
+  LINKS.forEach(function (lk) {
+    var f = lk[0].split('.'), g = lk[1].split('.');
+    var t1 = T[f[0]], t2 = T[g[0]];
+    var i1 = t1.cols.map(function (c) { return c[0]; }).indexOf(f[1]);
+    var i2 = t2.cols.map(function (c) { return c[0]; }).indexOf(g[1]);
+    var a = anchorFor(t1, i1, t2.x + W / 2, t2.y + t2.h / 2);
+    var b = anchorFor(t2, i2, t1.x + W / 2, t1.y + t1.h / 2);
+    var d;
+    if (a.x === t1.x || a.x === t1.x + W) {
+      var mx = (a.x + b.x) / 2;
+      d = 'M' + a.x + ',' + a.y + ' C' + mx + ',' + a.y + ' ' + mx + ',' + b.y + ' ' + b.x + ',' + b.y;
+    } else {
+      var my = (a.y + b.y) / 2;
+      d = 'M' + a.x + ',' + a.y + ' C' + a.x + ',' + my + ' ' + b.x + ',' + my + ' ' + b.x + ',' + b.y;
+    }
+    el('path', { d: d, fill: 'none', stroke: '#8a94a6', 'stroke-width': 1.3,
+      'stroke-dasharray': lk[3] ? '5 4' : 'none', 'marker-end': 'url(#arr)' });
+    if (lk[2]) txt((a.x + b.x) / 2, (a.y + b.y) / 2 - 7, lk[2],
+      { 'font-size': 11, fill: '#4a5568', 'text-anchor': 'middle',
+        'paint-order': 'stroke', stroke: '#ffffff', 'stroke-width': 4 });
+  });
+
+  for (var id2 in T) {
+    var t = T[id2], sty = STYLE[t.badge];
+    el('rect', { x: t.x, y: t.y, width: W, height: t.h, rx: 8, fill: '#ffffff',
+      stroke: sty.st, 'stroke-width': 1.2,
+      'stroke-dasharray': t.badge === 'app' ? '5 4' : 'none' });
+    if (sty.hf !== 'none') {
+      el('rect', { x: t.x + 1, y: t.y + 1, width: W - 2, height: HH - 1, rx: 7, fill: sty.hf });
+      el('rect', { x: t.x + 1, y: t.y + HH / 2, width: W - 2, height: HH / 2, fill: sty.hf });
+    }
+    txt(t.x + 12, t.y + 21, t.title, { fill: sty.tc, 'font-size': 13, 'font-weight': 600 });
+    el('line', { x1: t.x + 1, y1: t.y + HH, x2: t.x + W - 1, y2: t.y + HH, stroke: '#e3e7ee' });
+    t.cols.forEach(function (c, i) {
+      var ry = t.y + HH + i * RH + 15;
+      txt(t.x + 12, ry, c[0], { 'font-size': 12.5, fill: '#1a2233',
+        'font-family': 'ui-monospace,Consolas,monospace' });
+      if (c[1]) txt(t.x + W - 10, ry, c[1], { 'font-size': 10, fill: '#8a94a6',
+        'text-anchor': 'end', 'font-weight': 600 });
+    });
+    if (t.note) txt(t.x, t.y + t.h + 15, t.note, { 'font-size': 11, fill: '#8a94a6', 'font-style': 'italic' });
+  }
+})();
+</script>
+
+<h2>2 · Điều khoản giao — áp cho mọi bảng</h2>
+<div class="card"><ol class="terms">
+<li>Mọi mốc thời gian là <b>timestamp máy sinh, ISO-8601 có năm</b>
+  (<code>2026-08-17T14:52:00+07:00</code>). App hiện phải đoán năm từ chuỗi người gõ — về là bỏ được.</li>
+<li>Hạt kỳ là <b>ngày</b> (<code>yyyy-MM-dd</code>); hạt tuần/tháng app tự cộng lên.</li>
+<li>Kỳ <b>chưa đo thì vắng mặt</b>, không phải dòng 0 — "đo được 0" và "chưa đo" là hai trạng thái khác nhau.</li>
+<li><b>Giao 0 dòng vẫn phải có dòng manifest</b> — "giao rỗng" khác "không giao".</li>
+<li>Mốc <code>Signal.seen</code> người gõ hiện nay chỉ ở lại làm ghi chú xuất xứ —
+  các mốc trong bản này là thứ thay nó trong mọi phép tính.</li>
+</ol></div>
+
+<h2>3 · Tám khối — chi tiết</h2>
+
+<div class="card">
+<h3>T1 · <code>signal_registry</code> <span class="grain">1 dòng / điểm đo</span> <span class="pill new">xin mới</span></h3>
+<div class="tblwrap"><table>
+<tr><th>Cột</th><th>Kiểu</th><th>Nghĩa · ai tiêu thụ</th></tr>
+<tr><td><code>sig_id</code></td><td>PK</td><td>khớp <code>Signal.id</code> của app</td></tr>
+<tr><td><code>screen</code> · <code>route</code> · <code>element</code></td><td>text</td>
+  <td>tên screen kỹ thuật · route/deeplink · id/selector của element phát event (Bảng D)</td></tr>
+<tr><td><code>build_from</code></td><td>text</td><td>áp dụng từ bản build nào</td></tr>
+<tr><td><code>instrumented_at</code></td><td>date, null được</td>
+  <td>mốc cắm đo — biên trái "xương lịch" của chart điểm đo.
+  <b>Không được suy bằng <code>MIN(fired_at)</code></b>: điểm đo cắm rồi mà im tháng đầu sẽ bị đọc thành chưa cắm</td></tr>
+<tr><td><code>src_id</code></td><td>FK → T2</td>
+  <td>nguồn <b>chở</b> điểm đo — mở khoá dòng <i>Missing / Stopped</i> trên màn Điểm đo
+  (hiện 30/30 điểm đo chưa nối nguồn nào)</td></tr>
+</table></div>
+</div>
+
+<div class="card">
+<h3>T2 · <code>source_registry</code> <span class="grain">1 dòng / nguồn thật</span> <span class="pill new">xin mới</span></h3>
+<div class="tblwrap"><table>
+<tr><th>Cột</th><th>Kiểu</th><th>Nghĩa · ai tiêu thụ</th></tr>
+<tr><td><code>src_id</code> · <code>name</code></td><td>PK · text</td><td>thay bản tạm 7 nguồn đang dùng</td></tr>
+<tr><td><code>kind</code></td><td>enum</td><td><code>event | case | survey | store-review | broker-note | chat</code></td></tr>
+<tr><td><code>cadence_days</code></td><td>int</td><td>nhịp giao chính thức — điền cấu hình nhịp từng nguồn, thôi đoán</td></tr>
+<tr><td><code>metric_ids</code></td><td>list</td><td>chỉ số nào ăn nguồn này (bản đồ nguồn↔chỉ số)</td></tr>
+</table></div>
+</div>
+
+<div class="card">
+<h3>T3 · <code>event_fire_raw</code> <span class="grain">1 dòng / lượt bắn</span> <span class="pill confirm">đã cấp 13/08 — xác nhận hình dạng</span></h3>
+<div class="tblwrap"><table>
+<tr><th>Cột</th><th>Kiểu</th><th>Nghĩa · ai tiêu thụ</th></tr>
+<tr><td><code>event_id</code></td><td>PK</td><td>khoá chống trùng (ô <i>trùng lặp</i>)</td></tr>
+<tr><td><code>sig_id</code> · <code>val</code></td><td>FK · text</td>
+  <td><code>DISTINCT val</code> độc lập với bản khai = ô <i>giá trị lạ</i></td></tr>
+<tr><td><code>customer_id</code></td><td>text, null được</td><td><span class="pill q">❓ Q1</span> — quyết số khách ảnh hưởng (aff)</td></tr>
+<tr><td><code>pf</code></td><td>text</td><td>nền tảng của chính lượt bắn</td></tr>
+<tr><td><code>fired_at</code></td><td>timestamp</td><td>mốc phát sinh (phía nguồn)</td></tr>
+<tr><td><code>received_at</code></td><td>timestamp</td>
+  <td>mốc pipeline nhận — cặp với <code>fired_at</code> = tách trễ-nguồn khỏi trễ-pipeline + ô <i>đến muộn</i></td></tr>
+</table></div>
+<div class="note">Từ T3 app <b>tự truy vấn</b>, không xin thêm bảng: chuỗi xu hướng điểm đo
+(LEFT JOIN xương lịch chặn bởi <code>instrumented_at</code> ↔ <code>asOf</code>),
+lưu lượng cửa sổ 7 ngày, mồ côi tham chiếu, và số khách ảnh hưởng nếu Q1 = có.
+Mốc thấy cuối riêng từng điểm đo cũng thành truy vấn — <code>MAX(fired_at)</code> theo
+<code>sig_id</code> — không còn là field phải giao riêng (khác với mốc cắm đo:
+thấy-cuối là dữ kiện máy quan sát được, mốc cắm là dữ kiện khai, im lặng không suy ra nó được).</div>
+</div>
+
+<div class="card">
+<h3>T4 · <code>step_obs_daily</code> <span class="grain">1 dòng / bước / ngày</span> <span class="pill new">xin mới</span></h3>
+<p><code>step_id</code> · <code>period_day</code> · <code>entered</code> · <code>completed</code> ·
+<code>failed</code> — nuôi khoá xu hướng (tr) của điểm ưu tiên; hiện mỗi bước chỉ có một ảnh chụp,
+không có gì để so.</p>
+</div>
+
+<div class="card">
+<h3>T5 · <code>step_fail_reason_daily</code> <span class="grain">1 dòng / bước / ngày / mã lý do</span> <span class="pill new">xin mới</span></h3>
+<p><code>step_id</code> · <code>period_day</code> · <code>reason_code</code> · <code>n_cases</code>
+— mã lý do đọc được cho từng ca thất bại: tử số mà tỉ lệ tự khai cũ hứa mà không có.</p>
+<p class="muted">T4+T5 nhận dạng cộng sẵn hạt ngày; nếu bên data thấy giao mức ca thô
+(<code>case_id · step_id · outcome · reason_code · occurred_at</code>) rẻ hơn thì nhận —
+hai bảng trên thành truy vấn.</p>
+</div>
+
+<div class="card">
+<h3>T6 · <code>delivery_manifest</code> <span class="grain">1 dòng / nguồn / ngày</span> <span class="pill new">xin mới</span></h3>
+<p><code>src_id</code> · <code>period_day</code> · <code>rows_sent</code> · <code>rows_loaded</code> ·
+<code>rows_failed</code> · <code>delivered_at</code></p>
+<p>Là chỗ sức khoẻ nguồn đọc <b>mốc máy thật</b> (thay chuỗi người gõ hiện nay); dòng
+<i>Missing N days / Stopped</i> trên màn Điểm đo đếm từ đây; mất mát phía pipeline —
+thứ nhìn từ trong dữ liệu thì vô hình — hiện hình.</p>
+</div>
+
+<div class="card">
+<h3>T7 · <code>asof_watermark</code> <span class="grain">1 dòng / lần chạy pipeline</span> <span class="pill new">xin mới</span></h3>
+<p><code>data_date</code> (ngày dữ liệu tính đến — thành mốc "Data as of" trên màn) ·
+<code>run_at</code>. Mọi phép "thiếu mấy ngày" so với <code>data_date</code>, không so với
+"bây giờ" — dưới pipeline T-1 số trên màn luôn là của hôm qua.</p>
+</div>
+
+<div class="card">
+<h3>T8 · snapshot NAV/tier cuối ngày <span class="grain">1 dòng / tài khoản / ngày</span> <span class="pill confirm">chỉ xác nhận có sẵn</span></h3>
+<p><code>customer_id</code> · <code>period_day</code> · <code>nav_vnd</code>
+(<b>giá trị thô, không lưu nhãn nhóm</b> — ranh giới nhóm do cấu hình app sở hữu và đổi được) ·
+<code>tier</code>, giữ ≥ 12 tháng. <span class="pill q">❓ Q2</span> — không dựng gì mới nếu bảng này đã có cho margin/sao kê.</p>
+</div>
+
+<h2>4 · Ba câu hỏi mở — mỗi câu một người trả lời</h2>
+<div class="card">
+<div class="tblwrap"><table>
+<tr><th>#</th><th>Hỏi ai</th><th>Câu</th><th>Có →</th><th>Không →</th></tr>
+<tr><td><b>Q1</b></td><td>data</td>
+  <td>lượt bắn thô có mang <code>customer_id</code> không?</td>
+  <td>số khách ảnh hưởng (aff) tự có, không xin thêm</td>
+  <td>xin bảng cộng sẵn <code>sig_customers_daily</code>
+  (<code>sig_id · val · period_day · customers = COUNT(DISTINCT customer_id)</code>)</td></tr>
+<tr><td><b>Q2</b></td><td>data</td>
+  <td>bảng NAV/tier cuối ngày có sẵn không, giữ đủ 12 tháng, có <code>tier</code> theo ngày?</td>
+  <td>T8 = 0 công dựng</td>
+  <td>bật ghi snapshot đúng hai trường <code>nav_vnd</code> + <code>tier</code> từ hôm đó</td></tr>
+<tr><td><b>Q3</b></td><td>bên case<br><span class="muted">(không phải data)</span></td>
+  <td>case gắn được với bước hành trình / mã lý do thất bại bằng trường nào?</td>
+  <td>khoá "liên hệ lặp lại" (rep) đo được</td>
+  <td>bàn bỏ rep khỏi công thức điểm ưu tiên — "đủ" thành 6/6</td></tr>
+</table></div>
+</div>
+
+<h2>5 · Bảng đối chiếu để verify — mục xin → cột → chỗ tiêu thụ đang tồn tại</h2>
+<div class="card">
+<div class="tblwrap"><table>
+<tr><th>Mục xin (nguồn lập luận)</th><th>Nằm ở</th><th>Ai tiêu thụ hôm nay</th></tr>
+<tr><td>Bảng D (charter §10)</td><td>T1</td><td>xương lịch chart điểm đo; phân biệt <i>chưa cắm</i> / <i>cắm mà im</i></td></tr>
+<tr><td>Nối điểm đo↔nguồn (18/08)</td><td>T1.<code>src_id</code></td><td>độ tươi điểm đo → cột Last seen + badge Source feed</td></tr>
+<tr><td>Bản đồ nguồn↔chỉ số (§10)</td><td>T2</td><td>thay bản tạm 7 nguồn</td></tr>
+<tr><td>Mốc thấy cuối thật (§10 · D6)</td><td>T6.<code>delivered_at</code> / <code>period_day</code></td><td>đếm số ngày nguồn còn thiếu</td></tr>
+<tr><td>Mốc số liệu asOf (§10)</td><td>T7.<code>data_date</code></td><td>"Data as of" + mẫu số của mọi phép đếm ngày thiếu</td></tr>
+<tr><td>Manifest giao hàng (§10)</td><td>T6.<code>rows_*</code></td><td>tách "im lặng" khỏi "ngừng gửi"</td></tr>
+<tr><td>Dòng event thô (§10)</td><td>T3</td><td>xu hướng điểm đo; giá trị lạ; trùng lặp; mồ côi; đến muộn</td></tr>
+<tr><td>Mục A — khách độc lập</td><td>T3.<code>customer_id</code> (Q1)</td><td>khoá aff của điểm ưu tiên</td></tr>
+<tr><td>Mục B — số ca mỗi bước theo kỳ</td><td>T4</td><td>khoá tr của điểm ưu tiên</td></tr>
+<tr><td>Mã lý do rớt (§10 · QĐ 2)</td><td>T5.<code>reason_code</code></td><td>thay quyền tỉ lệ tự khai cũ</td></tr>
+<tr><td>Mục C — khoá case</td><td>Q3</td><td>khoá rep của điểm ưu tiên</td></tr>
+<tr><td>Tách trễ pipeline/nguồn (§12.2)</td><td>T3.<code>fired_at</code> vs <code>received_at</code></td><td>màn Nguồn dữ liệu (khi dựng lại)</td></tr>
+<tr><td>Lưu lượng theo cửa sổ (§12.2 · D5)</td><td>truy vấn trên T3</td><td>"điểm đo còn chạy không"</td></tr>
+<tr><td>NAV/tier lịch sử (ADR-001 §8)</td><td>T8 (Q2)</td><td>chart tầng dưới chia nhóm đúng lịch sử</td></tr>
+</table></div>
+<div class="warn"><b>Cái KHÔNG xin</b> (đã chốt, đừng để lọt lại vào đơn hàng): điểm ưu tiên tính
+sẵn từ pipeline · bảng xu hướng cộng sẵn (nó là truy vấn trên T3) · số ca thật từ hệ lõi (bỏ 07/08)
+· điểm CES theo từng điểm gãy (câu hỏi còn treo với CX Insight).</div>
+</div>
+
+<footer>Nguồn: <code>web/docs/ideal-data-model.md</code> §6 (bản danh sách duy nhất) ·
+lập luận gốc ở <code>module-i-signal-registry-charter.md</code> §10/§12, ADR-001 §6/§8, ADR-002 §7/§8/§16 ·
+18/08/2026.</footer>
+
+</div>
+</body>
+</html>

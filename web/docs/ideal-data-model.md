@@ -1,7 +1,7 @@
 # Ideal data model — cái app cần để tính đủ, và cái nó đang có
 
 Status: **SỐNG.** Cập nhật mỗi lần một hàm tính đụng phải chỗ thiếu.
-Date: 14/08/2026
+Date: 14/08/2026 · cập nhật 18/08/2026 (thêm §6 — bản vẽ schema gửi đi)
 
 Đây là **một danh sách duy nhất**. Trước file này, nhu cầu dữ liệu nằm rải ở ba chỗ —
 `module-i-signal-registry-charter.md` §10 (6 mục, đã gửi), `adr-001` §6, `adr-002` §7/§8/§16. Từ nay
@@ -126,3 +126,112 @@ Thêm hai thứ đã có mặc định, sửa được bất cứ lúc nào: **t
 - **Số ca thật mỗi bước từ hệ lõi.** Đã bỏ 07/08 khi owner chốt coi pipeline là một nguồn ghi.
 - **Điểm CES theo từng điểm gãy** — chưa xin, vì chưa biết có tồn tại. Câu hỏi cho CX Insight còn
   đang treo (ADR-002 §20); mặc định là CES **không** ở trong công thức.
+---
+
+## 6. Bản vẽ schema — 18/08, verify xong thì gửi bên data
+
+§1–§5 là *đòi hỏi*; mục này vẽ chúng thành *bảng–cột* để bên data trả lời được "làm được / làm
+khác / không có". Luật đầu file giữ nguyên: **không khai `type` trong `web/` cho dữ liệu chưa có**
+— bản vẽ nằm ở đây dạng chữ, khi dữ liệu về mới khai schema cùng lúc với chỗ tiêu thụ.
+Bản để gửi đi (một trang, tự chứa): `output/ban-ve-schema-data.html`.
+
+### 6.0 Điều khoản giao — áp cho MỌI bảng, không phải logic app
+
+1. Mọi mốc thời gian là **timestamp máy sinh, ISO-8601 CÓ NĂM** (`2026-08-17T14:52:00+07:00`).
+   Về là nghỉ hưu được hack năm-giả-2000 trong `sourceDaysMissing` và cả bẫy D6.
+2. Hạt kỳ là **NGÀY** (`yyyy-MM-dd`); hạt hiển thị (tuần/tháng) app tự cộng lên.
+3. Kỳ **chưa đo VẮNG MẶT**, không phải dòng 0 (ba trạng thái, ADR-001 §6).
+4. **Giao 0 dòng vẫn phải có dòng manifest** — "giao rỗng" khác "không giao" (bậc `silent`).
+5. `Signal.seen` người gõ ở lại **chỉ làm provenance hiển thị** — các mốc dưới đây là thứ thay nó
+   trong mọi phép tính.
+
+### 6.1 Tám khối
+
+**T1 · `signal_registry`** — 1 dòng / điểm đo (Bảng D + nối nguồn)
+
+| Cột | Kiểu | Nghĩa |
+|---|---|---|
+| `sig_id` | PK | khớp `Signal.id` của app |
+| `screen` · `route` · `element` | text | tên screen kỹ thuật · route/deeplink · id/selector của element phát event |
+| `build_from` | text | áp dụng từ bản build nào |
+| `instrumented_at` | date, null được | mốc cắm đo — biên trái xương lịch (`Signal.instAt`). **CẤM suy bằng `MIN(fired_at)`** |
+| `src_id` | FK → T2 | nguồn CHỞ điểm đo — mở khoá Missing/Stopped trên `#/signals` (18/08: 30/30 đang `null`) |
+
+**T2 · `source_registry`** — 1 dòng / nguồn thật (thay bản tạm 7 nguồn; giải T2 charter)
+
+| Cột | Kiểu | Nghĩa |
+|---|---|---|
+| `src_id` | PK | |
+| `name` · `kind` | text · enum | `event\|case\|survey\|store-review\|broker-note\|chat` |
+| `cadence_days` | int | nhịp giao chính thức → điền `cfg.source[id]`, thôi đoán |
+| `metric_ids` | list | chỉ số nào ăn nguồn này |
+
+**T3 · `event_fire_raw`** — 1 dòng / lượt bắn. **Đã được cấp 13/08 — đây là XÁC NHẬN hình dạng,
+không phải xin mới.** Khớp `SigFire` app đang chờ (`sigId·val·custKey·pf·at`) + 2 cột mốc.
+
+| Cột | Kiểu | Nghĩa |
+|---|---|---|
+| `event_id` | PK | khoá chống trùng (ô *trùng lặp*) |
+| `sig_id` · `val` | FK · text | `val` cho ô *giá trị lạ*: `DISTINCT val` độc lập với bản khai `Signal.values` |
+| `customer_id` | text, null được | **❓Q1** — quyết mục A |
+| `pf` | text | nền tảng của chính lượt bắn (`base:'fire'`) |
+| `fired_at` | timestamp | mốc phát sinh (phía nguồn) |
+| `received_at` | timestamp | mốc pipeline nhận — cặp với `fired_at` = tách trễ-nguồn/trễ-pipeline + ô *đến muộn* |
+
+Từ T3 app tự truy vấn, không xin thêm bảng: `sigTrend` (LEFT JOIN xương lịch chặn bởi
+`instrumented_at`↔`asOf`), lưu lượng cửa sổ 7 ngày (D5), mồ côi tham chiếu, và mục A nếu Q1 = có.
+Mốc thấy cuối RIÊNG từng điểm đo (charter §10c, `lastRecordAt`) cũng thành truy vấn —
+`MAX(fired_at)` theo `sig_id` — KHÁC bẫy `MIN(fired_at)`: mốc thấy cuối là dữ kiện máy QUAN SÁT
+được, còn mốc cắm đo là dữ kiện KHAI, im lặng không suy ra nó được.
+
+**T4 · `step_obs_daily`** — 1 dòng / bước / ngày (mục B): `step_id` · `period_day` · `entered` ·
+`completed` · `failed`. Nuôi `tr`; thước đọc *kỳ đầu đo được → kỳ ĐỦ gần nhất* (ADR-002 §8).
+
+**T5 · `step_fail_reason_daily`** — 1 dòng / bước / ngày / mã lý do: `step_id` · `period_day` ·
+`reason_code` · `n_cases`. Là tử số mà `obs.cov` hứa mà không có (QĐ 2); đường dự phòng cho `aff`
+(vẫn là LƯỢT, không phải KHÁCH). T4+T5 nhận dạng cộng sẵn hạt ngày; nếu bên data thấy giao mức ca
+thô (`case_id·step_id·outcome·reason_code·occurred_at`) rẻ hơn thì nhận — hai bảng trên thành truy vấn.
+
+**T6 · `delivery_manifest`** — 1 dòng / nguồn / ngày: `src_id` · `period_day` · `rows_sent` ·
+`rows_loaded` · `rows_failed` · `delivered_at`. Là chỗ `sourceHealth`/`sourceDaysMissing` đọc mốc
+máy thật (thay `Source.last` người gõ); dòng *Missing N days / Stopped* trên `#/signals` đếm từ
+đây; mất mát phía pipeline hiện hình.
+
+**T7 · `asof_watermark`** — 1 dòng / lần chạy pipeline: `data_date` (ngày dữ liệu tính đến →
+`data.asOf`) · `run_at`. Mọi phép "thiếu mấy ngày" so với `data_date`, không so với `now`
+(charter §12).
+
+**T8 · snapshot NAV/tier cuối ngày** — KHÔNG dựng mới, chỉ **XÁC NHẬN có sẵn** (❓Q2):
+`customer_id` · `period_day` · `nav_vnd` (GIÁ TRỊ THÔ, không lưu nhãn nhóm) · `tier`, giữ ≥ 12
+tháng. Lối (b) ADR-001 §8.
+
+### 6.2 Ba câu hỏi mở — mỗi câu một người trả lời
+
+| # | Hỏi ai | Câu | Có → | Không → |
+|---|---|---|---|---|
+| Q1 | data | lượt bắn thô có mang `customer_id` không? | mục A tự có, không xin gì thêm | xin bảng cộng sẵn `sig_customers_daily` (`sig_id·val·period_day·customers = COUNT(DISTINCT customer_id)`) |
+| Q2 | data | bảng NAV/tier cuối ngày có sẵn không, giữ đủ 12 tháng, có `tier` theo ngày? | T8 = 0 công dựng | bật ghi snapshot ĐÚNG HAI TRƯỜNG `nav_vnd`+`tier` từ hôm đó (trigger §8) |
+| Q3 | bên case (KHÔNG phải data) | case gắn được với bước hành trình / mã lý do thất bại bằng trường nào? | `rep` đo được | bàn bỏ `rep` khỏi công thức — "đủ" thành 6/6 (§7 ADR-002) |
+
+### 6.3 Bảng đối chiếu để verify — mục xin → cột → chỗ tiêu thụ ĐANG TỒN TẠI
+
+| Mục xin (nguồn) | Nằm ở | Ai tiêu thụ hôm nay |
+|---|---|---|
+| Bảng D (charter §10) | T1 | `projectSigTrend` xương lịch; phân biệt *chưa cắm* / *cắm mà im* |
+| Nối điểm đo↔nguồn (18/08) | T1.`src_id` | `signalFeedHealth` → cột Last seen + badge Source feed |
+| Bản đồ nguồn↔chỉ số (§10) | T2 | thay bản tạm 7 nguồn; đóng T2 charter |
+| Mốc thấy cuối thật (§10 · D6) | T6.`delivered_at`/`period_day` | `sourceDaysMissing`/`sourceHealth` |
+| Mốc số liệu `asOf` (§10) | T7.`data_date` | `data.asOf`; `feedStatusText` đếm *Missing N days* |
+| Manifest giao hàng (§10) | T6.`rows_*` | tách `silent` khỏi `down`; ô manifest tầng ② |
+| Dòng event thô (§10) | T3 | `sigTrend`; *giá trị lạ*; *trùng lặp*; *mồ côi*; *đến muộn* |
+| Mục A — khách độc lập | T3.`customer_id` (Q1) | `pri.aff` |
+| Mục B — `obsTrend` | T4 | `pri.tr` |
+| Mã lý do rớt (§10 · QĐ 2) | T5.`reason_code` | thay quyền `obs.cov` |
+| Mục C — khoá case | Q3 | `pri.rep` |
+| Tách trễ pipeline/nguồn (§12.2) | T3.`fired_at` vs `received_at` | màn Nguồn dữ liệu (khi dựng lại) |
+| Lưu lượng theo cửa sổ (§12.2 · D5) | truy vấn trên T3 | *"điểm đo còn chạy không"* |
+| NAV/tier lịch sử (ADR-001 §8) | T8 (Q2) | chart tầng dưới chia nhóm đúng lịch sử |
+
+Tự kiểm hai chiều: mọi cột ở 6.1 đều có tên người tiêu thụ trong bảng này (không cột nào xin
+"cho chắc"); mọi mục §1–§3 + charter §10 đều rơi vào ≥1 ô; và không mục nào của §5 *"cái KHÔNG
+xin"* lọt vào (không điểm ưu tiên tính sẵn, không bảng `sigTrend`, không số hệ lõi, không CES).
