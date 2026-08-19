@@ -75,6 +75,18 @@ export type { SearchKind, SearchEntry } from "./search.ts";
 export { themeSegments, themeAxisOptions, themeLegend, SUBTHEME_AXIS } from "./themeSegments.ts";
 export type { ThemeAxis, ThemeSegment, ThemeAxisOption } from "./themeSegments.ts";
 export { cfgIssues, cfgIssuesTyped, type CfgIssueGroup } from "./cfgIssues.ts";
+export {
+  signalEval,
+  signalEvalAll,
+  signalEvalWhyText,
+  signalTraffic,
+  signalTrafficAll,
+  signalTrafficText,
+  signalWinDays,
+  SIGNAL_BAND_KIND_LABEL,
+  SIGNAL_WINDOW_DAYS_DEFAULT,
+} from "./signalEval.ts";
+export type { SignalEval, SignalEvalUnknownWhy, SignalTraffic } from "./signalEval.ts";
 export { resetCfgPatch } from "./resetCfg.ts";
 export {
   isSignalRunning,

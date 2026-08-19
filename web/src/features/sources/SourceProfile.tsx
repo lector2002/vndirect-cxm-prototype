@@ -86,8 +86,10 @@ export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps
             {/* luật 11/08: bỏ "KHÔNG phải toàn bộ N bản ghi nguồn này khai"
                 luật 12/08: cơ sở đếm ("Năm phân bố bên dưới đếm trên N đó") XUỐNG TOOLTIP, cùng cách
                 xử với công thức failed ÷ entered ở #/rules. */}
+            {/* 19/08 (owner): bỏ "trong kỳ" — Source.vol là số tổng hợp KHÔNG gắn kỳ nào (docblock
+                schema/voc.ts), gọi tên một kỳ không tồn tại là hứa một phép đo không ai làm. */}
             {evs.length === 0
-              ? `Chưa có bằng chứng mẫu nào từ nguồn này · volume tổng hợp trong kỳ ${nf(source.vol)}`
+              ? `Chưa có bằng chứng mẫu nào từ nguồn này · volume tổng hợp ${nf(source.vol)}`
               : `${nf(evs.length)} bằng chứng mẫu đọc được từng cái`}
           </span>
         }
@@ -107,7 +109,7 @@ export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps
       >
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 mb-4">
           <Stat
-            label="Volume trong kỳ"
+            label="Volume tổng hợp"
             value={nf(source.vol)}
             foot={`${pv(source.vol, scopeTotal(data))}% tổng tín hiệu khách hàng`}
             srcNote={`Loại nguồn: ${source.kind}`}

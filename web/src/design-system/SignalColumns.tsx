@@ -266,9 +266,12 @@ function Group({
           />
         ))}
       </div>
-      {/* Rule 7: chân đế riêng của CHÍNH nhóm này — không có dòng tổng chung (Đ2). */}
+      {/* Rule 7: chân đế riêng của CHÍNH nhóm này — không có dòng tổng chung (Đ2).
+          19/08 (owner): bỏ đuôi "/ngày" — `group.vol` là TỔNG lượt của lựa chọn đang xem (cả đời
+          hoặc đã cắt theo kỳ, volOf ở signalChart.ts), không phải tốc độ ngày; component này không
+          biết cửa sổ nên sửa NHÃN cho khớp số, không bịa phép chia. */}
       <div data-testid={`sigcol-footer-${group.sigId}`} className="mt-3 text-[12px] text-ink-2 space-y-0.5">
-        <div>tổng {nf(group.vol)} lượt/ngày</div>
+        <div>tổng {nf(group.vol)} lượt</div>
         <div>
           {group.notIdentified !== null
             ? `${pv(group.notIdentified, group.vol)}% chưa gắn được khách`

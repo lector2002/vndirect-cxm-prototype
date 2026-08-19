@@ -8,7 +8,10 @@ import {
   runningNotTrusted,
   seenAfterAsOf,
   signalAllocationChain,
+  signalEvalWhyText,
   signalFeedHealth,
+  signalTraffic,
+  signalTrafficText,
   sourceDaysMissing,
 } from "../../domain/index.ts";
 import type { DimState, SigCol, SigGroup, SigSlice } from "../../domain/index.ts";
@@ -304,6 +307,7 @@ export function SignalProfile({
   const seenLate = seenAfterAsOf(signal.seen, data.asOf);
   const feedSource = data.sources.find((s) => s.id === signal.srcId);
   const feedHealth = signalFeedHealth(signal, data.sources, cfg, data.asOf);
+  const trafficOf = signalTraffic(signal, data.sigFires, data.asOf);
 
   return (
     <div data-testid="signal-profile">
@@ -489,8 +493,20 @@ export function SignalProfile({
             <div className="grid grid-cols-2 items-start gap-x-4 gap-y-2 border-y border-line-soft py-2.5">
             <div className="text-[13px]" data-testid="signal-profile-vol">
               {/* 18/08 tối (owner, đợt tiếp): "Volume" đổi gọi "Traffic per day" — một dữ kiện
-                  một tên trên cả ba tầng (bảng · drawer · hồ sơ), đơn vị nằm trong nhãn. */}
-              Traffic per day: <b className="tabular-nums">{signal.vol ? signal.vol : "—"}</b>
+                  một tên trên cả ba tầng (bảng · drawer · hồ sơ), đơn vị nằm trong nhãn.
+                  19/08 (owner): số đổi nguồn — trung bình/ngày đếm từ hạt thô cửa sổ 7 ngày
+                  (signalTraffic), thôi đọc Signal.vol tổng cả đời; đo không được thì nói lý do. */}
+              Traffic per day:{" "}
+              {trafficOf.state === "measured" ? (
+                <b className="tabular-nums">
+                  {signalTrafficText(trafficOf)}{" "}
+                  <span className="t-meta font-normal">
+                    ({trafficOf.n} lượt/{trafficOf.winDays}d)
+                  </span>
+                </b>
+              ) : (
+                <span className="text-ink-2">{signalEvalWhyText(trafficOf)}</span>
+              )}
             </div>
 
             <div className="text-[13px]" data-testid="signal-profile-seen">

@@ -70,6 +70,15 @@ export type Signal = {
   st: SignalSt;
   pf: string[];
   es: string;
+  /** TỔNG lượt bắn CẢ ĐỜI điểm đo (bản khai) — KHÔNG phải lượt/ngày. Ràng buộc 1 của validate.ts
+      (cả bản sigCounts lẫn bản hạt thô) ghim: đếm thẳng từ fires phải bằng đúng số này, mà fires
+      demo rải từ `instAt` tới `asOf`, tức số này phủ toàn bộ lịch sử.
+
+      Owner chốt 19/08: nhãn per-day/per-kỳ trên màn PHẢI đọc số đếm trong đúng timeframe đó —
+      "Traffic per day" đọc `signalTraffic()` (domain/signalEval.ts, đếm `sigFires` trong cửa sổ),
+      KHÔNG đọc field này. Field này chỉ còn hai việc hợp lệ: (a) mẫu đối chiếu của ràng buộc 1;
+      (b) `vol > 0` = "đã instrument, có bắn" (isSignalRunning, D5 charter Module I) — một phát
+      biểu CÓ/KHÔNG về cả đời, không phải một tốc độ. */
   vol: number;
   seen: string | null;
   /** Nguồn dữ liệu GIAO bản ghi của điểm đo này (`Source.id`), owner chốt 12/08 — lối (i) của §10c.

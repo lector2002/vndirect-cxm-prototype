@@ -131,7 +131,8 @@ describe("AtlasSignalPanel — bảng signal (checkbox) + chart điểm đo + pa
     render(<AtlasSignalPanel signals={tp1Signals} touchpoints={[tp1]} rows={demoData.sigCounts} dims={dims} stationId={s1.stationId} />);
 
     const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);
-    expect(headers.slice(1)).toEqual(["Event", "Nguồn", "Platform", "Volume/ngày", "Lần thấy cuối", "Trạng thái"]);
+    // 19/08: "Volume/ngày" → "Volume tổng" — ô đọc Signal.vol (tổng cả đời), nhãn phải khớp số.
+    expect(headers.slice(1)).toEqual(["Event", "Nguồn", "Platform", "Volume tổng", "Lần thấy cuối", "Trạng thái"]);
     for (const g of tp1Signals) expect(screen.getByTestId(`atlas-signal-${g.id}`)).toBeInTheDocument();
   });
 

@@ -123,6 +123,40 @@ export type CfgHv = {
   values: string[];
 };
 
+/** Ngưỡng đánh giá của MỘT điểm đo — keyed theo `Signal.id` ở `Cfg.signal` (owner chốt 19/08).
+    Bốn kind, mỗi kind MỘT dụng cụ đo và MỘT chiều xấu — cố ý không cho một signal vừa rate vừa
+    count: signal cần cả hai góc nhìn là dấu hiệu nên lên thành metric (tỉ lệ bắc cầu hai signal —
+    fail ÷ attempts — là việc của `cfg.metric`, vd `m-ocr`; ngưỡng ở đây chỉ đọc lượt bắn của CHÍNH
+    signal đó).
+
+    `badRate` vs `goodRate` với signal hai giá trị là tương đương về toán (% fail tăng ≡ % success
+    giảm) — chọn theo chiều fail-safe: `Signal.values` là bản khai và ĐƯỢC PHÉP chậm hơn dữ liệu
+    (validate nhóm 22 đã gỡ luật kiểm), nên giá trị MỚI chưa khai rơi vào `badRate` được đếm là
+    "tốt" (im lặng đúng lúc cần kêu), rơi vào `goodRate` thì pha loãng phần tốt (chuông reo).
+    Liệt kê giá trị mình TIN → goodRate; liệt kê giá trị mình SỢ → badRate.
+
+    `winDays` thiếu ⇒ `SIGNAL_WINDOW_DAYS_DEFAULT` (domain/signalEval.ts) — cùng khuôn
+    `SOURCE_ALLOW_DAYS_DEFAULT`: một chính sách cửa sổ chung hợp lý, KHÔNG phải phán đoán trá hình.
+    Cửa sổ theo SIGNAL là cấu hình; thứ bị cấm là cửa sổ theo MÀN (một signal hai trạng thái tuỳ
+    màn đang mở — vi phạm đúng lý do signalStatus.ts tách file).
+
+    `minN` (chỉ hai kind rate): số lượt tối thiểu trong cửa sổ để TÍNH tỉ lệ — dưới mức là
+    *chưa đủ mẫu* (unknown có lý do riêng), không phải ok và cũng không báo động từ n=1. Thiếu = 1:
+    đánh từ lượt bắn đầu tiên — chặn mẫu nhỏ là opt-in. */
+export type CfgSignalBand =
+  /** % lượt bắn mang giá trị trong `bad` / tổng lượt bắn trong cửa sổ — VƯỢT LÊN là xấu (warn < crit). */
+  | { kind: 'badRate'; bad: string[]; minN?: number; winDays?: number; warn: number; crit: number }
+  /** % lượt bắn mang giá trị trong `good` / tổng — TỤT XUỐNG là xấu (warn > crit, cùng họ floor). */
+  | { kind: 'goodRate'; good: string[]; minN?: number; winDays?: number; warn: number; crit: number }
+  /** SỐ LƯỢT trong cửa sổ — TỤT XUỐNG là xấu (warn > crit). Cho signal một-giá-trị: im lặng nghĩa
+      là pipeline hỏng hoặc không ai vào. */
+  | { kind: 'floor'; winDays?: number; warn: number; crit: number }
+  /** SỐ LƯỢT trong cửa sổ — VƯỢT LÊN là xấu (warn < crit). `bad` (tuỳ chọn): chỉ đếm lượt mang giá
+      trị này; thiếu = đếm tất (signal fail-reason: mỗi lượt bắn LÀ một ca hỏng, giảm là tin tốt nên
+      floor sai chiều — ca hiếm-mà-nghiêm-trọng dùng kind này với winDays dài, không dùng badRate
+      vì minN sẽ đè im đúng lúc cần kêu). */
+  | { kind: 'ceiling'; bad?: string[]; winDays?: number; warn: number; crit: number };
+
 export type Cfg = {
   step: CfgStep;
   /** ADR-002 §15: khai CÙNG LÚC với `data/priority.ts` và nhóm 6 mở khoá, không sớm hơn. */
@@ -136,6 +170,12 @@ export type Cfg = {
       áp `SOURCE_ALLOW_DAYS_DEFAULT` (domain/state.ts), vì danh sách nguồn còn là bản tạm và một
       nguồn mới mở không được kéo theo lỗi khai báo. */
   source: Record<string, number>;
+  /** Ngưỡng đánh giá từng điểm đo, keyed theo `Signal.id`. THIẾU ENTRY LÀ HỢP LỆ VÀ CÓ NGHĨA:
+      điểm đo chưa đặt ngưỡng ⇒ trạng thái *chưa đánh giá* (unknown), KHÔNG rơi về ok — cùng luật
+      thiếu-entry với `step.jc`/`step.reg`, KHÁC `source` (ở đó thiếu rơi về SLA chung hợp lý; ở
+      đây không có ngưỡng chung hợp lý vì mỗi điểm đo đo một thứ khác nhau — đúng lý do nhóm
+      "Signal thresholds" tồn tại). */
+  signal: Record<string, CfgSignalBand>;
   data: CfgData;
   anomaly: CfgAnomaly;
   sub: Record<string, CfgSub>;

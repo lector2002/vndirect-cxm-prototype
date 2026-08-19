@@ -17,7 +17,7 @@ import { metricDirection } from "../data/metric-direction.ts";
 /* 18/08 (redesign #/rules): menu nhóm cần biết mâu thuẫn nằm Ở NHÓM NÀO để treo dấu ⚠ đúng chỗ.
    Tách dạng có nhóm ra hàm riêng thay vì để RulesPage tự đoán lại từ câu chữ — hai đường đếm là
    hai đường lệch. `cfgIssues()` giữ nguyên chữ ký cũ (mọi chỗ gọi + test không đổi). */
-export type CfgIssueGroup = "step" | "metric";
+export type CfgIssueGroup = "step" | "metric" | "signal";
 
 export function cfgIssuesTyped(data: CxmData, cfg: Cfg): { group: CfgIssueGroup; msg: string }[] {
   const issues: { group: CfgIssueGroup; msg: string }[] = [];
@@ -44,6 +44,38 @@ export function cfgIssuesTyped(data: CxmData, cfg: Cfg): { group: CfgIssueGroup;
         msg: `${m.name}: mục tiêu là càng cao càng tốt, nên ngưỡng cần xử lý (${band.crit}) phải thấp hơn ngưỡng cần theo dõi (${band.watch}).`,
       });
     }
+  }
+
+  /* Ngưỡng từng điểm đo (`cfg.signal`, 19/08) — chiều xấu của TỪNG KIND đã chốt trong schema
+     (config.ts): badRate/ceiling vượt lên là xấu ⇒ warn < crit; goodRate/floor tụt xuống là xấu
+     ⇒ warn > crit. KHÔNG kiểm "bad/good rỗng" ở đây: đó là entry khai dở (signalEval trả unknown
+     `no-values`, việc còn phải làm), không phải hai ngưỡng nói ngược nhau. */
+  for (const s of data.signals) {
+    const band = cfg.signal[s.id];
+    if (!band) continue;
+    const up = band.kind === "badRate" || band.kind === "ceiling";
+    if (up && band.crit <= band.warn) {
+      issues.push({
+        group: "signal",
+        msg: `${s.name}: ${band.kind === "badRate" ? "tỉ lệ" : "số lượt"} vượt lên là xấu, nên ngưỡng xử lý (${band.crit}) phải cao hơn ngưỡng theo dõi (${band.warn}).`,
+      });
+    } else if (!up && band.crit >= band.warn) {
+      issues.push({
+        group: "signal",
+        msg: `${s.name}: ${band.kind === "goodRate" ? "tỉ lệ" : "số lượt"} tụt xuống là xấu, nên ngưỡng xử lý (${band.crit}) phải thấp hơn ngưỡng theo dõi (${band.warn}).`,
+      });
+    }
+    const vals = band.kind === "badRate" ? band.bad : band.kind === "goodRate" ? band.good : band.kind === "ceiling" ? (band.bad ?? []) : [];
+    const stray = vals.filter((v) => !s.values.includes(v));
+    if (stray.length > 0) {
+      issues.push({
+        group: "signal",
+        msg: `${s.name}: giá trị ${stray.map((v) => `"${v}"`).join(", ")} không có trong bản khai giá trị của điểm đo.`,
+      });
+    }
+    /* `minN`/`winDays` là kiểm LEAF (nguyên, ≥ 1) — việc của nhóm 24 data/validate.ts (bảng
+       NUM_RANGE, cổng CHẶN khi ghi), không lặp lại ở đây: lưới mềm này chỉ soi các ngưỡng nói
+       NGƯỢC NHAU, đúng phép chia đã có với band chỉ số. */
   }
 
   return issues;

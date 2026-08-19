@@ -866,6 +866,14 @@ export function validateFixture(
       "data.repeatWarn": { min: 0, max: 100, unit: "%", why: "so với repeat contact của điểm gãy, tính bằng %" },
       "data.churnWarn": { int: true, min: 0, unit: "khách", why: "số khách" },
       "anomaly.z": { minOpen: true, min: 0, unit: "σ", why: "điểm bất thường khi |z| ≥ ngưỡng; ở 0 thì mọi điểm tính được đều là bất thường" },
+      /* Ngưỡng từng điểm đo (`cfg.signal.*`, 19/08): warn/crit đơn vị THEO KIND (% cho hai kind
+         rate, lượt cho floor/ceiling) nên không có trần chung — chỉ đòi ≥ 0 (tỉ lệ lẫn số đếm đều
+         không âm; crit = 0 của floor là ca có nghĩa: chỉ báo động khi im hẳn). Quan hệ warn/crit
+         theo chiều xấu của kind là việc của cfgIssues(), cùng phép chia với band chỉ số. */
+      "signal.*.warn": { min: 0, why: "đơn vị theo kind (% hoặc lượt) nên không có trần chung; tỉ lệ và số đếm đều không âm" },
+      "signal.*.crit": { min: 0, why: "đơn vị theo kind (% hoặc lượt) nên không có trần chung; tỉ lệ và số đếm đều không âm" },
+      "signal.*.minN": { int: true, min: 1, unit: "lượt", why: "mẫu tối thiểu để tính tỉ lệ; 0 thì \"chưa đủ mẫu\" không bao giờ tới được và n=0 đã có nhánh riêng" },
+      "signal.*.winDays": { int: true, min: 1, unit: "ngày", why: "cửa sổ đếm; thập phân thì nhãn \"lượt/Nd\" nói khác con số đang chấm" },
       /* Trọng số bảy khoá ưu tiên (ADR-002 §3). Dải từng ô là 0–100; TỔNG bằng 100 là một luật
          khác, nằm ở nhóm 25 bên dưới — bảng này chỉ nói về một leaf số một mình. */
       "pri.w.*": { min: 0, max: 100, unit: "% quyết định", why: "phần trăm sức nặng của một khoá; bảy khoá cộng lại đúng 100" },

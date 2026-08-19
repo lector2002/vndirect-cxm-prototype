@@ -976,6 +976,20 @@ export const cfgDefault: Cfg = {
      nhịp là 0, hai nguồn 36 giờ (crawl 1 lần/ngày, nhập tay trong CRM) thì nhịp là 1. Không làm
      tròn lên: 6 giờ thành 1 ngày là nới thoả thuận gấp bốn lần sau lưng bên dữ liệu. */
   source: { "src-ga": 0, "src-ekyc": 0, "src-case": 0, "src-survey": 0, "src-store": 1, "src-broker": 1, "src-zalo": 0 },
+  /* Ngưỡng từng điểm đo (owner chốt schema 19/08). NĂM entry khởi điểm — đúng năm dòng của bản
+     mockup ASCII owner đã duyệt, mỗi kind ít nhất một ca: floor (signal một-giá-trị), badRate
+     (kết quả success/fail), ceiling đếm tất (fail-reason), ceiling + bad + cửa sổ dài (hiếm-mà-
+     nghiêm-trọng), goodRate (nhiều giá trị, "% ghi có ngay tụt" đọc xuôi hơn phần bù). 25 điểm đo
+     còn lại BỎ TRỐNG là trạng thái đúng — chưa đặt thì chưa đánh giá, không phải fixture thiếu.
+     Số warn/crit là bộ khởi điểm hợp lý (cùng loại quyết định với `metric` ở trên), CÂN theo mật
+     độ lượt bắn demo (fires rải cả đời điểm đo nên số trong cửa sổ 7 ngày nhỏ hơn `vol` nhiều). */
+  signal: {
+    sg1: { kind: "floor", warn: 6, crit: 2 },
+    sg3: { kind: "badRate", bad: ["fail"], minN: 10, warn: 10, crit: 20 },
+    sg4: { kind: "ceiling", warn: 4, crit: 8 },
+    sg8: { kind: "ceiling", bad: ["fail"], winDays: 30, warn: 1, crit: 3 },
+    "sg-nap-3": { kind: "goodRate", good: ["immediate"], minN: 30, warn: 80, crit: 60 },
+  },
   data: { deadDays: 2, cooldown: 14, repeatWarn: 20, churnWarn: 50 },
   /* z=2,5 — owner chốt 02/08 cùng cửa sổ tối thiểu i>=3 (domain/stats.ts). Ở 1,5 chart gắn cờ
      19/20 điểm chấm được của q15, tức gần như mọi điểm, nên vòng tròn mất hết ý nghĩa. */

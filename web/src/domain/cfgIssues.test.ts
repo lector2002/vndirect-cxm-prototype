@@ -49,4 +49,53 @@ describe("cfgIssues", () => {
     expect(() => cfgIssues(seed, cfg)).not.toThrow();
     expect(cfgIssues(seed, cfg)).toEqual([]);
   });
+
+  it("signal badRate/ceiling (vượt lên là xấu) mà crit <= warn → 1 câu nêu tên điểm đo", () => {
+    const cfg = {
+      ...cfgDefault,
+      signal: { ...cfgDefault.signal, sg3: { kind: "badRate" as const, bad: ["fail"], warn: 20, crit: 10 } },
+    };
+    const issues = cfgIssues(seed, cfg);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("ekyc_document_capture_result");
+  });
+
+  it("signal goodRate/floor (tụt xuống là xấu) mà crit >= warn → 1 câu", () => {
+    const cfg = {
+      ...cfgDefault,
+      signal: { ...cfgDefault.signal, sg1: { kind: "floor" as const, warn: 2, crit: 6 } },
+    };
+    const issues = cfgIssues(seed, cfg);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("account_open_started");
+  });
+
+  it("bad chứa giá trị ngoài bản khai Signal.values → 1 câu nêu giá trị lạ", () => {
+    const cfg = {
+      ...cfgDefault,
+      signal: { ...cfgDefault.signal, sg3: { kind: "badRate" as const, bad: ["fail", "khong_ton_tai"], warn: 10, crit: 20 } },
+    };
+    const issues = cfgIssues(seed, cfg);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain('"khong_ton_tai"');
+  });
+
+  it("bad RỖNG không phải mâu thuẫn — entry khai dở là việc còn làm, không sinh câu", () => {
+    const cfg = {
+      ...cfgDefault,
+      signal: { ...cfgDefault.signal, sg3: { kind: "badRate" as const, bad: [], warn: 10, crit: 20 } },
+    };
+    expect(cfgIssues(seed, cfg)).toEqual([]);
+  });
+
+  it("minN/winDays sai leaf KHÔNG sinh câu ở lưới mềm — đó là việc của nhóm 24 validate (cổng chặn)", () => {
+    const cfg = {
+      ...cfgDefault,
+      signal: {
+        ...cfgDefault.signal,
+        sg3: { kind: "badRate" as const, bad: ["fail"], minN: 0, winDays: 1.5, warn: 10, crit: 20 },
+      },
+    };
+    expect(cfgIssues(seed, cfg)).toEqual([]);
+  });
 });

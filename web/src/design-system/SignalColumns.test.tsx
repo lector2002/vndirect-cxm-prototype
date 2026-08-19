@@ -265,7 +265,9 @@ describe("SignalColumns", () => {
     render(<SignalColumns groups={groups} dimLabel="Phân khúc NAV" />);
     expect(screen.queryByTestId("sigcol-single-one")).not.toBeInTheDocument();
     expect(screen.queryByTestId("sigcol-single-two")).not.toBeInTheDocument();
-    expect(screen.getByTestId("sigcol-footer-one").textContent).toContain(`tổng ${nf(614)} lượt/ngày`);
+    // 19/08: chân đế bỏ "/ngày" — group.vol là TỔNG của lựa chọn đang xem, không phải tốc độ ngày.
+    expect(screen.getByTestId("sigcol-footer-one").textContent).toContain(`tổng ${nf(614)} lượt`);
+    expect(screen.getByTestId("sigcol-footer-one").textContent).not.toContain("lượt/ngày");
   });
 
   it("rule 13: groups rỗng hiện ghi chú, không phải khung trống", () => {
@@ -310,10 +312,10 @@ describe("SignalColumns", () => {
     ];
     render(<SignalColumns groups={groups} dimLabel="Phân khúc NAV" />);
     const footerS4 = screen.getByTestId("sigcol-footer-s4");
-    expect(footerS4.textContent).toContain("tổng 410 lượt/ngày");
+    expect(footerS4.textContent).toContain("tổng 410 lượt");
     expect(footerS4.textContent).toContain("30,5% chưa gắn được khách"); // pv(125,410)
     const footerS1 = screen.getByTestId("sigcol-footer-s1");
-    expect(footerS1.textContent).toContain("tổng 614 lượt/ngày");
+    expect(footerS1.textContent).toContain("tổng 614 lượt");
     expect(footerS1.textContent).toContain("92% chưa gắn được khách"); // pv(565,614)
     // Không nhóm nào lẫn số của nhóm khác.
     expect(footerS4.textContent).not.toContain("614");

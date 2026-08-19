@@ -17,6 +17,11 @@ export type Source = {
   id: string;
   name: string;
   kind: SourceKind;
+  /** Volume TỔNG HỢP khai sẵn của nguồn — KHÔNG có kỳ nào gắn kèm (không phải "trong kỳ", không
+      phải "/ngày"), và không có hạt thô từng-bản-ghi nào để tự đếm lại theo timeframe (tập
+      Evidence chỉ là MẪU, sources.ts đã cấm lấy nó làm mẫu số). Owner chốt 19/08: nhãn màn không
+      được gắn đơn vị thời gian cho số này — chỉ được gọi nó là "tổng hợp". So sánh hợp lệ duy
+      nhất: tỉ trọng giữa các nguồn với nhau (cùng loại số, scopeTotal). */
   vol: number;
   lagH: number;
   last: string;

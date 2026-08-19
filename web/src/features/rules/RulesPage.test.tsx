@@ -24,6 +24,7 @@ const GROUPS = [
   "Journey steps",
   "Metrics",
   "Source SLAs",
+  "Signal thresholds",
   "Alerts & surveys",
   "Customer segments",
   "Scheduled reports",
@@ -61,7 +62,7 @@ describe("RulesPage — vỏ màn", () => {
     expect(screen.queryByTestId("menu-warn-metric")).not.toBeInTheDocument();
   });
 
-  it("bảy nhóm đều mở được, không nhóm nào câm", () => {
+  it("các nhóm trên menu đều mở được, không nhóm nào câm", () => {
     render(<RulesPage />);
     for (const g of GROUPS) {
       const btn = screen.getByRole("button", { name: new RegExp(g.replace("&", "&")) });

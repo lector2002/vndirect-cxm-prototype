@@ -1,7 +1,15 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { Cfg, CxmData, Signal } from "../../data/schema/index.ts";
 import { stampParts } from "./stamp.ts";
-import { isSignalRunning, signalFeedHealth, signalFeedLast, sourceDaysMissing } from "../../domain/index.ts";
+import {
+  isSignalRunning,
+  signalEvalWhyText,
+  signalFeedHealth,
+  signalFeedLast,
+  signalTrafficAll,
+  signalTrafficText,
+  sourceDaysMissing,
+} from "../../domain/index.ts";
 import { Badge } from "../../design-system/index.ts";
 import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
 import { FEED_BADGE, feedStatusText } from "./feedStatus.ts";
@@ -134,6 +142,9 @@ import {
    đổi tên "Last seen" → "Feed status" cho khớp thông tin chính mới. FEED_TONE (map tông chữ trần
    của đợt trước) bỏ theo — màu nay là việc của Badge; mốc ngày KHÔNG mang màu nữa: một ô hai thứ
    cùng đỏ là nói một chuyện hai lần. D6 nguyên: ngày là cách VIẾT LẠI chuỗi mốc, không suy tuổi. */
+/* 19/08 (owner): cột "Traffic per day" đổi NGUỒN SỐ — trước đọc `Signal.vol` (tổng cả đời, xem
+   docblock schema/journey.ts) đội lốt per-day; nay đếm từ hạt thô qua signalTraffic (cửa sổ 7
+   ngày, domain/signalEval.ts). Nhãn cột giữ nguyên vì từ nay con số mới thật sự là per-day. */
 const HEADERS: readonly { label: string; align: "left" | "right" | "center"; width: string }[] = [
   { label: "Event", align: "left", width: "46%" },
   { label: "Status", align: "left", width: "14%" },
@@ -288,6 +299,9 @@ export function SignalTable({
   onCollapsed,
 }: SignalTableProps) {
   const set = (patch: Partial<SignalFilter>) => onFilter({ ...filter, ...patch });
+  /* 19/08 (owner): cột "Traffic per day" thôi đọc `Signal.vol` (tổng cả đời — docblock schema) mà
+     ĐẾM từ hạt thô trong cửa sổ 7 ngày. Một lượt cho cả bảng, không lọc lại fires từng dòng. */
+  const traffic = useMemo(() => signalTrafficAll(data.signals, data.sigFires, data.asOf), [data]);
   const theadRef = useRef<HTMLTableSectionElement>(null);
   const theadH = useElementHeight(theadRef);
   const allCollapsed = groups.length > 0 && groups.every((g) => collapsed.has(g.phaseId));
@@ -535,8 +549,16 @@ export function SignalTable({
                     {/* 18/08 tối (owner): bỏ chấm chạy/không-chạy — số đã nói điều đó ("—" = không
                         có traffic); aria-label của ô giữ nguyên cho máy đọc. Số KHÔNG nhóm hàng
                         nghìn (xem docblock HEADERS). Đợt tiếp cùng tối: đơn vị "/day" dời lên nhãn
-                        cột ("Traffic per day"), ô chỉ còn con số. */}
-                    {sig.vol ? sig.vol : "—"}
+                        cột ("Traffic per day"), ô chỉ còn con số.
+                        19/08 (owner): số là TRUNG BÌNH/NGÀY đếm từ hạt thô trong cửa sổ 7 ngày
+                        (signalTraffic), không còn là Signal.vol tổng cả đời đội lốt per-day; đo
+                        không được thì "—" mang lý do trong title, không rơi về 0. */}
+                    {(() => {
+                      const t = traffic.get(sig.id);
+                      if (t === undefined || t.state !== "measured")
+                        return <span title={t ? (signalEvalWhyText(t) ?? undefined) : undefined}>—</span>;
+                      return signalTrafficText(t);
+                    })()}
                   </td>
                   {/* 18/08 tối (owner, đợt đảo thứ bậc): badge trạng thái giao nhận là thông
                       tin chính; ngày (mốc máy của nguồn khi có, mốc người gõ khi chưa nối — D6

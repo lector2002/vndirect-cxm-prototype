@@ -2,7 +2,7 @@
 export type { Metric, SourceKind, Source, SurveyStatus, SurveyState, Survey, TaxLv, TaxNode, Category, EvidenceKind, Evidence, VoiceInsight } from './voc.ts';
 export type { IssueSt, IssueSev, PriKey, IssueImp, IssueSigMap, Issue, ActionAp, ActionCf, ActionDl, ActionIv, ActionLc, Action, Verdict, OutcomeMeasure, Outcome, Snapshot, Loop, HistPoint, MetricHistory, Customer, AgeBand, NavBand, TenureBand, AcqChannel, SegUnknown } from './cxm.ts';
 export type { ChartKind, ShowMark, SeriesMark, QuantifyView, StackMode, QuantifyShow, QuantifySeriesPoint, QuantifySeries, QuantifyItem, DashQuestion, DashSet, AgentKind, AgentFindingLane, AgentFinding, Agent } from './quantify.ts';
-export type { StepLevel, CfgStep, CfgMetricBand, CfgData, CfgAnomaly, CfgSub, CfgBandAxis, CfgSegment, CfgPri, CfgHv, Cfg, DimBase, DimRow, DimCut, Dim, MetricKind } from './config.ts';
+export type { StepLevel, CfgStep, CfgMetricBand, CfgSignalBand, CfgData, CfgAnomaly, CfgSub, CfgBandAxis, CfgSegment, CfgPri, CfgHv, Cfg, DimBase, DimRow, DimCut, Dim, MetricKind } from './config.ts';
 export type { NavItem, Meta, TourStop, Chip } from './ui.ts';
 /* `SigCount` khai ở `../projectSignalCounts.ts` (tầng data/, KHÔNG ở schema/) theo đúng chủ ý của
    thiết kế chart điểm đo: type sống cạnh phép cộng sinh ra nó (projectBands.ts cũng không có type

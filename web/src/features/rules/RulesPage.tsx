@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { ComponentType } from "react";
-import { cfgIssuesTyped, metricState, resetCfgPatch, sourceHealth, stepState } from "../../domain/index.ts";
+import { useParams } from "react-router-dom";
+import { cfgIssuesTyped, metricState, resetCfgPatch, signalEvalAll, sourceHealth, stepState } from "../../domain/index.ts";
 import type { Cfg } from "../../data/schema/index.ts";
 import { Note } from "../../design-system/index.ts";
 import { PageTitle } from "../../nav.tsx";
@@ -14,6 +15,7 @@ import { SegmentGroup } from "./groups/SegmentGroup.tsx";
 import { SubGroup } from "./groups/SubGroup.tsx";
 import { WeightGroup } from "./groups/WeightGroup.tsx";
 import { StepPriGroup } from "./groups/StepPriGroup.tsx";
+import { SignalBandGroup } from "./groups/SignalBandGroup.tsx";
 
 /* Chỉ số & ngưỡng #/rules — port cấu trúc V.rules (prototype dòng 4103-4327): menu nhóm bên trái,
    MỘT nhóm hiện bên phải. Prototype có 6 nhóm; ở đây 7, vì `cfg.segment` (ranh giới dải phân khúc
@@ -30,8 +32,8 @@ import { StepPriGroup } from "./groups/StepPriGroup.tsx";
 
    3. LỖI GHI KHÔNG GOM LÊN ĐẦU MÀN. Xem docblock `useCfgWrite.ts`.
 
-   4. `rules` KHÔNG vào TIMEFRAME_ROUTES (App.tsx) — màn cấu hình, không có chart theo kỳ. Giữ nguyên
-      quyết định E7.
+   4. Màn này KHÔNG mount toolbar timeframe (trước 19/08: không vào TIMEFRAME_ROUTES ở App.tsx) —
+      màn cấu hình, không có chart theo kỳ. Giữ nguyên quyết định E7.
 
    12/08 (redesign layout) — BA quyết định:
 
@@ -48,18 +50,31 @@ import { StepPriGroup } from "./groups/StepPriGroup.tsx";
    c. HAI KHỐI CẢNH BÁO (ghi hỏng · ngưỡng đặt ngược) ĐỨNG TRÊN CÙNG, trước cả menu và thân — chúng
       nói về cấu hình ĐANG có chứ không riêng nhóm đang mở, nên không được cuộn theo thân nhóm. */
 
-type GroupKey = "step" | "metric" | "source" | "alert" | "segment" | "sub" | "weight" | "steppri";
+type GroupKey = "step" | "metric" | "source" | "signal" | "alert" | "segment" | "sub" | "weight" | "steppri";
 
 const BODY: Record<GroupKey, ComponentType> = {
   step: StepGroup,
   metric: MetricGroup,
   source: SourceGroup,
+  signal: SignalBandGroup,
   alert: AlertGroup,
   segment: SegmentGroup,
   sub: SubGroup,
   weight: WeightGroup,
   steppri: StepPriGroup,
 };
+
+function isGroupKey(v: string | undefined): v is GroupKey {
+  return v !== undefined && v in BODY;
+}
+
+/** Vỏ cho route `#/rules/:group` — deep link từ drawer #/signals nhảy thẳng vào đúng nhóm. Tách vỏ
+    thay vì useParams trong RulesPage: màn này còn được render TRẦN (không Router) trong test và ở
+    route `#/rules` không tham số. */
+export function RulesPageRouted() {
+  const { group } = useParams<{ group?: string }>();
+  return <RulesPage initialGroup={isGroupKey(group) ? group : undefined} />;
+}
 
 /* Số ô ngưỡng của hai nhóm KHÔNG sinh từ dữ liệu — chúng là số field cố định của `cfg.step` và của
    nhóm cảnh báo (`anomaly.z` + 6 field `cfg.data`). Đếm cứng ở đây thì thêm field mà quên sửa số là
@@ -82,13 +97,13 @@ function stable(v: unknown): unknown {
   return v;
 }
 
-export function RulesPage() {
+export function RulesPage({ initialGroup }: { initialGroup?: GroupKey } = {}) {
   const data = useCxmStore((s) => s.data);
   const cfg = useCxmStore((s) => s.cfg);
   const cfgDefault = useCxmStore((s) => s.cfgDefault);
   const { write, error } = useCfgWrite();
 
-  const [group, setGroup] = useState<GroupKey>("step");
+  const [group, setGroup] = useState<GroupKey>(initialGroup ?? "step");
 
   const dirty = JSON.stringify(stable(cfg)) !== JSON.stringify(stable(cfgDefault));
   const warnsTyped = cfgIssuesTyped(data, cfg);
@@ -102,6 +117,7 @@ export function RulesPage() {
     step: (c) => Object.fromEntries(Object.entries(c.step).filter(([, v]) => typeof v === "number")),
     metric: (c) => c.metric,
     source: (c) => c.source,
+    signal: (c) => c.signal,
     alert: (c) => ({ data: c.data, anomaly: c.anomaly }),
     segment: (c) => c.segment,
     sub: (c) => c.sub,
@@ -123,6 +139,16 @@ export function RulesPage() {
     return st === "watch" || st === "crit";
   }).length;
   const sourceBad = data.sources.filter((s) => sourceHealth(s, cfg, data.asOf) !== "ok").length;
+  /* Chấm đỏ của Signal thresholds đếm điểm đo ĐANG crit theo ngưỡng đã đặt — KHÔNG đếm điểm chưa
+     đặt, khác chấm của Per-step levels có chủ ý: ở đó ô trống chặn điểm gãy lên bảng xếp hạng (việc
+     còn phải làm), ở đây bỏ trống là trạng thái hợp lệ vô hạn, không chặn tính năng nào. Memo theo
+     (data, cfg.signal) vì signalEvalAll quét cả sigFires mỗi lần tính. */
+  const signalBad = useMemo(
+    () =>
+      [...signalEvalAll(data.signals, data.sigFires, cfg, data.asOf).values()].filter((e) => e.state === "crit")
+        .length,
+    [data, cfg],
+  );
 
   const menu: { g: string; items: { k: GroupKey; l: string; n: number; bad: number }[] }[] = [
     {
@@ -135,6 +161,7 @@ export function RulesPage() {
         { k: "step", l: "Journey steps", n: Object.values(cfg.step).filter((v) => typeof v === "number").length, bad: stepBad },
         { k: "metric", l: "Metrics", n: data.metrics.length, bad: metricBad },
         { k: "source", l: "Source SLAs", n: data.sources.length, bad: sourceBad },
+        { k: "signal", l: "Signal thresholds", n: data.signals.length, bad: signalBad },
         { k: "alert", l: "Alerts & surveys", n: Object.keys(cfg.data).length + 1, bad: 0 },
       ],
     },

@@ -14,7 +14,10 @@ import { SIGNAL_STATUS } from "./signalStatus.ts";
    - output/thiet-ke-chart-signal-bo-sung-dot-2.html Đ3 (điểm đo một giá trị), Đ4 (panel gắn ở đâu +
      Bảng D). */
 
-const TABLE_HEADERS = ["Event", "Nguồn", "Platform", "Volume/ngày", "Lần thấy cuối", "Trạng thái"];
+/* 19/08 (owner): "Volume/ngày" → "Volume tổng" — ô đọc `Signal.vol`, là TỔNG cả đời (docblock
+   schema/journey.ts), không phải tốc độ ngày; panel này không có hạt thô để tự đếm per-day nên
+   sửa NHÃN cho khớp số, không sửa số. Per-day thật sống ở bảng #/signals (signalTraffic). */
+const TABLE_HEADERS = ["Event", "Nguồn", "Platform", "Volume tổng", "Lần thấy cuối", "Trạng thái"];
 
 export type AtlasSignalPanelProps = {
   /** Signal của các touchpoint thuộc bước đang xem (đã lọc ở caller) — PHẢI giữ cả signal

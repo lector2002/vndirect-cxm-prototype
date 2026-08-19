@@ -80,6 +80,7 @@ không có.
 | 6 | Trọng số ưu tiên | `pri.w` (7 số, cộng lại 100) + `pri.anchor` | **có** — mở 14/08 | kèm **xem trước thứ hạng** trước khi lưu (ADR-002 §13) |
 | 8 | Mức của từng bước | `step.jc[stepId]`, `step.reg[stepId]` | có | nhóm MỚI 14/08 (ADR-002 §5, §6); bỏ trống = chưa tính được |
 | 7 | Phân khúc khách | `segment.band[dim]`, `segment.values[dim]` | cuts sửa được; `values` chỉ đọc | đóng E7 |
+| 9 | Ngưỡng riêng từng điểm đo | `signal[id]` (union 4 kind) | có | nhóm MỚI 19/08 (**ADR-004**); bỏ trống = chưa đặt, KHÔNG rơi về ok; chấm đỏ menu đếm crit chứ không đếm unset |
 
 **Đầu màn chỉ có `<PageTitle route="rules" />`** — luật 06/08, không câu dẫn nào khác. Câu luận đề
 của prototype ("Ngưỡng đánh giá là cấu hình của người vận hành, không phải hằng số trong code") **bỏ**,

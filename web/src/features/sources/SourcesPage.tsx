@@ -172,7 +172,9 @@ export function SourcesPage() {
                     <th className={TH}>Nguồn</th>
                     <th className={TH}>Loại</th>
                     <th className={TH}>Nền tảng</th>
-                    <th className={TH}>Volume kỳ</th>
+                    {/* 19/08 (owner): "Volume kỳ" → "Volume tổng hợp" — cùng lý do với hồ sơ nguồn:
+                        Source.vol không gắn kỳ nào (docblock schema/voc.ts). */}
+                    <th className={TH}>Volume tổng hợp</th>
                     <th className={TH}>Độ trễ / SLA</th>
                     <th className={TH}>Nhận lần cuối</th>
                     <th className={TH}>Trạng thái</th>

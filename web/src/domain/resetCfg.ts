@@ -2,8 +2,8 @@ import type { Cfg } from "../data/schema/index.ts";
 
 /* "Trả về mặc định" cho màn Chỉ số & ngưỡng — patch để truyền thẳng vào store.setCfg(...).
 
-   Sáu nhóm step/metric/source/data/anomaly/segment không ai mutate ngoài màn cấu hình, nên lấy
-   nguyên từ `def` là đủ. Riêng `sub` KHÔNG được gán nguyên `def.sub`: nó bị mutate NGOÀI màn này —
+   Các nhóm step/metric/source/signal/data/anomaly/segment không ai mutate ngoài màn cấu hình, nên
+   lấy nguyên từ `def` là đủ. Riêng `sub` KHÔNG được gán nguyên `def.sub`: nó bị mutate NGOÀI màn này —
    mock-repository.ts thêm entry khi tạo/nhân bản set, xoá entry khi xoá set — và validate.ts bắt
    buộc mỗi set trong `dash` phải có đúng một entry `cfg.sub` (thiếu là lỗi, thừa/mồ côi cũng là
    lỗi). Gán nguyên `def.sub` sẽ:
@@ -29,6 +29,7 @@ export function resetCfgPatch(current: Cfg, def: Cfg): Cfg {
     hv: structuredClone(def.hv),
     metric: structuredClone(def.metric),
     source: structuredClone(def.source),
+    signal: structuredClone(def.signal),
     data: structuredClone(def.data),
     anomaly: structuredClone(def.anomaly),
     sub,
