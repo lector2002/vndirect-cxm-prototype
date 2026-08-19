@@ -2,8 +2,9 @@ import { useCxmStore } from "../../store/store.ts";
 import { useTimeframeStore } from "../../store/timeframe.ts";
 import { effectiveMonths, maxRealMonths, RANGE_MONTHS, type RangeKey } from "./sec.ts";
 
-/* Thanh timeframe GLOBAL kiểu Enterpret — mount 1 lần ở App Shell (App.tsx), hiện trên mọi route
-   CÓ dữ liệu/chart. Đọc/ghi state qua useTimeframeStore (KHÔNG local state, KHÔNG localStorage).
+/* Thanh timeframe kiểu Enterpret — STATE vẫn global (useTimeframeStore, KHÔNG local state, KHÔNG
+   localStorage) nhưng 19/08 (owner) chỗ MOUNT chuyển từ App Shell về từng màn tiêu thụ range:
+   trong GlobalToolbar (OverviewPage, TopicsPage) và đứng riêng trên hồ sơ điểm đo (SignalsPage).
    `useStore` injectable (mirror OverviewPageProps) để test cô lập khỏi store thật. */
 export type TimeframeBarProps = {
   useStore?: typeof useCxmStore;

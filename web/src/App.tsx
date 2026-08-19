@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
-import { HashRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
 import { OverviewPage } from './features/overview/OverviewPage.tsx'
-import { GlobalToolbar } from './features/overview/GlobalToolbar.tsx'
 import { QuantifyPage } from './features/quantify/QuantifyPage.tsx'
 import { ValidateBanner } from './features/quantify/ValidateBanner.tsx'
 import { WorkPage } from './features/work/WorkPage.tsx'
@@ -10,7 +9,7 @@ import { VocJourneyPage } from './features/vocjourney/VocJourneyPage.tsx'
 import { SourcesPage } from './features/sources/SourcesPage.tsx'
 import { TopicsPage } from './features/topics/TopicsPage.tsx'
 import { ThemeDetailPage } from './features/topic/ThemeDetailPage.tsx'
-import { RulesPage } from './features/rules/RulesPage.tsx'
+import { RulesPage, RulesPageRouted } from './features/rules/RulesPage.tsx'
 import { SignalsPage } from './features/signals/SignalsPage.tsx'
 import { SettingsPage } from './features/settings/SettingsPage.tsx'
 import { TourOverlay } from './features/tour/TourOverlay.tsx'
@@ -18,16 +17,12 @@ import { DemoBanner } from './features/settings/DemoBanner.tsx'
 import { useCxmStore } from './store/store.ts'
 import { HOME_ROUTE, MVP_ROUTES, NAV_GROUPS, NAV_ITEMS, TOUR_ENABLED, navIcon } from './nav.tsx'
 
-/* Route (segment đầu URL) hiện có dữ liệu/chart thật trong src/ hiện nay — TimeframeBar chỉ mount
-   trên các route này. 'topics' vào set này ngày 06/08 khi TopicsPage thật được dựng: màn đó vẽ
-   biểu đồ đường trên chuỗi kỳ thật và CỐ Ý không dựng cụm 3m/6m/1y riêng, mà đọc chính thanh
-   timeframe chung này (docblock TopicsPage, mục 2) — hai chỗ điều khiển cùng một thứ sẽ lệch nhau.
-   Các route còn lại vẫn là Placeholder nên chưa vào: thanh timeframe đứng trên một màn không chart
-   nào là vi phạm quy tắc "ẩn trên Placeholder". */
-/* `signals` vào danh sách 14/08: hồ sơ điểm đo nay có chart theo kỳ (ADR-001 §5) nên màn đó cần
-   thanh mốc chung. Dùng THANH CHUNG chứ không dựng cụm mốc riêng — tiền lệ 06/08 của TopicsPage:
-   hai chỗ điều khiển cùng một thứ sẽ lệch nhau. */
-const TIMEFRAME_ROUTES = new Set(['cxm', 'voc', 'quantify', 'work', 'topics', 'signals'])
+/* 19/08 (owner): Shell KHÔNG còn mount toolbar timeframe/search cố định (TIMEFRAME_ROUTES +
+   FilterToolbarContainer cũ đã bỏ). Lý do: set route cũ gồm cả `quantify`/`work`/bảng `signals`
+   là những màn KHÔNG đọc range — bấm 6M/12M ở trên mà số bên dưới đứng im là thanh nói dối.
+   Nay toolbar là một phần ĐẦU TRANG của đúng các màn tiêu thụ range: OverviewPage (#/cxm, #/voc)
+   và TopicsPage mount `GlobalToolbar`; hồ sơ điểm đo trong SignalsPage mount `TimeframeBar`
+   (vẫn CÙNG component + useTimeframeStore toàn cục — một thứ một chỗ điều khiển, chỉ đổi chỗ đứng). */
 
 /* NAV_GROUPS dời sang `nav.tsx` ngày 06/08: từ khi mỗi màn in tên tab ở đầu trang, cái nhãn đó có
    HAI nơi hiện — mục sáng ở sidebar và tiêu đề màn — nên nó phải có đúng một nơi khai. */
@@ -57,15 +52,6 @@ function ValidateBannerContainer() {
 function DemoBannerContainer() {
   const demoMode = useCxmStore((s) => s.demoMode)
   return <DemoBanner demoMode={demoMode} />
-}
-
-/** Đọc segment đầu của pathname để quyết định hiện/ẩn GlobalToolbar — HashRouter nên
-    location.pathname bên trong Router context đã là phần sau '#' (vd '/cxm', '/cxm/xyz'). */
-function FilterToolbarContainer() {
-  const location = useLocation()
-  const seg = location.pathname.split('/')[1]
-  if (!TIMEFRAME_ROUTES.has(seg)) return null
-  return <GlobalToolbar />
 }
 
 /* Mũi tên của nút thu gọn sidebar — chỉ HƯỚNG dải sẽ chạy về khi bấm, nên nó lật theo trạng thái. */
@@ -246,7 +232,6 @@ function Shell() {
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         <DemoBannerContainer />
         <ValidateBannerContainer />
-        <FilterToolbarContainer />
         <main className="flex-1 min-w-0 overflow-y-auto">
           <Routes>
             <Route path="/" element={<Navigate to={`/${HOME_ROUTE}`} replace />} />
@@ -283,6 +268,8 @@ function Shell() {
                 }
               />
             ))}
+            {/* Deep link vào đúng nhóm cấu hình — drawer #/signals trỏ tới /rules/signal. */}
+            <Route path="/rules/:group" element={<RulesPageRouted />} />
             <Route path="/cxm/:setId" element={<OverviewPage sec="cxm" />} />
             <Route path="/voc/:setId" element={<OverviewPage sec="voc" />} />
             {/* Stub — drill-down từ block Overview trỏ tới đây (F8); thân màn thật là Phase 3/5. */}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
+import { TimeframeBar } from "../overview/TimeframeBar.tsx";
 import { SignalInventoryBlock } from "./SignalInventoryBlock.tsx";
 import { SignalTable } from "./SignalTable.tsx";
 import { SignalProfile } from "./SignalProfile.tsx";
@@ -120,20 +121,31 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
       {/* luật 11/08 (bổ sung, ghi đè bất biến 9 charter Module I theo owner 11/08): bỏ câu giới hạn đầu màn */}
 
       {selectedSignal && profileOpen ? (
-        <SignalProfile
-          data={data}
-          signal={selectedSignal}
-          onBack={() => setProfileOpen(false)}
-          dims={dims}
-          cfg={cfg}
-          nav={{
-            index: selectedIndex,
-            total: rows.length,
-            onPrev: selectedIndex > 0 ? () => openSignal(rows[selectedIndex - 1].id) : undefined,
-            onNext:
-              selectedIndex < rows.length - 1 ? () => openSignal(rows[selectedIndex + 1].id) : undefined,
-          }}
-        />
+        <>
+          {/* Thanh mốc thời gian CHỈ hiện cùng hồ sơ — hồ sơ có chart theo kỳ (ADR-001 §5) là nơi
+              duy nhất của màn này đọc range; bảng + drawer đếm cửa sổ 7 ngày cố định, treo thanh
+              6M/12M trên chúng là thanh nói dối (19/08, owner). Dùng THANH CHUNG + useTimeframeStore
+              chứ không dựng cụm mốc riêng — quyết định 14/08, tiền lệ 06/08 của TopicsPage: hai chỗ
+              điều khiển cùng một thứ sẽ lệch nhau. Mount ở container này vì hồ sơ nhận `data` trần,
+              không cầm hook store để đưa cho TimeframeBar. */}
+          <div className="mb-3">
+            <TimeframeBar useStore={useStore} />
+          </div>
+          <SignalProfile
+            data={data}
+            signal={selectedSignal}
+            onBack={() => setProfileOpen(false)}
+            dims={dims}
+            cfg={cfg}
+            nav={{
+              index: selectedIndex,
+              total: rows.length,
+              onPrev: selectedIndex > 0 ? () => openSignal(rows[selectedIndex - 1].id) : undefined,
+              onNext:
+                selectedIndex < rows.length - 1 ? () => openSignal(rows[selectedIndex + 1].id) : undefined,
+            }}
+          />
+        </>
       ) : (
         <div className="flex flex-col gap-4">
           <SignalInventoryBlock
@@ -163,6 +175,7 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
               <SignalDrawer
                 data={data}
                 signal={selectedSignal}
+                cfg={cfg}
                 onClose={() => setSelectedSignalId(null)}
                 onOpenProfile={() => setProfileOpen(true)}
                 nav={{

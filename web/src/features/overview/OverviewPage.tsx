@@ -18,6 +18,7 @@ import {
   TopPriorityBlock,
 } from "./blocks/index.ts";
 import { CustomBanner } from "./CustomBanner.tsx";
+import { GlobalToolbar } from "./GlobalToolbar.tsx";
 import { effectiveMonths, maxRealMonths, SEC, type SecKey } from "./sec.ts";
 import { SetChips } from "./SetChips.tsx";
 import { SignalHealthNoti } from "./SignalHealthNoti.tsx";
@@ -112,9 +113,9 @@ export function OverviewPage({ sec, useStore = useCxmStore }: OverviewPageProps)
   const resetBoard = useStore((s) => s.resetBoard);
 
   const [selectedLines, setSelectedLines] = useState<string[]>([]);
-  /* Range của bộ lọc thời gian giờ GLOBAL (TimeframeBar ở App Shell, useTimeframeStore) — trang
-     này chỉ ĐỌC, không còn local state (quyết định owner 02/08, thay filter bar riêng của từng
-     trang bằng một thanh chung cho mọi route có dữ liệu). */
+  /* Range của bộ lọc thời gian là state GLOBAL (useTimeframeStore) — trang chỉ ĐỌC, không local
+     state (quyết định owner 02/08). 19/08 (owner): toolbar không còn mount cố định ở Shell mà là
+     một phần đầu trang của chính màn này (GlobalToolbar dưới) — chỉ màn tiêu thụ range mới có thanh. */
   const range = useTimeframeStore((s) => s.range);
   const months = effectiveMonths(range, maxRealMonths(data));
 
@@ -140,7 +141,11 @@ export function OverviewPage({ sec, useStore = useCxmStore }: OverviewPageProps)
   const curBlocks = (qi: number): string[] => boards[cur.id]?.[qi] ?? cur.qs[qi].b;
 
   return (
-    <div className="p-8">
+    <>
+      {/* Toolbar timeframe + search là ĐẦU TRANG của màn này (19/08, owner) — đứng ngoài khung p-8
+          để dải nền/viền phủ hết bề ngang <main>, trông y như hồi còn mount ở Shell. */}
+      <GlobalToolbar useStore={useStore} />
+      <div className="p-8">
       {/* `sec` LÀ route ('cxm' | 'voc') nên tiêu đề tra thẳng nhãn tab bằng nó — hai màn dùng chung
           component này, khỏi phải viết hai chuỗi tên rồi trông chúng khớp với sidebar. */}
       <PageTitle route={sec} />
@@ -210,6 +215,7 @@ export function OverviewPage({ sec, useStore = useCxmStore }: OverviewPageProps)
           </section>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }

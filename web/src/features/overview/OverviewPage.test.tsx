@@ -7,17 +7,16 @@ import { navLabel } from "../../nav.tsx";
 import { createCxmStore } from "../../store/store.ts";
 import { DEFAULT_RANGE, useTimeframeStore } from "../../store/timeframe.ts";
 import { OverviewPage } from "./OverviewPage.tsx";
-import { TimeframeBar } from "./TimeframeBar.tsx";
 
 /* Container test — mỗi test dùng store CÔ LẬP (createCxmStore(new MockRepository())) tiêm qua
    prop `useStore`, tránh ô nhiễm giữa các test trong cùng file khi test cần mutate boards
    (setBoardBlocks/resetBoard cho banner tùy chỉnh — oracle map #10, charter Phase 2 §2b 84-85).
-   TimeframeBar mount CẠNH OverviewPage (giống Shell thật trong App.tsx) để test click-driven
-   phủ được đúng đường dây bar→useTimeframeStore(singleton)→OverviewPage. */
+   19/08: KHÔNG mount TimeframeBar rời nữa — OverviewPage nay tự mang GlobalToolbar (chứa bar) ở
+   đầu trang, mount thêm là hai bộ nút "6M" trùng nhau; đường dây click bar→useTimeframeStore
+   (singleton)→OverviewPage vẫn được phủ, qua chính thanh trong trang. */
 function renderAt(initialPath: string, store: ReturnType<typeof createCxmStore>) {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
-      <TimeframeBar useStore={store} />
       <Routes>
         <Route path="/cxm" element={<OverviewPage sec="cxm" useStore={store} />} />
         <Route path="/cxm/:setId" element={<OverviewPage sec="cxm" useStore={store} />} />
@@ -232,7 +231,7 @@ describe("OverviewPage — registry blocks.ts đủ 10 block", () => {
   });
 });
 
-describe("OverviewPage — bộ lọc thời gian GLOBAL kiểu Enterpret (TimeframeBar ở App Shell, quyết định owner 01/08 mở rộng 02/08)", () => {
+describe("OverviewPage — bộ lọc thời gian GLOBAL kiểu Enterpret (toolbar ở đầu trang từ 19/08, quyết định owner 01/08 mở rộng 02/08)", () => {
   it("mặc định '6M' được chọn (aria-pressed=true, DEFAULT_RANGE='6m')", () => {
     const store = createCxmStore(new MockRepository());
     renderAt("/voc", store);

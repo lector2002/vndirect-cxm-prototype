@@ -7,7 +7,11 @@ import type { SearchResult } from "../../design-system/index.ts";
 import { useCxmStore } from "../../store/store.ts";
 import { TimeframeBar } from "./TimeframeBar.tsx";
 
-/* Toolbar GLOBAL kiểu Enterpret — mount 1 lần thay TimeframeBar trong Shell (App.tsx).
+/* Toolbar timeframe + search kiểu Enterpret. 19/08 (owner): KHÔNG còn mount cố định ở Shell —
+   là một phần ĐẦU TRANG của đúng các màn tiêu thụ range (OverviewPage #/cxm·#/voc, TopicsPage);
+   hồ sơ điểm đo chỉ mount TimeframeBar. Màn không đọc range thì không có thanh: treo 6M/12M trên
+   một màn mà số bên dưới đứng im là thanh nói dối. Hệ quả chấp nhận: ô tìm-để-điều-hướng chỉ còn
+   trên các màn đó, và toolbar cuộn theo trang thay vì ghim trên <main>.
    18/08 (redesign MVP, nước đi S1): 2 hàng nén còn MỘT hàng — khung thời gian trái, ô
    tìm-kiếm-để-điều-hướng (KHÔNG phải lọc) co giãn ở giữa, ba nút phải. Hai hàng cũ tốn ~56px đầu
    MỌI màn có timeframe trong khi cả hai hàng đều còn quá nửa bề ngang trống; nội dung chính của

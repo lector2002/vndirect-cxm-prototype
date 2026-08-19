@@ -11,6 +11,7 @@ import {
 } from "../../domain/index.ts";
 import { AxisLabel, Card, Note, TopicLineChart } from "../../design-system/index.ts";
 import { TopicTrendBlock } from "../overview/blocks/index.ts";
+import { GlobalToolbar } from "../overview/GlobalToolbar.tsx";
 import { effectiveMonths, maxRealMonths } from "../overview/sec.ts";
 import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
@@ -31,8 +32,8 @@ import { useTimeframeStore } from "../../store/timeframe.ts";
    2. KHÔNG DỰNG RANGE TOGGLE RIÊNG. Prototype có cụm 3m/6m/1y riêng cho từng chart. App này đã có
       thanh thời gian CHUNG ở đầu màn (`TimeframeBar`), và thanh đó tự chặn ở số kỳ thật rồi nói
       thẳng "không nội suy thêm". Dựng thêm một cụm nữa là hai chỗ điều khiển cùng một thứ, và
-      chúng sẽ lệch nhau. Route `topics` được thêm vào `TIMEFRAME_ROUTES` cùng lượt này — đúng như
-      lời chú sẵn có ở `App.tsx` dặn.
+      chúng sẽ lệch nhau. (06/08 route `topics` vào TIMEFRAME_ROUTES của Shell; 19/08 owner bỏ mount
+      cố định ở Shell — nay chính màn này mount `GlobalToolbar` ở đầu trang, vẫn một store chung.)
 
    3. CÂU TIÊU ĐỀ ĐẾM TRÊN KỲ ĐANG XEM. Prototype ghi "qua 6 kỳ gần nhất" cứng trong lời dẫn. Số kỳ
       ở đây là runtime theo bộ lọc, nên câu chữ đọc từ chính con số đang vẽ.
@@ -75,7 +76,11 @@ export function TopicsPage({ useStore = useCxmStore }: TopicsPageProps) {
     setLines((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   return (
-    <div className="max-w-[1240px] mx-auto px-6 py-5">
+    <>
+      {/* Toolbar timeframe + search là ĐẦU TRANG của màn này (19/08, owner) — ngoài khung max-w để
+          dải nền/viền phủ hết bề ngang <main>, y như hồi còn mount ở Shell. */}
+      <GlobalToolbar useStore={useStore} />
+      <div className="max-w-[1240px] mx-auto px-6 py-5">
       {/* Đầu màn chỉ còn tên tab (quyết định owner 06/08). Câu dẫn cũ bỏ hết vì mọi thứ nó nói đã
           có mặt ngay tại chỗ cần: số topic đang mở và ba nhóm chuyển động nằm trong dải mẫu số của
           chart, số kỳ nằm ở nhãn trục. Câu hướng dẫn bấm ở cuối màn sau đó cũng bị bỏ theo luật
@@ -153,6 +158,7 @@ export function TopicsPage({ useStore = useCxmStore }: TopicsPageProps) {
       </div>
 
       {/* luật 11/08: bỏ hướng dẫn bấm */}
-    </div>
+      </div>
+    </>
   );
 }
