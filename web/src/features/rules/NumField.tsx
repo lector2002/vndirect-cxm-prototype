@@ -31,6 +31,9 @@ export type NumFieldProps = {
       rộng mặc định vừa đủ cho ngưỡng phần trăm/giờ; số dài hơn sẽ bị CẮT CHỮ SỐ trong ô — nhìn
       thấy "20000000" trong khi giá trị thật là 200000000, tức ô đang nói sai chính nó. */
   wide?: boolean;
+  /** Ô hẹp cho bảng nhiều cột (Signal thresholds: 8 cột chia ~713px card). Chỉ dùng khi giá trị
+      chắc chắn ≤ 4 chữ số — ngưỡng %/lượt/ngày; số dài hơn thì đừng, vì lý do y hệt `wide`. */
+  narrow?: boolean;
   /** Cách đọc con số bằng đơn vị người dùng quen (vd "= 200tr"). Chỉ để đọc — không tham gia nhập
       liệu, vì nhóm hàng nghìn kiểu Việt dùng dấu chấm, trùng với dấu thập phân khi parse. */
   hint?: string;
@@ -55,7 +58,7 @@ const TONE_CLASS = {
   crit: "border-crit-line",
 } as const;
 
-export function NumField({ value, onCommit, suffix, label, tone, wide, hint, disabled }: NumFieldProps) {
+export function NumField({ value, onCommit, suffix, label, tone, wide, narrow, hint, disabled }: NumFieldProps) {
   const [text, setText] = useState(() => toText(value));
 
   // Giá trị đổi từ NGOÀI (bấm "Trả về mặc định", hoặc seam ghi từ chối nên cfg giữ số cũ) phải kéo ô
@@ -92,7 +95,7 @@ export function NumField({ value, onCommit, suffix, label, tone, wide, hint, dis
           if (e.key === "Enter") e.currentTarget.blur();
           if (e.key === "Escape") setText(toText(value));
         }}
-        className={`${wide ? "w-[148px]" : "w-[86px]"} rounded-lg border bg-surface px-2.5 py-1 text-[13px] font-semibold text-ink tabular-nums disabled:opacity-45 ${
+        className={`${wide ? "w-[148px]" : narrow ? "w-[56px]" : "w-[86px]"} rounded-lg border bg-surface px-2.5 py-1 text-[13px] font-semibold text-ink tabular-nums disabled:opacity-45 ${
           tone ? TONE_CLASS[tone] : "border-line"
         }`}
       />

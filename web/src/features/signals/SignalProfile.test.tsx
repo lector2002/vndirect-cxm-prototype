@@ -12,7 +12,9 @@ import { stampText } from "./stamp.ts";
 const noop = () => {};
 
 describe("F2 — hồ sơ đi hết chuỗi allocate, quét MỌI signal trong demoData", () => {
-  it("mọi signal: chain hiện đúng tên touchpoint/bước/flow/phase, hoặc nói rõ đứt ở đâu", () => {
+  /* timeout 60s (25/08): render hồ sơ ~30 lần trong một test — đủ nhanh khi chạy file lẻ nhưng
+     vượt 20s mặc định khi cả suite chạy song song trên máy chậm. Không phải logic chậm đi. */
+  it("mọi signal: chain hiện đúng tên touchpoint/bước/flow/phase, hoặc nói rõ đứt ở đâu", { timeout: 60_000 }, () => {
     for (const sig of demoData.signals) {
       const { unmount } = render(<SignalProfile data={demoData} signal={sig} onBack={noop} dims={dims} cfg={cfgDefault} />);
       const chain = signalAllocationChain(demoData, sig);
@@ -66,7 +68,8 @@ describe("F2 — hồ sơ đi hết chuỗi allocate, quét MỌI signal trong d
 describe("F4 — ba ô chờ Bảng D, không lấy chuỗi từ desc/name/Touchpoint.name/stationId", () => {
   const FORBIDDEN_TESTIDS = ["signal-profile-screen", "signal-profile-route", "signal-profile-element"];
 
-  it("cả ba ô, trên MỌI signal của demoData: không ô nào chứa desc/name/touchpoint.name/stationId", () => {
+  // timeout 60s (25/08): cùng lý do với F2 — quét mọi signal, chậm vì tải song song chứ không vì logic.
+  it("cả ba ô, trên MỌI signal của demoData: không ô nào chứa desc/name/touchpoint.name/stationId", { timeout: 60_000 }, () => {
     for (const sig of demoData.signals) {
       const { unmount } = render(<SignalProfile data={demoData} signal={sig} onBack={noop} dims={dims} cfg={cfgDefault} />);
       const chain = signalAllocationChain(demoData, sig);

@@ -475,11 +475,11 @@ export function SignalProfile({
         {/* Mặt 3 — xử lý thế nào */}
         <Card title="Operational status">
           <div className="flex flex-col gap-3">
+            {/* 25/08 (owner): nhãn xuất xứ "(inferred from traffic)"/"(self-reported)" BỎ — chỉ
+                một nguồn report nên phân biệt xuất xứ hết mang tin; hai badge trạng thái giữ. */}
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]" data-testid="signal-profile-running">
               <Badge state={running ? "ok" : "unknown"} text={running ? "RUNNING" : "NOT RUNNING"} />{" "}
-              <span className="t-meta">(inferred from traffic)</span> ·{" "}
-              <Badge state={SIGNAL_STATUS[signal.st].badge} text={declaredStateLabel(signal)} />{" "}
-              <span className="t-meta">(self-reported)</span>
+              <Badge state={SIGNAL_STATUS[signal.st].badge} text={declaredStateLabel(signal)} />
             </div>
             {runningNotTrusted(signal) ? (
               <div data-testid="signal-profile-running-not-trusted">
@@ -510,7 +510,7 @@ export function SignalProfile({
             </div>
 
             <div className="text-[13px]" data-testid="signal-profile-seen">
-              Last seen (self-reported):{" "}
+              Last seen:{" "}
               <b>{signal.seen ? stampText(signal.seen) : <span className="text-ink-3">never</span>}</b>
               {seenLate ? (
                 <div data-testid="signal-profile-seen-late">

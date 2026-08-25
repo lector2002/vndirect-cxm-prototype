@@ -1,18 +1,14 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import type { Cfg, CxmData, Signal } from "../../data/schema/index.ts";
-import { stampParts } from "./stamp.ts";
+import type { Cfg, CxmData } from "../../data/schema/index.ts";
 import {
   isSignalRunning,
+  signalEvalAll,
   signalEvalWhyText,
-  signalFeedHealth,
-  signalFeedLast,
   signalTrafficAll,
   signalTrafficText,
-  sourceDaysMissing,
 } from "../../domain/index.ts";
 import { Badge } from "../../design-system/index.ts";
-import { SIGNAL_STATUS } from "../atlas/signalStatus.ts";
-import { FEED_BADGE, feedStatusText } from "./feedStatus.ts";
+import { signalRowStatus } from "./feedStatus.ts";
 import {
   PHASE_BROKEN,
   PHASE_BROKEN_LABEL,
@@ -144,12 +140,20 @@ import {
    cùng đỏ là nói một chuyện hai lần. D6 nguyên: ngày là cách VIẾT LẠI chuỗi mốc, không suy tuổi. */
 /* 19/08 (owner): cột "Traffic per day" đổi NGUỒN SỐ — trước đọc `Signal.vol` (tổng cả đời, xem
    docblock schema/journey.ts) đội lốt per-day; nay đếm từ hạt thô qua signalTraffic (cửa sổ 7
-   ngày, domain/signalEval.ts). Nhãn cột giữ nguyên vì từ nay con số mới thật sự là per-day. */
+   ngày, domain/signalEval.ts). Nhãn cột giữ nguyên vì từ nay con số mới thật sự là per-day.
+
+   25/08 (owner duyệt mock rd-2508-signals-f1) — GỘP HAI CỘT TRẠNG THÁI THÀNH MỘT: Status (Live) và
+   Feed status (Receiving) là hai phát biểu của cùng câu hỏi "điểm đo này còn cho số dùng được
+   không" — in cạnh nhau là một sự thật đọc hai lần, và ngày "27 Jul" lặp dưới mọi badge Receiving
+   trong khi toolbar đã có "Số liệu tính đến". Cột gộp đọc signalRowStatus (feedStatus.ts, bốn bậc,
+   ngày CHỈ hiện khi đứt). Bề ngang dôi ra trả cho cột mới "Chỉ số gắn" — chip "chưa gắn chỉ số"
+   ở khối ① nay có cột đối chiếu ngay trên bảng. Đơn vị lên nhãn cột, thuần Việt ("Lượt/ngày ·
+   7 ngày" = trung bình/ngày đếm trong cửa sổ 7 ngày). */
 const HEADERS: readonly { label: string; align: "left" | "right" | "center"; width: string }[] = [
-  { label: "Event", align: "left", width: "46%" },
-  { label: "Status", align: "left", width: "14%" },
-  { label: "Traffic per day", align: "right", width: "18%" },
-  { label: "Feed status", align: "right", width: "22%" },
+  { label: "Event", align: "left", width: "50%" },
+  { label: "Trạng thái", align: "left", width: "22%" },
+  { label: "Lượt/ngày · 7 ngày", align: "right", width: "15%" },
+  { label: "Chỉ số gắn", align: "right", width: "13%" },
 ];
 
 const ALIGN: Record<"left" | "right" | "center", string> = {
@@ -158,15 +162,9 @@ const ALIGN: Record<"left" | "right" | "center", string> = {
   center: "text-center",
 };
 
-/* Ngày thấy cuối — nay là DÒNG PHỤ dưới badge trạng thái giao nhận (18/08 tối, đợt đảo thứ bậc):
-   chỉ còn NGÀY, bỏ giờ — giờ là chi tiết tra ở drawer/hồ sơ, nơi stampText đầy đủ vẫn sống.
-   Parse không ra thì hiện nguyên chuỗi; null thì "never". KHÔNG mang màu — màu là việc của badge
-   ngay trên, một ô hai thứ cùng đỏ là nói một chuyện hai lần. */
-function SeenDate({ s }: { s: string | null }) {
-  if (!s) return <>never</>;
-  const p = stampParts(s);
-  return <>{p ? p.date : s}</>;
-}
+/* SeenDate (ngày dưới badge Feed status) BỎ 25/08 cùng cột Feed status — ngày chỉ còn xuất hiện
+   trong nhãn trạng thái khi feed đứt ("Mất dữ liệu · N ngày", signalRowStatus). Mốc đầy đủ vẫn
+   tra được ở hồ sơ. */
 
 function SearchIcon() {
   return (
@@ -302,6 +300,9 @@ export function SignalTable({
   /* 19/08 (owner): cột "Traffic per day" thôi đọc `Signal.vol` (tổng cả đời — docblock schema) mà
      ĐẾM từ hạt thô trong cửa sổ 7 ngày. Một lượt cho cả bảng, không lọc lại fires từng dòng. */
   const traffic = useMemo(() => signalTrafficAll(data.signals, data.sigFires, data.asOf), [data]);
+  /* 25/08 (mock f1): số lượt tô vàng/đỏ khi chạm ngưỡng đã đặt ở Rules — cột số thôi câm. Một
+     lượt cho cả bảng, cùng khuôn `traffic`. */
+  const evals = useMemo(() => signalEvalAll(data.signals, data.sigFires, cfg, data.asOf), [data, cfg]);
   const theadRef = useRef<HTMLTableSectionElement>(null);
   const theadH = useElementHeight(theadRef);
   const allCollapsed = groups.length > 0 && groups.every((g) => collapsed.has(g.phaseId));
@@ -312,9 +313,8 @@ export function SignalTable({
     else next.add(phaseId);
     onCollapsed(next);
   }
-  // Chỉ số nào có ít nhất một điểm đo nuôi mới vào ô lọc: bày một lựa chọn chắc chắn cho 0 dòng
+  // Nguồn nào có ít nhất một điểm đo nối vào mới vào ô lọc: bày một lựa chọn chắc chắn cho 0 dòng
   // khớp là mời người dùng vào ngõ cụt.
-  const metricsInUse = data.metrics.filter((m) => data.signals.some((s) => s.metrics.includes(m.id)));
   const sourcesInUse = data.sources.filter((src) => data.signals.some((s) => s.srcId === src.id));
   const hasUnlinked = data.signals.some((s) => s.srcId === null);
 
@@ -334,7 +334,7 @@ export function SignalTable({
             value={filter.query}
             onChange={(e) => set({ query: e.target.value })}
             aria-label="Search signals"
-            placeholder="Event, label, metric, step, phase"
+            placeholder="Event, nhãn, chỉ số, bước, phase"
             data-testid="signal-table-search"
             className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-3"
           />
@@ -351,13 +351,19 @@ export function SignalTable({
           ) : null}
         </div>
 
+        {/* 25/08 (mock f1): thanh công cụ chỉ còn HAI ô lọc theo trường (phase · nguồn). Ô Status
+            bỏ vì trục trạng thái nay là dải chip ngay trên bảng (một trục hai chỗ điều khiển sẽ
+            lệch nhau); ô Metric bỏ vì chip "chưa gắn chỉ số" + cột "Chỉ số gắn" phủ đúng câu hỏi
+            người dùng thật sự hỏi ("cái nào chưa gắn") — lọc theo TÊN chỉ số là thao tác tra cứu,
+            đã có ô tìm (signalSearchText soi cả tên chỉ số). Field `st`/`metricId` GIỮ trong
+            SignalFilter: vị từ và test của facets không đổi. */}
         <FilterSelect
           label="Filter by phase"
           testId="signal-filter-phase"
           value={filter.phaseId ?? ""}
           onChange={(v) => set({ phaseId: v === "" ? null : v })}
         >
-          <option value="">All phases</option>
+          <option value="">Mọi phase</option>
           {data.phases.map((p) => (
             <option key={p.id} value={p.id}>
               {p.code} {p.name}
@@ -369,46 +375,18 @@ export function SignalTable({
         </FilterSelect>
 
         <FilterSelect
-          label="Filter by status"
-          testId="signal-filter-st"
-          value={filter.st ?? ""}
-          onChange={(v) => set({ st: v === "" ? null : (v as Signal["st"]) })}
-        >
-          <option value="">All statuses</option>
-          {(Object.keys(SIGNAL_STATUS) as Signal["st"][]).map((st) => (
-            <option key={st} value={st}>
-              {SIGNAL_STATUS[st].label}
-            </option>
-          ))}
-        </FilterSelect>
-
-        <FilterSelect
-          label="Filter by metric"
-          testId="signal-filter-metric"
-          value={filter.metricId ?? ""}
-          onChange={(v) => set({ metricId: v === "" ? null : v })}
-        >
-          <option value="">All metrics</option>
-          {metricsInUse.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </FilterSelect>
-
-        <FilterSelect
           label="Filter by source"
           testId="signal-filter-src"
           value={filter.srcId ?? ""}
           onChange={(v) => set({ srcId: v === "" ? null : v })}
         >
-          <option value="">All sources</option>
+          <option value="">Mọi nguồn</option>
           {sourcesInUse.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name}
             </option>
           ))}
-          {hasUnlinked ? <option value={SRC_UNLINKED}>No source linked</option> : null}
+          {hasUnlinked ? <option value={SRC_UNLINKED}>Chưa nối nguồn</option> : null}
         </FilterSelect>
 
         {/* Một nút cho cả bảng: ở vài trăm điểm đo, thu gọn tám phase bằng tám cú bấm là việc thừa.
@@ -420,7 +398,7 @@ export function SignalTable({
           className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] text-ink-2 hover:border-primary-line hover:bg-primary-soft hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
         >
           <Chevron open={!allCollapsed} />
-          {allCollapsed ? "Expand all groups" : "Collapse all groups"}
+          {allCollapsed ? "Mở hết nhóm" : "Thu gọn nhóm"}
         </button>
 
         <div className="ml-auto flex items-baseline gap-3 text-[12px]">
@@ -429,7 +407,7 @@ export function SignalTable({
               className="rounded-[7px] border border-primary-line bg-primary-soft px-2 py-0.5 text-ink-2 tabular-nums"
               data-testid="signal-table-count"
             >
-              Highlighting {matched.size} / {data.signals.length} signals
+              Đang tô {matched.size} / {data.signals.length} điểm đo
             </span>
           ) : null}
           {/* luật 12/08: bỏ hai vế dạy cách đọc cột ("Lưu lượng là số của MỘT NGÀY", "Cột Thấy lần
@@ -437,7 +415,7 @@ export function SignalTable({
               nằm ngay trong từng ô của cột. Còn lại đúng MỘT dữ kiện: mốc số liệu của lô đang xem. */}
           {data.asOf ? (
             <span className="t-meta text-[12px]" data-testid="signal-table-asof-note">
-              Data as of {data.asOf}
+              Số liệu tính đến {data.asOf}
             </span>
           ) : null}
         </div>
@@ -502,10 +480,10 @@ export function SignalTable({
                       phá F1: mẫu số không rời khỏi màn. */}
                   <span className="font-normal tabular-nums text-ink-3">
                     {grp.matched === null ? (
-                      `${grp.signals.length} signals`
+                      `${grp.signals.length} điểm đo`
                     ) : (
                       <span data-testid={`signal-group-count-${key}`}>
-                        {grp.matched} / {grp.signals.length} match
+                        {grp.matched} / {grp.signals.length} khớp
                       </span>
                     )}
                   </span>
@@ -514,14 +492,9 @@ export function SignalTable({
             </tr>
             {(open ? grp.signals : []).map((sig) => {
               const running = isSignalRunning(sig);
-              const status = SIGNAL_STATUS[sig.st];
+              const rowStatus = signalRowStatus(sig, data, cfg);
               const dimmed = matched ? !matched.has(sig.id) : false;
-              const feedLast = signalFeedLast(sig, data.sources);
-              /* "unknown" (chưa nối nguồn) và "silent"/"ok" đều KHÔNG tô — chỉ hai bậc mà màn
-                 Nguồn dữ liệu cũng coi là sự cố mới đổi màu mốc. */
-              const feedHealth = signalFeedHealth(sig, data.sources, cfg, data.asOf);
-              const feedSrc = data.sources.find((x) => x.id === sig.srcId);
-              const daysMissing = feedSrc ? sourceDaysMissing(feedSrc, data.asOf) : null;
+              const ev = evals.get(sig.id);
               return (
                 <tr
                   key={sig.id}
@@ -538,41 +511,48 @@ export function SignalTable({
                     <code className="font-mono text-[12px] text-primary">{sig.name}</code>
                     <div className="t-meta text-[12px] mt-0.5">{sig.desc}</div>
                   </td>
-                  <td className="border-b border-line-soft px-3 py-2 whitespace-nowrap">
-                    <Badge state={status.badge} text={status.label} />
+                  {/* 25/08 (mock f1): MỘT cột trạng thái — badge bốn bậc của signalRowStatus,
+                      ngày chỉ nằm trong nhãn khi feed đứt. */}
+                  <td
+                    className="border-b border-line-soft px-3 py-2 whitespace-nowrap"
+                    data-testid={`signal-status-${sig.id}`}
+                  >
+                    <Badge state={rowStatus.badge} text={rowStatus.label} />
                   </td>
                   <td
                     className="border-b border-line-soft px-3 py-2 text-right tabular-nums whitespace-nowrap"
                     data-testid={`signal-running-${sig.id}`}
                     aria-label={running ? "receiving traffic" : "no traffic"}
                   >
-                    {/* 18/08 tối (owner): bỏ chấm chạy/không-chạy — số đã nói điều đó ("—" = không
-                        có traffic); aria-label của ô giữ nguyên cho máy đọc. Số KHÔNG nhóm hàng
-                        nghìn (xem docblock HEADERS). Đợt tiếp cùng tối: đơn vị "/day" dời lên nhãn
-                        cột ("Traffic per day"), ô chỉ còn con số.
-                        19/08 (owner): số là TRUNG BÌNH/NGÀY đếm từ hạt thô trong cửa sổ 7 ngày
-                        (signalTraffic), không còn là Signal.vol tổng cả đời đội lốt per-day; đo
-                        không được thì "—" mang lý do trong title, không rơi về 0. */}
+                    {/* 19/08 (owner): số là TRUNG BÌNH/NGÀY đếm từ hạt thô trong cửa sổ 7 ngày
+                        (signalTraffic); đo không được thì "—" mang lý do trong title, không rơi
+                        về 0. 25/08 (mock f1): tô vàng/đỏ khi eval theo ngưỡng ở Rules ra
+                        watch/crit — lý do nằm trong title, không thêm dòng chữ nào. */}
                     {(() => {
                       const t = traffic.get(sig.id);
                       if (t === undefined || t.state !== "measured")
                         return <span title={t ? (signalEvalWhyText(t) ?? undefined) : undefined}>—</span>;
-                      return signalTrafficText(t);
+                      const text = signalTrafficText(t);
+                      if (ev?.state === "watch" || ev?.state === "crit")
+                        return (
+                          <span
+                            className={`font-semibold ${ev.state === "crit" ? "text-crit" : "text-watch"}`}
+                            title={ev.state === "crit" ? "chạm ngưỡng xử lý (Rules)" : "chạm ngưỡng theo dõi (Rules)"}
+                          >
+                            {text} ⚠
+                          </span>
+                        );
+                      return text;
                     })()}
                   </td>
-                  {/* 18/08 tối (owner, đợt đảo thứ bậc): badge trạng thái giao nhận là thông
-                      tin chính; ngày (mốc máy của nguồn khi có, mốc người gõ khi chưa nối — D6
-                      dời tầng, xuất xứ khai ở hồ sơ) là dòng phụ nhỏ bên dưới. */}
+                  {/* 25/08 (mock f1): cột "Chỉ số gắn" — số chỉ số điểm đo này nuôi, đối chiếu
+                      trực tiếp với chip "chưa gắn chỉ số" của khối ①. "—" = chưa gắn. Tên chỉ số
+                      tra ở drawer. */}
                   <td
-                    className="border-b border-line-soft px-3 py-2 text-right whitespace-nowrap"
-                    data-testid={`signal-seen-${sig.id}`}
+                    className="border-b border-line-soft px-3 py-2 text-right tabular-nums whitespace-nowrap"
+                    data-testid={`signal-metriccount-${sig.id}`}
                   >
-                    <div data-testid={`signal-feedstatus-${sig.id}`}>
-                      <Badge state={FEED_BADGE[feedHealth]} text={feedStatusText(feedHealth, daysMissing)} />
-                    </div>
-                    <div className="mt-1 text-[11px] leading-4 text-ink-3">
-                      <SeenDate s={feedLast ?? sig.seen} />
-                    </div>
+                    {sig.metrics.length > 0 ? sig.metrics.length : <span className="text-ink-3">—</span>}
                   </td>
                 </tr>
               );

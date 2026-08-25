@@ -32,7 +32,7 @@ import { useCfgWrite } from "../useCfgWrite.ts";
    ĐẾM TẤT (signal fail-reason: mỗi lượt bắn là một ca hỏng). */
 
 const TH = "text-left font-medium text-ink-3 text-[11px] uppercase tracking-[0.04em] pb-[7px] px-1";
-const SEL = "w-full border border-line rounded px-2 py-1 text-[12.5px] bg-surface";
+const SEL = "w-full border border-line rounded px-1.5 py-1 text-[12.5px] bg-surface";
 
 const KINDS = ["badRate", "goodRate", "floor", "ceiling"] as const;
 
@@ -65,9 +65,26 @@ function withToggledValue(band: CfgSignalBand, v: string): CfgSignalBand {
   return { ...band, bad: next };
 }
 
-/** Đơn vị của warn/crit đọc theo kind — luôn đứng cạnh con số (quy ước NumField). */
+/** Đơn vị của warn/crit đọc theo kind — luôn đứng cạnh con số (quy ước NumField).
+    25/08 (owner, đợt sửa bảng tràn): floor/ceiling chỉ còn "lượt" — số ngày của cửa sổ đã đứng ở
+    cột Window ngay bên trái, lặp lại "/7d" trong suffix là in một dữ kiện hai lần và ăn bề ngang
+    làm cột Critical bị đẩy ra sau thanh cuộn. */
 function unitOf(band: CfgSignalBand): string {
-  return band.kind === "badRate" || band.kind === "goodRate" ? "%" : `lượt/${signalWinDays(band)}d`;
+  return band.kind === "badRate" || band.kind === "goodRate" ? "%" : "lượt";
+}
+
+/** Tên event ngắt dòng TẠI dấu gạch dưới thay vì gãy giữa chữ ("account_open_step_vie/wed").
+    <wbr> trước mỗi "_" cho browser điểm ngắt hợp lệ; break-words vẫn giữ làm lưới đỡ cuối. */
+function wrapName(name: string) {
+  const parts = name.split("_");
+  return parts.map((p, i) =>
+    i === 0 ? p : (
+      <Fragment key={i}>
+        <wbr />
+        {`_${p}`}
+      </Fragment>
+    ),
+  );
 }
 
 function fmtPct(v: number): string {
@@ -113,21 +130,33 @@ export function SignalBandGroup() {
         </Note>
       </div>
 
-      <div className="max-h-[560px] overflow-y-auto pr-1">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] border-collapse text-[12.5px]" data-testid="sigband-table">
-            <thead>
-              <tr>
-                <th className={TH}>Signal</th>
-                <th className={TH}>Measure</th>
-                <th className={TH}>Values</th>
-                <th className={TH}>Window</th>
-                <th className={TH}>Min n</th>
-                <th className={TH}>Watch threshold</th>
-                <th className={TH}>Critical threshold</th>
-                <th className={TH}>Status</th>
-              </tr>
-            </thead>
+      {/* 25/08 (owner, đợt sửa bảng tràn): BỎ hai tầng cuộn lồng nhau (max-h 560px + overflow-x).
+          Khung 560px giấu 23/30 dòng, thanh cuộn ngang giấu hẳn cột Critical + Status ở 1440 — bảng
+          cấu hình mà cột "xử lý ngay" nằm sau thanh cuộn là bảng nói thiếu. table-fixed + colgroup
+          chia đúng 100% bề ngang card, trang tự cuộn dọc như mọi nhóm khác. */}
+      <table className="w-full table-fixed border-collapse text-[12.5px]" data-testid="sigband-table">
+        <colgroup>
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "14%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "12%" }} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th className={TH}>Signal</th>
+            <th className={TH}>Measure</th>
+            <th className={TH}>Values</th>
+            <th className={TH}>Window</th>
+            <th className={TH}>Min n</th>
+            <th className={TH}>Watch threshold</th>
+            <th className={TH}>Critical threshold</th>
+            <th className={TH}>Status</th>
+          </tr>
+        </thead>
             <tbody>
               {groups.map((g) => (
                 <Fragment key={g.phaseId}>
@@ -143,10 +172,10 @@ export function SignalBandGroup() {
                     const why = signalEvalWhyText(ev);
                     return (
                       <tr key={s.id} data-testid={`sigband-row-${s.id}`} className="border-t border-line-soft align-top">
-                        <td className="max-w-[24ch] px-1 py-1.5">
-                          <code className="block break-words font-mono text-[12px] font-semibold">{s.name}</code>
+                        <td className="px-1 py-1.5">
+                          <code className="block break-words font-mono text-[12px] font-semibold">{wrapName(s.name)}</code>
                         </td>
-                        <td className="w-[150px] px-1 py-1.5">
+                        <td className="px-1 py-1.5">
                           <label className="sr-only" htmlFor={`sigband-kind-${s.id}`}>{`Measure — ${s.name}`}</label>
                           <select
                             id={`sigband-kind-${s.id}`}
@@ -165,12 +194,12 @@ export function SignalBandGroup() {
                             ))}
                           </select>
                         </td>
-                        <td className="max-w-[26ch] px-1 py-1.5">
+                        <td className="px-1 py-1.5">
                           {!band || band.kind === "floor" ? (
                             <span className="t-meta">—</span>
                           ) : s.values.length === 0 ? (
                             // Bản khai giá trị rỗng (chưa instrument) — không có gì để chọn, nói thẳng.
-                            <span className="t-meta italic">no declared values</span>
+                            <span className="t-meta italic">chưa khai giá trị</span>
                           ) : (
                             <div className="flex flex-wrap gap-1">
                               {s.values.map((v) => {
@@ -193,40 +222,43 @@ export function SignalBandGroup() {
                                 );
                               })}
                               {band.kind === "ceiling" && selectedValues(band).length === 0 ? (
-                                <span className="t-meta self-center text-[11.5px]">(counting all fires)</span>
+                                <span className="t-meta self-center text-[11.5px]">(đếm tất)</span>
                               ) : null}
                             </div>
                           )}
                         </td>
-                        <td className="w-[104px] px-1 py-1.5">
+                        <td className="px-1 py-1.5">
                           {band ? (
                             <NumField
                               value={signalWinDays(band)}
                               onCommit={(v) => setBand(s.id, { ...band, winDays: v })}
-                              suffix="d"
+                              suffix="ngày"
+                              narrow
                               label={`Window — ${s.name}`}
                             />
                           ) : (
                             <span className="t-meta">—</span>
                           )}
                         </td>
-                        <td className="w-[104px] px-1 py-1.5">
+                        <td className="px-1 py-1.5">
                           {band && isRate ? (
                             <NumField
                               value={(band.kind === "badRate" || band.kind === "goodRate" ? band.minN : undefined) ?? 1}
                               onCommit={(v) => setBand(s.id, { ...band, minN: v })}
+                              narrow
                               label={`Min n — ${s.name}`}
                             />
                           ) : (
                             <span className="t-meta">—</span>
                           )}
                         </td>
-                        <td className="w-[140px] px-1 py-1.5">
+                        <td className="px-1 py-1.5">
                           {band ? (
                             <NumField
                               value={band.warn}
                               onCommit={(v) => setBand(s.id, { ...band, warn: v })}
                               suffix={unitOf(band)}
+                              narrow
                               tone="watch"
                               label={`Watch threshold — ${s.name}`}
                             />
@@ -234,12 +266,13 @@ export function SignalBandGroup() {
                             <span className="t-meta">—</span>
                           )}
                         </td>
-                        <td className="w-[140px] px-1 py-1.5">
+                        <td className="px-1 py-1.5">
                           {band ? (
                             <NumField
                               value={band.crit}
                               onCommit={(v) => setBand(s.id, { ...band, crit: v })}
                               suffix={unitOf(band)}
+                              narrow
                               tone="crit"
                               label={`Critical threshold — ${s.name}`}
                             />
@@ -247,9 +280,9 @@ export function SignalBandGroup() {
                             <span className="t-meta">—</span>
                           )}
                         </td>
-                        <td className="w-[170px] whitespace-nowrap px-1 py-1.5" data-testid={`sigband-status-${s.id}`}>
+                        <td className="px-1 py-1.5" data-testid={`sigband-status-${s.id}`}>
                           {ev.state !== "unknown" ? (
-                            <span className="flex items-center gap-1.5">
+                            <span className="flex flex-wrap items-center gap-1.5">
                               <Badge state={ev.state} />
                               <span className="t-meta tabular-nums">
                                 {band && (band.kind === "badRate" || band.kind === "goodRate")
@@ -270,8 +303,6 @@ export function SignalBandGroup() {
               ))}
             </tbody>
           </table>
-        </div>
-      </div>
     </Card>
   );
 }

@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Redesign 25/08 — Signals: gộp cột trạng thái</title>
+<style>
+  :root{
+    --primary:#c9491a; --primary-soft:#fbeee6; --primary-line:#e9c6ae;
+    --bg:#f4f5f7; --surface:#fff; --surface2:#f7f8fa;
+    --line:#dfe3e8; --line-soft:#eceff3;
+    --ink:#191c21; --ink2:#454c56; --ink3:#6b7481;
+    --watch:#8a6003; --watch-bg:#fbf5e3; --watch-line:#e6d494;
+    --crit:#b3261e; --crit-bg:#fceeed; --crit-line:#f0c6c3;
+    --good:#20713d; --good-bg:#eef7f0; --good-line:#c9e5d2;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:#e7e9ec;font-family:"Segoe UI",system-ui,sans-serif;color:var(--ink);padding:24px;display:flex;flex-direction:column;gap:32px;align-items:center}
+  .frame{width:1180px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:28px;position:relative}
+  .frame-tag{position:absolute;top:-12px;left:20px;background:#262b33;color:#fff;font-size:12px;padding:2px 10px;border-radius:6px}
+  h1{font-size:22px;font-weight:700;margin-bottom:10px}
+  .mono{font-family:Consolas,monospace}
+
+  /* chips lọc */
+  .chips{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--ink2);cursor:pointer}
+  .chip b{font-size:12.5px;color:var(--ink)}
+  .chip.active{background:var(--primary-soft);border-color:var(--primary-line);color:var(--primary);box-shadow:inset 0 0 0 1px var(--primary-line)}
+  .chip.active b{color:var(--primary)}
+  .chip .dot{width:7px;height:7px;border-radius:99px}
+
+  /* toolbar */
+  .toolbar{display:flex;gap:8px;margin-bottom:0;align-items:center}
+  .search{flex:1;max-width:330px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;font-size:12.5px;color:var(--ink3)}
+  .select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 10px;font-size:12.5px;color:var(--ink2)}
+  .asof{margin-left:auto;font-size:12px;color:var(--ink3)}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:12px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{font-size:11px;letter-spacing:.04em;text-transform:none;color:var(--ink3);font-weight:600;text-align:left;padding:9px 14px;background:var(--surface2);border-bottom:1px solid var(--line)}
+  th.num,td.num{text-align:right}
+  td{padding:8px 14px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  tr.group td{background:var(--surface2);font-weight:600;font-size:12.5px;padding:7px 14px;color:var(--ink2);border-bottom:1px solid var(--line)}
+  tr.group .cnt{font-weight:400;color:var(--ink3)}
+  .ev{font-family:Consolas,monospace;font-size:12.5px;color:var(--primary)}
+  .desc{font-size:12px;color:var(--ink3);margin-top:1px}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:999px;padding:2.5px 10px;white-space:nowrap}
+  .badge .d{width:7px;height:7px;border-radius:99px}
+  .b-good{background:var(--good-bg);color:var(--good);border:1px solid var(--good-line)}
+  .b-good .d{background:var(--good)}
+  .b-watch{background:var(--watch-bg);color:var(--watch);border:1px solid var(--watch-line)}
+  .b-watch .d{background:var(--watch)}
+  .b-crit{background:var(--crit-bg);color:var(--crit);border:1px solid var(--crit-line)}
+  .b-crit .d{background:var(--crit)}
+  .b-unk{background:var(--surface);color:var(--ink3);border:1px dashed var(--line)}
+  .b-unk .d{background:var(--ink3);opacity:.45}
+  td.num{font-variant-numeric:tabular-nums}
+  .t-watch{color:var(--watch);font-weight:600}
+  .t-crit{color:var(--crit);font-weight:600}
+  .muted{color:var(--ink3)}
+
+  /* legend 4 bậc */
+  .legend{display:flex;gap:18px;font-size:12px;color:var(--ink2);margin-top:10px;align-items:center}
+  .legend .badge{font-weight:600}
+
+  /* drawer */
+  .split{display:flex;gap:16px;align-items:flex-start}
+  .split .card{flex:1;margin-top:0}
+  .drawer{width:330px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;flex:none}
+  .drawer h3{font-family:Consolas,monospace;font-size:13.5px;color:var(--primary);font-weight:700}
+  .drawer .row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:12.5px}
+  .drawer .row:last-of-type{border-bottom:none}
+  .drawer .k{width:86px;flex:none;color:var(--ink3);font-size:11.5px;padding-top:1px}
+  .drawer .v{color:var(--ink)}
+  .drawer a{color:var(--primary);text-decoration:none;font-size:12px}
+  .btn{display:inline-block;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:6px 12px;font-size:12.5px;color:var(--ink2)}
+  .btn.pri{border-color:var(--primary-line);color:var(--primary)}
+  .note{font-size:12px;color:var(--ink3);margin-top:8px}
+  .crumb{font-size:12.5px;color:var(--ink)}
+  .crumb .sep{color:var(--ink3);padding:0 3px}
+</style>
+</head>
+<body>
+
+<!-- ================= FRAME 1: bảng sau khi gộp ================= -->
+<div class="frame" id="f1">
+  <div class="frame-tag">SAU — bảng Signals: 1 cột trạng thái, ngày chỉ hiện khi đứt</div>
+  <h1>Signals</h1>
+
+  <div class="chips">
+    <span class="chip active"><b>30</b> Tất cả</span>
+    <span class="chip"><span class="dot" style="background:var(--good)"></span><b>24</b> Đang chạy</span>
+    <span class="chip"><span class="dot" style="background:var(--watch)"></span><b>3</b> Đang thử</span>
+    <span class="chip"><span class="dot" style="background:var(--crit)"></span><b>1</b> Mất dữ liệu</span>
+    <span class="chip"><span class="dot" style="background:var(--ink3);opacity:.5"></span><b>5</b> Chưa chạy</span>
+    <span class="chip" style="margin-left:10px"><b>20</b> chưa gắn chỉ số</span>
+  </div>
+
+  <div class="toolbar">
+    <span class="search">🔎 Event, nhãn, chỉ số, bước, phase</span>
+    <span class="select">Mọi phase ▾</span>
+    <span class="select">Mọi nguồn ▾</span>
+    <span class="select">⌄ Thu gọn nhóm</span>
+    <span class="asof">Số liệu tính đến 27/07/2026</span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th style="width:52%">Event</th>
+        <th style="width:22%">Trạng thái</th>
+        <th class="num" style="width:13%">Lượt/ngày · 7 ngày</th>
+        <th class="num" style="width:13%">Chỉ số gắn</th>
+      </tr></thead>
+      <tbody>
+        <tr class="group"><td colspan="4">⌄ 02 Mở tài khoản <span class="cnt">· 10 điểm đo</span></td></tr>
+        <tr>
+          <td><div class="ev">account_open_started</div><div class="desc">Khách bấm Mở tài khoản</div></td>
+          <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+          <td class="num">1,1</td><td class="num">1</td>
+        </tr>
+        <tr>
+          <td><div class="ev">account_open_step_viewed</div><div class="desc">Hiển thị từng bước của form</div></td>
+          <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+          <td class="num">4,4</td><td class="num muted">—</td>
+        </tr>
+        <tr>
+          <td><div class="ev">ekyc_document_capture_result</div><div class="desc">Kết quả mỗi lần chụp giấy tờ</div></td>
+          <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+          <td class="num">1,9</td><td class="num">1</td>
+        </tr>
+        <tr>
+          <td><div class="ev">ekyc_document_fail_reason</div><div class="desc">Lý do chụp thất bại: blur · glare · crop · expired</div></td>
+          <td><span class="badge b-watch"><span class="d"></span>Đang thử</span></td>
+          <td class="num t-watch" title="4 lượt/7 ngày — chạm ngưỡng theo dõi (watch 4 · crit 8)">0,6 ⚠</td><td class="num">1</td>
+        </tr>
+        <tr>
+          <td><div class="ev">ekyc_face_liveness_result</div><div class="desc">Kết quả mỗi lần liveness</div></td>
+          <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+          <td class="num">1,1</td><td class="num">1</td>
+        </tr>
+        <tr>
+          <td><div class="ev">ekyc_face_liveness_fail_reason</div><div class="desc">Lý do trượt liveness từng lần</div></td>
+          <td><span class="badge b-watch"><span class="d"></span>Đang thử</span></td>
+          <td class="num">3,6</td><td class="num muted">—</td>
+        </tr>
+        <tr>
+          <td><div class="ev">account_info_edited</div><div class="desc">Khách sửa thông tin OCR đọc sai</div></td>
+          <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+          <td class="num">1,9</td><td class="num muted">—</td>
+        </tr>
+        <tr>
+          <td><div class="ev">contract_sign_result</div><div class="desc">Kết quả ký hợp đồng điện tử</div></td>
+          <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+          <td class="num">0,4</td><td class="num">1</td>
+        </tr>
+        <tr>
+          <td><div class="ev">contract_session_abandoned</div><div class="desc">Phiên ký hết hạn giữa chừng</div></td>
+          <td><span class="badge b-unk"><span class="d"></span>Chưa chạy · có spec</span></td>
+          <td class="num muted">—</td><td class="num muted">—</td>
+        </tr>
+        <tr>
+          <td><div class="ev">account_activated</div><div class="desc">Tài khoản sẵn sàng giao dịch</div></td>
+          <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+          <td class="num">0,4</td><td class="num">1</td>
+        </tr>
+
+        <tr class="group"><td colspan="4">⌄ 03 Dòng tiền <span class="cnt">· 16 điểm đo</span></td></tr>
+        <tr>
+          <td><div class="ev">deposit_credit_received</div><div class="desc">Tiền về tài khoản chuyên dụng, theo kênh nạp</div></td>
+          <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+          <td class="num">53</td><td class="num">2</td>
+        </tr>
+        <tr>
+          <td><div class="ev">deposit_reconcile_fail_reason</div><div class="desc">Lý do không ghép được khoản tiền với chủ tài khoản</div></td>
+          <td><span class="badge b-crit"><span class="d"></span>Mất dữ liệu · 8 ngày</span></td>
+          <td class="num t-crit">0</td><td class="num">1</td>
+        </tr>
+        <tr>
+          <td><div class="ev">deposit_credit_timing</div><div class="desc">Ghi có ngay hay dồn xử lý cuối ngày</div></td>
+          <td><span class="badge b-watch"><span class="d"></span>Đang thử</span></td>
+          <td class="num">55</td><td class="num muted">—</td>
+        </tr>
+        <tr>
+          <td><div class="ev">deposit_amount_band</div><div class="desc">Dải số tiền mỗi lần nạp theo kênh</div></td>
+          <td><span class="badge b-unk"><span class="d"></span>Chưa đo</span></td>
+          <td class="num muted">—</td><td class="num muted">—</td>
+        </tr>
+        <tr>
+          <td><div class="ev">trace_request_created</div><div class="desc">Khách gửi yêu cầu tra soát nạp tiền</div></td>
+          <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+          <td class="num">1</td><td class="num">1</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="legend">
+    <span class="muted">4 bậc:</span>
+    <span class="badge b-good"><span class="d"></span>Đang chạy</span>
+    <span class="badge b-watch"><span class="d"></span>Đang thử</span>
+    <span class="badge b-crit"><span class="d"></span>Mất dữ liệu · N ngày</span>
+    <span class="badge b-unk"><span class="d"></span>Chưa chạy / Chưa đo</span>
+    <span class="muted" style="margin-left:12px">Số lượt tô <span class="t-watch">vàng</span>/<span class="t-crit">đỏ</span> khi chạm ngưỡng đã đặt ở Rules</span>
+  </div>
+</div>
+
+<!-- ================= FRAME 2: drawer sau khi gọn ================= -->
+<div class="frame" id="f2">
+  <div class="frame-tag">SAU — drawer: bỏ trùng lặp, breadcrumb 1 dòng, đơn vị thuần Việt</div>
+  <h1>Signals</h1>
+  <div class="split">
+    <div class="card">
+      <table>
+        <thead><tr>
+          <th style="width:52%">Event</th>
+          <th style="width:22%">Trạng thái</th>
+          <th class="num" style="width:13%">Lượt/ngày · 7 ngày</th>
+          <th class="num" style="width:13%">Chỉ số gắn</th>
+        </tr></thead>
+        <tbody>
+          <tr class="group"><td colspan="4">⌄ 02 Mở tài khoản <span class="cnt">· 10 điểm đo</span></td></tr>
+          <tr style="background:var(--primary-soft)">
+            <td><div class="ev">account_open_started</div><div class="desc">Khách bấm Mở tài khoản</div></td>
+            <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+            <td class="num">1,1</td><td class="num">1</td>
+          </tr>
+          <tr>
+            <td><div class="ev">account_open_step_viewed</div><div class="desc">Hiển thị từng bước của form</div></td>
+            <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+            <td class="num">4,4</td><td class="num muted">—</td>
+          </tr>
+          <tr>
+            <td><div class="ev">ekyc_document_capture_result</div><div class="desc">Kết quả mỗi lần chụp giấy tờ</div></td>
+            <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+            <td class="num">1,9</td><td class="num">1</td>
+          </tr>
+          <tr>
+            <td><div class="ev">ekyc_document_fail_reason</div><div class="desc">Lý do chụp thất bại: blur · glare · crop · expired</div></td>
+            <td><span class="badge b-watch"><span class="d"></span>Đang thử</span></td>
+            <td class="num t-watch">0,6 ⚠</td><td class="num">1</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="drawer">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <h3>account_open_started</h3><span class="muted" style="cursor:pointer">✕</span>
+      </div>
+      <div style="margin:8px 0 4px"><span class="badge b-good"><span class="d"></span>Đang chạy</span></div>
+
+      <div class="row"><span class="k">Lưu lượng</span><span class="v">1,1 lượt/ngày <span class="muted">(8 lượt/7 ngày)</span></span></div>
+      <div class="row"><span class="k">Ngưỡng</span><span class="v">sàn lưu lượng — theo dõi ≤ 6 · xử lý ≤ 2 lượt/7 ngày<br><a href="#">Sửa trong Rules ↗</a></span></div>
+      <div class="row"><span class="k">Chỉ số gắn</span><span class="v">Hoàn tất mở tài khoản</span></div>
+      <div class="row"><span class="k">Nguồn</span><span class="v">Digital analytics (app + web)</span></div>
+      <div class="row"><span class="k">Vị trí</span><span class="v crumb">Mở tài khoản<span class="sep">›</span>Mở tài khoản mới 2026<span class="sep">›</span>01 Khởi tạo hồ sơ</span></div>
+      <div class="row"><span class="k">Owner</span><span class="v">Onboarding Squad</span></div>
+
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+        <span class="btn pri">Mở hồ sơ đầy đủ →</span>
+        <span style="margin-left:auto" class="muted">1/30</span>
+        <span class="btn">←</span><span class="btn">→</span>
+      </div>
+    </div>
+  </div>
+  <p class="note">Đã bỏ so với bản cũ: badge RUNNING (trùng "Đang chạy") · "(inferred from traffic)" · "(self-reported)" · dòng Last seen khi đang chạy (chỉ hiện khi mất dữ liệu, nằm ngay trong badge) · dòng Evaluation (trùng Lưu lượng + Ngưỡng) · Phase/Flow/Step 3 dòng → 1 breadcrumb.</p>
+</div>
+
+<!-- ================= FRAME 3: biến thể ô trạng thái ================= -->
+<div class="frame" id="f3" style="width:760px">
+  <div class="frame-tag">Biến thể ô trạng thái — chọn A hoặc B</div>
+  <table style="margin-top:8px">
+    <thead><tr><th style="width:110px"></th><th>Đang chạy</th><th>Đang thử</th><th>Mất dữ liệu</th><th>Chưa chạy</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><b>A · pill</b></td>
+        <td><span class="badge b-good"><span class="d"></span>Đang chạy</span></td>
+        <td><span class="badge b-watch"><span class="d"></span>Đang thử</span></td>
+        <td><span class="badge b-crit"><span class="d"></span>Mất dữ liệu · 8 ngày</span></td>
+        <td><span class="badge b-unk"><span class="d"></span>Chưa chạy</span></td>
+      </tr>
+      <tr>
+        <td><b>B · chấm + chữ</b></td>
+        <td><span style="color:var(--good);font-weight:600;font-size:12.5px">● Đang chạy</span></td>
+        <td><span style="color:var(--watch);font-weight:600;font-size:12.5px">● Đang thử</span></td>
+        <td><span style="color:var(--crit);font-weight:600;font-size:12.5px">● Mất dữ liệu · 8 ngày</span></td>
+        <td><span style="color:var(--ink3);font-size:12.5px">○ Chưa chạy</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="note">A nổi hơn khi lướt nhanh; B nhẹ mắt hơn khi bảng 30 dòng toàn badge. Cả hai cùng logic: 1 sự thật 1 chỗ, ngày chỉ xuất hiện khi mất dữ liệu.</p>
+</div>
+
+</body>
+</html>

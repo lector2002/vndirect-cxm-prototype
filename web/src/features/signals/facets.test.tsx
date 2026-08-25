@@ -11,12 +11,21 @@ import {
   SRC_UNLINKED,
   groupSignalsByPhase,
   isFilterActive,
-  matchedSignalIds,
+  matchedSignalIds as matchedSignalIdsCfg,
   orderedSignals,
   signalPhaseId,
+  type SignalFacetId,
   type SignalFilter,
 } from "./facets.ts";
+import type { CxmData, Signal } from "../../data/schema/index.ts";
 import { SignalsPage } from "./SignalsPage.tsx";
+
+/* 25/08: vị từ facet + matchedSignalIds nhận thêm `cfg` (trạng thái gộp đọc sức khỏe nguồn). Test
+   này luôn chạy trên cfg MẶC ĐỊNH của fixture — bọc một lần ở đây thay vì rải demoCfg qua ~20 call
+   site, và mọi luật đang canh (F1, giao/hợp, phân hoạch) không dính gì tới cfg. */
+const demoCfg = new MockRepository(demoData, recountDemoSignals).getCfg();
+const matchedSignalIds = (d: CxmData, f: SignalFilter) => matchedSignalIdsCfg(d, f, demoCfg);
+const facetMatch = (id: SignalFacetId) => (s: Signal) => SIGNAL_FACET_MATCH[id](s, demoData, demoCfg);
 
 /* Bộ lọc màn Điểm đo. Điều phải canh KHÔNG phải các con số cụ thể mà là bốn luật:
    1. F1 — bảng LUÔN đủ `data.signals.length` dòng, ở MỌI trạng thái lọc. Lọc ở đây tô, không cắt.
@@ -62,12 +71,14 @@ function allRowIds(): string[] {
 }
 
 describe("facets.ts — vị từ, phân hoạch, thứ tự", () => {
-  it("ba vị từ chia đúng tập: running ∪ not-running = tất cả, và không giao nhau", () => {
-    const running = demoData.signals.filter(SIGNAL_FACET_MATCH.running);
-    const notRunning = demoData.signals.filter(SIGNAL_FACET_MATCH["not-running"]);
-    expect(running.length + notRunning.length).toBe(demoData.signals.length);
-    expect(running.filter((s) => notRunning.includes(s))).toEqual([]);
-    expect(running.every(isSignalRunning)).toBe(true);
+  it("bốn kind trạng thái PHÂN HOẠCH tập điểm đo: hợp = tất cả, đôi một rời nhau", () => {
+    const kinds: SignalFacetId[] = ["running", "trying", "feed-lost", "not-running"];
+    const sets = kinds.map((k) => demoData.signals.filter(facetMatch(k)));
+    expect(sets.reduce((n, s) => n + s.length, 0)).toBe(demoData.signals.length);
+    for (let i = 0; i < sets.length; i++)
+      for (let j = i + 1; j < sets.length; j++)
+        expect(sets[i].filter((s) => sets[j].includes(s))).toEqual([]);
+    expect(sets[0].every(isSignalRunning)).toBe(true);
   });
 
   it("bộ lọc rỗng ⇒ null (không tô); ô tìm chỉ có khoảng trắng cũng là rỗng", () => {
@@ -207,7 +218,7 @@ describe("Khối ① bấm được — số trên chip bằng số dòng đư�
       const lit = litRowIds();
       expect(lit.length).toBe(n);
       // Đúng TẬP nào, không chỉ đúng số lượng.
-      expect(new Set(lit)).toEqual(new Set(data.signals.filter(SIGNAL_FACET_MATCH[c.facet]).map((s) => s.id)));
+      expect(new Set(lit)).toEqual(new Set(data.signals.filter(facetMatch(c.facet)).map((s) => s.id)));
     });
   }
 
@@ -340,7 +351,7 @@ describe("Thu gọn nhóm — ẩn thân, giữ mẫu số", () => {
     const text = screen.getByTestId(`signal-group-toggle-${phaseId.trim()}`).textContent ?? "";
     const ratio = text.match(/(\d+)\s*\/\s*(\d+)/);
     if (ratio) return Number(ratio[2]);
-    const plain = text.match(/(\d+)\s*signals/);
+    const plain = text.match(/(\d+)\s*điểm đo/);
     if (!plain) throw new Error(`tiêu đề nhóm không khai số nào: ${text}`);
     return Number(plain[1]);
   }

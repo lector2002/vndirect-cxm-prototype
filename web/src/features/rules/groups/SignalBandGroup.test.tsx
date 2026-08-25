@@ -105,9 +105,9 @@ describe("SignalBandGroup — ngưỡng riêng từng điểm đo", () => {
     const after = cfgSignal()["sg8"];
     expect(after?.kind).toBe("ceiling");
     expect(after && "bad" in after && after.bad !== undefined).toBe(false);
-    // Chú thích "(counting all fires)" phải hiện trong CHÍNH dòng sg8 — dòng ceiling-đếm-tất khác
+    // Chú thích "(đếm tất)" phải hiện trong CHÍNH dòng sg8 — dòng ceiling-đếm-tất khác
     // (preset sg4) cũng mang câu này nên không query toàn màn.
-    expect(within(screen.getByTestId("sigband-row-sg8")).getByText("(counting all fires)")).toBeInTheDocument();
+    expect(within(screen.getByTestId("sigband-row-sg8")).getByText("(đếm tất)")).toBeInTheDocument();
   });
 
   it("hai lần sửa liên tiếp trên CÙNG dòng: winDays rồi warn — cả hai phải sống trong cfg (bẫy spread band cũ)", () => {

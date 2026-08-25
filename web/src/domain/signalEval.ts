@@ -18,11 +18,13 @@ export const SIGNAL_WINDOW_DAYS_DEFAULT = 7;
 
 /** Nhãn bốn dụng cụ đo — dùng chung giữa nhóm cấu hình (#/rules) và drawer (#/signals), hai màn
     không được gọi cùng một kind bằng hai tên. */
+/* 25/08 (owner, Việt hóa nhãn lửng): nhãn kind sang tiếng Việt — vừa đúng luật ngôn ngữ, vừa ngắn
+   lại để ô Measure của bảng Signal thresholds thôi cắt chữ ("Failure ceili…"). */
 export const SIGNAL_BAND_KIND_LABEL: Record<CfgSignalBand["kind"], string> = {
-  badRate: "Bad-value rate",
-  goodRate: "Good-value rate",
-  floor: "Traffic floor",
-  ceiling: "Failure ceiling",
+  badRate: "Tỉ lệ xấu",
+  goodRate: "Tỉ lệ tốt",
+  floor: "Sàn lưu lượng",
+  ceiling: "Trần lượt lỗi",
 };
 
 export type SignalEvalUnknownWhy =

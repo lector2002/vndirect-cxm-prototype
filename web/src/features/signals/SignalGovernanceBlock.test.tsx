@@ -68,10 +68,10 @@ describe("T5 — điểm đo không nuôi chỉ số nào (trưng ở khối ①
   it("N/M đếm lại đúng bằng signalsWithoutMetric", () => {
     const withoutMetric = seed.signals.filter((s) => s.metrics.length === 0);
     expect(withoutMetric.length).toBeGreaterThan(0);
-    render(<SignalInventoryBlock data={seed} facet={null} onFacet={() => {}} />);
-    // 18/08: chip chỉ mang tử số + nhãn; mẫu số đứng ở "N signals" (inv-total) cùng dòng.
+    render(<SignalInventoryBlock data={seed} cfg={cfgDefault} facet={null} onFacet={() => {}} />);
+    // 18/08: chip chỉ mang tử số + nhãn; mẫu số đứng ở chip "N Tất cả" (inv-total) cùng dòng.
     expect(screen.getByTestId("inv-signal-no-metric").textContent).toContain(
-      `${withoutMetric.length} no linked metric`,
+      `${withoutMetric.length} chưa gắn chỉ số`,
     );
   });
 });
@@ -100,7 +100,7 @@ describe("F6 — flow chưa chép bước KHÔNG vào mẫu số của bất k�
        của khối ① (T4/T7 đã rời sang noti Overview 18/08 tối). */
     const Man = ({ d }: { d: typeof seed }) => (
       <>
-        <SignalInventoryBlock data={d} facet={null} onFacet={() => {}} />
+        <SignalInventoryBlock data={d} cfg={cfgDefault} facet={null} onFacet={() => {}} />
         <SignalGovernanceBlock data={d} cfg={cfgDefault} />
       </>
     );

@@ -93,7 +93,7 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
     setLastOpenedId(id);
   }
 
-  const matched = useMemo(() => matchedSignalIds(data, filter), [data, filter]);
+  const matched = useMemo(() => matchedSignalIds(data, filter, cfg), [data, filter, cfg]);
   const groups = useMemo(() => groupSignalsByPhase(data, matched), [data, matched]);
   /* Thứ tự đi tới/lui trong hồ sơ = thứ tự PHẲNG của bảng đã chia nhóm, không phải `data.signals`.
      CỐ Ý KHÔNG trừ nhóm đang thu gọn: thu gọn là việc của mắt trên bảng, không phải một phép lọc
@@ -150,6 +150,7 @@ export function SignalsPage({ useStore = useCxmStore }: SignalsPageProps) {
         <div className="flex flex-col gap-4">
           <SignalInventoryBlock
             data={data}
+            cfg={cfg}
             facet={filter.facet}
             onFacet={(next) => setFilter((f) => ({ ...f, facet: next }))}
           />

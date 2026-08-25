@@ -4,7 +4,7 @@ import { MockRepository } from "../../data/mock-repository.ts";
 import { demoData, recountDemoSignals } from "../../data/fixtures/demo.ts";
 import { seed } from "../../data/fixtures/seed.ts";
 import { sourceDaysMissing, sourceHealth } from "../../domain/index.ts";
-import { feedStatusText } from "./feedStatus.ts";
+import { signalRowStatus } from "./feedStatus.ts";
 import { createCxmStore } from "../../store/store.ts";
 import { SignalsPage } from "./SignalsPage.tsx";
 import { stampParts, stampText } from "./stamp.ts";
@@ -66,15 +66,18 @@ describe("Bất biến 9 (bị owner ghi đè 11/08) — câu giới hạn đã 
 /* T4 (hai số bước lồng nhau, tiêu chí 7) rời khối ① sang noti Overview 18/08 tối (owner) — test
    PORT sang overview/SignalHealthNoti.test.tsx, ràng "một câu duy nhất" đi theo. */
 
-describe("D5 (qua UI) — 'có chạy' hiện đúng số đếm từ vol, không đọc st", () => {
-  it("running.n trên màn khớp đếm lại vol>0 trên fixture đang dùng", () => {
+describe("Chip khối ① — số trên chip đếm lại từ signalRowStatus, không gõ tay", () => {
+  it("chip 'Đang chạy' khớp đếm lại kind running; chip 'Tất cả' mang đúng mẫu số", () => {
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
-    const { data } = store.getState();
-    const expectedRunning = data.signals.filter((s) => s.vol > 0).length;
+    const { data, cfg } = store.getState();
+    /* 25/08: chip đi theo trạng thái gộp — "Đang chạy" KHÔNG còn là mọi vol>0 (validating tách
+       sang "Đang thử", feed đứt sang "Mất dữ liệu"). D5 vẫn nguyên ở tầng dưới: signalRowStatus
+       đọc isSignalRunning (vol), không đọc st để suy "có chạy". */
+    const expectedRunning = data.signals.filter((s) => signalRowStatus(s, data, cfg).kind === "running").length;
     const node = screen.getByTestId("inv-running");
-    expect(node.textContent).toContain(`${expectedRunning} receiving traffic`);
-    expect(screen.getByTestId("inv-total").textContent).toContain(`${data.signals.length} signals`);
+    expect(node.textContent).toContain(`${expectedRunning} Đang chạy`);
+    expect(screen.getByTestId("inv-total").textContent).toContain(`${data.signals.length} Tất cả`);
   });
 });
 
@@ -101,7 +104,11 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
      18/08 tối (owner, đợt đảo thứ bậc ô): trên BẢNG mốc chỉ còn NGÀY (stampParts().date) đứng nhỏ
      dưới badge trạng thái giao nhận — GIỜ rời mặt bảng, nên các bài dưới đối chiếu bảng bằng
      phần ngày và chốt luôn "giờ không còn trên dòng". Drawer và hồ sơ VẪN mốc đầy đủ stampText(). */
-  it("mốc gõ tay: bảng chỉ còn NGÀY nhỏ (bỏ giờ), drawer vẫn mốc đầy đủ — không chữ xuất xứ ở hai tầng ngoài", () => {
+  /* 25/08 (owner duyệt mock rd-2508-signals): mốc RỜI HẲN bảng và drawer — ngày chỉ còn xuất hiện
+     TRONG nhãn trạng thái khi feed đứt ("Mất dữ liệu · N ngày", số máy đếm từ nguồn). Hồ sơ vẫn
+     giữ mốc đầy đủ, nhưng nhãn xuất xứ "(self-reported)" bỏ (owner 25/08 — một nguồn report).
+     D6 vế 1 nay được thoả bằng cách KHÔNG hiện mốc: không hiện thì không suy gì từ nó. */
+  it("mốc gõ tay RỜI bảng + drawer: dòng không mang mốc, drawer không còn hàng Last seen", () => {
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
     const { data } = store.getState();
@@ -110,17 +117,14 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
     for (const sig of handTyped) {
       const row = screen.getByTestId(`signal-row-${sig.id}`);
       const p = stampParts(sig.seen as string);
-      expect(row.textContent).toContain(p ? p.date : (sig.seen as string));
       if (p?.time) expect(row.textContent).not.toContain(p.time);
       expect(row.textContent).not.toContain("self-reported");
       fireEvent.click(row);
-      const drawerSeen = screen.getByTestId("signal-drawer-seen").textContent;
-      expect(drawerSeen).toContain(stampText(sig.seen as string));
-      expect(drawerSeen).not.toContain("self-reported");
+      expect(screen.queryByTestId("signal-drawer-seen")).not.toBeInTheDocument();
     }
   });
 
-  it("D6 vế 2 neo ở hồ sơ: mở profile của mốc gõ tay vẫn thấy 'self-reported'", () => {
+  it("mốc đầy đủ neo ở hồ sơ, KHÔNG còn nhãn xuất xứ (owner 25/08)", () => {
     const store = demoStore();
     render(<SignalsPage useStore={store} />);
     const { data } = store.getState();
@@ -128,28 +132,8 @@ describe("D6 — Signal.seen hiện nguyên chuỗi, không suy tuổi/số ngà
     fireEvent.click(screen.getByTestId(`signal-row-${sig.id}`));
     fireEvent.click(screen.getByTestId("signal-drawer-open-profile"));
     const profileSeen = screen.getByTestId("signal-profile-seen").textContent;
-    expect(profileSeen).toContain("self-reported");
+    expect(profileSeen).not.toContain("self-reported");
     expect(profileSeen).toContain(stampText(sig.seen as string));
-  });
-
-  it("dòng đã nối nguồn: bảng hiện NGÀY của NGUỒN (bỏ giờ), drawer mốc nguồn đầy đủ — mốc máy vẫn thắng mốc gõ tay", () => {
-    const store = demoStore();
-    render(<SignalsPage useStore={store} />);
-    const { data } = store.getState();
-    const linked = data.signals.filter((s) => s.srcId !== null);
-    expect(linked.length).toBeGreaterThan(0); // tiền đề: fixture đã nối được nguồn cho vài điểm đo
-    for (const sig of linked) {
-      const src = data.sources.find((s) => s.id === sig.srcId)!;
-      const row = screen.getByTestId(`signal-row-${sig.id}`);
-      const p = stampParts(src.last);
-      expect(row.textContent).toContain(p ? p.date : src.last);
-      if (p?.time) expect(row.textContent).not.toContain(p.time);
-      expect(row.textContent).not.toContain("source feed");
-      fireEvent.click(row);
-      const drawerSeen = screen.getByTestId("signal-drawer-seen").textContent;
-      expect(drawerSeen).toContain(stampText(src.last));
-      expect(drawerSeen).not.toContain("source feed");
-    }
   });
 
   it("không chỗ nào trên màn hiện cụm kiểu '<số> ngày/giờ' suy ra từ seen (mẫu 'X ngày'/'X giờ' đứng cạnh im lặng)", () => {
@@ -242,7 +226,7 @@ describe("Drawer — tầng tóm tắt giữa bảng và hồ sơ (owner 18/08, 
       const name = data.metrics.find((m) => m.id === m0)?.name ?? m0;
       expect(screen.getByTestId("signal-drawer-metrics").textContent).toContain(name);
     } else {
-      expect(screen.getByTestId("signal-drawer-metrics").textContent).toContain("no linked metrics");
+      expect(screen.getByTestId("signal-drawer-metrics").textContent).toContain("chưa gắn chỉ số");
     }
 
     fireEvent.click(screen.getByTestId("signal-drawer-close"));
@@ -278,13 +262,12 @@ describe("Drawer — tầng tóm tắt giữa bảng và hồ sơ (owner 18/08, 
     expect(screen.getByTestId("signal-drawer")).toHaveAttribute("aria-label", target.name);
   });
 });
-/* 18/08 tối (owner, đợt tiếp) — cột Last seen TÔ MÀU theo `signalFeedHealth`: down → text-crit,
-   stale → text-watch, còn lại không tô. Fixture thật hiện KHÔNG có điểm đo nào nối vào nguồn đang
-   sự cố (hai nguồn sự cố của seed đều chưa được nối), nên hai bài đầu DỰNG dữ liệu: nhặt nguồn
-   down/stale bằng cách đếm lại `sourceHealth` trên seed (không ghim id), rồi nối điểm đo đầu bảng
-   vào nguồn đó. Bài thứ ba là chốt D6: điểm đo CHƯA NỐI NGUỒN (đang hiện mốc người gõ) không bao
-   giờ được tô — tô nghĩa là suy "có vấn đề" từ `Signal.seen`. */
-describe("Cột Feed status — badge trạng thái giao nhận là thông tin chính (18/08 tối)", () => {
+/* 25/08 (owner duyệt mock rd-2508-signals-f1) — CỘT TRẠNG THÁI GỘP thay hai cột Status + Feed
+   status. Fixture thật hiện KHÔNG có điểm đo nào nối vào nguồn đang sự cố (hai nguồn sự cố của
+   seed đều chưa được nối), nên hai bài đầu DỰNG dữ liệu: nhặt nguồn down/stale bằng cách đếm lại
+   `sourceHealth` trên seed (không ghim id), rồi nối điểm đo đầu bảng vào nguồn đó. Số ngày trong
+   nhãn ĐẾM LẠI từ chính nguồn (sourceDaysMissing), không ghim số. */
+describe("Cột Trạng thái gộp — một badge bốn bậc, ngày chỉ hiện khi đứt (25/08)", () => {
   function storeWithFirstSignalOn(srcHealth: "down" | "stale") {
     const store = seedStore();
     const { cfg } = store.getState();
@@ -294,55 +277,45 @@ describe("Cột Feed status — badge trạng thái giao nhận là thông tin c
     return { store: createCxmStore(new MockRepository({ ...seed, signals })), sigId: signals[0].id, src };
   }
 
-  it("điểm đo nối nguồn ĐỨT HẲN (down) → badge đỏ 'Stopped · missing N days' (N máy đếm)", () => {
+  it("nối nguồn ĐỨT HẲN (down) → 'Mất dữ liệu · N ngày' (N máy đếm)", () => {
     const { store, sigId, src } = storeWithFirstSignalOn("down");
     render(<SignalsPage useStore={store} />);
-    const td = screen.getByTestId(`signal-seen-${sigId}`);
-    expect(td.querySelector(".text-crit")).not.toBeNull();
-    expect(td.querySelector(".text-watch")).toBeNull();
-    /* Số ngày ĐẾM LẠI từ chính nguồn vừa nhặt — không ghim số. */
     const { data } = store.getState();
-    expect(screen.getByTestId(`signal-feedstatus-${sigId}`).textContent).toBe(
-      feedStatusText("down", sourceDaysMissing(src, data.asOf)),
-    );
+    const text = screen.getByTestId(`signal-status-${sigId}`).textContent ?? "";
+    expect(text).toContain("Mất dữ liệu");
+    expect(text).toContain(`${sourceDaysMissing(src, data.asOf)} ngày`);
   });
 
-  it("điểm đo nối nguồn THIẾU NGÀY (stale) → badge hổ phách 'Missing N days', không phải đỏ", () => {
+  it("nối nguồn THIẾU NGÀY (stale) → 'Thiếu dữ liệu · N ngày', không phải Mất", () => {
     const { store, sigId, src } = storeWithFirstSignalOn("stale");
     render(<SignalsPage useStore={store} />);
-    const td = screen.getByTestId(`signal-seen-${sigId}`);
-    expect(td.querySelector(".text-watch")).not.toBeNull();
-    expect(td.querySelector(".text-crit")).toBeNull();
     const { data } = store.getState();
-    expect(screen.getByTestId(`signal-feedstatus-${sigId}`).textContent).toBe(
-      feedStatusText("stale", sourceDaysMissing(src, data.asOf)),
-    );
+    const text = screen.getByTestId(`signal-status-${sigId}`).textContent ?? "";
+    expect(text).toContain("Thiếu dữ liệu");
+    expect(text).not.toContain("Mất dữ liệu");
+    expect(text).toContain(`${sourceDaysMissing(src, data.asOf)} ngày`);
   });
 
-  it("điểm đo CHƯA NỐI NGUỒN không bao giờ tô — mốc người gõ không được suy ra 'có vấn đề' (D6); dòng trạng thái nói 'No source linked'", () => {
+  it("CHƯA NỐI NGUỒN mà đang chở lưu lượng → 'Đang chạy', không ngày, không suy sự cố (D6)", () => {
     const store = seedStore();
     render(<SignalsPage useStore={store} />);
     const { data } = store.getState();
-    const unlinked = data.signals.find((sig) => sig.srcId === null && sig.seen !== null);
-    if (!unlinked) throw new Error("fixture phải còn ít nhất một điểm đo chưa nối nguồn mà có seen");
-    const td = screen.getByTestId(`signal-seen-${unlinked.id}`);
-    expect(td.querySelector(".text-crit")).toBeNull();
-    expect(td.querySelector(".text-watch")).toBeNull();
-    /* Prefix "— " là của Badge state unknown (Badge.test ghim) — trạng thái đọc được không cần màu. */
-    expect(screen.getByTestId(`signal-feedstatus-${unlinked.id}`).textContent).toBe("— No source linked");
+    const unlinked = data.signals.find((sig) => sig.srcId === null && sig.vol > 0 && sig.st === "live");
+    if (!unlinked) throw new Error("fixture phải còn điểm đo chưa nối nguồn, live, có lưu lượng");
+    const text = screen.getByTestId(`signal-status-${unlinked.id}`).textContent ?? "";
+    expect(text).toContain("Đang chạy");
+    expect(text).not.toMatch(/\d+ ngày/);
   });
 
-  it("điểm đo nối nguồn ĐANG NHẬN (ok) → badge lục 'Receiving' — không tick, màu nói thay", () => {
+  it("chưa chạy → nhãn nói rõ phân nhóm: 'Chưa chạy · có spec' (designed) / 'Chưa đo' (gap)", () => {
     const store = seedStore();
     render(<SignalsPage useStore={store} />);
-    const { data, cfg } = store.getState();
-    const okSig = data.signals.find(
-      (sig) => sig.srcId !== null && sourceHealth(data.sources.find((x) => x.id === sig.srcId)!, cfg, data.asOf) === "ok",
-    );
-    if (!okSig) throw new Error("fixture phải còn ít nhất một điểm đo nối nguồn đang ok");
-    const line = screen.getByTestId(`signal-feedstatus-${okSig.id}`);
-    expect(line.textContent).toBe("Receiving");
-    expect(line.querySelector(".text-good")).not.toBeNull();
-    expect(line.querySelector(".text-crit, .text-watch")).toBeNull();
+    const { data } = store.getState();
+    const designed = data.signals.find((s) => s.st === "designed" && s.vol === 0);
+    const gap = data.signals.find((s) => s.st === "gap" && s.vol === 0);
+    if (designed)
+      expect(screen.getByTestId(`signal-status-${designed.id}`).textContent).toContain("Chưa chạy · có spec");
+    if (gap) expect(screen.getByTestId(`signal-status-${gap.id}`).textContent).toContain("Chưa đo");
+    if (!designed && !gap) throw new Error("fixture phải còn ít nhất một điểm đo chưa chạy");
   });
 });
