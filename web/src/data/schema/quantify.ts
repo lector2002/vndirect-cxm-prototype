@@ -93,6 +93,12 @@ export type QuantifyItem = QuantifyShow | QuantifySeries;
 export type DashQuestion = {
   q: string;
   b: string[];
+  /* 25/08 (owner duyệt audit đọc-hiểu): id trong `b` được liệt kê ở đây thì GẬP MẶC ĐỊNH trên màn
+     Tổng quan — bấm mới xoè chart. Là thuộc tính của BỐ CỤC SET (một chart chi tiết như L2/L3
+     Keyword chỉ là lớp phụ trong set này), KHÔNG phải của chính chart: cùng qt đó ở thư viện
+     Quantify vẫn mở bình thường. Các id fold đứng LIỀN NHAU trong `b` được xếp chung một ô grid
+     để không còn ô mồ côi. */
+  fold?: string[];
 };
 
 export type DashSet = {

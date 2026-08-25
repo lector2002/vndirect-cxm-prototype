@@ -60,6 +60,7 @@ export function SignalHealthNoti({
   cfg: Cfg;
   dims: Record<string, Dim>;
 }) {
+  const [notiOpen, setNotiOpen] = useState(false);
   const g = govCounts(data, cfg);
   const r = reliabilityGaps(data);
   const steps = stepsWithoutRunningSignal(data);
@@ -85,19 +86,39 @@ export function SignalHealthNoti({
       : null;
 
   if (!govMsg && !relMsg && !covMsg) return null;
+  const notiCount = [govMsg, covMsg, relMsg].filter(Boolean).length;
 
   return (
     <div
       className="mb-4 rounded-[9px] border border-watch-line bg-watch-bg divide-y divide-watch-line"
       data-testid="signal-health-noti"
     >
-      {govMsg ? (
+      {/* 25/08 (owner duyệt audit đọc-hiểu): hộp GẬP MẶC ĐỊNH thành một dòng đếm — data chính của
+          Overview lên ngay đầu màn thay vì sau 3 câu 7 phân số. Bấm mới xoè 3 dòng; CÂU CHỮ từng
+          dòng giữ nguyên khi xoè (ràng T4 "hai số lồng trong MỘT câu" là ràng nội dung câu, không
+          phải ràng trạng thái hiển thị). Chỉ-hiện-khi-lệch giữ nguyên: không lệch thì cả hộp biến. */}
+      <button
+        type="button"
+        data-testid="signal-health-noti-toggle"
+        aria-expanded={notiOpen}
+        onClick={() => setNotiOpen((v) => !v)}
+        className="w-full flex items-baseline gap-2 px-[13px] py-[9px] text-[12.5px] text-ink-2 text-left hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary"
+      >
+        <span aria-hidden="true" className="flex-none">
+          ⚠
+        </span>
+        <span className="min-w-0">{`${notiCount} lưu ý về dữ liệu điểm đo`}</span>
+        <span aria-hidden="true" className="ml-auto flex-none text-[11px]">
+          {notiOpen ? "▴" : "▾"}
+        </span>
+      </button>
+      {notiOpen && govMsg ? (
         <NotiRow testId="noti-gov" msg={govMsg}>
           <SignalGovernanceBlock data={data} cfg={cfg} />
         </NotiRow>
       ) : null}
-      {covMsg ? <NotiRow testId="noti-coverage" msg={covMsg} /> : null}
-      {relMsg ? (
+      {notiOpen && covMsg ? <NotiRow testId="noti-coverage" msg={covMsg} /> : null}
+      {notiOpen && relMsg ? (
         <NotiRow testId="noti-reliability" msg={relMsg}>
           <SignalReliabilityBlock data={data} dims={dims} />
         </NotiRow>

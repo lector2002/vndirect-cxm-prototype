@@ -51,6 +51,33 @@ describe("OverviewPage — mọi set trong dash render được (oracle map #10,
   });
 });
 
+describe("OverviewPage — block fold gập mặc định (owner duyệt audit đọc-hiểu 25/08)", () => {
+  it("id khai trong qs.fold gập mặc định: chart không dựng, bấm tiêu đề mới xoè — đọc lại từ fixture, không ghim id", () => {
+    const store = createCxmStore(new MockRepository());
+    const { data } = store.getState();
+    // đọc từ fixture: mọi set có câu hỏi khai fold đều phải gập đúng các id đó
+    const withFold = data.dash.flatMap((set) =>
+      set.qs.flatMap((qq) => (qq.fold ?? []).map((b) => ({ set, b }))),
+    );
+    expect(withFold.length).toBeGreaterThan(0); // tiền đề: seed có block fold (q9/q10 của b-voc-all)
+
+    for (const { set, b } of withFold) {
+      const { unmount } = renderAt(`/${set.sec}/${set.id}`, store);
+      const name = data.qt.find((q) => q.id === b)?.name ?? b;
+      const toggle = screen.getByTestId(`fold-${b}-toggle`);
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(toggle.textContent).toContain(name);
+      // gập: tên chart chỉ đứng trên vỏ gập, KHÔNG có Card title thứ hai từ chính widget
+      expect(screen.getAllByText(name)).toHaveLength(1);
+
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(screen.getAllByText(name).length).toBeGreaterThan(1); // widget đã dựng, mang title riêng
+      unmount();
+    }
+  });
+});
+
 describe("OverviewPage — F3: share-by-URL với id lạ", () => {
   it("#/cxm/<id-không-tồn-tại> vẫn render, fallback đúng set mặc định (def), không throw", () => {
     const store = createCxmStore(new MockRepository());

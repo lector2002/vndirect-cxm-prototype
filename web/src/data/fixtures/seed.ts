@@ -813,8 +813,12 @@ const seedRaw: CxmData = {
          tên khối 12/08. Field vẫn tên `q` (schema không đổi); Evidence.q là lời khách, không đụng. */
       qs:[
         { q:'Nguồn phản hồi', b:['q14','@srcmatrix'] },
+        /* 25/08 (owner duyệt audit đọc-hiểu): L2/L3 là lớp CHI TIẾT của cùng câu chuyện L1 — ba
+           rank chart cùng hình dạng xếp chồng làm màn dài mà không thêm tin. L1 luôn mở; L2/L3
+           gập mặc định (fold), bấm mới xoè — và vì đứng liền nhau nên chung một ô grid, hết ô
+           mồ côi cạnh q10. */
         { q:'Tiếng nói theo hành trình',
-          b:['q2','q9','q10'] },
+          b:['q2','q9','q10'], fold:['q9','q10'] },
         { q:'Nội dung phản hồi',
           b:['@intent','@themestack'] },
         { q:'Bất thường', b:['q15'] },

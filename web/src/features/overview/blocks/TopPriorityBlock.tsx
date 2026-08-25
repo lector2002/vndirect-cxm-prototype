@@ -69,39 +69,50 @@ export function TopPriorityBlock({ data, cfg, dims, onGo }: TopPriorityBlockProp
     ] as const
   ).map(({ k, unit }) => ({ title: `Top theo ${PRI_LABEL[k].toLowerCase()}`, rows: rank(k), unit }));
 
+  /* 25/08 (owner duyệt audit đọc-hiểu): trục 0 dòng đo được KHÔNG chiếm nguyên một ô card nữa —
+     một câu giải thích trong cái hộp cao bằng card đầy chart bên cạnh đọc thành "khối hỏng", và ô
+     grid trống bên phải card lẻ làm section loãng. Trục rỗng tụt xuống thành ghi chú MỘT DÒNG dưới
+     grid; câu chữ + testid giữ nguyên ("rỗng không được im lặng" vẫn đứng — thông tin không mất,
+     chỉ hết chiếm chỗ của data thật). */
+  const rankable = cards.filter((c) => c.rows.length > 0);
+  const unrankable = cards.filter((c) => c.rows.length === 0);
+
   return (
-    <div className="grid grid-cols-2 gap-4">
-      {cards.map((c) => {
-        const shown = Math.min(c.rows.length, 10);
-        const unmeasured = open.length - c.rows.length;
-        /* Mẫu số là số điểm gãy ĐO ĐƯỢC trục này, không phải tổng điểm gãy đang mở — phần chênh
-           được đếm ra chữ chứ không im lặng biến mất, cùng luật với khối "chưa đo" của StepGroup.
-           25/08 (owner, quét AI-slop): dải chỉ hiện khi nó MANG TIN — có phần chưa đo, hoặc bảng
-           đang cắt bớt ("Top 10 trên 10" là câu nói lại chính cái bảng). Card 0 dòng đo được thì
-           thay chart bằng empty-state nói lý do — trục trống trơ đọc thành "màn hỏng". */
-        const denomStrip =
-          c.rows.length > 0 && unmeasured > 0
-            ? `Đang hiện Top ${shown} trên ${c.rows.length} điểm gãy đo được · ${unmeasured} chưa tính được trục này`
-            : c.rows.length > 0 && shown < c.rows.length
-              ? `Đang hiện Top ${shown} trên ${c.rows.length} điểm gãy`
-              : undefined;
-        return (
-          <Card key={c.title} title={c.title} denomStrip={denomStrip}>
-            {c.rows.length === 0 ? (
-              <div className="text-[13px] text-ink-3" data-testid="toppriority-empty">
-                Chưa tính được trục này cho điểm gãy nào
-                {unmeasured > 0 ? ` — ${unmeasured} điểm gãy đang mở chưa có dữ liệu ${c.unit}.` : "."}
-              </div>
-            ) : (
+    <div>
+      <div className="grid grid-cols-2 gap-4">
+        {rankable.map((c) => {
+          const shown = Math.min(c.rows.length, 10);
+          const unmeasured = open.length - c.rows.length;
+          /* Mẫu số là số điểm gãy ĐO ĐƯỢC trục này, không phải tổng điểm gãy đang mở — phần chênh
+             được đếm ra chữ chứ không im lặng biến mất, cùng luật với khối "chưa đo" của StepGroup.
+             25/08 (owner, quét AI-slop): dải chỉ hiện khi nó MANG TIN — có phần chưa đo, hoặc bảng
+             đang cắt bớt ("Top 10 trên 10" là câu nói lại chính cái bảng). */
+          const denomStrip =
+            unmeasured > 0
+              ? `Đang hiện Top ${shown} trên ${c.rows.length} điểm gãy đo được · ${unmeasured} chưa tính được trục này`
+              : shown < c.rows.length
+                ? `Đang hiện Top ${shown} trên ${c.rows.length} điểm gãy`
+                : undefined;
+          return (
+            <Card key={c.title} title={c.title} denomStrip={denomStrip}>
               <Bars
                 rows={c.rows.slice(0, 10)}
                 onRowClick={onGo ? (r) => onGo(`issue/${r.id}`) : undefined}
                 axisLabel={c.unit}
               />
-            )}
-          </Card>
-        );
-      })}
+            </Card>
+          );
+        })}
+      </div>
+      {unrankable.map((c) => (
+        <div key={c.title} className="text-[13px] text-ink-3 mt-3" data-testid="toppriority-empty">
+          <span className="font-semibold">{c.title}</span>
+          {" — chưa tính được trục này cho điểm gãy nào"}
+          {open.length - c.rows.length > 0
+            ? ` — ${open.length - c.rows.length} điểm gãy đang mở chưa có dữ liệu ${c.unit}.`
+            : "."}
+        </div>
+      ))}
     </div>
   );
 }

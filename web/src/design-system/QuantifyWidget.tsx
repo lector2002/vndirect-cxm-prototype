@@ -472,7 +472,11 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
     const split = bundle.split;
 
     const knownShown = item.chart === "donut" ? seg.rows : seg.rows.slice(0, limit ?? TOP_N);
-    const paintedKnown = paintCategorical(knownShown);
+    /* 25/08 (owner duyệt audit đọc-hiểu): xoay vòng --cat-N CHỈ cho donut — lát cần màu để nối legend.
+       Bar/hàng bảng đã có nhãn ngay cạnh nên màu xoay vòng là "màu trang trí" đúng nghĩa quantify.ts
+       cảnh báo (mắt đi tìm nghĩa không tồn tại); không paint thì Bars/DataTable tự fallback --ink3.
+       Row có màu intent (data.cats) vẫn giữ nguyên vì paintCategorical không bị gọi tới. */
+    const paintedKnown = item.chart === "donut" ? paintCategorical(knownShown) : knownShown;
     /* D2b tinh chỉnh #3 (owner chốt 03/08): denomStrip "Đang hiện Top N trên M ..." chỉ có nghĩa khi
        known THẬT SỰ bị cắt bởi limit/TOP_N — seed hiện known ≤5 < TOP_N=10 nên mọi trục (nav/tenure/
        ...) không cắt gì, dòng "Top 1 trên 1" chỉ gây nhiễu. Card nhận denomStrip=undefined render
@@ -603,9 +607,10 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
   const nc = buildSplitBundle(item, data, dims, dim, effectiveView, splitPick, onSplitChange);
   const allRows = qRun(item, data, dims);
   // Donut hiện tất cả lát; rank/bảng cắt theo limit từ filter số lượng (mặc định TOP_N).
-  // paintCategorical NGAY SAU KHI CẮT — chart chưa có màu intent nào thì gán --cat-N xoay vòng theo
-  // index (hết cảnh mọi bar xám); chart đã có intent color (>=1 row.c) thì trả nguyên rows.
-  const paintedRows = paintCategorical(item.chart === "donut" ? allRows : allRows.slice(0, limit ?? TOP_N));
+  // 25/08 (owner duyệt audit đọc-hiểu): --cat-N xoay vòng CHỈ cho donut (lát cần màu nối legend);
+  // bar đã có nhãn cạnh thanh nên cycle là màu trang trí (quantify.ts:63) — bỏ, Bars fallback --ink3.
+  // Chart mang màu intent (>=1 row.c từ data.cats) không đổi: paintCategorical vốn trả nguyên rows.
+  const paintedRows = item.chart === "donut" ? paintCategorical(allRows) : allRows.slice(0, limit ?? TOP_N);
   /* denomStrip tính trên `paintedRows` (số nhóm CÓ TÊN RIÊNG), KHÔNG trên shownRows — nếu tính sau khi
      gộp thì hàng "Khác" bị đếm như một nhóm nữa và mẫu số nói sai.
      25/08 (owner, quét AI-slop): dải chỉ hiện khi bảng THẬT SỰ cắt bớt — cùng điều kiện D2b #3 mà

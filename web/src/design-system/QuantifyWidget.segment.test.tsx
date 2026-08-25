@@ -50,12 +50,13 @@ describe("QuantifyWidget — trục base:'cust' đi qua qRunSegment (S2.C3b)", (
     // Không còn dải coverage riêng — đã gộp vào chart.
     expect(screen.queryByTestId("seg-coverage")).not.toBeInTheDocument();
 
-    // Màu: bar "Không xác định" luôn var(--unk); bar band thật (chart chưa có intent color) nhận
-    // --cat-N xoay vòng — KHÔNG phải xám ink3, KHÔNG phải --unk.
+    // Màu (25/08, owner duyệt audit đọc-hiểu): bar "Không xác định" luôn var(--unk); bar band thật
+    // của RANK chart về màu đơn --ink3 (fallback Bars) — --cat-N xoay vòng nay CHỈ dành cho donut,
+    // vì hàng bar đã có nhãn ngay cạnh, màu xoay vòng là màu trang trí (quantify.ts:63).
     const rowDivs = bars.children;
     const knownBar = rowDivs[0]?.querySelector<HTMLDivElement>(".overflow-hidden > div");
     const unknownBar = rowDivs[2]?.querySelector<HTMLDivElement>(".overflow-hidden > div");
-    expect(knownBar?.style.background).toMatch(/^var\(--cat-/);
+    expect(knownBar?.style.background).toBe("var(--ink3)");
     expect(unknownBar?.style.background).toBe("var(--unk)");
 
     // D2b tinh chỉnh #1: dòng mô tả coverage bằng CHỮ dưới chart — phân biệt lại "chưa biết" vs
