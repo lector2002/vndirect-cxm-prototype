@@ -55,6 +55,20 @@ describe("hỏi bằng câu hỏi mẫu", () => {
     expect(convo.textContent).toContain(data.asOf);
   });
 
+  it("tự cuộn xuống đáy khung khi có lượt chat mới (owner 25/08, tham chiếu ChatGPT)", async () => {
+    renderPage();
+    /* jsdom không implement Element.scrollTo — gắn spy lên chính node cuộn; effect chạy lại khi
+       turnCount/typing đổi nên spy phải được gọi sau khi bấm câu hỏi. */
+    const el = screen.getByTestId("assistant-scroll");
+    const calls: number[] = [];
+    (el as HTMLElement & { scrollTo: (o: ScrollToOptions) => void }).scrollTo = (o) => calls.push(o.top ?? -1);
+    fireEvent.click(screen.getByTestId("assistant-prompt-p-overdue"));
+    expect(await screen.findByText(answerFor("p-overdue", data, cfg).intro)).toBeInTheDocument();
+    expect(calls.length).toBeGreaterThan(0);
+    // đích cuộn là scrollHeight tại thời điểm gọi — jsdom trả 0, quan trọng là ĐÚNG tham số đáy
+    expect(calls.every((t) => t === el.scrollHeight)).toBe(true);
+  });
+
   it("dưới câu trả lời là chip follow-up gồm các câu CHƯA hỏi (tối đa 3), bấm chip là hỏi tiếp", async () => {
     renderPage();
     fireEvent.click(screen.getByTestId("assistant-prompt-p-critical"));

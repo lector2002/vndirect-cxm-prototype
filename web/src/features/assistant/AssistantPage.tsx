@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { isoFromVn } from "../../data/projectSigTrend.ts";
 import { btnPrimary, btnSecondary } from "../../design-system/index.ts";
@@ -99,6 +99,18 @@ export function AssistantPage() {
   }, [typing]);
 
   const active = sessions.find((s) => s.id === activeId) ?? null;
+
+  /* Tự cuộn xuống đáy theo chat (owner 25/08, tham chiếu ChatGPT): lượt mới, chỉ báo "đang tổng
+     hợp" tắt (câu trả lời vừa hiện), hoặc đổi phiên → đáy khung là chỗ cần nhìn. jsdom không có
+     Element.scrollTo nên rẽ nhánh gán scrollTop — cùng đích, chỉ thiếu hiệu ứng mượt. */
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const turnCount = active?.turns.length ?? 0;
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    if (typeof el.scrollTo === "function") el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    else el.scrollTop = el.scrollHeight;
+  }, [turnCount, typing, activeId]);
   const onGo = (to: string) => navigate(`/${to}`);
   const submitTurn = (turn: AssistantTurn) => {
     ask(turn);
@@ -167,7 +179,7 @@ export function AssistantPage() {
             <span className="t-meta text-[11.5px]">{`trả lời bằng số đếm thật từ dữ liệu đang hiển thị · tính đến ${data.asOf}`}</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div ref={scrollRef} data-testid="assistant-scroll" className="flex-1 overflow-y-auto px-5 py-4">
             {active ? (
               <div data-testid="assistant-conversation" className="flex flex-col gap-4">
                 {active.turns.map((turn, i) => {
