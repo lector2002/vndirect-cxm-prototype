@@ -46,8 +46,9 @@ export type SourceProfileProps = {
 };
 
 /* 07/08 (module-i-signal-registry-charter.md I3): "silent" thêm vào SourceHealth — thêm ở đây CHỈ để
-   hai Record còn EXHAUSTIVE, không nguồn nào trong demoData hôm nay rơi vào nhánh này. */
-const HEALTH_LABEL = { ok: "Đang nhận", stale: "Thiếu ngày dữ liệu", down: "Ngừng gửi", silent: "Im lặng, chưa phân định" } as const;
+   hai Record còn EXHAUSTIVE, không nguồn nào trong demoData hôm nay rơi vào nhánh này.
+   Export 25/08: màn Assistant nói tình trạng nguồn phải dùng ĐÚNG bộ nhãn này — không chép lần ba. */
+export const HEALTH_LABEL = { ok: "Đang nhận", stale: "Thiếu ngày dữ liệu", down: "Ngừng gửi", silent: "Im lặng, chưa phân định" } as const;
 const HEALTH_BADGE = { ok: "ok", stale: "watch", down: "crit", silent: "unknown" } as const;
 
 export function SourceProfile({ source, data, cfg, onClose }: SourceProfileProps) {

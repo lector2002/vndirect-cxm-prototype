@@ -11,7 +11,9 @@ export const BLOCKS: Record<string, BlockDef> = {
   "@srcmatrix": { n: "Độ toàn vẹn nguồn", sec: "voc", go: "sources" },
   "@intent": { n: "Bốn khối theo intent", sec: "voc", go: "topics" },
   "@themestack": { n: "Theme theo thành phần", sec: "voc", go: "topics" },
-  "@anomlanes": { n: "Ba làn bất thường", sec: "voc", go: "agents" },
+  /* 25/08 (owner): đích drill đổi agents → assistant — màn Agents & Alerts gộp vào Assistant,
+     phát hiện agent nay đọc ở đó (#/agents chỉ còn là redirect). */
+  "@anomlanes": { n: "Ba làn bất thường", sec: "voc", go: "assistant" },
   /* Tên KỲ-AGNOSTIC (S2.7): trước ghi cứng "6 kỳ" trong khi cột trong bảng đổi số kỳ theo
      bộ lọc runtime (3/6/12 tháng) và seed giờ có 12 điểm/chuỗi — tên tĩnh nói sai số kỳ ngay khi
      người dùng đổi bộ lọc khác baseline. Kỳ là runtime nên tên registry không được đóng cứng số. */

@@ -42,7 +42,9 @@ export const NAV_GROUPS: { g: string; items: { r: string; l: string }[] }[] = [
     g: 'Administration',
     items: [
       { r: 'rules', l: 'Metrics & Thresholds' },
-      { r: 'agents', l: 'Agents & Alerts' },
+      /* 25/08 (owner): 'Agents & Alerts' GỘP vào màn Assistant — phát hiện agent trả lời qua câu
+         hỏi mẫu ở đó. Mục nav bỏ hẳn; #/agents redirect về #/assistant (App.tsx) nên link cũ
+         không chết. IA còn 12 view / 4 nhóm. */
       { r: 'signals', l: 'Signals' },
       { r: 'settings', l: 'Settings' },
     ],
@@ -62,8 +64,9 @@ export const NAV_ITEMS = NAV_GROUPS.flatMap((grp) => grp.items)
  *  Chỉ chặn đường BẤM, không chặn route (owner: *"user ko bấm vào được thôi"*). Gõ thẳng hash vẫn
  *  mở được — cố ý, để còn đường vào lúc cần đối chiếu.
  *
- *  BẬT LẠI: thêm route vào Set này, không sửa chỗ nào khác. */
-export const MVP_ROUTES: ReadonlySet<string> = new Set(['signals', 'rules', 'settings'])
+ *  BẬT LẠI: thêm route vào Set này, không sửa chỗ nào khác.
+ *  25/08 (owner duyệt màn Assistant gộp): thêm 'assistant' — màn đã dựng thật, hết placeholder. */
+export const MVP_ROUTES: ReadonlySet<string> = new Set(['signals', 'rules', 'settings', 'assistant'])
 
 /** Màn đầu tiên khi vào app. Phải là màn TRONG MVP — mặc định cũ trỏ `cxm`, nay là một màn mờ, nên
  *  để nguyên là app tự mở vào đúng thứ sidebar vừa nói là ngoài phạm vi. */
@@ -122,8 +125,6 @@ const ICON_PATHS: Record<string, string[]> = {
     "M7.1 3.1a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z",
     "M9.1 9.9a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z",
   ],
-  // Agent & cảnh báo — chuông
-  agents: ["M4.2 11.2V7a3.8 3.8 0 0 1 7.6 0v4.2", "M2.6 11.2h10.8", "M6.6 13.2a1.6 1.6 0 0 0 2.8 0"],
   // Điểm đo — tâm ngắm
   signals: ["M8 2.6a5.4 5.4 0 1 1 0 10.8 5.4 5.4 0 0 1 0-10.8z", "M8 6.2a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6z"],
   // Cài đặt — bánh răng

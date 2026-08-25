@@ -12,6 +12,7 @@ import { ThemeDetailPage } from './features/topic/ThemeDetailPage.tsx'
 import { RulesPage, RulesPageRouted } from './features/rules/RulesPage.tsx'
 import { SignalsPage } from './features/signals/SignalsPage.tsx'
 import { SettingsPage } from './features/settings/SettingsPage.tsx'
+import { AssistantPage } from './features/assistant/AssistantPage.tsx'
 import { TourOverlay } from './features/tour/TourOverlay.tsx'
 import { DemoBanner } from './features/settings/DemoBanner.tsx'
 import { useCxmStore } from './store/store.ts'
@@ -262,12 +263,17 @@ function Shell() {
                     <SignalsPage />
                   ) : n.r === 'settings' ? (
                     <SettingsPage />
+                  ) : n.r === 'assistant' ? (
+                    <AssistantPage />
                   ) : (
                     <Placeholder name={n.l} />
                   )
                 }
               />
             ))}
+            {/* 25/08 (owner): màn Agents & Alerts gộp vào Assistant — mục nav bỏ nên vòng lặp trên
+                không sinh route /agents nữa; redirect giữ link cũ sống. */}
+            <Route path="/agents" element={<Navigate to="/assistant" replace />} />
             {/* Deep link vào đúng nhóm cấu hình — drawer #/signals trỏ tới /rules/signal. */}
             <Route path="/rules/:group" element={<RulesPageRouted />} />
             <Route path="/cxm/:setId" element={<OverviewPage sec="cxm" />} />

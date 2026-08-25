@@ -44,8 +44,9 @@ function sevLabelOf(sev: Issue["sev"]): string {
 /* Quá hạn = due TRƯỚC data.asOf — cùng trục thời gian màn Sources đo stale/down (sources.test.ts so
    `up` với asOf), KHÔNG dùng đồng hồ thật: cả vũ trụ demo đóng băng tại asOf, so với new Date() thì
    toàn bảng đỏ vĩnh viễn và mỗi tuần một sai thêm. isoFromVn trả null khi sai khuôn → coi như không
-   quá hạn, không đoán. */
-function isOverdue(due: string, asOf: string): boolean {
+   quá hạn, không đoán. Export 25/08: màn Assistant đếm "việc quá hạn" phải đi qua ĐÚNG hàm này —
+   một định nghĩa quá hạn cho cả hai màn, cùng luật SEV_LABEL một nguồn. */
+export function isOverdue(due: string, asOf: string): boolean {
   const d = isoFromVn(due);
   const a = isoFromVn(asOf);
   return d !== null && a !== null && d < a;

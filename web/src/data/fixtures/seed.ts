@@ -924,7 +924,7 @@ export const seedNav: { g?: string; r?: string; ic?: string; l?: string }[] = [
   { r: "assistant", ic: "✦", l: "Trợ lý" },
   { g: "Quản trị" },
   { r: "rules", ic: "⚙", l: "Chỉ số & ngưỡng" },
-  { r: "agents", ic: "◈", l: "Agent & cảnh báo" },
+  /* 25/08 (owner): mục "Agent & cảnh báo" gộp vào Trợ lý (assistant) — cùng đợt bỏ mục ở NAV_GROUPS. */
   { r: "signals", ic: "◎", l: "Điểm đo" },
 ];
 
