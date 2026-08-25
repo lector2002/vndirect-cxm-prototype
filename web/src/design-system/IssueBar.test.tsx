@@ -72,7 +72,10 @@ describe("IssueBar", () => {
     expect(root).toHaveTextContent(PRI_LABEL);
   });
 
-  it("stage='fix': ô stage-fix có aria-current='step', các ô khác không có", () => {
+  /* 25/08 (owner, brainstorm redesign — phương án A "dòng nén"): dải 4 ô chặng thay bằng MỘT chip
+     tên chặng hiện tại + vị trí. Ba test dải cũ (aria-current từng ô, 4 ô luôn in nhãn) viết lại
+     theo chip: chữ trong chip vẫn là kênh không-phải-màu, aria-current giữ ngữ nghĩa "bước đang ở". */
+  it("stage='fix': chip chặng in TÊN bước + vị trí ('Sửa · 3/4') và mang aria-current='step'", () => {
     render(
       <IssueBar
         issue={issue028}
@@ -86,13 +89,12 @@ describe("IssueBar", () => {
       />,
     );
     expect(stage028).toBe("fix");
-    expect(screen.getByTestId("stage-fix")).toHaveAttribute("aria-current", "step");
-    expect(screen.getByTestId("stage-confirm")).not.toHaveAttribute("aria-current");
-    expect(screen.getByTestId("stage-approve")).not.toHaveAttribute("aria-current");
-    expect(screen.getByTestId("stage-verify")).not.toHaveAttribute("aria-current");
+    const chip = screen.getByTestId("stage-chip");
+    expect(chip).toHaveTextContent("Sửa · 3/4");
+    expect(chip).toHaveAttribute("aria-current", "step");
   });
 
-  it("stage='off': KHÔNG ô nào có aria-current", () => {
+  it("stage='off': chip nói 'Đã qua 4/4', KHÔNG aria-current (không còn ở bước nào)", () => {
     render(
       <IssueBar
         issue={issue013}
@@ -106,13 +108,12 @@ describe("IssueBar", () => {
       />,
     );
     expect(stage013).toBe("off");
-    expect(screen.getByTestId("stage-confirm")).not.toHaveAttribute("aria-current");
-    expect(screen.getByTestId("stage-approve")).not.toHaveAttribute("aria-current");
-    expect(screen.getByTestId("stage-fix")).not.toHaveAttribute("aria-current");
-    expect(screen.getByTestId("stage-verify")).not.toHaveAttribute("aria-current");
+    const chip = screen.getByTestId("stage-chip");
+    expect(chip).toHaveTextContent("Đã qua 4/4");
+    expect(chip).not.toHaveAttribute("aria-current");
   });
 
-  it("cả 4 ô LUÔN in nhãn chữ ở mọi stage (a11y: không chỉ dựa vào màu)", () => {
+  it("stage='confirm': chip in 'Xác nhận · 1/4' — tên bước luôn là CHỮ, không chỉ màu", () => {
     render(
       <IssueBar
         issue={issue024}
@@ -125,10 +126,32 @@ describe("IssueBar", () => {
         onAdvance={() => {}}
       />,
     );
-    expect(screen.getByTestId("stage-confirm")).toHaveTextContent("1 Xác nhận");
-    expect(screen.getByTestId("stage-approve")).toHaveTextContent("2 Duyệt");
-    expect(screen.getByTestId("stage-fix")).toHaveTextContent("3 Sửa");
-    expect(screen.getByTestId("stage-verify")).toHaveTextContent("4 Verify");
+    expect(screen.getByTestId("stage-chip")).toHaveTextContent("Xác nhận · 1/4");
+  });
+
+  /* priDetail (danh sách khoá thiếu): chip bấm xoè — cùng bài học SplitToggle.onLockedClick 05/08,
+     tooltip không tới được người bấm/bàn phím/cảm ứng. */
+  it("có priDetail: chip bấm được, mặc định GẤP; bấm mới xoè danh sách khoá thiếu thành chữ", () => {
+    const detail = "Số khách bị ảnh hưởng · Xu hướng";
+    render(
+      <IssueBar
+        issue={issue021}
+        action={action021}
+        stage={stage021}
+        primary={primary021}
+        blockedReason={null}
+        sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
+        priDetail={detail}
+        onAdvance={() => {}}
+      />,
+    );
+    expect(screen.queryByTestId(`work-missing-${issue021.id}`)).not.toBeInTheDocument();
+    const toggle = screen.getByTestId(`missing-toggle-${issue021.id}`);
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+    expect(screen.getByTestId(`work-missing-${issue021.id}`)).toHaveTextContent(detail);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
   });
 
   it("blockedReason=null: nút CTA bấm được, nhãn = primary.label, click gọi onAdvance đúng 1 lần", () => {
@@ -284,7 +307,8 @@ describe("IssueBar", () => {
     expect(screen.queryByTestId(`advance-${action024.id}`)).not.toBeInTheDocument();
     const btn = screen.getByTestId(`assign-${action024.id}`);
     expect(btn).toHaveTextContent("Xác nhận điểm gãy");
-    expect(screen.getByText("Không duyệt được khi chưa xác nhận điểm gãy")).toBeInTheDocument();
+    // 25/08: câu "Không duyệt được khi..." rời dòng explain dưới nút vào title của chính nút.
+    expect(btn).toHaveAttribute("title", "Không duyệt được khi chưa xác nhận điểm gãy");
     fireEvent.click(btn);
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onAdvance).not.toHaveBeenCalled();
@@ -307,7 +331,8 @@ describe("IssueBar", () => {
     expect(screen.queryByTestId(`assign-${action024.id}`)).not.toBeInTheDocument();
     const btn = screen.getByTestId(`advance-${action024.id}`);
     expect(btn).toHaveTextContent(primary024.label);
-    expect(screen.getByText(primary024.actor)).toBeInTheDocument();
+    // 25/08: câu actor ("ai bấm nút này") rời dòng explain dưới nút vào title của chính nút.
+    expect(btn).toHaveAttribute("title", primary024.actor);
   });
 
   it("stage!=='confirm' dù CÓ truyền onConfirm: vẫn dùng nhánh advance cũ (vd stage='fix')", () => {

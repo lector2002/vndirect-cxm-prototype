@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Action, Issue } from "../data/schema/index.ts";
 import type { LaneKey, PrimaryAction } from "../domain/index.ts";
 import { btnPrimary, btnSecondary, btnSizeMd } from "./buttons.ts";
@@ -6,7 +7,21 @@ import { btnPrimary, btnSecondary, btnSizeMd } from "./buttons.ts";
    của prototype (owner chốt phương án (a): danh sách thanh ngang duy nhất). Component THUẦN
    presentational — mọi suy luận domain (stage=laneOf(action), primary=getPrimaryAction(),
    blockedReason=advanceBlockedReason()) do container tính sẵn và truyền vào qua props; ở đây chỉ
-   render đúng những gì được đưa. */
+   render đúng những gì được đưa.
+
+   25/08 (owner, brainstorm redesign Workboard — chốt phương án A "dòng nén"):
+   - Dải 4 ô chặng full-width BỎ — nó chiếm một hàng riêng trên mọi thanh mà thông tin thật chỉ là
+     "đang ở chặng nào". Thay bằng MỘT chip tên chặng hiện tại + vị trí ("Duyệt · 2/4"); owner xem
+     mock có dãy ✓✓▶○ và chê rối mắt, chốt hiện thẳng TÊN bước. Chữ trong chip là kênh
+     không-phải-màu nên vẫn giữ được lý do a11y của dải cũ.
+   - Hai dòng explain dưới nút ("Người phụ trách quyết định" / "Không duyệt được khi chưa xác nhận
+     điểm gãy") → `title` của chính nút (pattern 4 đợt quét AI-slop, màn này cố tình chờ redesign).
+   - Câu ưu tiên: thanh THIẾU KHOÁ không in số tổng nữa (điểm thấp GIẢ — chữ của chính ADR-002 §19);
+     container truyền "thiếu 3/7 khoá" + `priDetail` là danh sách khoá thiếu, chip bấm được để xoè
+     danh sách ra thành chữ (cùng bài học SplitToggle.onLockedClick 05/08: tooltip không tới được
+     người bấm/bàn phím/cảm ứng). Hết cảnh dòng "Thiếu: ..." lặp y hệt dưới cả 5 thanh.
+   - Lý do chặn vẫn là CHỮ ĐỌC ĐƯỢC NGAY TRÊN THANH (owner chốt, không đổi) — nhưng xuống dòng riêng
+     full-width chỉ khi CÓ chặn, thay vì bóp vào cạnh nút. */
 export type IssueBarProps = {
   issue: Issue;
   action: Action;
@@ -18,54 +33,42 @@ export type IssueBarProps = {
   blockedReason: string | null;
   /** Màu chấm mức độ nghiêm trọng — container truyền vào, design-system KHÔNG tự suy ngữ nghĩa domain. */
   sevColor: string;
-  /** Câu điểm ưu tiên, container tính sẵn bằng `issueScore()` — vd `Ưu tiên 72 · đủ 7/7` hoặc
-      `Ưu tiên 24 · thiếu 5/7`. LUÔN mang cả số khoá đã tính, không bao giờ chỉ mang con số
-      (ADR-002 §9): một điểm gãy thiếu khoá có điểm thấp hơn thực chất, và con số trần trụi không
-      nói được điều đó. Chuỗi chứ không phải object vì tầng này chỉ render. */
+  /** Câu điểm ưu tiên, container tính sẵn — vd `Ưu tiên 72 · đủ 7/7` (đủ khoá) hoặc
+      `thiếu 3/7 khoá` (chưa đủ — KHÔNG kèm số tổng, xem docblock trên). Luôn mang số khoá,
+      không bao giờ chỉ con số trần (ADR-002 §9). Chuỗi chứ không phải object vì tầng này chỉ render. */
   priLabel: string;
+  /** Có mặt ⇒ priLabel render thành CHIP BẤM ĐƯỢC, bấm xoè dòng chữ này ra (danh sách khoá còn
+      thiếu). Không truyền ⇒ priLabel là chữ tĩnh. */
+  priDetail?: string;
   onAdvance: () => void;
   onOpenIssue?: () => void;
   /** Khi stage==='confirm' VÀ prop này được truyền: CTA đổi sang "Xác nhận điểm gãy" (không phải
-      onAdvance) — sửa lỗi bar hiện "Duyệt đề xuất xử lý" trong khi action còn cf==='pending' (owner
-      chốt, W3b Việc 1; chặng đổi tên 'assign'→'confirm' 02/08/2026, module-a-charter.md A3). Không
-      truyền hoặc stage khác 'confirm': giữ nguyên hành vi advance cũ.
-      Đổi tên `onAssign` → `onConfirm` tại Section A4 (module-a-charter.md), khớp chặng đã đổi tên.
-      Testid DOM `assign-${action.id}` CỐ Ý giữ nguyên (không đổi theo tên prop): đây là chuỗi hằng
-      dùng để test truy vấn phần tử, không phải vocabulary hiển thị cho người dùng — đổi nó chỉ để
-      khớp tên biến nội bộ là việc không cần thiết, mọi test truy vấn theo testid này vẫn còn đúng
-      ngữ nghĩa (nút vẫn là hành động "assign work to this issue via confirm step"). */
+      onAdvance). Testid DOM `assign-${action.id}` CỐ Ý giữ nguyên tên gốc port từ prototype —
+      chuỗi hằng cho test truy vấn, không phải vocabulary hiển thị (xem lịch sử A4). */
   onConfirm?: () => void;
 };
 
-/* Thứ tự và nhãn 4 chặng CỐ ĐỊNH — khớp LaneKey 'confirm'|'approve'|'fix'|'verify' (state.ts:8,
-   không gồm 'off' vì 'off' nghĩa là đã ra khỏi dải, không phải một ô trên dải). */
-const STAGES: { key: "confirm" | "approve" | "fix" | "verify"; num: number; label: string }[] = [
-  { key: "confirm", num: 1, label: "Xác nhận" },
-  { key: "approve", num: 2, label: "Duyệt" },
-  { key: "fix", num: 3, label: "Sửa" },
-  { key: "verify", num: 4, label: "Verify" },
-];
-
-type StageStatus = "done" | "current" | "upcoming";
-
-/* Màu theo TRẠNG THÁI (đã qua/đang ở/chưa tới), không phải theo chặng — mỗi ô luôn giữ nguyên vị trí
-   trong dải, chỉ đổi tông theo status. Nhãn số+chữ luôn in đủ (a11y: không chỉ dựa vào màu). */
-const STAGE_CLASS: Record<StageStatus, string> = {
-  done: "bg-primary-soft text-primary",
-  current: "bg-primary text-white",
-  upcoming: "bg-surface-2 text-ink-3",
+/* Tên + số thứ tự 4 chặng — khớp LaneKey 'confirm'|'approve'|'fix'|'verify' (state.ts:8). 'off'
+   nghĩa là đã ra khỏi dải; hiển thị của 'off' do chip khép vòng gánh (lc='ready'/'closed'), chip
+   chặng khi đó nói "Đã qua 4/4". */
+const STAGE_INFO: Record<Exclude<LaneKey, "off">, { num: number; label: string }> = {
+  confirm: { num: 1, label: "Xác nhận" },
+  approve: { num: 2, label: "Duyệt" },
+  fix: { num: 3, label: "Sửa" },
+  verify: { num: 4, label: "Verify" },
 };
 
 const TITLE_CLASS = "text-[13.5px] font-semibold leading-snug";
+const CHIP_CLASS = "inline-block px-2 py-0.5 rounded-[7px] text-[11px] font-bold border whitespace-nowrap";
 
-export function IssueBar({ issue, action, stage, primary, blockedReason, sevColor, priLabel, onAdvance, onOpenIssue, onConfirm }: IssueBarProps) {
-  // stage='off' đã ra khỏi 4 chặng xử lý → cả 4 ô đều "đã qua", không ô nào aria-current.
-  const currentIndex = stage === "off" ? STAGES.length : STAGES.findIndex((s) => s.key === stage);
+export function IssueBar({ issue, action, stage, primary, blockedReason, sevColor, priLabel, priDetail, onAdvance, onOpenIssue, onConfirm }: IssueBarProps) {
+  const [detailOpen, setDetailOpen] = useState(false);
   const blocked = blockedReason !== null;
+  const stageInfo = stage === "off" ? null : STAGE_INFO[stage];
 
   return (
-    <div data-testid={`issue-bar-${issue.id}`} className="w-full bg-surface border border-line rounded shadow-card flex flex-col gap-2.5 p-3.5">
-      {/* Tầng 1 — nhận dạng: chấm mức độ nghiêm trọng · tiêu đề · điểm ưu tiên đẩy phải */}
+    <div data-testid={`issue-bar-${issue.id}`} className="w-full bg-surface border border-line rounded shadow-card flex flex-col gap-2 p-3.5">
+      {/* Dòng 1 — nhận dạng + trạng thái quy trình: chấm sev · tiêu đề · chip chặng · phụ trách/hạn */}
       <div className="flex items-center gap-2.5">
         <span
           aria-hidden="true"
@@ -79,108 +82,93 @@ export function IssueBar({ issue, action, stage, primary, blockedReason, sevColo
         ) : (
           <span className={`${TITLE_CLASS} min-w-0 truncate`}>{issue.title}</span>
         )}
-        <span className="ml-auto flex-none text-[12px] font-semibold text-ink-3 whitespace-nowrap">
-          {priLabel}
+        <span className="ml-auto flex-none flex items-center gap-2">
+          {/* Chip chặng: TÊN bước hiện tại + vị trí — chữ là kênh không-phải-màu. aria-current giữ
+              nguyên ngữ nghĩa "đây là bước đang ở" như dải cũ. */}
+          <span
+            data-testid="stage-chip"
+            aria-current={stageInfo ? "step" : undefined}
+            className={`${CHIP_CLASS} ${stageInfo ? "bg-primary text-white border-primary" : "bg-surface-2 border-line text-ink-3"}`}
+          >
+            {stageInfo ? `${stageInfo.label} · ${stageInfo.num}/4` : "Đã qua 4/4"}
+          </span>
+          {/* Chỉ chip "chờ khép vòng" mang màu trạng thái (--watch) — đúng prototype. Chip "đã khép
+              vòng" CỐ Ý tông trung tính, KHÔNG --good: khép vòng là trạng thái QUY TRÌNH, không phải
+              sức khoẻ (xem chú thích bảng màu trong tailwind.config.js). */}
+          {action.lc === "ready" ? (
+            <span data-testid={`lc-chip-${action.id}`} className={`${CHIP_CLASS} bg-watch-bg border-watch-line text-watch`}>
+              Chờ khép vòng
+            </span>
+          ) : action.lc === "closed" ? (
+            <span data-testid={`lc-chip-${action.id}`} className={`${CHIP_CLASS} bg-surface-2 border-line text-ink-2`}>
+              Đã khép vòng
+            </span>
+          ) : null}
+          <span className="text-[12px] text-ink-3 whitespace-nowrap">
+            {`${action.owner} · ${action.acc} · hạn ${action.due}`}
+          </span>
         </span>
       </div>
 
-      {/* Tầng 2 — dải tiến trình 4 chặng, chip khép vòng đẩy phải cùng hàng */}
-      <div className="flex items-center gap-1.5">
-        {STAGES.map((s, i) => {
-          const status: StageStatus = i < currentIndex ? "done" : i === currentIndex ? "current" : "upcoming";
-          return (
-            <div
-              key={s.key}
-              data-testid={`stage-${s.key}`}
-              aria-current={status === "current" ? "step" : undefined}
-              className={`flex-1 text-center rounded text-[11px] font-semibold px-2 py-1 whitespace-nowrap ${STAGE_CLASS[status]}`}
-            >
-              {/* Dấu ✓ cho chặng ĐÃ QUA là kênh phân biệt KHÔNG-PHẢI-MÀU. Đo trên dist thật: nền ô đã
-                  qua là rgb(253,243,238) còn ô chưa tới là rgb(244,242,239) — hai màu gần như không
-                  tách được bằng mắt, nên nếu chỉ dựa vào nền thì dải tiến trình mất đúng công dụng của
-                  nó (nhìn phát biết đang ở đâu). Ô đang ở đã có nền cam đậm + aria-current nên không
-                  cần thêm dấu. */}
-              {status === "done" ? `✓ ${s.num} ${s.label}` : `${s.num} ${s.label}`}
-            </div>
-          );
-        })}
-        {/* Chỉ chip "chờ khép vòng" mang màu trạng thái (--watch) — đúng prototype, nơi chip này là
-            thứ DUY NHẤT được tô (`color:var(--watch)`), còn "Đã xong N" là chip trơn.
-            Chip "đã khép vòng" CỐ Ý để tông trung tính, KHÔNG dùng --good: bảng màu tách bạch 4 màu
-            TRẠNG THÁI SỨC KHOẺ khỏi tone thông tin (xem chú thích trong tailwind.config.js), mà khép
-            vòng là trạng thái QUY TRÌNH — tiêu một màu sức khoẻ cho nó là trộn hai hệ nghĩa, và làm
-            loãng chính màu đang cần dành cho việc còn dang dở. */}
-        {action.lc === "ready" ? (
-          <span
-            data-testid={`lc-chip-${action.id}`}
-            className="ml-auto flex-none px-2 py-0.5 rounded-[7px] text-[11px] font-bold border whitespace-nowrap bg-watch-bg border-watch-line text-watch"
-          >
-            Chờ khép vòng
-          </span>
-        ) : action.lc === "closed" ? (
-          <span
-            data-testid={`lc-chip-${action.id}`}
-            className="ml-auto flex-none px-2 py-0.5 rounded-[7px] text-[11px] font-bold border whitespace-nowrap bg-surface-2 border-line text-ink-2"
-          >
-            Đã khép vòng
-          </span>
-        ) : null}
-      </div>
-
-      {/* Tầng 3 — người phụ trách/hạn và CTA bước kế tiếp. blockedReason !== null: chặn TẠI CHỖ, nêu
-          lý do bằng chữ đọc được ngay trên thanh — KHÔNG điều hướng sang màn khác (owner chốt). */}
+      {/* Dòng 2 — điểm ưu tiên trái, CTA phải. Câu actor ("Người phụ trách quyết định") thành
+          title của CTA: nó trả lời "ai bấm nút này", đúng chỗ người ta thắc mắc. */}
       <div className="flex items-center gap-2.5">
-        <span className="text-[12px] text-ink-3 min-w-0 truncate">
-          {`${action.owner} · ${action.acc} · hạn ${action.due}`}
-        </span>
-        <div className="ml-auto flex-none flex items-center gap-2">
-          {/* Chữ xám, KHÔNG --crit: đây là câu GIẢI THÍCH vì sao nút đang khoá, không phải mức độ
-              nghiêm trọng của điểm gãy — mà --crit trong hệ này đã có nghĩa "cần xử lý ngay" và đang
-              được chấm sev ở tầng 1 dùng. Hai thứ đỏ cạnh nhau mang hai nghĩa khác nhau thì người đọc
-              không tách được. Tín hiệu "đang bị chặn" do nút disabled gánh; chữ chỉ cần đọc rõ. */}
-          {blocked ? <span className="text-[11.5px] text-ink-2 max-w-[280px]">{blockedReason}</span> : null}
-          {/* Nút + dòng ACTOR bên dưới — port workCard() prototype (dòng ~2984): bản gốc luôn in
-              `n.actor` dưới nút. Dòng này trả lời "ai phải làm bước này", thứ mà riêng nhãn nút không
-              nói được (vd "Duyệt đề xuất xử lý" không cho biết là người phụ trách QUYẾT ĐỊNH chứ không
-              phải owner). `actor` rỗng ở bước 'done' nên phải guard. */}
-          <div className="flex flex-col items-end gap-1">
-            {/* stage==='confirm' + onConfirm: nhánh CTA riêng — sửa lỗi bar hiện "Duyệt đề xuất xử lý"
-                trong khi action còn cf==='pending' (getPrimaryAction giờ đã xét action.cf, xem
-                domain/loop.ts, nhưng nhánh riêng này vẫn giữ để container tiêm handler xác nhận khác
-                onAdvance). blocked đã check TRƯỚC (giữ nguyên thứ tự cũ) dù dữ liệu-wise hai nhánh
-                blocked/confirm không bao giờ cùng true (blocked cần Outcome, mà Outcome chỉ có từ
-                dl==='released' trở đi, tức đã qua khỏi chặng Xác nhận) — không tối ưu lại thứ tự. */}
-            {!blocked && stage === "confirm" && onConfirm ? (
-              <>
-                <button
-                  type="button"
-                  data-testid={`assign-${action.id}`}
-                  className={`${btnSizeMd} ${btnPrimary}`}
-                  onClick={onConfirm}
-                >
-                  Xác nhận điểm gãy
-                </button>
-                <span className="text-[11px] text-ink-3 whitespace-nowrap">Không duyệt được khi chưa xác nhận điểm gãy</span>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  data-testid={`advance-${action.id}`}
-                  disabled={blocked}
-                  className={`${btnSizeMd} ${blocked ? `${btnSecondary} opacity-50 cursor-not-allowed` : btnPrimary}`}
-                  onClick={onAdvance}
-                >
-                  {primary.label}
-                </button>
-                {primary.actor ? (
-                  <span className="text-[11px] text-ink-3 whitespace-nowrap">{primary.actor}</span>
-                ) : null}
-              </>
-            )}
-          </div>
+        {priDetail ? (
+          <span className="flex items-baseline gap-2 min-w-0">
+            <button
+              type="button"
+              data-testid={`missing-toggle-${issue.id}`}
+              aria-expanded={detailOpen}
+              title={priDetail}
+              className={`${CHIP_CLASS} bg-surface-2 border-line text-ink-2 hover:text-ink cursor-pointer`}
+              onClick={() => setDetailOpen((v) => !v)}
+            >
+              {`${priLabel} ⓘ`}
+            </button>
+            {detailOpen ? (
+              <span data-testid={`work-missing-${issue.id}`} className="text-[12px] text-ink-3 min-w-0">
+                {priDetail}
+              </span>
+            ) : null}
+          </span>
+        ) : (
+          <span className="text-[12px] font-semibold text-ink-3 whitespace-nowrap">{priLabel}</span>
+        )}
+        <div className="ml-auto flex-none">
+          {!blocked && stage === "confirm" && onConfirm ? (
+            <button
+              type="button"
+              data-testid={`assign-${action.id}`}
+              title="Không duyệt được khi chưa xác nhận điểm gãy"
+              className={`${btnSizeMd} ${btnPrimary}`}
+              onClick={onConfirm}
+            >
+              Xác nhận điểm gãy
+            </button>
+          ) : (
+            <button
+              type="button"
+              data-testid={`advance-${action.id}`}
+              disabled={blocked}
+              title={primary.actor || undefined}
+              className={`${btnSizeMd} ${blocked ? `${btnSecondary} opacity-50 cursor-not-allowed` : btnPrimary}`}
+              onClick={onAdvance}
+            >
+              {primary.label}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Dòng 3 — CHỈ khi bị chặn: lý do bằng chữ đọc được ngay trên thanh (owner chốt, KHÔNG điều
+          hướng sang màn khác). Chữ xám, KHÔNG --crit: đây là câu GIẢI THÍCH vì sao nút khoá, không
+          phải mức độ nghiêm trọng — chấm sev ở dòng 1 đang giữ nghĩa đỏ đó. */}
+      {blocked ? (
+        <div className="text-[11.5px] text-ink-2 leading-snug">
+          <span aria-hidden="true">⚠ </span>
+          {blockedReason}
+        </div>
+      ) : null}
     </div>
   );
 }

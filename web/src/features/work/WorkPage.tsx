@@ -14,8 +14,9 @@ import { WorkConfirmForm } from "./WorkConfirmForm.tsx";
    giữ nguyên gốc mkok/asok dù chặng đã đổi 'Gán'→'Xác nhận' (owner chốt 02/08/2026,
    module-a-charter.md, section A4) — không phải vocabulary hiển thị, chỉ là định danh nội bộ port
    từ prototype. stage ở đây là tên CHẶNG ('Xác nhận'/'Duyệt'), không phải tên LÀN như prototype gốc
-   ('Cần gán người'/'Chờ duyệt') — màn này đã bỏ khái niệm làn, đổi sang dải 4 chặng trên IssueBar
-   (xem IssueBar.tsx STAGES), nên banner đổi theo cho khớp vocabulary với dải. */
+   ('Cần gán người'/'Chờ duyệt') — màn này đã bỏ khái niệm làn, đổi sang chip tên chặng trên IssueBar
+   (xem IssueBar.tsx STAGE_INFO; 25/08 dải 4 ô thu về một chip), nên banner đổi theo cho khớp
+   vocabulary với chặng. */
 type MkOk = { iid: string; stage: string };
 type ConfirmOk = { aid: string; owner: string };
 
@@ -167,12 +168,19 @@ export function WorkPage() {
     .filter((r) => !isRankable(scoreOf(r.issue.id)))
     .sort((x, y) => scoreOf(x.issue.id).missing.length - scoreOf(y.issue.id).missing.length);
 
+  /* 25/08 (owner, brainstorm redesign — phương án A "dòng nén"): thanh THIẾU KHOÁ không in số tổng
+     nữa — chính §19 gọi đó là "điểm thấp GIẢ", in nó to ngang điểm thật là tự mâu thuẫn. Số chỉ
+     xuất hiện khi đủ khoá; thanh thiếu mang "thiếu N/7 khoá" + priDetail là danh sách khoá thiếu
+     (IssueBar render thành chip bấm xoè — thay cho dòng "Thiếu: ..." lặp y hệt dưới cả 5 thanh). */
   const priLabelOf = (id: string): string => {
     const s = scoreOf(id);
-    const done = s.computed.length;
-    return done === PRI_KEYS.length
-      ? `Ưu tiên ${s.total} · đủ ${done}/${PRI_KEYS.length}`
-      : `Ưu tiên ${s.total} · thiếu ${s.missing.length}/${PRI_KEYS.length}`;
+    return s.missing.length === 0
+      ? `Ưu tiên ${s.total} · đủ ${PRI_KEYS.length}/${PRI_KEYS.length}`
+      : `thiếu ${s.missing.length}/${PRI_KEYS.length} khoá`;
+  };
+  const priDetailOf = (id: string): string | undefined => {
+    const s = scoreOf(id);
+    return s.missing.length > 0 ? s.missing.map((k) => PRI_LABEL[k]).join(" · ") : undefined;
   };
 
   // Action/issue đang mở form Xác nhận — container tra sẵn stepLabel, WorkConfirmForm không tự tra steps.
@@ -283,21 +291,6 @@ export function WorkPage() {
           />
         </div>
       ) : null}
-      {confirmId && confirmAction && issueToConfirm && confirmStep ? (
-        <div className="mb-3.5">
-          <WorkConfirmForm
-            issue={issueToConfirm}
-            action={confirmAction}
-            stepLabel={`${confirmStep.code} · ${confirmStep.name}`}
-            owners={owners}
-            approvers={approvers}
-            error={cferr}
-            onSubmit={handleConfirmSubmit}
-            onCancel={closeConfirm}
-          />
-        </div>
-      ) : null}
-
       {allRows.length === 0 ? (
         <div data-testid="work-empty" className="t-meta">
           Không còn điểm gãy nào cần xử lý.
@@ -322,17 +315,7 @@ export function WorkPage() {
             <div className="mt-6" data-testid="work-pending">
               <div className="t-lbl mb-2">{`Chưa đủ dữ liệu để xếp · ${pending.length}`}</div>
               <div className="flex flex-col gap-3">
-                {pending.map(({ action, issue }) => (
-                  <div key={action.id}>
-                    {renderBar(action, issue)}
-                    <div
-                      data-testid={`work-missing-${issue.id}`}
-                      className="t-meta mt-1 pl-3.5 text-[12px]"
-                    >
-                      {`Thiếu: ${scoreOf(issue.id).missing.map((k) => PRI_LABEL[k]).join(" · ")}`}
-                    </div>
-                  </div>
-                ))}
+                {pending.map(({ action, issue }) => renderBar(action, issue))}
               </div>
             </div>
           ) : null}
@@ -341,21 +324,38 @@ export function WorkPage() {
     </div>
   );
 
+  /* 25/08 (owner, brainstorm redesign): form Xác nhận nở NGAY DƯỚI thanh đang thao tác thay vì một
+     khối cố định đầu trang — trước đây bấm nút ở thanh thứ 5 thì form hiện tít trên đầu, ngoài tầm
+     mắt. Guard confirmAction/issueToConfirm/confirmStep giữ nguyên như khối cũ. */
   function renderBar(action: (typeof act)[number], issue: Issue) {
     const outcome = data.out.find((o) => o.act === action.id);
     return (
-      <IssueBar
-        key={action.id}
-        issue={issue}
-        action={action}
-        stage={laneOf(action)}
-        primary={getPrimaryAction(action, outcome, action.lc === "closed")}
-        blockedReason={advanceBlockedReason(action, outcome)}
-        sevColor={sevColor(issue.sev)}
-        priLabel={priLabelOf(issue.id)}
-        onAdvance={() => advanceAction(action.id)}
-        onConfirm={() => openConfirm(action.id)}
-      />
+      <div key={action.id} className="flex flex-col gap-2.5">
+        <IssueBar
+          issue={issue}
+          action={action}
+          stage={laneOf(action)}
+          primary={getPrimaryAction(action, outcome, action.lc === "closed")}
+          blockedReason={advanceBlockedReason(action, outcome)}
+          sevColor={sevColor(issue.sev)}
+          priLabel={priLabelOf(issue.id)}
+          priDetail={priDetailOf(issue.id)}
+          onAdvance={() => advanceAction(action.id)}
+          onConfirm={() => openConfirm(action.id)}
+        />
+        {confirmId === action.id && confirmAction && issueToConfirm && confirmStep ? (
+          <WorkConfirmForm
+            issue={issueToConfirm}
+            action={confirmAction}
+            stepLabel={`${confirmStep.code} · ${confirmStep.name}`}
+            owners={owners}
+            approvers={approvers}
+            error={cferr}
+            onSubmit={handleConfirmSubmit}
+            onCancel={closeConfirm}
+          />
+        ) : null}
+      </div>
     );
   }
 }

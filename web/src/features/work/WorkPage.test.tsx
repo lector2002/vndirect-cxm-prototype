@@ -59,9 +59,13 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
     expect(domIds).toEqual(expectedIds);
   });
 
-  it("mỗi thanh chưa đủ khoá ghi rõ thiếu khoá nào, khớp missing của scoreIssues", () => {
+  /* 25/08 (owner, brainstorm redesign — phương án A): dòng "Thiếu: ..." lặp dưới mỗi thanh thành
+     chip bấm xoè TRONG thanh — test bấm toggle rồi mới soi danh sách. */
+  it("mỗi thanh chưa đủ khoá: bấm chip mới xoè danh sách khoá thiếu, khớp missing của scoreIssues", () => {
     render(<WorkPage />);
     for (const r of pendingRows) {
+      expect(screen.queryByTestId(`work-missing-${r.issue.id}`)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId(`missing-toggle-${r.issue.id}`));
       const line = screen.getByTestId(`work-missing-${r.issue.id}`);
       for (const k of scoreOf(r.issue.id).missing) {
         expect(line.textContent).toContain(PRI_LABEL[k]);
@@ -69,16 +73,19 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
     }
   });
 
-  it("câu điểm ưu tiên trên thanh luôn kèm số khoá đã tính, không bao giờ chỉ con số", () => {
+  /* 25/08 (owner): thanh thiếu khoá KHÔNG in số tổng nữa — điểm thấp GIẢ (§19). Số chỉ hiện khi đủ
+     7/7; thanh thiếu chỉ nói "thiếu N/7 khoá". Vẫn không bao giờ có con số trần trụi (§9). */
+  it("thanh đủ khoá in 'Ưu tiên X · đủ 7/7'; thanh thiếu chỉ in 'thiếu N/7 khoá', KHÔNG kèm số tổng", () => {
     render(<WorkPage />);
     for (const r of allRows) {
       const s = scoreOf(r.issue.id);
       const bar = screen.getByTestId(`issue-bar-${r.issue.id}`);
-      expect(bar.textContent).toContain(
-        s.missing.length === 0
-          ? `Ưu tiên ${s.total} · đủ ${PRI_KEYS.length}/${PRI_KEYS.length}`
-          : `Ưu tiên ${s.total} · thiếu ${s.missing.length}/${PRI_KEYS.length}`,
-      );
+      if (s.missing.length === 0) {
+        expect(bar.textContent).toContain(`Ưu tiên ${s.total} · đủ ${PRI_KEYS.length}/${PRI_KEYS.length}`);
+      } else {
+        expect(bar.textContent).toContain(`thiếu ${s.missing.length}/${PRI_KEYS.length} khoá`);
+        expect(bar.textContent).not.toContain(`Ưu tiên ${s.total}`);
+      }
     }
   });
 
@@ -149,7 +156,8 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
     render(<WorkPage />);
     const confirmBtn = screen.getByTestId("assign-CXA-024");
     expect(confirmBtn).toHaveTextContent("Xác nhận điểm gãy");
-    expect(screen.getByText("Không duyệt được khi chưa xác nhận điểm gãy")).toBeInTheDocument();
+    // 25/08 (phương án A): hint rời dòng explain dưới nút vào title của chính nút.
+    expect(confirmBtn).toHaveAttribute("title", "Không duyệt được khi chưa xác nhận điểm gãy");
     expect(screen.queryByTestId("advance-CXA-024")).not.toBeInTheDocument();
 
     const action028 = seed.act.find((a) => a.id === "CXA-028")!;
@@ -157,7 +165,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
     const bar028 = screen.getByTestId("issue-bar-CXI-028");
     const otherBtn = within(bar028).getByTestId("advance-CXA-028");
     expect(otherBtn).toHaveTextContent(primary028.label);
-    expect(within(bar028).getByText(primary028.actor)).toBeInTheDocument();
+    expect(otherBtn).toHaveAttribute("title", primary028.actor);
   });
 
   it("criterion 4: form Tạo bỏ trống Tiêu đề → banner đỏ TRONG form, form không đóng, KHÔNG tạo record mới", () => {
@@ -184,7 +192,10 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
 
     expect(screen.getByTestId("banner-asok")).toHaveTextContent(`Đã xác nhận CXA-024 (phụ trách: ${owners[0]}), điểm gãy đã chuyển sang chặng Duyệt.`);
     const bar = screen.getByTestId("issue-bar-CXI-024");
-    expect(within(bar).getByTestId("stage-approve")).toHaveAttribute("aria-current", "step");
+    // 25/08 (phương án A): dải 4 ô thành chip tên chặng — bar chuyển làn đọc ra ở chữ trong chip.
+    const chip = within(bar).getByTestId("stage-chip");
+    expect(chip).toHaveTextContent("Duyệt · 2/4");
+    expect(chip).toHaveAttribute("aria-current", "step");
     // Sau khi xác nhận: CTA ĐÃ ĐỔI LẠI sang nhánh advance- (testid assign- không còn) — đây mới là
     // điều criterion 5 thật sự kiểm chứng, chứ không phải nhãn nút (nhãn "Duyệt đề xuất xử lý" giữ
     // nguyên xuyên suốt vì confirmIssue không đổi action.ap, getPrimaryAction vẫn trả về đúng nhánh
