@@ -421,7 +421,9 @@ export class MockRepository implements CxmRepository {
        trong chuỗi if/else-if của advance() prototype: điều kiện chỉ có thể đúng khi outcome đã tồn
        tại, mà theo bất biến validate.ts:112 outcome chỉ tồn tại khi dl==='released' (tức các nhánh
        1-3 bên dưới đã qua) — nên kiểm ở đầu hàm tương đương kiểm đúng vị trí, không tắt nhầm các
-       bước approve/start/release. No-op AN TOÀN thay vì điều hướng '#/issue/:id' của bản gốc. */
+       bước approve/start/release. No-op AN TOÀN thay vì điều hướng '#/issue/:id' của bản gốc —
+       tầng repo không điều hướng; từ 25/08 IssueBar kèm link "Mở hồ sơ điểm gãy" ngay cạnh câu
+       lý do chặn, người dùng tự bấm sang #/issue/:id (đích đến gốc được khôi phục ở tầng UI). */
     if (advanceBlockedReason(action, outcome)) {
       return structuredClone(action);
     }

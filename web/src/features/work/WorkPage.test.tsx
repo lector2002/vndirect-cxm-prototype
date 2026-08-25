@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "vitest";
 import { seed } from "../../data/fixtures/seed.ts";
 import { PRI_KEYS, PRI_LABEL, isRankable, scoreIssues } from "../../data/priority.ts";
@@ -43,9 +44,13 @@ const pendingRows = allRows
   .filter((r) => !isRankable(scoreOf(r.issue.id)))
   .sort((x, y) => scoreOf(x.issue.id).missing.length - scoreOf(y.issue.id).missing.length);
 
+/* 25/08: WorkPage gọi useNavigate (mở hồ sơ #/issue/:id từ tiêu đề thanh + link ở dòng chặn) nên
+   phải render trong Router — wrapper là đường ngắn nhất, không đổi chữ ký render ở từng test. */
+const renderPage = () => render(<WorkPage />, { wrapper: MemoryRouter });
+
 describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () => {
   it(`render đúng ${allRows.length} thanh trên cả hai khối, action đã closed không có mặt`, () => {
-    render(<WorkPage />);
+    renderPage();
     const closedAction = seed.act.find((a) => a.lc === "closed")!;
     expect(screen.queryByTestId(`issue-bar-${seed.iss.find((i) => i.act === closedAction.id)!.id}`)).not.toBeInTheDocument();
 
@@ -54,7 +59,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   });
 
   it("khối trên xếp giảm dần theo điểm; khối dưới xếp theo số khoá còn thiếu", () => {
-    render(<WorkPage />);
+    renderPage();
     const bars = screen.getAllByTestId(/^issue-bar-/);
     const domIds = bars.map((el) => el.getAttribute("data-testid"));
     const expectedIds = [...openRows, ...pendingRows].map((r) => `issue-bar-${r.issue.id}`);
@@ -64,7 +69,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   /* 25/08 (owner, brainstorm redesign — phương án A): dòng "Thiếu: ..." lặp dưới mỗi thanh thành
      chip bấm xoè TRONG thanh — test bấm toggle rồi mới soi danh sách. */
   it("mỗi thanh chưa đủ khoá: bấm chip mới xoè danh sách khoá thiếu, khớp missing của scoreIssues", () => {
-    render(<WorkPage />);
+    renderPage();
     for (const r of pendingRows) {
       expect(screen.queryByTestId(`work-missing-${r.issue.id}`)).not.toBeInTheDocument();
       fireEvent.click(screen.getByTestId(`missing-toggle-${r.issue.id}`));
@@ -78,7 +83,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   /* 25/08 (owner): thanh thiếu khoá KHÔNG in số tổng nữa — điểm thấp GIẢ (§19). Số chỉ hiện khi đủ
      7/7; thanh thiếu chỉ nói "thiếu N/7 khoá". Vẫn không bao giờ có con số trần trụi (§9). */
   it("thanh đủ khoá in 'Ưu tiên X · đủ 7/7'; thanh thiếu chỉ in 'Thiếu N/7 khoá', KHÔNG kèm số tổng", () => {
-    render(<WorkPage />);
+    renderPage();
     for (const r of allRows) {
       const s = scoreOf(r.issue.id);
       const bar = screen.getByTestId(`issue-bar-${r.issue.id}`);
@@ -95,14 +100,14 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
      chúng xuống hàng chip (phương án 1). Test đi theo: cùng hai con số, cùng suy lại từ seed, chỉ
      đổi chỗ đọc. */
   it("hai phép đếm nằm ở hàng chip, khớp nhánh pendingConfirm > 0, suy lại từ seed", () => {
-    render(<WorkPage />);
+    renderPage();
     expect(pendingConfirm).toBeGreaterThan(0);
     expect(screen.getByTestId("chip-load")).toHaveTextContent(`${pendingConfirm} chờ xác nhận`);
     expect(screen.getByTestId("chip-pend")).toHaveTextContent(`${pend} chờ duyệt`);
   });
 
   it("đầu màn chỉ có tên tab, không còn câu đếm mở đầu", () => {
-    const { container } = render(<WorkPage />);
+    const { container } = renderPage();
     const h1s = container.querySelectorAll("h1");
     expect(h1s).toHaveLength(1);
     expect(h1s[0]).toHaveTextContent(navLabel("work"));
@@ -110,14 +115,14 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   });
 
   it(`chip "Đã xong ${closed}" luôn hiện`, () => {
-    render(<WorkPage />);
+    renderPage();
     expect(screen.getByTestId("chip-closed")).toHaveTextContent(`Đã xong ${closed}`);
   });
 
   /* ==== 25/08 đợt 2 (owner duyệt cả 4 mục validate đọc-hiểu) — mọi kỳ vọng suy lại từ data ==== */
 
   it("cụm phải mang nhãn 'xử lý:/duyệt:'; due trước asOf in '⚠ quá hạn', còn hạn in 'hạn' thường", () => {
-    render(<WorkPage />);
+    renderPage();
     const asOfIso = isoFromVn(st.data.asOf)!;
     for (const r of allRows) {
       const bar = screen.getByTestId(`issue-bar-${r.issue.id}`);
@@ -136,7 +141,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   });
 
   it("chấm mức độ hết là màu trần: mang aria-label 'Mức nghiêm trọng: ...' đúng SEV_LABEL", () => {
-    render(<WorkPage />);
+    renderPage();
     for (const r of allRows) {
       const bar = screen.getByTestId(`issue-bar-${r.issue.id}`);
       within(bar).getByRole("img", { name: `Mức nghiêm trọng: ${SEV_LABEL[r.issue.sev]}` });
@@ -144,14 +149,14 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   });
 
   it("banner khối-trên-rỗng chỉ còn MỘT câu — vế 'Danh sách bên dưới...' trùng header + chip đã cắt", () => {
-    render(<WorkPage />);
+    renderPage();
     const note = screen.getByTestId("work-none-rankable");
     expect(note.textContent).toContain(`Chưa điểm gãy nào đủ ${PRI_KEYS.length}/${PRI_KEYS.length} khoá để xếp hạng.`);
     expect(note.textContent).not.toContain("Danh sách bên dưới");
   });
 
   it("chip 'Đã xong' bấm xoè danh sách việc đã khép vòng, bấm lại thu về", () => {
-    render(<WorkPage />);
+    renderPage();
     const closedActs = st.data.act.filter((a) => a.lc === "closed");
     expect(closedActs.length).toBeGreaterThan(0);
     expect(screen.queryByTestId("work-closed")).not.toBeInTheDocument();
@@ -168,20 +173,24 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   });
 
   it("chip 'chờ khép vòng' KHÔNG hiện khi waitLoop === 0", () => {
-    render(<WorkPage />);
+    renderPage();
     expect(waitLoop).toBe(0);
     expect(screen.queryByTestId("chip-waitloop")).not.toBeInTheDocument();
   });
 
-  it("action bị chặn bởi outcome inconclusive (CXA-017) → nút advance disabled", () => {
-    render(<WorkPage />);
+  it("action bị chặn bởi outcome inconclusive (CXA-017) → nút advance disabled, dòng chặn kèm link mở hồ sơ", () => {
+    renderPage();
     const blockedOutcome = seed.out.find((o) => o.verdict === "inconclusive")!;
     const btn = screen.getByTestId(`advance-${blockedOutcome.act}`);
     expect(btn).toBeDisabled();
+    /* 25/08: màn #/issue/:id đã dựng — dòng lý do chặn kèm nút mở hồ sơ đọc yếu tố nhiễu
+       (khôi phục đích đến của prototype ở tầng UI; repo.advanceAction vẫn no-op). */
+    const blockedIssue = seed.iss.find((i) => i.act === blockedOutcome.act)!;
+    expect(screen.getByTestId(`blocked-open-${blockedIssue.id}`)).toHaveTextContent("Mở hồ sơ điểm gãy");
   });
 
   it("màn KHÔNG chứa thẻ <a> nào", () => {
-    const { container } = render(<WorkPage />);
+    const { container } = renderPage();
     expect(container.querySelectorAll("a").length).toBe(0);
   });
 
@@ -192,7 +201,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
 
   // ĐẶT CUỐI CÙNG: mutate singleton store, ảnh hưởng state cho mọi test chạy SAU trong file này.
   it("bấm advance của action KHÔNG bị chặn → state đổi, nút đổi nhãn sang bước kế tiếp", () => {
-    render(<WorkPage />);
+    renderPage();
     const unblocked = allRows.find((r) => seed.out.find((o) => o.act === r.action.id && o.verdict === "inconclusive") === undefined)!;
     const btn = screen.getByTestId(`advance-${unblocked.action.id}`);
     const labelBefore = btn.textContent;
@@ -204,11 +213,11 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   /* --- W3b: các test dưới đây ĐẶT SAU test advance ở trên, và bản thân chúng CŨNG mutate singleton
      (createIssue/confirmIssue) — thứ tự giữa chúng cũng CÓ Ý NGHĨA, ghi rõ trong từng test. State UI
      (createOpen/confirmId/mkerr/mkok/...) là useState CỤC BỘ của component, KHÔNG phải store — mỗi
-     render(<WorkPage />) là một instance mới nên không rò rỉ giữa các test; chỉ DATA trong store
+     renderPage() là một instance mới nên không rò rỉ giữa các test; chỉ DATA trong store
      (data.iss/data.act/...) mới cộng dồn qua các test. */
 
   it("criterion 2: CXI-024 (lane 'confirm', chưa bị test nào đụng) hiện nút 'Xác nhận điểm gãy' + hint đúng; bar khác (CXA-028, lane 'fix') vẫn giữ CTA advance cũ", () => {
-    render(<WorkPage />);
+    renderPage();
     const confirmBtn = screen.getByTestId("assign-CXA-024");
     expect(confirmBtn).toHaveTextContent("Xác nhận điểm gãy");
     // 25/08 (phương án A): hint rời dòng explain dưới nút vào title của chính nút.
@@ -224,7 +233,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   });
 
   it("criterion 4: form Tạo bỏ trống Tiêu đề → banner đỏ TRONG form, form không đóng, KHÔNG tạo record mới", () => {
-    render(<WorkPage />);
+    renderPage();
     const issCountBefore = useCxmStore.getState().data.iss.length;
     fireEvent.click(screen.getByTestId("work-create"));
     expect(screen.getByText("Tạo điểm gãy mới")).toBeInTheDocument();
@@ -237,7 +246,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   });
 
   it("criterion 5: xác nhận CXA-024 (chỉ chạy SAU test criterion-2, TRƯỚC mọi test khác đụng CXA-024) → banner-asok, bar chuyển stage-approve current, CTA đổi lại 'Duyệt đề xuất xử lý'", () => {
-    render(<WorkPage />);
+    renderPage();
     const owners = useCxmStore.getState().owners;
     // Trước khi xác nhận: bar CXI-024 còn ở nhánh CTA "Xác nhận điểm gãy" (testid assign-, KHÔNG phải advance-).
     expect(screen.getByTestId("assign-CXA-024")).toBeInTheDocument();
@@ -263,7 +272,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   });
 
   it("criterion 6: tạo issue mới (owner để trống) rồi mở form xác nhận, KHÔNG chọn người xử lý → banner đỏ trong form, form còn mở, action KHÔNG đổi owner", () => {
-    render(<WorkPage />);
+    renderPage();
     fireEvent.click(screen.getByTestId("work-create"));
     fireEvent.change(screen.getByLabelText("Tiêu đề — một câu nói rõ khách đang gặp gì"), {
       target: { value: "Test criterion 6 — issue tạm để kiểm tra xác nhận rỗng" },
@@ -281,7 +290,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   });
 
   it("criterion 3+7+8+9+10: tạo issue (hạn dd chuyển đúng định dạng) → banner-mkok đúng chặng 'Xác nhận', hero/chip tăng đúng, validateFixture()===[] → mở form xác nhận CHÍNH bar vừa tạo → banner-mkok BIẾN MẤT, chưa có banner-asok → xác nhận xong → banner-asok đúng, banner-mkok vẫn vắng, validateFixture()===[]", () => {
-    render(<WorkPage />);
+    renderPage();
     const before = useCxmStore.getState().data;
     const pendingConfirmBefore = before.act.filter((a) => a.cf === "pending").length;
 

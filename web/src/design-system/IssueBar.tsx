@@ -193,13 +193,28 @@ export function IssueBar({ issue, action, stage, primary, blockedReason, sevColo
         </div>
       </div>
 
-      {/* Dòng 3 — CHỈ khi bị chặn: lý do bằng chữ đọc được ngay trên thanh (owner chốt, KHÔNG điều
-          hướng sang màn khác). Chữ xám, KHÔNG --crit: đây là câu GIẢI THÍCH vì sao nút khoá, không
-          phải mức độ nghiêm trọng — chấm sev ở dòng 1 đang giữ nghĩa đỏ đó. */}
+      {/* Dòng 3 — CHỈ khi bị chặn: lý do bằng chữ đọc được ngay trên thanh. Chữ xám, KHÔNG --crit:
+          đây là câu GIẢI THÍCH vì sao nút khoá, không phải mức độ nghiêm trọng — chấm sev ở dòng 1
+          đang giữ nghĩa đỏ đó. 25/08 (owner): màn #/issue/:id đã dựng nên kèm link mở hồ sơ đọc
+          yếu tố nhiễu — khôi phục đích đến của prototype, nhưng là LINK người dùng tự bấm chứ không
+          điều hướng hộ trong advance(). */}
       {blocked ? (
         <div className="text-[11.5px] text-ink-2 leading-snug">
           <span aria-hidden="true">⚠ </span>
           {blockedReason}
+          {onOpenIssue ? (
+            <>
+              {" "}
+              <button
+                type="button"
+                data-testid={`blocked-open-${issue.id}`}
+                className="font-semibold text-primary hover:underline"
+                onClick={onOpenIssue}
+              >
+                Mở hồ sơ điểm gãy →
+              </button>
+            </>
+          ) : null}
         </div>
       ) : null}
     </div>

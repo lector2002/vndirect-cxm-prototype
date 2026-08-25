@@ -23,14 +23,17 @@ export type AssistantPrompt = {
   /** Ký tự trang trí đầu dòng — aria-hidden, nhãn chữ mới là nội dung. */
   icon: string;
   label: string;
+  /** Một dòng nói câu trả lời ĐẾM TỪ ĐÂU (25/08, layout box) — cùng nguồn với answer builder
+      tương ứng bên dưới, đổi builder thì đổi câu này theo. */
+  desc: string;
 };
 
 export const PROMPTS: AssistantPrompt[] = [
-  { id: "p-critical", icon: "⚠", label: "Điểm gãy nào cần xử lý ngay?" },
-  { id: "p-overdue", icon: "⏱", label: "Việc nào đang quá hạn?" },
-  { id: "p-sources", icon: "⛁", label: "Nguồn dữ liệu nào đang có vấn đề?" },
-  { id: "p-agents", icon: "◈", label: "Agent phát hiện gì mới?" },
-  { id: "p-anomaly", icon: "↗", label: "Theme nào đang bất thường?" },
+  { id: "p-critical", icon: "⚠", label: "Điểm gãy nào cần xử lý ngay?", desc: "Đếm từ khối Ưu tiên xử lý — điểm gãy đang mở mức nặng nhất" },
+  { id: "p-overdue", icon: "⏱", label: "Việc nào đang quá hạn?", desc: "So hạn xử lý trên Workboard với ngày dữ liệu" },
+  { id: "p-sources", icon: "⛁", label: "Nguồn dữ liệu nào đang có vấn đề?", desc: "Chấm sức khoẻ từng nguồn như màn Data Sources" },
+  { id: "p-agents", icon: "◈", label: "Agent phát hiện gì mới?", desc: "Đọc nhật ký phát hiện của các agent đang chạy" },
+  { id: "p-anomaly", icon: "↗", label: "Theme nào đang bất thường?", desc: "So điểm cuối chuỗi anomaly với mức nền tự tính" },
 ];
 
 export function promptLabel(promptId: string): string {

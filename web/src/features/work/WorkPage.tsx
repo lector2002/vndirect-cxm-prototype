@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Issue } from "../../data/schema/index.ts";
 import type { ConfirmFields, CreateIssueFields } from "../../data/repository.ts";
 import type { IssueScore } from "../../data/priority.ts";
@@ -53,6 +54,7 @@ export function isOverdue(due: string, asOf: string): boolean {
 }
 
 export function WorkPage() {
+  const navigate = useNavigate();
   const data = useCxmStore((s) => s.data);
   const cfg = useCxmStore((s) => s.cfg);
   const dims = useCxmStore((s) => s.dims);
@@ -402,6 +404,9 @@ export function WorkPage() {
           priDetail={priDetailOf(issue.id)}
           onAdvance={() => advanceAction(action.id)}
           onConfirm={() => openConfirm(action.id)}
+          /* 25/08: màn #/issue/:id đã dựng (Module B) — mở hồ sơ thật từ tiêu đề và từ link ở dòng
+             bị chặn, thay chỗ prototype điều hướng ngay trong advance() (repo vẫn no-op an toàn). */
+          onOpenIssue={() => navigate(`/issue/${issue.id}`)}
         />
         {confirmId === action.id && confirmAction && issueToConfirm && confirmStep ? (
           <WorkConfirmForm
