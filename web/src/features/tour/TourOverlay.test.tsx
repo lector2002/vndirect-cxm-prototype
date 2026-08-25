@@ -46,11 +46,16 @@ beforeEach(() => {
   window.location.hash = "#/";
 });
 
+/* 10s thay cho 1s mặc định (25/08): TourOverlay đo đích qua tối đa 10 nhịp requestAnimationFrame
+   (TourOverlay.tsx, effect đo đích) — chạy file lẻ thì vài trăm ms, nhưng khi CẢ SUITE chạy song
+   song jsdom bỏ đói rAF và 10 nhịp có thể vượt 1s, làm test đỏ ngẫu nhiên dù logic đúng. */
+const SLOW = { timeout: 10_000 };
+
 /** Mở tour và đợi chặng đầu lên. */
 async function startTour() {
   render(<App />);
   fireEvent.click(screen.getByTestId("tour-start"));
-  await screen.findByTestId("tour-pop");
+  await screen.findByTestId("tour-pop", undefined, SLOW);
 }
 
 /** Bấm "Tiếp" cho tới chặng thứ `n` (1-based). */
@@ -59,7 +64,7 @@ async function goToStop(n: number) {
     fireEvent.click(screen.getByTestId("tour-next"));
     await waitFor(() => {
       expect(screen.getByTestId("tour-pop")).toHaveTextContent(`BƯỚC ${k + 1}/${walk.length}`);
-    });
+    }, SLOW);
   }
 }
 
@@ -69,7 +74,7 @@ describe("TourOverlay — bản giới thiệu có dẫn", () => {
     const pop = screen.getByTestId("tour-pop");
     expect(pop).toHaveTextContent(`BƯỚC 1/${walk.length} · ${walk[0].grp}`);
     expect(pop).toHaveTextContent(walk[0].t);
-    await waitFor(() => expect(screen.getByTestId("tour-hole")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("tour-hole")).toBeInTheDocument(), SLOW);
     // Chặng đầu là #/cxm — mốc của nó phải có thật trên màn.
     expect(document.querySelector(walk[0].sel)).not.toBeNull();
   });
@@ -84,11 +89,11 @@ describe("TourOverlay — bản giới thiệu có dẫn", () => {
         fireEvent.click(screen.getByTestId("tour-next"));
         await waitFor(() => {
           expect(screen.getByTestId("tour-pop")).toHaveTextContent(`BƯỚC ${n}/${walk.length}`);
-        });
+        }, SLOW);
       }
       const sel = walk[n - 1].sel;
       // Đợi màn của chặng render xong rồi mới soi mốc.
-      await waitFor(() => expect(screen.getByTestId("tour-pop")).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByTestId("tour-pop")).toBeInTheDocument(), SLOW);
       if (!document.querySelector(sel)) missing.push(sel);
     }
     /* Đúng HAI mốc được phép vắng, và cả hai vắng vì CÙNG MỘT chủ ý: hồ sơ chi tiết chỉ hiện sau
@@ -102,7 +107,7 @@ describe("TourOverlay — bản giới thiệu có dẫn", () => {
     await goToStop(inspectorStop);
     await waitFor(() => {
       expect(screen.getByTestId("tour-noanchor")).toHaveTextContent(/chỉ hiện sau khi đã chọn một bước/i);
-    });
+    }, SLOW);
     expect(screen.queryByTestId("tour-hole")).not.toBeInTheDocument();
   });
 
@@ -118,7 +123,7 @@ describe("TourOverlay — bản giới thiệu có dẫn", () => {
     await goToStop(inspectorStop);
     await waitFor(() => {
       expect(screen.getByTestId("tour-noanchor")).toHaveTextContent(/chưa có gì để tô sáng/i);
-    });
+    }, SLOW);
     fireEvent.click(screen.getByTestId("tour-mask"));
     expect(screen.getByTestId("tour-pop")).toBeInTheDocument();
   });
@@ -131,15 +136,15 @@ describe("TourOverlay — bản giới thiệu có dẫn", () => {
     await startTour();
     await goToStop(inspectorStop);
     fireEvent.click(screen.getByTestId("tour-exit"));
-    await waitFor(() => expect(screen.queryByTestId("tour-pop")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByTestId("tour-pop")).not.toBeInTheDocument(), SLOW);
 
     fireEvent.click(screen.getAllByTestId(/^spine-step-/)[0]);
     expect(screen.getByTestId("atlas-inspector")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("tour-start"));
-    await screen.findByTestId("tour-pop");
+    await screen.findByTestId("tour-pop", undefined, SLOW);
     await goToStop(inspectorStop);
-    await waitFor(() => expect(screen.getByTestId("tour-noanchor")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId("tour-noanchor")).toBeInTheDocument(), SLOW);
   });
 
   /* Mốc `atlas-spine` chỉ có khi flow đang mở có bước, mà flow là state cục bộ của AtlasPage — nên
@@ -150,13 +155,13 @@ describe("TourOverlay — bản giới thiệu có dẫn", () => {
   it("mở sẵn flow ngoài pilot rồi chạy tour: chặng xương sống vẫn tô sáng được (màn remount)", async () => {
     window.location.hash = "#/atlas";
     render(<App />);
-    fireEvent.click(await screen.findByTestId(`atlas-flow-${noStepFlow.id}`));
+    fireEvent.click(await screen.findByTestId(`atlas-flow-${noStepFlow.id}`, undefined, SLOW));
     expect(screen.queryByTestId("journey-spine")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("tour-start"));
-    await screen.findByTestId("tour-pop");
+    await screen.findByTestId("tour-pop", undefined, SLOW);
     await goToStop(spineStop);
-    await waitFor(() => expect(document.querySelector(walk[spineStop - 1].sel)).not.toBeNull());
+    await waitFor(() => expect(document.querySelector(walk[spineStop - 1].sel)).not.toBeNull(), SLOW);
     expect(screen.queryByTestId("tour-noanchor")).not.toBeInTheDocument();
   });
 
@@ -184,17 +189,17 @@ describe("TourOverlay — bản giới thiệu có dẫn", () => {
     fireEvent.click(screen.getByTestId("tour-prev"));
     await waitFor(() => {
       expect(screen.getByTestId("tour-pop")).toHaveTextContent(`BƯỚC 1/${walk.length}`);
-    });
+    }, SLOW);
   });
 
   it("Esc và nút Thoát đều đóng tour", async () => {
     await startTour();
     fireEvent.keyDown(window, { key: "Escape" });
-    await waitFor(() => expect(screen.queryByTestId("tour-pop")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByTestId("tour-pop")).not.toBeInTheDocument(), SLOW);
 
     fireEvent.click(screen.getByTestId("tour-start"));
-    await screen.findByTestId("tour-pop");
+    await screen.findByTestId("tour-pop", undefined, SLOW);
     fireEvent.click(screen.getByTestId("tour-exit"));
-    await waitFor(() => expect(screen.queryByTestId("tour-pop")).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByTestId("tour-pop")).not.toBeInTheDocument(), SLOW);
   });
 });

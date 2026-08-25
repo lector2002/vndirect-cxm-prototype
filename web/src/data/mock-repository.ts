@@ -75,6 +75,10 @@ function newId(prefix: string, exists: (id: string) => boolean): string {
 export class MockRepository implements CxmRepository {
   private data: CxmData;
   private cfg: Cfg;
+  /** Cfg MẶC ĐỊNH của repo này = đúng cfgFixture đã tiêm (25/08) — "mặc định" nghĩa là "trạng thái
+      lúc dựng repo", không phải hằng module: demoCfg điền sẵn Per-step levels KHÔNG được đọc thành
+      "đã sửa trong phiên" ở màn Rules, và nút Reset phải trả về đúng nó. */
+  private cfgFixture: Cfg;
   private dims: Record<string, Dim>;
   private nav: NavItem[];
   private tour: TourStop[];
@@ -97,9 +101,17 @@ export class MockRepository implements CxmRepository {
      nướng. Tham số này là đường TÁI CỘNG lại từ khách vừa chiếu nhãn dải mới, chạy ở đúng hai chỗ
      phép chiếu xảy ra bên dưới (getSnapshot/projectedValidationSnapshot). Optional + mặc định
      undefined giữ nguyên hành vi của hàng chục test dùng `seed` (sigCounts luôn `[]`, xem seed.ts). */
-  constructor(fixture: CxmData = seed, recount?: (cust: readonly Customer[], dims: Record<string, Dim>) => SigCount[]) {
+  /* `cfgFixture` (25/08, owner quét AI-slop): cfg cũng tiêm được như fixture — Demo Mode cần bảng
+     "Per-step levels" ĐIỀN SẴN (demoCfg, data/fixtures/demo.ts) để các trục xếp hạng jc/reg có số
+     mà trình diễn; seed/test giữ nguyên cfgDefault (jc/reg rỗng — "bỏ trống là mặc định", ADR-002). */
+  constructor(
+    fixture: CxmData = seed,
+    recount?: (cust: readonly Customer[], dims: Record<string, Dim>) => SigCount[],
+    cfgFixture: Cfg = cfgDefault,
+  ) {
     this.data = structuredClone(fixture);
-    this.cfg = structuredClone(cfgDefault);
+    this.cfg = structuredClone(cfgFixture);
+    this.cfgFixture = structuredClone(cfgFixture);
     this.dims = structuredClone(dims);
     this.nav = structuredClone(seedNav);
     this.tour = structuredClone(seedTour);
@@ -123,7 +135,7 @@ export class MockRepository implements CxmRepository {
   }
 
   getCfgDefault(): Cfg {
-    return structuredClone(cfgDefault);
+    return structuredClone(this.cfgFixture);
   }
 
   getDims(): Record<string, Dim> {

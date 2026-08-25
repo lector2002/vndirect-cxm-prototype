@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { cfgDefault, dims, seed } from "../../data/fixtures/seed.ts";
+import { seed } from "../../data/fixtures/seed.ts";
 import { PRI_KEYS, PRI_LABEL, isRankable, scoreIssues } from "../../data/priority.ts";
 import { getPrimaryAction } from "../../domain/index.ts";
 import { navLabel } from "../../nav.tsx";
@@ -22,9 +22,11 @@ const waitLoop = seed.act.filter((a) => a.iv === "validated" && a.lc !== "closed
 
 /* Hai khối, không một danh sách (ADR-002 §19). Điểm gãy đủ 7/7 khoá xuống khối trên và xếp theo
    điểm; còn thiếu khoá thì xuống khối "chưa đủ dữ liệu để xếp", sắp theo SỐ KHOÁ CÒN THIẾU tăng dần.
-   Test suy lại bằng chính `scoreIssues`, không ghim id nào: seed hôm nay chưa điền `cfg.step.jc`/`reg`
-   và chưa map điểm đo nên khối trên RỖNG — điền vào seed sau này là test tự đi theo. */
-const scores = scoreIssues(seed, cfgDefault, dims);
+   Test suy lại bằng chính `scoreIssues`, không ghim id nào — và tính trên ĐÚNG (data, cfg, dims) mà
+   singleton đang render (25/08: singleton mang demoCfg điền sẵn jc/reg, khác cfgDefault; oracle
+   ghim cfgDefault là lệch trang ngay). */
+const st = useCxmStore.getState();
+const scores = scoreIssues(st.data, st.cfg, st.dims);
 const scoreOf = (id: string) => scores.get(id)!;
 
 const allRows = seed.act

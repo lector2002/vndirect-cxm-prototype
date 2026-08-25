@@ -1,4 +1,4 @@
-import type { CfgBandAxis, CxmData, Customer, Dim, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, Signal, TaxNode, Snapshot, MetricHistory, Issue, Metric } from "../schema/index.ts";
+import type { Cfg, CfgBandAxis, CxmData, Customer, Dim, AgeBand, NavBand, TenureBand, AcqChannel, Evidence, EvidenceKind, Signal, StepLevel, TaxNode, Snapshot, MetricHistory, Issue, Metric } from "../schema/index.ts";
 import { metricDirection } from "../metric-direction.ts";
 import { cfgDefault, dims, seed } from "./seed.ts";
 import { UNKNOWN_YET, MISSING } from "../segment.ts";
@@ -1067,3 +1067,40 @@ export const demoData: CxmData = {
 export function recountDemoSignals(cust: readonly Customer[], dims: Record<string, Dim>): SigCount[] {
   return projectSignalCounts(demoFires, cust, dims);
 }
+
+/* ---- Cfg cho Demo Mode — bảng "Per-step levels" ĐIỀN SẴN (25/08, owner quét AI-slop) ----
+
+   Trước 25/08 Demo Mode dùng nguyên `cfgDefault` (jc/reg rỗng cả 30 bước) nên: (a) màn Rules hiện
+   30 dòng "— not set —" trông như màn bỏ dở, (b) hai card xếp hạng theo jc/reg ở CXM Overview
+   thành "Top 0 trên 0". "Bỏ trống là mặc định" (ADR-002 §9) vẫn ĐÚNG cho fixture thật/seed —
+   nhưng Demo Mode nghĩa là "trình diễn ĐỦ tính năng" (chính lý do 03/08 chọn demoData 300 khách),
+   nên mức của bước cũng phải có số demo. Ghi đè ở ĐÂY chứ không sửa cfgDefault: trộn số demo vào
+   mặc định thật sẽ xoá mất tình trạng "chưa ai khai" mà màn phải nói ra ngoài demo — cùng lý do
+   với SIG_INST_AT ở trên.
+
+   Mức gán theo nghĩa của bước (không random): reg cao ở các bước eKYC/ký hợp đồng/chuyển tiền
+   (định danh + pháp lý + dòng tiền), jc cao ở các bước chặn đường đi của khách (kích hoạt, ghi
+   có, chuyển tiền). Đủ cả 30 bước — StepPriGroup đếm "Đã điền N/30" từ chính bảng này. */
+const DEMO_STEP_JC: Record<string, StepLevel> = {
+  s1: 'high', s2: 'high', s3: 'high', s4: 'mid', s5: 'high', s6: 'high',
+  's-dvo-1': 'mid', 's-dvo-2': 'low', 's-dvo-3': 'mid', 's-dvo-4': 'mid', 's-dvo-5': 'mid',
+  's-nap-1': 'high', 's-nap-2': 'high', 's-nap-3': 'high', 's-nap-4': 'high',
+  's-tra-1': 'mid', 's-tra-2': 'low', 's-tra-3': 'mid', 's-tra-4': 'high',
+  's-rut-1': 'high', 's-rut-2': 'mid', 's-rut-3': 'mid', 's-rut-4': 'mid', 's-rut-5': 'high',
+  's-rut-6': 'mid', 's-rut-7': 'high',
+  's-ctn-1': 'low', 's-ctn-2': 'mid', 's-ctn-3': 'mid', 's-ctn-4': 'high',
+};
+const DEMO_STEP_REG: Record<string, StepLevel> = {
+  s1: 'low', s2: 'high', s3: 'high', s4: 'mid', s5: 'high', s6: 'mid',
+  's-dvo-1': 'high', 's-dvo-2': 'mid', 's-dvo-3': 'high', 's-dvo-4': 'high', 's-dvo-5': 'mid',
+  's-nap-1': 'high', 's-nap-2': 'high', 's-nap-3': 'mid', 's-nap-4': 'mid',
+  's-tra-1': 'mid', 's-tra-2': 'mid', 's-tra-3': 'mid', 's-tra-4': 'high',
+  's-rut-1': 'high', 's-rut-2': 'high', 's-rut-3': 'high', 's-rut-4': 'high', 's-rut-5': 'high',
+  's-rut-6': 'mid', 's-rut-7': 'high',
+  's-ctn-1': 'low', 's-ctn-2': 'mid', 's-ctn-3': 'high', 's-ctn-4': 'high',
+};
+
+export const demoCfg: Cfg = {
+  ...cfgDefault,
+  step: { ...cfgDefault.step, jc: DEMO_STEP_JC, reg: DEMO_STEP_REG },
+};
