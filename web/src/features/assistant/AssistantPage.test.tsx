@@ -61,7 +61,8 @@ describe("hỏi bằng câu hỏi mẫu", () => {
        turnCount/typing đổi nên spy phải được gọi sau khi bấm câu hỏi. */
     const el = screen.getByTestId("assistant-scroll");
     const calls: number[] = [];
-    (el as HTMLElement & { scrollTo: (o: ScrollToOptions) => void }).scrollTo = (o) => calls.push(o.top ?? -1);
+    // ép qua overload 2 tham số của lib DOM: spy chỉ cần nhánh options mà component đang gọi
+    el.scrollTo = ((o: ScrollToOptions) => calls.push(o.top ?? -1)) as typeof el.scrollTo;
     fireEvent.click(screen.getByTestId("assistant-prompt-p-overdue"));
     expect(await screen.findByText(answerFor("p-overdue", data, cfg).intro)).toBeInTheDocument();
     expect(calls.length).toBeGreaterThan(0);
