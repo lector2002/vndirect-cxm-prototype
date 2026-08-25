@@ -1,4 +1,4 @@
-import type { Cfg, CxmData } from "../../data/schema/index.ts";
+import type { Cfg, CxmData, QuantifySeries } from "../../data/schema/index.ts";
 import { sourceHealth } from "../../domain/index.ts";
 import { SEV_LABEL } from "../work/WorkCreateForm.tsx";
 import { isOverdue } from "../work/WorkPage.tsx";
@@ -119,7 +119,9 @@ function answerAgents(data: CxmData): AssistantAnswer {
    1,5×/0,67× chỉ là ngưỡng KỂ (kể dòng nào vào câu trả lời), không phải ngưỡng nghiệp vụ mới:
    chart anomaly gốc vẫn là nơi nhìn đầy đủ, câu trả lời chỉ tóm những dòng lệch rõ. */
 function answerAnomaly(data: CxmData): AssistantAnswer {
-  const items = data.qt.filter((q) => q.kind === "series" && q.chart === "anomaly");
+  /* type predicate: .filter() thường không narrow union QuantifyItem — không có nó thì `item.t`
+     (chỉ nhánh series có) trượt type-check ở `tsc -b` của npm run build */
+  const items = data.qt.filter((q): q is QuantifySeries => q.kind === "series" && q.chart === "anomaly");
   const bullets: string[] = [];
   for (const item of items) {
     for (const line of item.t) {
