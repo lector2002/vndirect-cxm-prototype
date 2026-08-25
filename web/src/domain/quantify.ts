@@ -346,9 +346,9 @@ export const NOCUST_COLOR = "var(--unk-nocust)";
 
 /* Lý do khoá của trục TỔNG HỢP, cắt làm hai mảnh và GHÉP LẠI thành `reason` — một nguồn chữ, hai độ
    dài, nên không có bản sao nào trôi lệch:
-   - `AGG_SPLIT_NOTE` là câu hiện thành CHỮ dưới chart. Đo trên màn 05/08: trang Quantify có 7 chart
-     trục tổng hợp, in nguyên đoạn dài dưới cả 7 thì thành 7 khối 2–3 dòng giống hệt nhau — người xem
-     thôi đọc, tức là mất đúng cái luật "nói thẳng" định đạt được.
+   - `AGG_SPLIT_NOTE` là câu ngắn. 25/08 (owner, quét AI-slop): KHÔNG in thường trực dưới chart nữa —
+     bản ngắn vẫn lặp ×17 card cùng trang nên người xem thôi đọc. Nó chỉ còn sống trong `reason`
+     (tooltip từng chip khoá, và in thành chữ KHI người xem bấm chip khoá — QuantifyWidget askedReason).
    - `AGG_SPLIT_EVIDENCE` là phần ĐO ĐƯỢC, đi kèm trong `reason` đầy đủ (tooltip từng chip) cho ai cần
      kiểm chứng con số. Không bỏ đi: nó là bằng chứng cho lời khẳng định ở câu trên. */
 export const AGG_SPLIT_NOTE =

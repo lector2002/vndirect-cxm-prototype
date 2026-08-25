@@ -21,17 +21,18 @@ function closestCard(el: HTMLElement): HTMLElement {
    Tổng 14 theme — không nhóm nào tự nhiên vượt quá 6, nên test cắt Top 6 dùng data tổng hợp
    thêm theme complaint giả (không đụng seed thật). */
 describe("IntentBlock", () => {
-  it("4 card đúng 4 câu hỏi theo intent, đúng thứ tự complaint → improvement → help → praise", () => {
+  /* 25/08 (owner, quét AI-slop): tiêu đề card đổi từ câu hỏi sang nhãn danh từ đọc thẳng từ
+     data.cats[cat].label — đối chiếu qua chính seed.cats, không gõ lại chuỗi. */
+  it("4 card mang đúng nhãn data.cats[cat].label, đúng thứ tự complaint → improvement → help → praise", () => {
     render(<IntentBlock data={seed} cfg={cfgDefault} />);
-    expect(screen.getByText("Khách đang bức xúc về điều gì?")).toBeInTheDocument();
-    expect(screen.getByText("Khách muốn cải thiện điều gì?")).toBeInTheDocument();
-    expect(screen.getByText("Khách đang cần giúp ở đâu?")).toBeInTheDocument();
-    expect(screen.getByText("Khách thích điều gì?")).toBeInTheDocument();
+    for (const cat of ["complaint", "improvement", "help", "praise"]) {
+      expect(screen.getByText(seed.cats[cat]!.label)).toBeInTheDocument();
+    }
   });
 
   it("card complaint CHỈ chứa theme cat=complaint — theme praise/help/improvement KHÔNG xuất hiện trong card đó", () => {
     render(<IntentBlock data={seed} cfg={cfgDefault} />);
-    const card = closestCard(screen.getByText("Khách đang bức xúc về điều gì?"));
+    const card = closestCard(screen.getByText(seed.cats.complaint!.label));
     const within_ = within(card);
     expect(within_.getByText("Thiết bị / môi trường không tương thích")).toBeInTheDocument(); // complaint
     expect(within_.queryByText("Trải nghiệm nhanh và mượt")).not.toBeInTheDocument(); // praise
@@ -39,15 +40,10 @@ describe("IntentBlock", () => {
     expect(within_.queryByText("Đề nghị mở kênh hỗ trợ tại quầy")).not.toBeInTheDocument(); // improvement
   });
 
-  it("mỗi card hiện đúng số theme của nhóm mình (denom Top N trên M theme)", () => {
+  it("nhóm không vượt TOP_N → KHÔNG có dải mẫu số ('Top 5 trên 5' là nói lại chính chart — 25/08)", () => {
     render(<IntentBlock data={seed} cfg={cfgDefault} />);
-    const complaintCard = closestCard(screen.getByText("Khách đang bức xúc về điều gì?"));
-    expect(within(complaintCard).getByText(/Đang hiện Top 5/)).toBeInTheDocument();
-    expect(within(complaintCard).getByText(/trên 5 theme/)).toBeInTheDocument();
-
-    const helpCard = closestCard(screen.getByText("Khách đang cần giúp ở đâu?"));
-    expect(within(helpCard).getByText(/Đang hiện Top 3/)).toBeInTheDocument();
-    expect(within(helpCard).getByText(/trên 3 theme/)).toBeInTheDocument();
+    // Seed: không nhóm nào quá 6 theme (xem bảng đếm ở đầu file) → cả 4 card đều không dải.
+    expect(screen.queryByText(/Đang hiện Top/)).not.toBeInTheDocument();
   });
 
   it("cắt Top 6 đúng khi nhóm có >6 theme (data tổng hợp, không đụng seed thật)", () => {
@@ -64,7 +60,7 @@ describe("IntentBlock", () => {
     }));
     const data: CxmData = { ...seed, tax: [...seed.tax, ...extra] };
     render(<IntentBlock data={data} cfg={cfgDefault} />);
-    const card = closestCard(screen.getByText("Khách đang bức xúc về điều gì?"));
+    const card = closestCard(screen.getByText(seed.cats.complaint!.label));
     // 5 theme gốc + 4 theme phụ = 9 tổng, chỉ hiện Top 6
     expect(within(card).getByText(/Đang hiện Top 6/)).toBeInTheDocument();
     expect(within(card).getByText(/trên 9 theme/)).toBeInTheDocument();
@@ -75,7 +71,7 @@ describe("IntentBlock", () => {
   it("nhóm rỗng → 'Chưa có theme nào thuộc nhóm này.' (data tổng hợp không theme improvement nào)", () => {
     const data: CxmData = { ...seed, tax: seed.tax.filter((t) => t.cat !== "improvement") };
     render(<IntentBlock data={data} cfg={cfgDefault} />);
-    const card = closestCard(screen.getByText("Khách muốn cải thiện điều gì?"));
+    const card = closestCard(screen.getByText(seed.cats.improvement!.label));
     expect(within(card).getByText("Chưa có theme nào thuộc nhóm này.")).toBeInTheDocument();
   });
 

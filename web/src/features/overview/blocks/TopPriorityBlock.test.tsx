@@ -21,14 +21,20 @@ const open = seed.iss.filter((i) => {
 });
 const scores = scoreIssues(seed, cfgDefault, dims);
 const measured = (k: PriKey) => open.filter((i) => scores.get(i.id)?.x[k] !== null);
+/* 25/08 (owner, quét AI-slop): card 0 dòng đo được render EMPTY-STATE thay vì chart trục trống —
+   nên số phần tử `bars` = số card CÓ dòng, và mọi phép chiếu bars[idx] phải đi qua danh sách lọc
+   này thay vì CARDS thô. */
+const cardsWithRows: readonly PriKey[] = CARDS.filter((k) => measured(k).length > 0);
 
 describe("TopPriorityBlock", () => {
-  it("render đúng ba card, mỗi card một khoá ưu tiên", () => {
+  it("render đúng ba card; card không đo được trục nào hiện empty-state thay vì chart trống", () => {
     render(<TopPriorityBlock data={seed} cfg={cfgDefault} dims={dims} />);
     for (const k of CARDS) {
       expect(screen.getByText(`Top theo ${PRI_LABEL[k].toLowerCase()}`)).toBeInTheDocument();
     }
-    expect(screen.getAllByTestId("bars")).toHaveLength(CARDS.length);
+    expect(screen.getAllByTestId("bars")).toHaveLength(cardsWithRows.length);
+    const emptyCount = CARDS.length - cardsWithRows.length;
+    expect(screen.queryAllByTestId("toppriority-empty")).toHaveLength(emptyCount);
   });
 
   it("card CES đã bỏ hẳn — không còn tiêu đề lẫn đơn vị của nó", () => {
@@ -40,7 +46,7 @@ describe("TopPriorityBlock", () => {
   it("mỗi card chỉ liệt kê điểm gãy ĐO ĐƯỢC trục đó, không xếp cái chưa tính được xuống cuối", () => {
     render(<TopPriorityBlock data={seed} cfg={cfgDefault} dims={dims} />);
     const bars = screen.getAllByTestId("bars");
-    CARDS.forEach((k, idx) => {
+    cardsWithRows.forEach((k, idx) => {
       expect(bars[idx].children).toHaveLength(Math.min(measured(k).length, 10));
     });
   });
@@ -50,9 +56,12 @@ describe("TopPriorityBlock", () => {
     for (const k of CARDS) {
       const unmeasured = open.length - measured(k).length;
       if (unmeasured === 0) continue;
-      expect(
-        screen.getAllByText(new RegExp(`${unmeasured} chưa tính được trục này`)).length,
-      ).toBeGreaterThan(0);
+      // Card có dòng: đếm ở dải mẫu số. Card 0 dòng: đếm trong chính câu empty-state.
+      const pattern =
+        measured(k).length > 0
+          ? new RegExp(`${unmeasured} chưa tính được trục này`)
+          : new RegExp(`${unmeasured} điểm gãy đang mở chưa có dữ liệu`);
+      expect(screen.getAllByText(pattern).length).toBeGreaterThan(0);
     }
   });
 
@@ -70,7 +79,7 @@ describe("TopPriorityBlock", () => {
   it("thứ tự trong mỗi card giảm dần theo chính số đo của khoá đó", () => {
     render(<TopPriorityBlock data={seed} cfg={cfgDefault} dims={dims} />);
     const bars = screen.getAllByTestId("bars");
-    CARDS.forEach((k, idx) => {
+    cardsWithRows.forEach((k, idx) => {
       const expected = measured(k)
         .slice()
         .sort((a, b) => (scores.get(b.id)?.x[k] as number) - (scores.get(a.id)?.x[k] as number))

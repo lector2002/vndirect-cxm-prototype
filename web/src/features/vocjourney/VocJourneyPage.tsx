@@ -152,7 +152,13 @@ export function VocJourneyPage() {
       <div className="mb-3.5">
         <Card
           title={`${currentPhase.code} · ${currentPhase.name}`}
-          denomStrip={`Đang hiện Top ${flowsInPhaseCount} trên ${data.flows.length} flow`}
+          /* 25/08 (owner, quét AI-slop): dải chỉ hiện khi phase THẬT SỰ là tập con — N/N là nói
+             lại chính hàng chip bên dưới (cùng điều kiện với card phase của AtlasPage). */
+          denomStrip={
+            flowsInPhaseCount < data.flows.length
+              ? `Đang hiện Top ${flowsInPhaseCount} trên ${data.flows.length} flow`
+              : undefined
+          }
         >
           <div className="mb-3" data-testid="voc-gap-line">
             <Note>{coverageGapLine(data, currentPhase.id)}</Note>

@@ -11,7 +11,15 @@
    hình dáng toggle này (features/overview/blocks/ThemeStackBlock.tsx:18-20) và TimeframeBar cũng có
    bản riêng. Bản ở đây là bản trong design-system (đúng tầng — features không được import xuống
    design-system). CỐ Ý không sửa hai chỗ kia trong lát này: chúng đang chạy đúng, gộp lại là việc
-   riêng, không phải phần owner vừa chốt. */
+   riêng, không phải phần owner vừa chốt.
+
+   25/08 (owner, quét AI-slop): đã CÂN NHẮC và BÁC phương án "một control Chia màu chung đầu trang
+   Quantify" (đề xuất từ đợt soi 25/08 vì strip lặp trên mọi card). Lý do bác — ba quyết định đứng
+   trên đều gãy nếu gom: (1) 03/08 lát 1: toggle phải nằm TẠI chart để "thấy vấn đề là bấm xem ngay
+   nhóm khách nào" — mỗi chart một chiều chia riêng, control chung ép mọi chart cùng một chiều;
+   (2) chip khoá phải HIỆN MỜ kèm lý do THEO TỪNG CHART (dòng 4-8) — lý do khoá của q1 (trục agg)
+   khác q19 (view bảng), control chung không nói nổi hai lý do một lúc; (3) 05/08 onLockedClick:
+   bấm chip khoá in lý do ngay dưới CHÍNH chart đó. Sự lặp lại của strip là giá của ba hành vi này. */
 
 export type SplitOption = {
   key: string;

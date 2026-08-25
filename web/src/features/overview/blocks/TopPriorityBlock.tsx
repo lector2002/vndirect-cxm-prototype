@@ -1,6 +1,5 @@
 import type { Cfg, CxmData, Dim, DimRow, Issue, PriKey } from "../../../data/schema/index.ts";
 import { PRI_LABEL, scoreIssues } from "../../../data/priority.ts";
-import { BASE_FACTOR } from "../../../domain/index.ts";
 import { Bars, Card } from "../../../design-system/index.ts";
 
 /* @toppri — khối "Nhìn theo từng khoá" (port từ "Điểm gãy nào đáng xử lý trước", prototype dòng
@@ -26,13 +25,8 @@ export type TopPriorityBlockProps = {
   onGo?: (route: string) => void;
 };
 
-/* Kỳ tuyệt đối dưới tiêu đề mỗi card — phần 2 anatomy wHead() (prototype dòng 1858-1862). Tra
-   data.periods theo BASE_FACTOR giống hệt cách QuantifyWidget.tsx làm (design-system, không sửa
-   được ở đây) để nếu seed đổi baseline thì nhãn vẫn khớp fx() mà không cần sửa component này. */
-function periodLabel(data: CxmData): string {
-  const p = data.periods.find((x) => x.factor === BASE_FACTOR);
-  return p ? `${p.label} (${p.range})` : "";
-}
+/* 25/08 (owner, quét AI-slop): subtitle "Ảnh chụp · kỳ" rời khỏi mọi card Overview — GlobalToolbar
+   đầu trang đã cầm timeframe, in lại dưới từng tiêu đề là một dữ kiện đọc nhiều lần. */
 
 /* Màu chấm theo mức độ nghiêm trọng của issue — KHÔNG theo giá trị đang xếp hạng (một issue medium
    vẫn là chấm xám dù đang đứng đầu bảng "theo rủi ro tuân thủ"). Port 1-1 (prototype dòng 2160). */
@@ -75,33 +69,36 @@ export function TopPriorityBlock({ data, cfg, dims, onGo }: TopPriorityBlockProp
     ] as const
   ).map(({ k, unit }) => ({ title: `Top theo ${PRI_LABEL[k].toLowerCase()}`, rows: rank(k), unit }));
 
-  const period = `Ảnh chụp · ${periodLabel(data)}`;
-
   return (
     <div className="grid grid-cols-2 gap-4">
       {cards.map((c) => {
         const shown = Math.min(c.rows.length, 10);
         const unmeasured = open.length - c.rows.length;
+        /* Mẫu số là số điểm gãy ĐO ĐƯỢC trục này, không phải tổng điểm gãy đang mở — phần chênh
+           được đếm ra chữ chứ không im lặng biến mất, cùng luật với khối "chưa đo" của StepGroup.
+           25/08 (owner, quét AI-slop): dải chỉ hiện khi nó MANG TIN — có phần chưa đo, hoặc bảng
+           đang cắt bớt ("Top 10 trên 10" là câu nói lại chính cái bảng). Card 0 dòng đo được thì
+           thay chart bằng empty-state nói lý do — trục trống trơ đọc thành "màn hỏng". */
+        const denomStrip =
+          c.rows.length > 0 && unmeasured > 0
+            ? `Đang hiện Top ${shown} trên ${c.rows.length} điểm gãy đo được · ${unmeasured} chưa tính được trục này`
+            : c.rows.length > 0 && shown < c.rows.length
+              ? `Đang hiện Top ${shown} trên ${c.rows.length} điểm gãy`
+              : undefined;
         return (
-          <Card
-            key={c.title}
-            title={c.title}
-            subtitle={period}
-            /* Mẫu số là số điểm gãy ĐO ĐƯỢC trục này, không phải tổng điểm gãy đang mở — và phần
-               chênh được đếm ra chữ chứ không im lặng biến mất, cùng luật với khối "chưa đo" của
-               StepGroup. Không có câu này thì một bảng 0 dòng đọc thành "không điểm gãy nào có rủi
-               ro pháp lý", trong khi sự thật là chưa ai điền mức cho bước nào. */
-            denomStrip={
-              unmeasured > 0
-                ? `Đang hiện Top ${shown} trên ${c.rows.length} điểm gãy đo được · ${unmeasured} chưa tính được trục này`
-                : `Đang hiện Top ${shown} trên ${c.rows.length} điểm gãy`
-            }
-          >
-            <Bars
-              rows={c.rows.slice(0, 10)}
-              onRowClick={onGo ? (r) => onGo(`issue/${r.id}`) : undefined}
-              axisLabel={c.unit}
-            />
+          <Card key={c.title} title={c.title} denomStrip={denomStrip}>
+            {c.rows.length === 0 ? (
+              <div className="text-[13px] text-ink-3" data-testid="toppriority-empty">
+                Chưa tính được trục này cho điểm gãy nào
+                {unmeasured > 0 ? ` — ${unmeasured} điểm gãy đang mở chưa có dữ liệu ${c.unit}.` : "."}
+              </div>
+            ) : (
+              <Bars
+                rows={c.rows.slice(0, 10)}
+                onRowClick={onGo ? (r) => onGo(`issue/${r.id}`) : undefined}
+                axisLabel={c.unit}
+              />
+            )}
           </Card>
         );
       })}

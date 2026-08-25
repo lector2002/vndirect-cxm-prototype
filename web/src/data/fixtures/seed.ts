@@ -315,7 +315,7 @@ const seedRaw: CxmData = {
      TRƯỜNG bị sửa. sg6 (gap) và sg9 (designed, vol:0) → rỗng, đúng luật "vol===0 ⇒ []". */
   signals: [
 { id:'sg1', tpId:'tp1', name:'account_open_started',        st:'live',       pf:['ios','android','web'], es:'client', vol:614,  seen:'27/07 · 14:52', srcId:'src-ga', metrics:['m-completion'], desc:'Khách bấm Mở tài khoản', instAt:null, values:['tapped'] },
-    { id:'sg2', tpId:'tp1', name:'account_open_step_viewed',    st:'live',       pf:['ios','android','web'], es:'client', vol:2840, seen:'27/07 · 14:52', srcId:'src-ga', metrics:['m-completion'], desc:'Hiển thị từng bước, bắn lặp theo bước', instAt:null, values:['step_01','step_02','step_03','step_04','step_05','step_06'] },
+    { id:'sg2', tpId:'tp1', name:'account_open_step_viewed',    st:'live',       pf:['ios','android','web'], es:'client', vol:2840, seen:'27/07 · 14:52', srcId:'src-ga', metrics:['m-completion'], desc:'Hiển thị từng bước của form, bắn lặp theo bước', instAt:null, values:['step_01','step_02','step_03','step_04','step_05','step_06'] },
     { id:'sg3', tpId:'tp2', name:'ekyc_document_capture_result',st:'live',       pf:['ios','android'],       es:'client', vol:920,  seen:'27/07 · 14:50', srcId:'src-ekyc', metrics:['m-ocr'], desc:'Kết quả mỗi lần chụp giấy tờ', instAt:null, values:['success','fail'] },
     { id:'sg4', tpId:'tp2', name:'ekyc_document_fail_reason',   st:'validating', pf:['ios','android'],       es:'client', vol:410,  seen:'27/07 · 13:20', srcId:'src-ekyc', metrics:['m-ocr'], desc:'Lý do thất bại: blur / glare / crop / expired', instAt:null, values:['blur','glare','crop','expired'] },
     { id:'sg5', tpId:'tp3', name:'ekyc_face_liveness_result',   st:'live',       pf:['ios','android'],       es:'client', vol:1180, seen:'27/07 · 14:48', srcId:'src-ekyc', metrics:['m-liveness'], desc:'Kết quả mỗi lần liveness', instAt:null, values:['success','fail'] },
@@ -331,10 +331,10 @@ const seedRaw: CxmData = {
        NĂM LÝ DO LÀ ĐỀ XUẤT CỦA MÌNH, không đọc được từ sơ đồ: Account Journey chỉ vẽ liveness là MỘT
        cổng (`face["Xác thực khuôn mặt (liveness)"]`), không liệt kê lý do trượt. Cùng loại quyết định
        với `sg4` (blur/glare/crop/expired) vốn cũng là đề xuất. */
-    { id:'sg11',tpId:'tp3', name:'ekyc_face_liveness_fail_reason', st:'validating', pf:['ios','android'], es:'client', vol:197, seen:'27/07 · 14:48', srcId:'src-ekyc', metrics:['m-liveness'], desc:'Lý do trượt liveness — mỗi lần trượt có đúng một lý do; vol đặt theo tỉ lệ trượt 16,7% của bước', instAt:null, values:['face_not_matched','poor_lighting','liveness_timeout','spoof_suspected','multiple_faces'] },
+    { id:'sg11',tpId:'tp3', name:'ekyc_face_liveness_fail_reason', st:'validating', pf:['ios','android'], es:'client', vol:197, seen:'27/07 · 14:48', srcId:'src-ekyc', metrics:['m-liveness'], desc:'Lý do trượt liveness từng lần', instAt:null, values:['face_not_matched','poor_lighting','liveness_timeout','spoof_suspected','multiple_faces'] },
     { id:'sg7', tpId:'tp4', name:'account_info_edited',         st:'live',       pf:['ios','android'],       es:'client', vol:520,  seen:'27/07 · 14:31', srcId:'src-ekyc', metrics:['m-ocr'], desc:'Khách sửa thông tin OCR đọc sai', instAt:null, values:['name','dob','id_number','address','bank'] },
     { id:'sg8', tpId:'tp5', name:'contract_sign_result',        st:'live',       pf:['ios','android'],       es:'client', vol:430,  seen:'27/07 · 14:40', srcId:null, metrics:['m-contract'], desc:'Kết quả ký hợp đồng điện tử', instAt:null, values:['success','fail'] },
-    { id:'sg9', tpId:'tp5', name:'contract_session_abandoned',  st:'designed',   pf:['ios','android'],       es:'client', vol:0,    seen:null, srcId:null, metrics:['m-contract'], desc:'Phiên ký hết hạn — đã có spec, chưa implement', instAt:null, values:[] },
+    { id:'sg9', tpId:'tp5', name:'contract_session_abandoned',  st:'designed',   pf:['ios','android'],       es:'client', vol:0,    seen:null, srcId:null, metrics:['m-contract'], desc:'Phiên ký hết hạn giữa chừng', instAt:null, values:[] },
     { id:'sg10',tpId:'tp6', name:'account_activated',           st:'live',       pf:['server'],              es:'server', vol:395,  seen:'27/07 · 14:45', srcId:'src-ga', metrics:['m-completion'], desc:'Tài khoản sẵn sàng giao dịch', instAt:null, values:['activated'] },
 
     /* ---- ĐỀ XUẤT ĐO của pilot mở rộng 05/08/2026 ----
@@ -360,29 +360,29 @@ const seedRaw: CxmData = {
        khai được ios/android/web; chỉ những sự kiện KHÔNG có phía khách (tiền ngân hàng chuyển tới,
        VSDC trả kết quả, hạch toán nội bộ) mới khai `['server']`. `sg-nap-1` khai cả 4 vì nạp tại quầy
        thật sự không có nền tảng khách nào. */
-    { id:'sg-dvo-1', tpId:'tp-dvo-1', name:'deriv_open_ineligible_reason',  st:'live',       pf:['ios','android','web'], es:'server', vol:190,  seen:'04/08 · 16:20', srcId:null, metrics:[], desc:'Lý do KHÔNG mở được TK phái sinh — 190 = đúng số failed của bước kiểm tra điều kiện', instAt:null, values:['no_base_account','cccd_not_verified'] },
-    { id:'sg-dvo-2', tpId:'tp-dvo-3', name:'deriv_contract_otp_fail_reason', st:'live',      pf:['ios','android','web'], es:'server', vol:238,  seen:'04/08 · 16:18', srcId:null, metrics:[], desc:'Lý do ký hợp đồng OTP không thành — bắn mỗi lần thử nên nhiều hơn số ca trượt cuối cùng', instAt:null, values:['otp_expired','otp_not_received'] },
+    { id:'sg-dvo-1', tpId:'tp-dvo-1', name:'deriv_open_ineligible_reason',  st:'live',       pf:['ios','android','web'], es:'server', vol:190,  seen:'04/08 · 16:20', srcId:null, metrics:[], desc:'Lý do không mở được TK phái sinh', instAt:null, values:['no_base_account','cccd_not_verified'] },
+    { id:'sg-dvo-2', tpId:'tp-dvo-3', name:'deriv_contract_otp_fail_reason', st:'live',      pf:['ios','android','web'], es:'server', vol:238,  seen:'04/08 · 16:18', srcId:null, metrics:[], desc:'Lý do ký hợp đồng OTP thất bại, bắn mỗi lần thử', instAt:null, values:['otp_expired','otp_not_received'] },
     { id:'sg-dvo-3', tpId:'tp-dvo-4', name:'deriv_vsdc_approval_result',    st:'live',       pf:['server'],              es:'server', vol:942,  seen:'04/08 · 09:40', srcId:null, metrics:[], desc:'Kết quả VSDC duyệt hồ sơ phái sinh', instAt:null, values:['approved','rejected'] },
-    { id:'sg-dvo-4', tpId:'tp-dvo-4', name:'deriv_vsdc_wait_duration',      st:'designed',   pf:['server'],              es:'server', vol:0,    seen:null, srcId:null,            metrics:[], desc:'Dải thời gian chờ VSDC duyệt — đã đề xuất, chưa implement', instAt:null, values:[] },
+    { id:'sg-dvo-4', tpId:'tp-dvo-4', name:'deriv_vsdc_wait_duration',      st:'designed',   pf:['server'],              es:'server', vol:0,    seen:null, srcId:null,            metrics:[], desc:'Dải thời gian chờ VSDC duyệt', instAt:null, values:[] },
 
-    { id:'sg-nap-1', tpId:'tp-nap-1', name:'deposit_credit_received',   st:'live',       pf:['ios','android','web','server'], es:'server', vol:9640, seen:'04/08 · 17:02', srcId:null, metrics:[], desc:'Tiền về TK chuyên dụng — giá trị là KÊNH nạp (4 kênh của Sơ đồ 2)', instAt:null, values:['qr','bank_gateway','auto_debit_link','counter'] },
-    { id:'sg-nap-2', tpId:'tp-nap-2', name:'deposit_reconcile_fail_reason', st:'live',     pf:['server'],                       es:'server', vol:130,  seen:'04/08 · 17:02', srcId:null, metrics:[], desc:'Lý do không ghép được khoản tiền với chủ tài khoản — 130 = đúng số failed của bước đối soát', instAt:null, values:['holder_not_found','amount_mismatch'] },
+    { id:'sg-nap-1', tpId:'tp-nap-1', name:'deposit_credit_received',   st:'live',       pf:['ios','android','web','server'], es:'server', vol:9640, seen:'04/08 · 17:02', srcId:null, metrics:[], desc:'Tiền về TK chuyên dụng, theo kênh nạp', instAt:null, values:['qr','bank_gateway','auto_debit_link','counter'] },
+    { id:'sg-nap-2', tpId:'tp-nap-2', name:'deposit_reconcile_fail_reason', st:'live',     pf:['server'],                       es:'server', vol:130,  seen:'04/08 · 17:02', srcId:null, metrics:[], desc:'Lý do không ghép được khoản tiền với chủ tài khoản', instAt:null, values:['holder_not_found','amount_mismatch'] },
     { id:'sg-nap-3', tpId:'tp-nap-3', name:'deposit_credit_timing',      st:'validating', pf:['server'],                       es:'server', vol:9510, seen:'04/08 · 16:55', srcId:null, metrics:[], desc:'Ghi có ngay hay dồn xử lý cuối ngày (khoản nộp 17h–20h)', instAt:null, values:['immediate','end_of_day'] },
-    { id:'sg-nap-4', tpId:'tp-nap-1', name:'deposit_amount_band',        st:'gap',        pf:['server'],                       es:'server', vol:0,    seen:null, srcId:null,            metrics:[], desc:'Dải số tiền mỗi lần nạp theo kênh — CHƯA instrument', instAt:null, values:[] },
+    { id:'sg-nap-4', tpId:'tp-nap-1', name:'deposit_amount_band',        st:'gap',        pf:['server'],                       es:'server', vol:0,    seen:null, srcId:null,            metrics:[], desc:'Dải số tiền mỗi lần nạp theo kênh', instAt:null, values:[] },
 
     { id:'sg-tra-1', tpId:'tp-tra-1', name:'trace_request_created',   st:'live',     pf:['ios','android','web'], es:'server', vol:148, seen:'04/08 · 15:30', srcId:null, metrics:[], desc:'Khách gửi yêu cầu tra soát nạp tiền', instAt:null, values:['created'] },
     { id:'sg-tra-2', tpId:'tp-tra-1', name:'trace_attachment_count',  st:'live',     pf:['ios','android','web'], es:'server', vol:148, seen:'04/08 · 15:30', srcId:null, metrics:[], desc:'Số file chứng từ khách đính kèm — tối đa 5 theo quy định', instAt:null, values:['0','1','2','3','4','5'] },
-    { id:'sg-tra-3', tpId:'tp-tra-3', name:'trace_state_entered',     st:'live',     pf:['server'],              es:'server', vol:420, seen:'04/08 · 16:10', srcId:null, metrics:[], desc:'Yêu cầu vào từng trạng thái, bắn lặp — 5 trạng thái sau khi tạo của Sơ đồ 2', instAt:null, values:['cho_tiep_nhan','dang_xu_ly_tttt','cho_ben_thu_ba','hoan_tat','tu_choi'] },
-    { id:'sg-tra-4', tpId:'tp-tra-4', name:'trace_sla_breach',        st:'designed', pf:['server'],              es:'server', vol:0,   seen:null, srcId:null,            metrics:[], desc:'Vượt SLA 1 ngày làm việc — đã đề xuất, chưa implement', instAt:null, values:[] },
+    { id:'sg-tra-3', tpId:'tp-tra-3', name:'trace_state_entered',     st:'live',     pf:['server'],              es:'server', vol:420, seen:'04/08 · 16:10', srcId:null, metrics:[], desc:'Yêu cầu tra soát vào từng trạng thái, bắn lặp', instAt:null, values:['cho_tiep_nhan','dang_xu_ly_tttt','cho_ben_thu_ba','hoan_tat','tu_choi'] },
+    { id:'sg-tra-4', tpId:'tp-tra-4', name:'trace_sla_breach',        st:'designed', pf:['server'],              es:'server', vol:0,   seen:null, srcId:null,            metrics:[], desc:'Vượt SLA 1 ngày làm việc', instAt:null, values:[] },
 
     { id:'sg-rut-1', tpId:'tp-rut-1', name:'withdraw_request_submitted',    st:'live',       pf:['ios','android','web'], es:'server', vol:3180, seen:'04/08 · 15:58', srcId:null, metrics:[], desc:'Khách gửi lệnh rút tiền về ngân hàng', instAt:null, values:['submitted'] },
-    { id:'sg-rut-2', tpId:'tp-rut-2', name:'withdraw_gate_block_reason',    st:'live',       pf:['ios','android','web'], es:'server', vol:816,  seen:'04/08 · 15:58', srcId:null, metrics:[], desc:'Cổng nào chặn lệnh rút — 7 lý do theo đúng chuỗi cổng của Sơ đồ 5. 816 = tổng failed của sáu bước cổng, không phải số rời', instAt:null, values:['insufficient_withdrawable','rtt_below_100','cccd_not_verified','signature_missing','otp_failed','over_limit_after_16h','month_end_blackout'] },
-    { id:'sg-rut-3', tpId:'tp-rut-3', name:'withdraw_vneid_fail_reason',    st:'validating', pf:['ios','android'],       es:'server', vol:236,  seen:'04/08 · 15:44', srcId:null, metrics:[], desc:'Lý do trượt xác thực CCCD qua VNeID — 236 = đúng số failed của bước VNeID', instAt:null, values:['timeout','mismatch','app_not_installed'] },
+    { id:'sg-rut-2', tpId:'tp-rut-2', name:'withdraw_gate_block_reason',    st:'live',       pf:['ios','android','web'], es:'server', vol:816,  seen:'04/08 · 15:58', srcId:null, metrics:[], desc:'Cổng nào chặn lệnh rút, theo chuỗi cổng kiểm tra', instAt:null, values:['insufficient_withdrawable','rtt_below_100','cccd_not_verified','signature_missing','otp_failed','over_limit_after_16h','month_end_blackout'] },
+    { id:'sg-rut-3', tpId:'tp-rut-3', name:'withdraw_vneid_fail_reason',    st:'validating', pf:['ios','android'],       es:'server', vol:236,  seen:'04/08 · 15:44', srcId:null, metrics:[], desc:'Lý do trượt xác thực CCCD qua VNeID', instAt:null, values:['timeout','mismatch','app_not_installed'] },
     { id:'sg-rut-4', tpId:'tp-rut-7', name:'withdraw_payout_result',        st:'live',       pf:['server'],              es:'server', vol:2364, seen:'04/08 · 16:02', srcId:null, metrics:[], desc:'Kết quả đẩy lệnh sang ngân hàng thụ hưởng', instAt:null, values:['success','bank_reject'] },
     { id:'sg-rut-5', tpId:'tp-rut-4', name:'withdraw_video_sign_result',    st:'gap',        pf:['ios','android'],       es:'server', vol:0,    seen:null, srcId:null,            metrics:[], desc:'Kết quả chữ ký video call cho TK phái sinh — CHƯA instrument', instAt:null, values:[] },
 
     { id:'sg-ctn-1', tpId:'tp-ctn-1', name:'internal_transfer_submitted',     st:'live', pf:['ios','android','web'], es:'server', vol:2140, seen:'04/08 · 16:35', srcId:null, metrics:[], desc:'Khách gửi lệnh chuyển tiền giữa hai tiểu khoản của mình', instAt:null, values:['submitted'] },
-    { id:'sg-ctn-2', tpId:'tp-ctn-2', name:'internal_transfer_reject_reason',st:'live', pf:['ios','android','web'], es:'server', vol:219,  seen:'04/08 · 16:33', srcId:null, metrics:[], desc:'Lý do lệnh bị từ chối — 219 = tổng failed của ba cổng (42+136+41), không phải số rời', instAt:null, values:['wrong_subaccount_pair','insufficient_available','otp_failed'] },
+    { id:'sg-ctn-2', tpId:'tp-ctn-2', name:'internal_transfer_reject_reason',st:'live', pf:['ios','android','web'], es:'server', vol:219,  seen:'04/08 · 16:33', srcId:null, metrics:[], desc:'Lý do lệnh chuyển bị từ chối', instAt:null, values:['wrong_subaccount_pair','insufficient_available','otp_failed'] },
     { id:'sg-ctn-3', tpId:'tp-ctn-4', name:'internal_transfer_posted',       st:'live', pf:['server'],              es:'server', vol:1918, seen:'04/08 · 16:36', srcId:null, metrics:[], desc:'Hạch toán xong cả hai tiểu khoản', instAt:null, values:['posted'] },
   ],
   metrics: [
@@ -412,7 +412,9 @@ const seedRaw: CxmData = {
     { id:'src-survey',name:'In-app survey (CES/CSAT/NPS)',  kind:'survey',       vol:612,   lagH:12,  last:'26/07 · 23:10', metrics:['m-ces'], pf:['ios','android','web'], voice:true, note:'Job tổng hợp chậm hơn thoả thuận' },
     { id:'src-store', name:'App Store + Google Play review',kind:'store-review', vol:186,   lagH:24,  last:'27/07 · 08:00', metrics:[], pf:['ios','android'], voice:true, note:'Crawl 1 lần/ngày' },
     { id:'src-broker',name:'Ghi chú broker / RM',           kind:'broker-note',  vol:94,    lagH:24,  last:'27/07 · 09:15', metrics:[], pf:[], voice:true, note:'Nhập tay trong CRM' },
-    { id:'src-zalo',  name:'Zalo OA inbox',                 kind:'chat',         vol:0,     lagH:192, last:'19/07 · 11:02', metrics:['m-repeat'], pf:[], voice:true, note:'Webhook lỗi từ 19/07 — repeat contact đang bị đếm thiếu' },
+    { id:'src-zalo',  name:'Zalo OA inbox',                 kind:'chat',         vol:0,     lagH:192, last:'19/07 · 11:02', metrics:['m-repeat'], pf:[], voice:true, /* 25/08: cắt vế "repeat contact đang bị đếm thiếu" — phán chiều lệch, dữ liệu không chứng minh
+       được (bẫy 3, domain/sources.ts); chỉ số bị ảnh hưởng đã đứng ở cột riêng của bảng. */
+      note:'Webhook lỗi từ 19/07' },
   ],
   surveys: [
 { id:'sv-ces-mtk', name:'CES sau mở tài khoản', type:'CES', trigger:'account_open_completed',
@@ -801,29 +803,31 @@ const seedRaw: CxmData = {
 { id:'b-voc-all', sec:'voc', name:'Toàn cảnh tiếng nói', role:'Head of CX / VoC Analyst', shared:true,
       owner:'Linh Trần · CX Insight', up:'28/07/2026', def:true,
       desc:'Bức tranh đầy đủ: nguồn nào đang nói, nói về phần nào của hành trình, nói gì, và cái gì đang lệch khỏi bình thường.',
+      /* 25/08 (owner, quét AI-slop): header mục đổi từ câu hỏi sang CỤM DANH TỪ — cùng quy ước
+         tên khối 12/08. Field vẫn tên `q` (schema không đổi); Evidence.q là lời khách, không đụng. */
       qs:[
-        { q:'Tiếng nói đang tới từ đâu, và có thiếu gì không?', b:['q14','@srcmatrix'] },
-        { q:'Khách đang nói về phần nào của hành trình?',
+        { q:'Nguồn phản hồi', b:['q14','@srcmatrix'] },
+        { q:'Tiếng nói theo hành trình',
           b:['q2','q9','q10'] },
-        { q:'Khách đang nói gì?',
+        { q:'Nội dung phản hồi',
           b:['@intent','@themestack'] },
-        { q:'Cái gì đang bất thường?', b:['q15'] },
+        { q:'Bất thường', b:['q15'] },
       ] },
     { id:'b-voc-data', sec:'voc', name:'Chất lượng nền dữ liệu', role:'Data Platform Lead', shared:true,
       owner:'Hà Vũ · Data Platform', up:'27/07/2026',
       desc:'Chỉ nhìn ống dẫn: nguồn nào hỏng, hỏng kiểu gì, và ta đang nghe thụ động nhiều hơn hỏi chủ động bao nhiêu lần.',
       qs:[
-        { q:'Nguồn nào đang hỏng, và hỏng kiểu gì?', b:['@srcmatrix','q4'] },
-        { q:'Ta đang nghe thụ động hay hỏi chủ động?', b:['q14','q13'] },
-        { q:'Ống dẫn có đứt chỗ nào không?', b:['@anomlanes'] },
+        { q:'Tình trạng nguồn', b:['@srcmatrix','q4'] },
+        { q:'Tỷ trọng nghe thụ động · hỏi chủ động', b:['q14','q13'] },
+        { q:'Sự cố ống dẫn', b:['@anomlanes'] },
       ] },
     { id:'b-voc-topic', sec:'voc', name:'Topic đang xấu đi', role:'VoC Analyst', shared:false,
       owner:'Linh Trần · CX Insight', up:'28/07/2026',
       desc:'Theo dõi riêng nhóm topic có xu hướng xấu, sub-theme bên dưới và cohort chịu ảnh hưởng nặng nhất.',
       qs:[
-        { q:'Topic nào đang lớn nhất?', b:['@topictrend','q1','q11'] },
-        { q:'Xu hướng qua các kỳ ra sao?', b:['q5','q15'] },
-        { q:'Ai chịu ảnh hưởng nặng nhất?', b:['q7','q8'] },
+        { q:'Topic lớn nhất', b:['@topictrend','q1','q11'] },
+        { q:'Xu hướng theo kỳ', b:['q5','q15'] },
+        { q:'Nhóm khách chịu ảnh hưởng nặng nhất', b:['q7','q8'] },
       ] },
 
     
@@ -831,34 +835,36 @@ const seedRaw: CxmData = {
       owner:'Thu Hà · Head of CX', up:'28/07/2026', def:true,
       desc:'Bốn câu của người điều hành: chỗ nào gãy, xử lý cái nào trước, ai đang làm gì, và thay đổi vừa rồi có tác dụng không.',
       qs:[
-        { q:'Hành trình đang gãy ở đâu?', b:['@journeystate'] },
+        { q:'Điểm gãy theo hành trình', b:['@journeystate'] },
         /* Đổi 14/08 (ADR-002 §17). Câu cũ "Điểm gãy nào đáng xử lý trước?" nay là câu của `#/work`
            và CHỈ của `#/work` — ba bảng ở đây đều xếp theo một THÀNH PHẦN của cùng điểm ưu tiên đó,
            nên để hai chỗ cùng hỏi một câu là hai câu trả lời khác nhau chạy song song. Chữ "Bốn"
            cũng phải đổi: card "tác động CES" đã bỏ (§12), còn ba. */
-        { q:'Từng khoá ưu tiên đang chỉ vào điểm gãy nào?', b:['@toppri'] },
-        { q:'Ta đo được bao nhiêu phần hành trình?', b:['@coverage'] },
+        { q:'Điểm gãy theo từng khoá ưu tiên', b:['@toppri'] },
+        /* KHÔNG đặt 'Độ phủ đo lường': đó là tiêu đề card của chính @coverage — header mục trùng
+           nguyên văn tiêu đề card ngay dưới là một dữ kiện đọc hai lần. */
+        { q:'Phần hành trình đo được', b:['@coverage'] },
       ] },
     { id:'b-cxm-pilot', sec:'cxm', name:'Sức khỏe pilot Mở tài khoản', role:'Onboarding Squad', shared:true,
       owner:'Minh Quân · Onboarding', up:'27/07/2026',
       desc:'Chỉ nhìn pilot: sáu bước đang thế nào, đo được tới đâu, ta biết gì về khách trong đó, và hai chỉ số quan trọng nhất của nó.',
       qs:[
-        { q:'Sáu bước đang thế nào?', b:['@journeystate'] },
-        { q:'Ta đo được bao nhiêu phần hành trình?', b:['@coverage'] },
+        { q:'Trạng thái sáu bước pilot', b:['@journeystate'] },
+        { q:'Phần hành trình đo được', b:['@coverage'] },
         /* Gắn vào b-cxm-pilot, KHÔNG b-cxm-exec: OverviewPage.test.tsx:170 chốt cứng danh sách khối
            của exec bằng toEqual([...]) — đó là quyết định owner 01/08, thêm vào đấy là phá test khoá.
            Và đây là chỗ đúng về nghĩa: dims.acq nhãn "Kênh mở TK", khớp thẳng pilot Mở tài khoản. */
-        { q:'Ta biết được bao nhiêu về khách trong cohort?',
+        { q:'Chân dung khách trong cohort',
           b:['q17','q18'] },
-        { q:'Chỉ số của pilot ra sao?', b:['q6','q7'] },
+        { q:'Chỉ số pilot', b:['q6','q7'] },
       ] },
     { id:'b-cxm-out', sec:'cxm', name:'Hiệu quả sau thay đổi', role:'Head of CX / PO', shared:false,
       owner:'Thu Hà · Head of CX', up:'26/07/2026',
       desc:'Dành cho buổi review cuối kỳ: đã đo được gì, còn gì chờ người, và ưu tiên nào chưa động tới.',
       qs:[
-        { q:'Thay đổi nào đã đo được kết quả?', b:['@outcomes'] },
-        { q:'Còn việc nào chờ người?', b:['@lanes'] },
-        { q:'Ưu tiên nào chưa động tới?', b:['@toppri'] },
+        { q:'Kết quả sau thay đổi', b:['@outcomes'] },
+        { q:'Việc chờ người', b:['@lanes'] },
+        { q:'Ưu tiên chưa động tới', b:['@toppri'] },
       ] },
   ],
   ag: [

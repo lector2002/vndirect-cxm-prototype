@@ -17,10 +17,14 @@ import { reliabilityGaps, SignalReliabilityBlock } from "../signals/SignalReliab
    cũng RỜI sang đây thành dòng noti-coverage — sửa §6 lần BỐN. Dòng này không có Details: hai con
    số là toàn bộ nội dung, và ràng T4 "hai số lồng trong MỘT câu" giữ nguyên trên dòng noti. */
 
+/* 25/08 (owner, quét AI-slop): ba dòng noti về chung MỘT hộp vàng (viền/nền ở container, dòng ngăn
+   bằng divide-y) thay vì ba hộp rời xếp chồng — một chỗ ngắt thị giác thay vì ba. Câu chữ từng dòng
+   GIỮ NGUYÊN: ràng T4 "hai số lồng trong MỘT câu" (dòng coverage) và "hai vế của cùng một chuyện"
+   (dòng gov) đều là ràng về NỘI DUNG câu, không phải về số hộp. */
 function NotiRow({ testId, msg, children }: { testId: string; msg: string; children?: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div data-testid={testId} className="rounded-[9px] border border-watch-line bg-watch-bg">
+    <div data-testid={testId}>
       <div className="flex items-baseline gap-2 px-[13px] py-[9px] text-[12.5px] text-ink-2">
         <span aria-hidden="true" className="flex-none">
           ⚠
@@ -83,7 +87,10 @@ export function SignalHealthNoti({
   if (!govMsg && !relMsg && !covMsg) return null;
 
   return (
-    <div className="mb-4 flex flex-col gap-2" data-testid="signal-health-noti">
+    <div
+      className="mb-4 rounded-[9px] border border-watch-line bg-watch-bg divide-y divide-watch-line"
+      data-testid="signal-health-noti"
+    >
       {govMsg ? (
         <NotiRow testId="noti-gov" msg={govMsg}>
           <SignalGovernanceBlock data={data} cfg={cfg} />

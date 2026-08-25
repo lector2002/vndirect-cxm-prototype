@@ -255,8 +255,13 @@ export function AtlasPage() {
         <Card
           title={`${currentPhase.code} · ${currentPhase.name}`}
           /* Port chip mẫu số của chead() (prototype dòng 3390) — ở React nó là dải denomStrip dưới
-             header, đúng chỗ 9 block Overview đang dùng, không phải góc phải header. */
-          denomStrip={`Đang hiện Top ${flowsInPhaseCount} trên ${data.flows.length} flow`}
+             header. 25/08 (owner, quét AI-slop): chỉ hiện khi phase THẬT SỰ là tập con — N/N là
+             nói lại chính hàng chip bên dưới. */
+          denomStrip={
+            flowsInPhaseCount < data.flows.length
+              ? `Đang hiện Top ${flowsInPhaseCount} trên ${data.flows.length} flow`
+              : undefined
+          }
         >
           <div className="flex flex-wrap gap-5">
             {groupsInPhase.map((g) => (
@@ -325,12 +330,12 @@ export function AtlasPage() {
           subtitle={`${currentFlow.owner} · ${currentFlow.version} · ${
             flowHasSourceCitation(currentFlow) ? `Nguồn: ${currentFlow.src}` : "chưa có sơ đồ nguồn, cần xác minh"
           }`}
-          /* Prototype in "N trên N bước" (dòng 3410) — luôn đầy, nên không nói gì. Ở đây mẫu số là
-             số bước THẬT của flow, tử số là số bước lên được xương sống, để rule 2 (loại bước chưa
-             có obs) đọc được ngay trên dải chứ không chỉ trong ghi chú. Flow chưa vào pilot không có
-             dải: "0 trên 0 bước" chỉ gây nhiễu (cùng lý do QuantifyWidget bỏ dải khi không cắt gì). */
+          /* Mẫu số là số bước THẬT của flow, tử số là số bước lên được xương sống, để rule 2 (loại
+             bước chưa có obs) đọc được ngay trên dải chứ không chỉ trong ghi chú. 25/08 (owner, quét
+             AI-slop): dải chỉ hiện khi hai số LỆCH nhau — "N trên N bước" (mọi bước đã đo) lẫn
+             "0 trên 0" (chưa vào pilot) đều là nói lại thứ đã thấy. */
           denomStrip={
-            flowSteps.length > 0
+            stepsWithObs.length < flowSteps.length
               ? `Đang hiện Top ${stepsWithObs.length} trên ${flowSteps.length} bước có dữ liệu quan sát`
               : undefined
           }

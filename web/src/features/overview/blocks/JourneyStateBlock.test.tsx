@@ -98,17 +98,21 @@ describe("JourneyStateBlock — gộp theo hành trình", () => {
     }
   });
 
-  it("còn bao nhiêu bước ngoài ngưỡng nữa thì nói ra, không im lặng bỏ", () => {
+  /* 25/08 (owner, quét AI-slop): đuôi "+N bước nữa ngoài ngưỡng" rời MẶT dòng vào title của chính
+     dòng — vẫn nói ra, không im lặng bỏ, nhưng là thông tin tra cứu (rê chuột) chứ không chiếm chỗ
+     quét mắt. */
+  it("còn bao nhiêu bước ngoài ngưỡng nữa nói ở TITLE của dòng, không còn trên mặt dòng", () => {
     render(<JourneyStateBlock data={seed} cfg={cfgDefault} />);
     for (const flowId of flowsWithSteps) {
       const offCount = seed.steps
         .filter((s) => s.flowId === flowId)
         .filter((s) => ["crit", "watch"].includes(stepState(obsOf(s.id), cfgDefault))).length;
       const row = screen.getByTestId(`journey-flow-${flowId}`);
+      expect(row).not.toHaveTextContent(/bước nữa ngoài ngưỡng/);
       if (offCount > 1) {
-        expect(row).toHaveTextContent(`+${offCount - 1} bước nữa ngoài ngưỡng`);
+        expect(row.getAttribute("title")).toContain(`+${offCount - 1} bước nữa ngoài ngưỡng`);
       } else {
-        expect(row).not.toHaveTextContent(/bước nữa ngoài ngưỡng/);
+        expect(row.getAttribute("title") ?? "").not.toContain("bước nữa ngoài ngưỡng");
       }
     }
   });
@@ -159,15 +163,16 @@ describe("JourneyStateBlock — gộp theo hành trình", () => {
     );
   });
 
-  it("chip mẫu số nói rõ đang hiện bao nhiêu — 17 bước trong ngưỡng không bị giấu, chỉ không chiếm chỗ", () => {
+  /* 25/08 (owner, quét AI-slop): dải mẫu số chỉ hiện khi danh sách THẬT SỰ cắt bớt; hai vế "flow
+     đã map" và "bước ngoài ngưỡng" bỏ khỏi dải — bốn ô Stat đã đếm đúng các số đó. Seed hôm nay
+     có đúng 6 hành trình = TOP_N nên KHÔNG dải; ca có cắt chốt ở test "số dòng KHÔNG vượt TOP_N"
+     bên dưới (data dựng thêm flow). */
+  it("không cắt gì → không dải mẫu số; 17 bước trong ngưỡng vẫn đếm ở ô Stat, không bị giấu", () => {
     render(<JourneyStateBlock data={seed} cfg={cfgDefault} />);
-    const off = seed.steps.filter((s) =>
-      ["crit", "watch"].includes(stepState(obsOf(s.id), cfgDefault)),
-    ).length;
-    const shown = Math.min(flowsWithSteps.length, 6);
-    expect(screen.getByTestId("denom-strip")).toHaveTextContent(
-      `Đang hiện ${shown} trên ${flowsWithSteps.length} hành trình đã khai bước (${seed.flows.length} flow đã map) · ${off} trên ${seed.steps.length} bước ngoài ngưỡng`,
-    );
+    expect(flowsWithSteps.length).toBeLessThanOrEqual(6); // tiền đề trên seed hôm nay
+    expect(screen.queryByTestId("denom-strip")).not.toBeInTheDocument();
+    const ok = seed.steps.filter((s) => stepState(obsOf(s.id), cfgDefault) === "ok").length;
+    expect(screen.getByText(String(ok))).toBeInTheDocument(); // ô Stat "Đang kiểm soát"
   });
 
   /* Vòng hai (06/08): gộp theo hành trình mới chỉ HOÃN — số dòng = số flow, nên map hết 32 flow là

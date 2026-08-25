@@ -1,6 +1,5 @@
 import type { Cfg, CxmData, Outcome, Verdict } from "../../../data/schema/index.ts";
 import { metricDirection } from "../../../data/metric-direction.ts";
-import { BASE_FACTOR } from "../../../domain/index.ts";
 import { Badge, Card, Note } from "../../../design-system/index.ts";
 import type { BadgeState } from "../../../design-system/index.ts";
 
@@ -14,11 +13,6 @@ export type OutcomesBlockProps = {
   /** Link "Mở bảng xử lý" cuối khối (port href="#/work", prototype dòng 2254). */
   onGo?: (route: string) => void;
 };
-
-function periodLabel(data: CxmData): string {
-  const p = data.periods.find((x) => x.factor === BASE_FACTOR);
-  return p ? `${p.label} (${p.range})` : "";
-}
 
 const VERDICT_LABEL: Record<Verdict, string> = {
   improved: "Đã cải thiện",
@@ -67,12 +61,19 @@ export function OutcomesBlock({ data }: OutcomesBlockProps) {
   return (
     <Card
       title="Kết quả đo được"
-      subtitle={`Ảnh chụp · ${periodLabel(data)}`}
-      denomStrip={`Đang hiện Top ${done} trên ${released} thay đổi đã phát hành`}
+      /* 25/08 (owner, quét AI-slop): bỏ subtitle kỳ (GlobalToolbar cầm timeframe); dải mẫu số chỉ
+         hiện khi có thay đổi đã phát hành mà CHƯA đo — N/N là nói lại chính danh sách bên dưới. */
+      denomStrip={
+        done < released ? `Đang hiện Top ${done} trên ${released} thay đổi đã phát hành` : undefined
+      }
     >
-      {data.out.map((o) => (
-        <OutcomeRow key={o.act} outcome={o} data={data} />
-      ))}
+      {done === 0 ? (
+        <div className="t-meta" data-testid="outcomes-empty">
+          Chưa có thay đổi phát hành nào được đo kết quả.
+        </div>
+      ) : (
+        data.out.map((o) => <OutcomeRow key={o.act} outcome={o} data={data} />)
+      )}
     </Card>
   );
 }

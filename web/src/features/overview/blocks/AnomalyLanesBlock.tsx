@@ -1,10 +1,13 @@
 import type { Cfg, CxmData } from "../../../data/schema/index.ts";
-import { BASE_FACTOR } from "../../../domain/index.ts";
 import { AnomalyLanes, Card } from "../../../design-system/index.ts";
 
-/* @anomlanes — port 1-1 "Cái gì đang bất thường?" (prototype dòng 2152-2156). Composite
-   AnomalyLanes (design-system, S2.1) đã tự nhóm theo `f.lane` + render note + link tĩnh #/agents,
-   #/rules; component này chỉ đếm tổng số cảnh báo cho wHead và bọc Card. */
+/* @anomlanes — port "Cái gì đang bất thường?" → tiêu đề cụm danh từ (prototype dòng 2152-2156).
+   Composite AnomalyLanes (design-system, S2.1) đã tự nhóm theo `f.lane` + render note + link tĩnh
+   #/agents, #/rules; component này chỉ đếm tổng số cảnh báo và bọc Card.
+
+   25/08 (owner, quét AI-slop): bỏ subtitle "Ảnh chụp · kỳ" (GlobalToolbar cầm timeframe) và bỏ
+   dải "Đang hiện Top N trên N cảnh báo" — khối luôn vẽ ĐỦ mọi cảnh báo nên dải chỉ nói lại chính
+   nó. 0 cảnh báo thì nói thẳng bằng empty-state thay vì ba làn trống trơ. */
 export type AnomalyLanesBlockProps = {
   data: CxmData;
   /** Giữ trong props theo shape chung 5 block S2.3 (data+cfg+onGo) — AnomalyLanes không cần
@@ -14,22 +17,19 @@ export type AnomalyLanesBlockProps = {
   onGo?: (route: string) => void;
 };
 
-function periodLabel(data: CxmData): string {
-  const p = data.periods.find((x) => x.factor === BASE_FACTOR);
-  return p ? `${p.label} (${p.range})` : "";
-}
-
 export function AnomalyLanesBlock({ data }: AnomalyLanesBlockProps) {
   /* Port `DATA.ag.reduce((a,g) => a + g.f.filter(f=>f.lane).length, 0)` (prototype dòng 2153). */
   const count = data.ag.reduce((a, g) => a + g.f.filter((f) => f.lane !== null).length, 0);
 
   return (
-    <Card
-      title="Ba làn bất thường"
-      subtitle={`Ảnh chụp · ${periodLabel(data)}`}
-      denomStrip={`Đang hiện Top ${count} trên ${count} cảnh báo`}
-    >
-      <AnomalyLanes agents={data.ag} />
+    <Card title="Ba làn bất thường">
+      {count === 0 ? (
+        <div className="text-[13px] text-ink-3" data-testid="anomlanes-empty">
+          Chưa có cảnh báo nào từ các agent — ba làn sẽ hiện khi agent phát hiện bất thường.
+        </div>
+      ) : (
+        <AnomalyLanes agents={data.ag} />
+      )}
     </Card>
   );
 }

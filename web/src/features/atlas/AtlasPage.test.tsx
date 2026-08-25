@@ -191,18 +191,19 @@ describe("AtlasPage — #/atlas", () => {
     expect(seed.phases.filter((p) => PILOT_CODES.includes(p.code))).toHaveLength(PILOT_CODES.length);
   });
 
-  /* Hai card có chip mẫu số — port prototype V.atlas (dòng 3390/3410). Dòng hero và đoạn hướng dẫn
-     đọc (dòng 3374-3375) từng port cùng lượt, nay owner đã bỏ; test canh chúng thay bằng test dưới. */
-  it("hai card có chip mẫu số, tất cả suy từ dữ liệu", () => {
+  /* Chip mẫu số — port prototype V.atlas (dòng 3390/3410). 25/08 (owner, quét AI-slop): dải chỉ
+     hiện khi hai số LỆCH nhau — card phase luôn là tập con của mọi flow nên còn dải; card bước
+     trên seed hôm nay đo đủ mọi bước (N/N) nên KHÔNG dải. */
+  it("card phase có chip mẫu số suy từ dữ liệu; card bước không cắt gì thì không dải", () => {
     render(<AtlasPage />);
-    const strips = screen.getAllByTestId("denom-strip");
     const flowsInPilotPhase = seed.flows.filter((f) => phaseIdOfFlow(f) === pilotPhase.id).length;
+    expect(flowsInPilotPhase).toBeLessThan(seed.flows.length); // tiền đề: phase là tập con thật
+    const strips = screen.getAllByTestId("denom-strip");
+    expect(strips).toHaveLength(1);
     expect(strips[0]).toHaveTextContent(
       `Đang hiện Top ${flowsInPilotPhase} trên ${seed.flows.length} flow`,
     );
-    expect(strips[1]).toHaveTextContent(
-      `Đang hiện Top ${pilotSteps.length} trên ${pilotSteps.length} bước có dữ liệu quan sát`,
-    );
+    expect(screen.queryByText(/bước có dữ liệu quan sát/)).not.toBeInTheDocument();
   });
 
   /* Owner bỏ hero + đoạn hướng dẫn đọc (05/08). Ghim lại để không ai "port cho đủ so với prototype"

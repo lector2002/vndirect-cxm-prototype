@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { Source } from "../../data/schema/index.ts";
 import {
   SOURCE_ALLOW_DAYS_DEFAULT,
-  brokenImpacts,
   continuityCount,
   freshnessCount,
   instrumentedCount,
@@ -33,10 +32,11 @@ import { SourceProfile } from "./SourceProfile.tsx";
       còn một ô đếm ĐIỂM ĐO. Ở đây đơn vị nằm TRONG giá trị ("6/7 nguồn", "25/30 điểm đo"), nên bốn
       ô không còn giả vờ cùng một thước. Lý do dài ở docblock domain/sources.ts bẫy 1.
 
-   2. CÂU CẢNH BÁO CUỐI MÀN SINH TỪ DỮ LIỆU. Prototype đóng cứng một câu về Zalo OA (dòng 3752).
-      Ở đây câu đó dựng từ `brokenImpacts` nên đúng với bất kỳ số nguồn hỏng nào, kể cả KHÔNG nguồn
-      nào hỏng — và nó KHÔNG phán con số đang cao hơn hay thấp hơn thực tế, vì dữ liệu không nói
-      được điều đó (bẫy 3 cùng docblock).
+   2. KHÔNG CÒN CÂU CẢNH BÁO CUỐI MÀN. Prototype đóng cứng một câu về Zalo OA (dòng 3752); bản
+      React từng thay bằng hộp "Hệ quả cụ thể" sinh từ `brokenImpacts` — 25/08 (owner, quét
+      AI-slop) BỎ HẲN vì hộp kể lại nguyên văn các dòng hỏng của bảng ngay trên. Sự thật neo ở
+      bảng: dòng hỏng tô nền đỏ, chip chỉ số đỏ, xếp lên đầu — và màn vẫn KHÔNG phán con số đang
+      cao hơn hay thấp hơn thực tế, vì dữ liệu không nói được điều đó (bẫy 3 cùng docblock).
 
    3. TIÊU ĐỀ KHÔNG NÓI "LÀM SAI". Prototype viết "… và điều đó làm sai N chỉ số". Nguồn hỏng làm
       chỉ số tính trên dữ liệu THIẾU — chiều lệch thì không suy được. "Đang ăn dữ liệu từ chúng" là
@@ -85,7 +85,6 @@ export function SourcesPage() {
 
   const ordered = sourcesByProblem(data, cfg);
   const shownSources = srcAll ? ordered : ordered.slice(0, TOP_ROWS);
-  const impacts = brokenImpacts(data, cfg);
   const fresh = freshnessCount(data, cfg);
   const cont = continuityCount(data, cfg);
   const instr = instrumentedCount(data);
@@ -178,7 +177,8 @@ export function SourcesPage() {
                     <th className={TH}>Độ trễ / SLA</th>
                     <th className={TH}>Nhận lần cuối</th>
                     <th className={TH}>Trạng thái</th>
-                    <th className={TH}>Nguồn này sai thì chỉ số nào tính trên dữ liệu thiếu</th>
+                    {/* 25/08 (owner, quét AI-slop): header 11 chữ dạng câu → cụm danh từ. */}
+                    <th className={TH}>Chỉ số bị ảnh hưởng</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -190,7 +190,12 @@ export function SourcesPage() {
                         key={s.id}
                         data-testid={`src-row-${s.id}`}
                         onClick={() => setOpenSrcId((cur) => (cur === s.id ? null : s.id))}
-                        className="border-t border-line cursor-pointer hover:bg-surface-2"
+                        /* 25/08 (owner): hộp "Hệ quả cụ thể" cuối màn bỏ — nó kể lại nguyên văn các
+                           dòng hỏng của chính bảng này. Thay bằng TÔ nền dòng hỏng: nguồn hỏng, chỉ
+                           số bị ảnh hưởng (chip đỏ), nhận lần cuối đều đã đứng sẵn trên dòng. */
+                        className={`border-t border-line cursor-pointer hover:bg-surface-2 ${
+                          h !== "ok" ? "bg-crit-bg" : ""
+                        }`}
                       >
                         <td className="py-1.5 px-1">
                           <b className="text-[13.5px]">{s.name}</b>
@@ -367,36 +372,10 @@ export function SourcesPage() {
         </div>
       ) : null}
 
-      {/* Hệ quả cụ thể — SINH TỪ DỮ LIỆU, không đóng cứng tên nguồn nào. Không nguồn nào hỏng thì
-          không có khối này; nhiều nguồn hỏng thì mỗi nguồn một dòng. */}
-      {impacts.length ? (
-        <div className="mt-4" data-testid="src-impact">
-          <Note tone="crit">
-            <b>Hệ quả cụ thể đang xảy ra:</b>
-            <ul className="mt-2 grid gap-2 list-disc pl-5">
-              {impacts.map((b) => (
-                <li key={b.source.id}>
-                  <b>{b.source.name}</b> {b.health === "down" ? "đã ngừng gửi" : "đang thiếu ngày dữ liệu"}{" "}
-                  {lagText(b.source.lagH).replace(/^trễ /, "")} (nhận lần cuối {b.source.last}).{" "}
-                  {/* luật 12/08: bỏ hai vế luận giải — "Dữ liệu không nói được con số đang cao hơn
-                      hay thấp hơn thực tế" và "…không làm lệch con số nào, nhưng tiếng nói của khách
-                      qua kênh này đang mất". Vế đầu là suy đoán về giới hạn, vế sau là bình luận;
-                      cái đáng nói (chỉ số nào đang tính trên dữ liệu thiếu / không có chỉ số nào)
-                      thì giữ. */}
-                  {b.metrics.length ? (
-                    <>
-                      {b.metrics.map((m) => m.name).join(" và ")} đang tính trên dữ liệu thiếu quãng
-                      đó.
-                    </>
-                  ) : (
-                    <>Chưa nối chỉ số nào.</>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Note>
-        </div>
-      ) : null}
+      {/* 25/08 (owner, quét AI-slop): hộp "Hệ quả cụ thể đang xảy ra" BỎ HẲN — nó kể lại nguyên
+          văn các dòng hỏng của bảng "Sức khỏe từng nguồn" ngay trên (tên nguồn, nhận lần cuối,
+          chỉ số bị ảnh hưởng đều đã có trên dòng). Nghĩa vụ nói thật của màn nay neo ở chính bảng:
+          dòng hỏng tô nền đỏ + chip chỉ số đỏ, nguồn có vấn đề xếp lên đầu (sourcesByProblem). */}
     </div>
   );
 }

@@ -1,9 +1,14 @@
 import type { Cfg, CxmData, DimRow } from "../../../data/schema/index.ts";
-import { BASE_FACTOR } from "../../../domain/index.ts";
 import { Bars, Card } from "../../../design-system/index.ts";
 
-/* @intent — port 1-1 "Khách đang nói gì?" (prototype dòng 2133-2150 + hằng CATQ dòng 2134-2135).
-   Bốn câu hỏi CỐ ĐỊNH theo bốn Category intent — không suy từ data, chỉ nhóm theme theo `cat`. */
+/* @intent — port từ "Khách đang nói gì?" (prototype dòng 2133-2150 + hằng CATQ dòng 2134-2135).
+   Bốn nhóm CỐ ĐỊNH theo bốn Category intent — không suy từ data, chỉ nhóm theme theo `cat`.
+
+   25/08 (owner, quét AI-slop): tiêu đề card đổi từ câu hỏi ("Khách đang bức xúc về điều gì?") sang
+   CỤM DANH TỪ — và không gõ tay nữa: đọc thẳng `data.cats[cat].label` ("Khiếu nại", "Cần hỗ trợ"…),
+   cùng nguồn chữ mà legend/chart intent khắp app đang dùng, hết cảnh hai nơi gọi một nhóm hai tên.
+   Bỏ luôn subtitle "Ảnh chụp · kỳ" (GlobalToolbar cầm timeframe); dải mẫu số chỉ hiện khi card
+   THẬT SỰ cắt bớt (themes.length > TOP_N) — "Top 3 trên 3" là nói lại chính cái chart. */
 export type IntentBlockProps = {
   data: CxmData;
   /** Giữ trong props theo shape chung (data+cfg+onGo) — nhóm theo intent không dùng ngưỡng nên
@@ -13,16 +18,12 @@ export type IntentBlockProps = {
   onGo?: (route: string) => void;
 };
 
-function periodLabel(data: CxmData): string {
-  const p = data.periods.find((x) => x.factor === BASE_FACTOR);
-  return p ? `${p.label} (${p.range})` : "";
-}
-
-const CATQ: { cat: string; label: string }[] = [
-  { cat: "complaint", label: "Khách đang bức xúc về điều gì?" },
-  { cat: "improvement", label: "Khách muốn cải thiện điều gì?" },
-  { cat: "help", label: "Khách đang cần giúp ở đâu?" },
-  { cat: "praise", label: "Khách thích điều gì?" },
+/** Thứ tự bốn nhóm trên lưới (âm → dương) — nhãn tra từ data.cats, đây chỉ là key + fallback. */
+const CAT_ORDER: { cat: string; fallback: string }[] = [
+  { cat: "complaint", fallback: "Khiếu nại" },
+  { cat: "improvement", fallback: "Đề xuất cải thiện" },
+  { cat: "help", fallback: "Cần hỗ trợ" },
+  { cat: "praise", fallback: "Khen ngợi" },
 ];
 
 const TOP_N = 6;
@@ -30,7 +31,7 @@ const TOP_N = 6;
 export function IntentBlock({ data, onGo }: IntentBlockProps) {
   return (
     <div className="grid grid-cols-2 gap-4">
-      {CATQ.map(({ cat, label }) => {
+      {CAT_ORDER.map(({ cat, fallback }) => {
         const themes = data.tax
           .filter((t) => t.lv === "theme" && t.cat === cat)
           .slice()
@@ -46,9 +47,10 @@ export function IntentBlock({ data, onGo }: IntentBlockProps) {
         return (
           <Card
             key={cat}
-            title={label}
-            subtitle={`Ảnh chụp · ${periodLabel(data)}`}
-            denomStrip={`Đang hiện Top ${Math.min(themes.length, TOP_N)} trên ${themes.length} theme`}
+            title={data.cats[cat]?.label ?? fallback}
+            denomStrip={
+              themes.length > TOP_N ? `Đang hiện Top ${TOP_N} trên ${themes.length} theme` : undefined
+            }
           >
             {themes.length ? (
               <Bars

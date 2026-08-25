@@ -1,5 +1,4 @@
 import type { Cfg, CxmData } from "../../../data/schema/index.ts";
-import { BASE_FACTOR } from "../../../domain/index.ts";
 import { Card, Note } from "../../../design-system/index.ts";
 
 /* @coverage — "Ta đo được bao nhiêu phần hành trình?".
@@ -18,14 +17,10 @@ export type CoverageBlockProps = {
   onGo?: (route: string) => void;
 };
 
-function periodLabel(data: CxmData): string {
-  const p = data.periods.find((x) => x.factor === BASE_FACTOR);
-  return p ? `${p.label} (${p.range})` : "";
-}
-
-export function CoverageBlock({ data, onGo }: CoverageBlockProps) {
+/* 25/08 (owner, quét AI-slop): bỏ subtitle "Ảnh chụp · kỳ" — GlobalToolbar đầu trang cầm timeframe. */
+export function CoverageBlock({ onGo }: CoverageBlockProps) {
   return (
-    <Card title="Độ phủ đo lường" subtitle={`Ảnh chụp · ${periodLabel(data)}`}>
+    <Card title="Độ phủ đo lường">
       <div data-testid="cov-empty">
         {/* luật 11/08: bỏ luận giải, chỉ giữ trạng thái dữ liệu */}
         <Note tone="warn">Chưa có số đo được về độ phủ bằng chứng.</Note>

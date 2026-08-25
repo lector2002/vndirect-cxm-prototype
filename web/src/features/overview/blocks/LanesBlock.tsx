@@ -1,5 +1,5 @@
 import type { Cfg, CxmData } from "../../../data/schema/index.ts";
-import { BASE_FACTOR, laneOf } from "../../../domain/index.ts";
+import { laneOf } from "../../../domain/index.ts";
 import type { LaneKey } from "../../../domain/index.ts";
 import { AxisLabel, Card } from "../../../design-system/index.ts";
 
@@ -14,11 +14,6 @@ export type LanesBlockProps = {
   cfg: Cfg;
   onGo?: (route: string) => void;
 };
-
-function periodLabel(data: CxmData): string {
-  const p = data.periods.find((x) => x.factor === BASE_FACTOR);
-  return p ? `${p.label} (${p.range})` : "";
-}
 
 /* Port 1-1 hằng LANES (prototype dòng 2882-2895) — thứ tự và nhãn cố định, KHÔNG suy từ cfg vì
    đây là 4 giai đoạn quy trình xử lý, không phải ngưỡng đo lường. */
@@ -35,11 +30,14 @@ export function LanesBlock({ data, onGo }: LanesBlockProps) {
   return (
     <Card
       title="Bốn làn công việc"
-      subtitle={`Ảnh chụp · ${periodLabel(data)}`}
-      /* Mẫu số là TỔNG action đã ghi nhận, tử số là số còn nằm trong 4 làn. Trước 02/08/2026 hai số
-         này đều bằng 6 nên nhãn cũ ("… trên 6 việc còn cần tay người") đọc vẫn trót lọt; từ khi
-         CXA-013 khép vòng (laneOf → 'off') thì thành 5/6, và nhãn cũ hoá ra nói sai về mẫu số. */
-      denomStrip={`Đang hiện Top ${inWork} trên ${data.act.length} action đã ghi nhận`}
+      /* Mẫu số là TỔNG action đã ghi nhận, tử số là số còn nằm trong 4 làn. 25/08 (owner, quét
+         AI-slop): bỏ subtitle kỳ (GlobalToolbar cầm timeframe); dải chỉ hiện khi hai số LỆCH nhau —
+         có action đã khép vòng rời khỏi làn — vì N/N là nói lại chính bốn ô đếm bên dưới. */
+      denomStrip={
+        inWork < data.act.length
+          ? `Đang hiện Top ${inWork} trên ${data.act.length} action đã ghi nhận`
+          : undefined
+      }
     >
       <div className="grid grid-cols-4 gap-3">
         {LANES.map((L) => {

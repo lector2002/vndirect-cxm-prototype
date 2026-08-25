@@ -13,10 +13,13 @@ import { SrcMatrixBlock } from "./SrcMatrixBlock.tsx";
    (CES/CSAT/NPS)" (stale) và "Zalo OA inbox" (down). Metric bị ảnh hưởng: src-survey→['m-ces'],
    src-zalo→['m-repeat'] → hợp nhất (Set) = 2 metric duy nhất (m-ces, m-repeat). */
 describe("SrcMatrixBlock", () => {
-  it("wHead: Đang hiện Top N trên N nguồn (N = tổng số nguồn)", () => {
+  /* 25/08 (owner, quét AI-slop) — ĐẢO kỳ vọng cũ: khối luôn vẽ ĐỦ mọi nguồn nên dải "Đang hiện
+     Top N trên N nguồn" chỉ nói lại chính cái bảng — bỏ hẳn, cùng luật với subtitle "Ảnh chụp"
+     (GlobalToolbar cầm timeframe). */
+  it("KHÔNG còn dải 'Đang hiện Top…' lẫn subtitle 'Ảnh chụp' — bảng luôn đủ mọi nguồn", () => {
     render(<SrcMatrixBlock data={seed} cfg={cfgDefault} />);
-    expect(screen.getByText(new RegExp(`Đang hiện Top ${seed.sources.length}`))).toBeInTheDocument();
-    expect(screen.getByText(new RegExp(`trên ${seed.sources.length} nguồn`))).toBeInTheDocument();
+    expect(screen.queryByText(/Đang hiện Top/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ảnh chụp/)).not.toBeInTheDocument();
   });
 
   it("render bảng SrcMatrix compact (không cột metric)", () => {

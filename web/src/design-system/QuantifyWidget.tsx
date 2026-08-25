@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { Cfg, CxmData, Dim, DimRow, QuantifyItem, QuantifyShow, QuantifyView } from "../data/schema/index.ts";
-import { BASE_FACTOR, fx } from "../domain/format.ts";
-import { AGG_SPLIT_NOTE, qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, UNKNOWN_ROW_ID, type SplitChart } from "../domain/quantify.ts";
+import { fx } from "../domain/format.ts";
+import { qRun, qRunCross, qRunDrill, qRunSegment, qRunSplit, UNKNOWN_ROW_ID, type SplitChart } from "../domain/quantify.ts";
 // scopeTotal = định nghĩa DUY NHẤT của mẫu số "tín hiệu khách hàng" (VOC_SCOPE). Hàm thuần trên
 // CxmData nên sống ở domain/, KHÔNG ở features/ — design-system không được phụ thuộc vào features.
 // (S2.5 từng import ngược từ features/overview/sec.ts; Opus đã dời.)
@@ -205,13 +205,11 @@ function buildDenomStrip(shownRows: DimRow[], all: number, dim: Dim, data: CxmDa
   return base;
 }
 
-/* Kỳ tuyệt đối cho Card.subtitle — bản thật đã bỏ kỳ global, fx() luôn scale theo baseline 6 tháng
-   cố định (domain/format.ts, BASE_FACTOR=5.6). Tra data.periods để lấy đúng label+range của kỳ đó
-   thay vì hardcode chuỗi ngày — nếu seed đổi baseline thì kỳ vẫn khớp fx() không cần sửa ở đây. */
-function periodLabel(data: CxmData): string {
-  const p = data.periods.find((x) => x.factor === BASE_FACTOR);
-  return p ? `${p.label} (${p.range})` : "";
-}
+/* 25/08 (owner, quét AI-slop): Card.subtitle kỳ ("6 tháng gần nhất (…)") RỜI khỏi từng card —
+   cùng một chuỗi lặp trên mọi card của một trang là nhiễu, mốc kỳ nay đứng MỘT LẦN ở đầu màn
+   (QuantifyPage in cạnh "Hiển thị N / M chart"; Overview đã có GlobalToolbar cầm timeframe).
+   Nhánh series với `months` vẫn giữ subtitle "N kỳ gần nhất" vì nó nói một cửa sổ HẸP HƠN mốc
+   trang — đó là thông tin riêng của card, không phải lặp. */
 
 /* Màu mặc định khi row.c vắng — PHẢI khớp DEFAULT_BAR_COLOR (Bars.tsx): thanh xám đó vẫn xuất hiện
    trên chart nên khoá màu (legend) không được bỏ sót nó. */
@@ -287,15 +285,12 @@ type SplitBundle = {
   effSplit: string | undefined;
   effItem: QuantifyShow;
   split: SplitChart;
-  /** Khoá CẢ CỤM (khác `disabledReason` của từng chip): lý do nằm ở chart, không ở chiều nào. */
+  /** Khoá CẢ CỤM (khác `disabledReason` của từng chip): lý do nằm ở chart, không ở chiều nào.
+   *  25/08 (owner, quét AI-slop toàn app): lý do KHÔNG in thường trực dưới chart nữa — 17 card cùng
+   *  trang lặp nguyên văn một câu thì người xem thôi đọc (đo 05/08 đã thấy, sửa nửa vời bằng bản
+   *  ngắn vẫn lặp ×17). Lý do sống ở hai chỗ theo yêu cầu: tooltip từng chip khoá, và bấm chip khoá
+   *  thì in thành chữ (`askedReason`) — "nói thẳng khi hỏi" thay cho "nói suốt". */
   lockedReason: string | undefined;
-  /** Riêng lý do thuộc về TRỤC (không phải view/mark). Tách ra vì nó phải hiện thành CHỮ dưới chart
-   *  chứ không chỉ tooltip: luật owner chốt 05/08 là "nói thẳng là không có", mà tooltip thì phải rê
-   *  chuột mới thấy. Lý do view/mark KHÔNG cần vậy — đổi view là tự khỏi, người dùng không mắc kẹt. */
-  axisLocked: string | undefined;
-  /** Bản NGẮN của `axisLocked` để in thành chữ. Xem AGG_SPLIT_NOTE: câu đầy đủ kèm phần đo được, hợp
-   *  cho tooltip (đọc một lần, khi cần), không hợp cho dòng chữ lặp trên 7 chart cùng trang. */
-  axisNote: string | undefined;
 };
 
 function buildSplitBundle(
@@ -350,15 +345,12 @@ function buildSplitBundle(
     effItem,
     split: qRunSplit(effItem, data, dims),
     lockedReason,
-    axisLocked: aggReason,
-    axisNote: aggReason ? AGG_SPLIT_NOTE : undefined,
   };
 }
 
 /* Widget vạn năng render một QuantifyItem — orchestrator port tinh thần từ qWidget() (prototype
    dòng 2021). Nhận toàn bộ data/dims qua props (không đọc store) để component thuần theo props. */
 export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, onTitleClick, months, onSplitChange }: QuantifyWidgetProps) {
-  const period = periodLabel(data);
   /* Hàng đang mở drill-down. State sống Ở ĐÂY, không thêm prop cho caller: đặt trong widget thì MỌI
      chỗ render nó (Library, Detail, Builder preview, Overview) có drill-down mà không cần nối gì —
      đúng cái owner lo khi loại phương án (b) ("chart theme click được, chart khác không → mặt UI
@@ -392,9 +384,10 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
        gốc từ props/store). */
     const t = months ? item.t.map((s) => ({ ...s, p: s.p.slice(-months) })) : item.t;
     /* Subtitle phải nói ĐÚNG số kỳ đang hiện, không phải baseline cố định — nếu không, card sẽ
-       khẳng định một kỳ (vd "6 tháng gần nhất") trong khi chart chỉ vẽ 3 điểm sau khi lọc. */
+       khẳng định một kỳ (vd "6 tháng gần nhất") trong khi chart chỉ vẽ 3 điểm sau khi lọc.
+       25/08: không có `months` thì KHÔNG subtitle — mốc kỳ đứng một lần ở đầu màn. */
     const shownPoints = t.length ? Math.max(...t.map((s) => s.p.length)) : 0;
-    const subtitle = months ? `${shownPoints} kỳ gần nhất` : period;
+    const subtitle = months ? `${shownPoints} kỳ gần nhất` : undefined;
     return (
       <Card title={item.name} subtitle={subtitle} actions={actions} onTitleClick={onTitleClick}>
         <VAxisLabel label={axisText}>
@@ -422,7 +415,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
     /* Cross-tab: ma trận ghép chéo trên mẫu ev; CrossTable tự có caveat "N mẫu — tập mẫu". */
     const cx = qRunCross(item, data, dims);
     return (
-      <Card title={item.name} subtitle={period} actions={actions} onTitleClick={onTitleClick}>
+      <Card title={item.name} actions={actions} onTitleClick={onTitleClick}>
         {/* Spec cho phép CrossTable dùng cho cả 2 view khi chart phức tạp — ưu tiên đúng số hơn
             stacked bar riêng (xem ghi chú P1.1b, cần Opus xác nhận). */}
         <CrossTable cx={cx} />
@@ -442,7 +435,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
 
     if (seg.kind === "refuse") {
       return (
-        <Card title={item.name} subtitle={period} actions={actions} onTitleClick={onTitleClick}>
+        <Card title={item.name} actions={actions} onTitleClick={onTitleClick}>
           <div className="text-[13px] text-ink-3">{seg.reason}</div>
         </Card>
       );
@@ -544,7 +537,6 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
     return (
       <Card
         title={item.name}
-        subtitle={period}
         denomStrip={segDenomStrip}
         actions={actions}
         onTitleClick={onTitleClick}
@@ -615,8 +607,11 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
   // index (hết cảnh mọi bar xám); chart đã có intent color (>=1 row.c) thì trả nguyên rows.
   const paintedRows = paintCategorical(item.chart === "donut" ? allRows : allRows.slice(0, limit ?? TOP_N));
   /* denomStrip tính trên `paintedRows` (số nhóm CÓ TÊN RIÊNG), KHÔNG trên shownRows — nếu tính sau khi
-     gộp thì hàng "Khác" bị đếm như một nhóm nữa và mẫu số nói sai. */
-  const denomStrip = dim ? buildDenomStrip(paintedRows, allRows.length, dim, data) : null;
+     gộp thì hàng "Khác" bị đếm như một nhóm nữa và mẫu số nói sai.
+     25/08 (owner, quét AI-slop): dải chỉ hiện khi bảng THẬT SỰ cắt bớt — cùng điều kiện D2b #3 mà
+     nhánh trục khách đã áp từ 03/08; "Top N trên N" là nói lại chính cái chart. */
+  const denomStrip =
+    dim && paintedRows.length < allRows.length ? buildDenomStrip(paintedRows, allRows.length, dim, data) : null;
   const shownRows = effectiveView === "table" ? paintedRows : foldRowTail(paintedRows, allRows);
   const { vAxis, bottomAxis } = chartAxisLabels(item, dim, effectiveView);
   // D0a: fx() chỉ hợp lệ cho volume TỔNG HỢP (dim.base==='agg') — q3 (base='ev') không được scale.
@@ -640,13 +635,13 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
   const ncPctStack = nc.effItem.stack === "pct";
   // `askedReason` ưu tiên cao nhất — xem ghi chú ở `splitNote`.
   // luật 11/08: bỏ hướng dẫn "chuyển sang view Chart để xem"
+  // 25/08 (owner): bỏ nhánh in AGG_SPLIT_NOTE thường trực — lý do khoá trục agg chỉ hiện khi
+  // người xem bấm chip khoá (askedReason) hoặc rê tooltip, xem ghi chú ở SplitBundle.lockedReason.
   const ncNote =
     askedReason ??
     (nc.split.kind === "refuse"
       ? nc.split.reason
-      : nc.axisNote
-        ? nc.axisNote
-        : ncDraw && !ncDrawn
+      : ncDraw && !ncDrawn
         ? `Chia màu theo "${dims[nc.effItem.split ?? ""]?.label ?? nc.effItem.split}" chỉ hiện được ở dạng thanh.`
         : null);
   // luật 11/08: bỏ "bề rộng KHÔNG mã hoá số lượng"
@@ -656,7 +651,7 @@ export function QuantifyWidget({ item, data, dims, view, cfg, limit, actions, on
       : bottomAxis;
 
   return (
-    <Card title={item.name} subtitle={period} denomStrip={denomStrip} actions={actions} onTitleClick={onTitleClick}>
+    <Card title={item.name} denomStrip={denomStrip} actions={actions} onTitleClick={onTitleClick}>
       <SplitToggle
         options={nc.options}
         value={nc.effSplit}

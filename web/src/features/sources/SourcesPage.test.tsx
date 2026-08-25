@@ -7,7 +7,6 @@ import {
   evidenceOfSource,
   freshnessCount,
   instrumentedCount,
-  metricsAtRisk,
   sourceHealth,
   sourcesByProblem,
   unhealthySources,
@@ -60,35 +59,29 @@ afterEach(() => {
 
 const cfg = () => useCxmStore.getState().cfg;
 
-/* Câu mở đầu ở đầu màn ĐÃ BỎ (owner 06/08 — cùng chỉ thị đã áp cho Bản đồ hành trình). Nó từng nói
-   "N trong 7 nguồn đang có vấn đề, và M chỉ số đang ăn dữ liệu từ chúng". Cả hai vế đó vẫn phải
-   chứng minh được, chỉ là ở chỗ khác: khối "Hệ quả cụ thể" cuối màn nêu ĐÍCH DANH từng nguồn hỏng
-   và từng chỉ số nó kéo theo. Ba test dưới đây chuyển sang canh đúng chỗ ấy — không xoá đi, vì bỏ
-   một câu chữ không có nghĩa là bỏ nghĩa vụ nói thật của màn. */
-describe("SourcesPage — khối hệ quả nói đúng thứ dữ liệu chứng minh được", () => {
-  it("nêu đích danh từng nguồn hỏng và từng chỉ số đang ăn dữ liệu từ chúng", () => {
+/* Câu mở đầu ở đầu màn ĐÃ BỎ (owner 06/08); hộp "Hệ quả cụ thể" cuối màn CŨNG BỎ (owner 25/08,
+   quét AI-slop — nó kể lại nguyên văn các dòng hỏng của bảng ngay trên). Nghĩa vụ nói thật của
+   màn KHÔNG bỏ theo, chỉ dời chỗ neo: chính DÒNG BẢNG của nguồn hỏng phải mang đủ tên nguồn +
+   nhận lần cuối + chỉ số bị ảnh hưởng (chip đỏ) + nền đỏ nhấn. Ba test dưới canh đúng chỗ ấy. */
+describe("SourcesPage — dòng bảng của nguồn hỏng nói đúng thứ dữ liệu chứng minh được", () => {
+  it("mỗi nguồn hỏng: dòng bảng tô nền đỏ, mang tên chỉ số đang ăn dữ liệu từ nó", () => {
     render(<SourcesPage />);
     const impacts = brokenImpacts(demoData, cfg());
-    const atRisk = metricsAtRisk(demoData, cfg());
     expect(impacts.length).toBeGreaterThan(0);
-    expect(atRisk.length).toBeGreaterThan(0);
-    const impact = screen.getByTestId("src-impact");
-    // Một dòng cho mỗi nguồn hỏng — không gộp thành một con số tổng.
-    expect(within(impact).getAllByRole("listitem")).toHaveLength(impacts.length);
-    for (const b of impacts) expect(impact).toHaveTextContent(b.source.name);
-    for (const m of atRisk) expect(impact).toHaveTextContent(m.name);
+    for (const b of impacts) {
+      const row = screen.getByTestId(`src-row-${b.source.id}`);
+      expect(row.className).toContain("bg-crit-bg");
+      expect(row).toHaveTextContent(b.source.last);
+      for (const m of b.metrics) expect(row).toHaveTextContent(m.name);
+    }
   });
 
   /* Prototype viết "… và điều đó LÀM SAI N chỉ số". Nguồn hỏng làm chỉ số tính trên dữ liệu THIẾU;
      chiều lệch thì không suy được từ dữ liệu (công thức có thể hụt cả tử lẫn mẫu). */
-  it("KHÔNG nói nguồn hỏng 'làm sai' chỉ số — dữ liệu không chứng minh được điều đó", () => {
-    render(<SourcesPage />);
-    const impact = screen.getByTestId("src-impact");
-    /* luật 12/08 bỏ câu "Dữ liệu không nói được con số đang cao hơn hay thấp hơn thực tế" (luận
-       giải) nên assertion ghim nó đi theo. Bất biến CANH ở đây không đổi và là vế phủ định: màn
-       không được KHẲNG ĐỊNH chiều lệch — dữ liệu không chứng minh được điều đó. */
-    expect(impact).not.toHaveTextContent("làm sai");
-    expect(impact).not.toHaveTextContent("bị đếm thiếu");
+  it("KHÔNG chỗ nào trên màn nói nguồn hỏng 'làm sai' chỉ số — dữ liệu không chứng minh được", () => {
+    const { container } = render(<SourcesPage />);
+    expect(container.textContent).not.toContain("làm sai");
+    expect(container.textContent).not.toContain("bị đếm thiếu");
   });
 
   it("đầu màn chỉ có tên tab, không còn câu mở đầu", () => {
@@ -99,14 +92,24 @@ describe("SourcesPage — khối hệ quả nói đúng thứ dữ liệu chứn
     expect(h1s[0]).toHaveTextContent(navLabel("sources"));
   });
 
-  it("không nguồn nào hỏng thì khối hệ quả biến mất hẳn, không in khung rỗng", () => {
+  it("hộp 'Hệ quả cụ thể' đã bỏ hẳn — có nguồn hỏng cũng không dựng lại (chống tái phát 25/08)", () => {
+    render(<SourcesPage />);
+    expect(brokenImpacts(demoData, cfg()).length).toBeGreaterThan(0); // tiền đề: đang có nguồn hỏng
+    expect(screen.queryByTestId("src-impact")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Hệ quả cụ thể/)).not.toBeInTheDocument();
+  });
+
+  it("không nguồn nào hỏng thì không dòng nào tô nền đỏ", () => {
     makeEveryoneHealthy();
     render(<SourcesPage />);
     // Oracle phải đọc data ĐANG RENDER (repoData(), đã mutate qua makeEveryoneHealthy), không phải
     // `demoData` gốc — 07/08: sức khoẻ nguồn không cfg hoá được nữa nên `demoData` giữ nguyên 2
     // nguồn hỏng suốt bài test này (xem docblock `makeEveryoneHealthy`).
     expect(brokenImpacts(repoData(), cfg())).toHaveLength(0);
-    expect(screen.queryByTestId("src-impact")).not.toBeInTheDocument();
+    for (const s of repoData().sources) {
+      const row = screen.queryByTestId(`src-row-${s.id}`);
+      if (row) expect(row.className).not.toContain("bg-crit-bg");
+    }
   });
 });
 
@@ -219,25 +222,9 @@ describe("SourceProfile — hai mẫu số không được gộp", () => {
   });
 });
 
-describe("SourcesPage — khối hệ quả sinh từ dữ liệu", () => {
-  it("mỗi nguồn hỏng một dòng, nêu đúng tên nguồn và số ngày suy từ độ trễ", () => {
-    render(<SourcesPage />);
-    const box = screen.getByTestId("src-impact");
-    for (const b of brokenImpacts(demoData, cfg())) {
-      expect(box).toHaveTextContent(b.source.name);
-      expect(box).toHaveTextContent(b.source.last);
-      if (b.days >= 1) expect(box).toHaveTextContent(`${b.days} ngày`);
-    }
-  });
-
-  it("không phán con số đang cao hơn hay thấp hơn thực tế", () => {
-    render(<SourcesPage />);
-    const box = screen.getByTestId("src-impact");
-    /* luật 12/08 bỏ câu "không nói được con số đang cao hơn hay thấp hơn thực tế" nên chỉ còn vế
-       phủ định — thứ phải vắng là lời KHẲNG ĐỊNH chiều lệch mà prototype đóng cứng. */
-    expect(box).not.toHaveTextContent("bị đếm thiếu");
-  });
-});
+/* Describe "khối hệ quả sinh từ dữ liệu" BỎ 25/08 cùng chính hộp src-impact — hai vế nó canh
+   (tên nguồn + last của từng nguồn hỏng; không phán chiều lệch) đã PORT sang describe "dòng bảng
+   của nguồn hỏng nói đúng thứ dữ liệu chứng minh được" ở đầu file, canh trên chính dòng bảng. */
 
 describe("SourcesPage — tab nguồn chủ động", () => {
   it("nhãn tab đếm khảo sát đang chạy từ dữ liệu", () => {

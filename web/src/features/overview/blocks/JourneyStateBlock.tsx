@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Cfg, CxmData, Flow, Obs, Step } from "../../../data/schema/index.ts";
-import { BASE_FACTOR, flowStepsCopied, stepState, stepWhy } from "../../../domain/index.ts";
+import { flowStepsCopied, stepState, stepWhy } from "../../../domain/index.ts";
 import type { DerivedState } from "../../../domain/index.ts";
 import { AxisLabel, Card, Stat } from "../../../design-system/index.ts";
 import { pv } from "../../../design-system/format.ts";
@@ -39,11 +39,6 @@ export type JourneyStateBlockProps = {
   /** Bấm một dòng hành trình → điều hướng bản đồ hành trình (port go('atlas')). */
   onGo?: (route: string) => void;
 };
-
-function periodLabel(data: CxmData): string {
-  const p = data.periods.find((x) => x.factor === BASE_FACTOR);
-  return p ? `${p.label} (${p.range})` : "";
-}
 
 const STATE_COLOR: Record<DerivedState, string> = {
   crit: "var(--crit)",
@@ -107,15 +102,20 @@ export function JourneyStateBlock({ data, cfg, onGo }: JourneyStateBlockProps) {
   const flowsGap = data.flows.length - flowsStepsCopiedCount;
 
   const rows = buildRows(data, cfg);
-  const offTotal = rows.reduce((a, r) => a + r.offCount, 0);
   const shown = expanded ? rows : rows.slice(0, TOP_N);
   const hidden = rows.length - shown.length;
 
   return (
     <Card
       title="Trạng thái hành trình"
-      subtitle={`Ảnh chụp · ${periodLabel(data)}`}
-      denomStrip={`Đang hiện ${shown.length} trên ${rows.length} hành trình đã khai bước (${data.flows.length} flow đã map) · ${offTotal} trên ${data.steps.length} bước ngoài ngưỡng`}
+      /* 25/08 (owner, quét AI-slop): bỏ subtitle kỳ (GlobalToolbar cầm timeframe). Dải mẫu số chỉ
+         hiện khi danh sách THẬT SỰ cắt bớt; hai vế cũ "(N flow đã map)" và "M bước ngoài ngưỡng"
+         bỏ — bốn ô Stat ngay dưới đã đếm đúng các số đó, in lại là một dữ kiện đọc hai lần. */
+      denomStrip={
+        shown.length < rows.length
+          ? `Đang hiện ${shown.length} trên ${rows.length} hành trình đã khai bước`
+          : undefined
+      }
     >
       <div className="grid grid-cols-4 gap-3 mb-3.5">
         <Stat
@@ -153,7 +153,16 @@ export function JourneyStateBlock({ data, cfg, onGo }: JourneyStateBlockProps) {
               key={r.flow.id}
               type="button"
               data-testid={`journey-flow-${r.flow.id}`}
-              title={r.worst ? stepWhy(r.worst.obs, cfg) : undefined}
+              /* 25/08 (owner, quét AI-slop): đuôi chữ "+N bước nữa ngoài ngưỡng" rời mặt dòng vào
+                 title — dòng chỉ giữ bước tệ nhất + tỷ lệ; chi tiết đếm thêm là thông tin tra cứu,
+                 không phải thông tin quét mắt. */
+              title={
+                r.worst
+                  ? r.offCount > 1
+                    ? `${stepWhy(r.worst.obs, cfg)} · +${r.offCount - 1} bước nữa ngoài ngưỡng`
+                    : stepWhy(r.worst.obs, cfg)
+                  : undefined
+              }
               onClick={() => onGo?.("atlas")}
               className="w-full text-left flex items-baseline gap-3 px-3 py-2 rounded-lg border bg-surface hover:bg-surface-2"
               style={{ borderColor: col }}
@@ -176,11 +185,6 @@ export function JourneyStateBlock({ data, cfg, onGo }: JourneyStateBlockProps) {
                   <b className="font-mono text-[13px] shrink-0" style={{ color: col }}>
                     {pv(r.worst.obs.failed, r.worst.obs.entered)}%
                   </b>
-                  {r.offCount > 1 ? (
-                    <span className="text-[12px] text-ink-3 shrink-0">
-                      +{r.offCount - 1} bước nữa ngoài ngưỡng
-                    </span>
-                  ) : null}
                 </>
               )}
             </button>

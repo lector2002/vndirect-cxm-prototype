@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Cfg, CxmData, Dim, QuantifyItem, QuantifyView } from "../../data/schema/index.ts";
 import { qRun } from "../../domain/index.ts";
+import { BASE_FACTOR } from "../../domain/format.ts";
 import { QuantifyWidget, Popover, Menu, btnSecondary, btnSizeLg, type MenuItem } from "../../design-system/index.ts";
 import { CountFilter, type CountValue } from "./CountFilter.tsx";
 
@@ -27,6 +28,13 @@ export type QuantifyDetailProps = {
    trên Popover ▽ chỉ hiện khi count LỆCH khỏi mặc định này (spec S2.6b: "đang ở mặc định thì không
    badge"). */
 const DEFAULT_COUNT: CountValue = 10;
+
+/* Mốc kỳ — cùng khuôn tra data.periods theo BASE_FACTOR như QuantifyPage (25/08: kỳ rời subtitle
+   card, màn chi tiết trưng nó trong popover ⓘ metadata). */
+function periodLabel(data: CxmData): string {
+  const p = data.periods.find((x) => x.factor === BASE_FACTOR);
+  return p ? `${p.label} (${p.range})` : "";
+}
 
 /* Màn chi tiết một chart Quantify — widget cỡ lớn + metadata (chiều hàng/cột, chỉ số, view mặc
    định, set đang dùng) + 3 icon thao tác (ⓘ thông tin / ▽ số dòng hiển thị / ⋮ menu Chart-Bảng-Sửa-
@@ -85,6 +93,9 @@ export function QuantifyDetail({
                 {rowDim ? <div>Chiều hàng: {rowDim}</div> : null}
                 {colDim ? <div>Chiều cột: {colDim}</div> : null}
                 {item.kind === "show" ? <div>Chỉ số: {item.metric}</div> : null}
+                {/* 25/08: mốc kỳ rời subtitle card (lặp mọi card) — màn chi tiết giữ nó ở đây,
+                    trong cụm metadata cùng các thuộc tính khác của chart. */}
+                <div>Ảnh chụp: {periodLabel(data)}</div>
                 <div>View mặc định: {item.view ?? "chart"}</div>
                 <div>
                   {usedByIds.length > 0

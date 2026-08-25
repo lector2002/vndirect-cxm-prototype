@@ -107,9 +107,9 @@ describe("OverviewPage — F2: bấm chip đổi set đang xem", () => {
     expect(screen.getByText("Điều hành CX")).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Sức khỏe pilot Mở tài khoản"));
-    // Set mới đang hiển thị: câu hỏi riêng của b-cxm-pilot xuất hiện (desc đã bị cắt — declutter
-    // 02/08 — nên neo bằng h2 câu hỏi thay vì SetMeta.desc).
-    expect(screen.getByText("Sáu bước đang thế nào?")).toBeInTheDocument();
+    // Set mới đang hiển thị: header riêng của b-cxm-pilot xuất hiện (desc đã bị cắt — declutter
+    // 02/08 — nên neo bằng h2; 25/08 header đổi từ câu hỏi sang cụm danh từ).
+    expect(screen.getByText("Trạng thái sáu bước pilot")).toBeInTheDocument();
   });
 });
 
@@ -191,12 +191,12 @@ describe("OverviewPage — b-cxm-exec: đúng 3 câu hỏi, KHÔNG còn @lanes/@
   });
 });
 
-describe("OverviewPage — b-voc-all: câu 'Cái gì đang bất thường?' KHÔNG còn @anomlanes (cut owner 01/08)", () => {
+describe("OverviewPage — b-voc-all: mục 'Bất thường' KHÔNG còn @anomlanes (cut owner 01/08; header đổi cụm danh từ 25/08)", () => {
   it("chỉ còn q15, không chứa @anomlanes", () => {
     const store = createCxmStore(new MockRepository());
     const { data } = store.getState();
     const set = data.dash.find((d) => d.id === "b-voc-all")!;
-    const q4 = set.qs.find((q) => q.q === "Cái gì đang bất thường?")!;
+    const q4 = set.qs.find((q) => q.q === "Bất thường")!;
     expect(q4.b).toEqual(["q15"]);
   });
 
@@ -249,10 +249,12 @@ describe("OverviewPage — bộ lọc thời gian GLOBAL kiểu Enterpret (toolb
     expect(chartAfter.querySelectorAll("title")).toHaveLength(6);
   });
 
-  it("card snapshot (@journeystate, /cxm) KHÔNG đổi số khi đổi range, nhưng CÓ dấu 'Ảnh chụp'", () => {
+  /* 25/08 (owner, quét AI-slop): caption "Ảnh chụp · kỳ" RỜI khỏi mọi card — toolbar đầu trang là
+     nguồn timeframe duy nhất. Bất biến còn lại của test: số snapshot KHÔNG đổi theo range. */
+  it("card snapshot (@journeystate, /cxm) KHÔNG đổi số khi đổi range; không card nào còn 'Ảnh chụp'", () => {
     const store = createCxmStore(new MockRepository());
     renderAt("/cxm", store);
-    expect(screen.getAllByText(/Ảnh chụp ·/).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText(/Ảnh chụp ·/)).toHaveLength(0);
 
     const statValue = () => screen.getAllByTestId("stat")[0]!.querySelector(".t-num")!.textContent;
     const before = statValue();

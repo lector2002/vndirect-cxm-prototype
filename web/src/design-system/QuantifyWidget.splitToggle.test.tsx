@@ -148,12 +148,12 @@ describe("QuantifyWidget — toggle chiều chia màu: nơi không vẽ được
     expect(chip("Phân khúc NAV")).toHaveAttribute("aria-pressed", "true");
   });
 
-  /* 05/08 — ĐẢO kỳ vọng cũ, có chủ ý. Test này trước đây canh "trục theme → KHÔNG có strip nào".
-     Owner chốt ngược: cột nào không có thì NÓI THẲNG là không có, không giấu. Ẩn strip khiến người
-     xem không phân biệt được "lỗi" với "giới hạn cố ý" — đúng lý do owner phải đi hỏi. Ý định gốc
-     (chia màu KHÔNG được phép vẽ trên trục này) giữ nguyên và mạnh hơn: giờ khẳng định cả việc mọi
-     chip đều khoá LẪN việc lý do phải đọc được bằng mắt. */
-  it("trục tổng hợp (q1, theme) → strip HIỆN nhưng khoá, và lý do nói đúng: số tổng hợp sẵn", () => {
+  /* 05/08 — ĐẢO kỳ vọng cũ (test trước canh "trục theme → KHÔNG có strip nào"; owner chốt ngược:
+     nói thẳng là không có, không giấu). 25/08 (owner, quét AI-slop) — ĐẢO TIẾP nửa sau: lý do KHÔNG
+     in thường trực nữa (bản ngắn vẫn lặp ×17 card cùng trang nên người xem thôi đọc); nó hiện thành
+     CHỮ khi người xem BẤM chip khoá (đường onLockedClick 05/08 giữ nguyên) và vẫn nằm trong tooltip.
+     Ý định gốc (chia màu KHÔNG được phép vẽ trên trục này) giữ nguyên: mọi chip khoá + lý do THẬT. */
+  it("trục tổng hợp (q1, theme) → strip HIỆN nhưng khoá; lý do KHÔNG in sẵn, bấm chip khoá mới hiện", () => {
     render(<QuantifyWidget item={findItem("q1")} data={seed} dims={dims} />);
     expect(screen.getByTestId("split-toggle")).toBeInTheDocument();
 
@@ -161,9 +161,12 @@ describe("QuantifyWidget — toggle chiều chia màu: nơi không vẽ được
     for (const b of [...group.children]) {
       expect(b).toHaveAttribute("aria-disabled", "true");
     }
-    /* Lý do phải hiện thành CHỮ, không chỉ tooltip — tooltip thì phải rê chuột mới thấy, mà luật
-       owner là "nói thẳng". Và phải là lý do THẬT (số tổng hợp sẵn), không phải "thiếu khoá khách":
-       `Evidence.ck` luôn có, chẩn đoán đó đã được đo là sai ngày 05/08. */
+    // 25/08: chưa hỏi thì không có note — câu lặp ×17 card đã bỏ.
+    expect(screen.queryByTestId("split-note")).not.toBeInTheDocument();
+
+    /* Bấm một chip khoá = đặt câu hỏi → lý do phải là lý do THẬT (số tổng hợp sẵn), không phải
+       "thiếu khoá khách": `Evidence.ck` luôn có, chẩn đoán đó đã được đo là sai ngày 05/08. */
+    fireEvent.click(chip("Nền tảng"));
     const note = screen.getByTestId("split-note");
     expect(note).toHaveTextContent(/TỔNG HỢP SẴN/);
     expect(note).toHaveTextContent(/không đếm từ bằng chứng/);

@@ -41,8 +41,9 @@ describe("QuantifyWidget — show item (không by)", () => {
     expect(bars.children).toHaveLength(11);
     // Ghim CUỐI và nói rõ gộp mấy nhóm — "Khác" trần không cho biết nó che 4 nhóm hay 40.
     expect(bars.children[10]).toHaveTextContent("Khác (+4)");
-    // Kỳ tuyệt đối vẫn hiện (chuyển từ denom sang subtitle dưới tiêu đề — part 2 anatomy không mất).
-    expect(screen.getByText(/6 tháng gần nhất \(28\/01\/2026 – 27\/07\/2026\)/)).toBeInTheDocument();
+    // 25/08 (owner, quét AI-slop): kỳ tuyệt đối RỜI khỏi card — mốc đứng một lần ở đầu màn
+    // (QuantifyPage cạnh "Hiển thị N / M chart"), card không in lại.
+    expect(screen.queryByText(/6 tháng gần nhất/)).not.toBeInTheDocument();
   });
 
   it("limit điều khiển số thanh: limit=5 → 5 + 'Khác (+9)'; limit=total (14) → 14, KHÔNG có thanh gộp", () => {
@@ -133,12 +134,16 @@ describe("QuantifyWidget — show item (không by)", () => {
   });
 
   it("denom-strip: base='ev' (q3/cat) → BẤT BIẾN vẫn nói rõ đây là TẬP MẪU bằng chứng, kèm SỐ THẬT (D0a)", () => {
-    render(<QuantifyWidget item={findItem("q3")} data={seed} dims={dims} />);
+    /* 25/08 (owner, quét AI-slop): dải chỉ hiện khi chart THẬT SỰ cắt bớt — q3 có 4 hàng ≤ TOP_N
+       nên mặc định KHÔNG dải (nhãn đáy "Số bằng chứng mẫu" vẫn nói bản chất tập mẫu). Bất biến
+       D0a chốt trên ca CÓ cắt: limit=2 → dải hiện, kèm số thô của các hàng ĐANG HIỆN (9+3=12). */
+    const { rerender } = render(<QuantifyWidget item={findItem("q3")} data={seed} dims={dims} />);
+    expect(screen.queryByTestId("denom-strip")).not.toBeInTheDocument();
+
+    rerender(<QuantifyWidget item={findItem("q3")} data={seed} dims={dims} limit={2} />);
     const strip = screen.getByTestId("denom-strip");
-    /* D0a: câu cũ "tập mẫu bằng chứng, không phải toàn bộ bản ghi" đổi thứ tự chữ để chèn SỐ THẬT
-       (owner chốt 02/08) — giờ là "<N> bằng chứng mẫu". N=17 = seed.ev.length (9+3+3+2).
-       luật 11/08: đã bỏ caveat "không phải toàn bộ bản ghi". */
-    expect(strip).toHaveTextContent("17 bằng chứng mẫu");
+    expect(strip).toHaveTextContent("Đang hiện Top 2 trên 4 category");
+    expect(strip).toHaveTextContent("12 bằng chứng mẫu");
     expect(strip).not.toHaveTextContent("không phải toàn bộ bản ghi");
   });
 
@@ -317,11 +322,12 @@ describe("QuantifyWidget — series item", () => {
     expect(screen.queryByTestId("vaxis-bottom-label")).not.toBeInTheDocument();
   });
 
-  it("không truyền months (caller ngoài Overview) → giữ NGUYÊN hành vi cũ: đủ 12 điểm/dòng (S2.7), subtitle = kỳ baseline", () => {
+  it("không truyền months (caller ngoài Overview) → đủ 12 điểm/dòng (S2.7); KHÔNG subtitle kỳ (25/08)", () => {
     render(<QuantifyWidget item={findItem("q15")} data={seed} dims={dims} cfg={cfgDefault} />);
     const chart = screen.getByTestId("anomaly-chart");
     expect(chart.querySelectorAll("title")).toHaveLength(24); // 2 dòng × 12 điểm (S2.7: seed 6→12 điểm/chuỗi)
-    expect(screen.getByText("6 tháng gần nhất (28/01/2026 – 27/07/2026)")).toBeInTheDocument();
+    // 25/08 (owner, quét AI-slop): kỳ baseline rời card, đứng một lần ở đầu màn tiêu thụ.
+    expect(screen.queryByText(/6 tháng gần nhất/)).not.toBeInTheDocument();
   });
 
   it("months=3 → q15 (2 dòng × 12 điểm thật, S2.7) RÚT NGẮN còn 3 điểm/dòng, subtitle nói đúng số kỳ đang hiện", () => {

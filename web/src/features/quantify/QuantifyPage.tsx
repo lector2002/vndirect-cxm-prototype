@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import type { QuantifyView } from "../../data/schema/index.ts";
+import type { CxmData, QuantifyView } from "../../data/schema/index.ts";
+import { BASE_FACTOR } from "../../domain/format.ts";
 import { Modal, btnPrimary, btnSecondary, btnSizeLg } from "../../design-system/index.ts";
 import { PageTitle } from "../../nav.tsx";
 import { useCxmStore } from "../../store/store.ts";
@@ -46,6 +47,14 @@ const BASE_LABEL: Record<string, string> = {
   cust: "Cohort khách",
   series: "Chuỗi thời gian",
 };
+
+/* Mốc kỳ của CẢ TRANG — 25/08 (owner, quét AI-slop): subtitle kỳ rời khỏi từng card QuantifyWidget
+   (17 card lặp nguyên một chuỗi), nay in MỘT LẦN cạnh "Hiển thị N / M chart". Cùng khuôn tra
+   data.periods theo BASE_FACTOR mà QuantifyWidget từng dùng — seed đổi baseline thì mốc vẫn khớp fx(). */
+function periodLabel(data: CxmData): string {
+  const p = data.periods.find((x) => x.factor === BASE_FACTOR);
+  return p ? `${p.label} (${p.range})` : "";
+}
 
 /* Container Quantify — đọc store, sở hữu state điều hướng con (qview) và mọi UI state ephemeral
    (filter/search/detailId, viewOverride). TẤT CẢ là useState cục bộ, KHÔNG Zustand: filter/search
@@ -358,8 +367,8 @@ export function QuantifyPage() {
             />
           </QuantifyFilterButton>
         </div>
-        <div className="t-meta ml-auto whitespace-nowrap">
-          Hiển thị <b>{items.length}</b> / {data.qt.length} chart{hasActiveFilter ? " · đã lọc" : ""}
+        <div className="t-meta ml-auto whitespace-nowrap" data-testid="quantify-period">
+          Hiển thị <b>{items.length}</b> / {data.qt.length} chart{hasActiveFilter ? " · đã lọc" : ""} · Ảnh chụp · {periodLabel(data)}
         </div>
       </div>
 
