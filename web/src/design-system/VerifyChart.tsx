@@ -76,7 +76,13 @@ export function VerifyChart({ tl }: VerifyChartProps) {
         {frozenIdx !== null ? (
           <g data-testid="verify-frozen-line">
             <line x1={x(frozenIdx)} x2={x(frozenIdx)} y1={PAD_T - 6} y2={H - PAD_B} stroke="var(--ink3)" />
-            <text x={x(frozenIdx)} y={PAD_T - 8} textAnchor="middle" fontSize="10" fill="var(--ink3)">đóng băng</text>
+            {/* khi chưa có điểm "sau", mốc đóng băng là điểm cuối sát mép phải: nhãn đỉnh sẽ đè
+                lên giá trị của chính điểm đó và tràn mép — bỏ, vì nhãn trục x đã ghi "đóng băng" */}
+            {x(frozenIdx) <= W - 60 ? (
+              <text x={x(frozenIdx)} y={PAD_T - 8} textAnchor="middle" fontSize="10" fill="var(--ink3)">
+                đóng băng
+              </text>
+            ) : null}
           </g>
         ) : null}
 
@@ -127,7 +133,13 @@ export function VerifyChart({ tl }: VerifyChartProps) {
                 {`${num(pt.v)}${tl.unit}`}
               </text>
             ) : null}
-            <text x={x(i)} y={H - PAD_B + 14} textAnchor="middle" fontSize="9.5" fill="var(--ink3)">
+            <text
+              x={x(i)}
+              y={H - PAD_B + 14}
+              textAnchor={x(i) > W - 60 ? "end" : "middle"}
+              fontSize="9.5"
+              fill="var(--ink3)"
+            >
               {pt.kind === "pre" ? pt.p : pt.kind === "frozen" ? "đóng băng" : "sau"}
             </text>
           </g>
