@@ -13,6 +13,7 @@ import { RulesPage, RulesPageRouted } from './features/rules/RulesPage.tsx'
 import { SignalsPage } from './features/signals/SignalsPage.tsx'
 import { SettingsPage } from './features/settings/SettingsPage.tsx'
 import { AssistantPage } from './features/assistant/AssistantPage.tsx'
+import { IssuePage } from './features/issue/IssuePage.tsx'
 import { TourOverlay } from './features/tour/TourOverlay.tsx'
 import { DemoBanner } from './features/settings/DemoBanner.tsx'
 import { useCxmStore } from './store/store.ts'
@@ -278,8 +279,10 @@ function Shell() {
             <Route path="/rules/:group" element={<RulesPageRouted />} />
             <Route path="/cxm/:setId" element={<OverviewPage sec="cxm" />} />
             <Route path="/voc/:setId" element={<OverviewPage sec="voc" />} />
-            {/* Stub — drill-down từ block Overview trỏ tới đây (F8); thân màn thật là Phase 3/5. */}
-            <Route path="/issue/:id" element={<Placeholder name="Điểm gãy" />} />
+            {/* Module B (owner gỡ chốt 25/08): màn thật thay Placeholder — ba đường vào là kết quả
+                tìm kiếm, khối Ưu tiên xử lý, link trong trình xem điểm chạm VoC. KHÔNG vào
+                TIMEFRAME_ROUTES: trước/sau là hai snapshot rời (prototype dòng 3220). */}
+            <Route path="/issue/:id" element={<IssuePage />} />
             <Route path="/topic/:id" element={<ThemeDetailPage />} />
             <Route path="*" element={<Placeholder name="Không tìm thấy màn" />} />
           </Routes>

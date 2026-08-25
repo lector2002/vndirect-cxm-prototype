@@ -14,7 +14,9 @@ export type OutcomesBlockProps = {
   onGo?: (route: string) => void;
 };
 
-const VERDICT_LABEL: Record<Verdict, string> = {
+/* Export 25/08 (Module B): tab Kết quả của màn Điểm gãy in verdict bằng ĐÚNG bảng này — một nguồn
+   cho ba chuỗi, không chép lần hai (cùng luật SEV_LABEL). */
+export const VERDICT_LABEL: Record<Verdict, string> = {
   improved: "Đã cải thiện",
   inconclusive: "Chưa kết luận được",
   worse: "Xấu đi",

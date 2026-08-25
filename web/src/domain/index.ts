@@ -66,6 +66,8 @@ export {
 export type { DerivedState, SourceHealth, SignalFeedHealth, LaneKey } from "./state.ts";
 export { getPrimaryAction, advanceAction, advanceBlockedReason } from "./loop.ts";
 export type { LoopStageKey, PrimaryAction } from "./loop.ts";
+export { verifyTimeline } from "./verifyTimeline.ts";
+export type { VerifyPoint, VerifyPointKind, VerifyTimeline } from "./verifyTimeline.ts";
 export { qRun, qRunCross, PF_LABEL } from "./quantify.ts";
 export type { CrossAxisRow, QuantifyCrossResult } from "./quantify.ts";
 export { signalChart } from "./signalChart.ts";

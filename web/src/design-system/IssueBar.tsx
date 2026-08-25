@@ -70,7 +70,9 @@ export type IssueBarProps = {
 /* Tên + số thứ tự 4 chặng — khớp LaneKey 'confirm'|'approve'|'fix'|'verify' (state.ts:8). 'off'
    nghĩa là đã ra khỏi dải; hiển thị của 'off' do chip khép vòng gánh (lc='ready'/'closed'), chip
    chặng khi đó nói "Đã qua 4/4". */
-const STAGE_INFO: Record<Exclude<LaneKey, "off">, { num: number; label: string }> = {
+/* Export 25/08 (Module B): tab Xử lý của màn Điểm gãy vẽ dải 4 chặng bằng ĐÚNG bảng này — hai màn
+   cùng gọi một chặng bằng một cái tên, không chép bảng lần hai. */
+export const STAGE_INFO: Record<Exclude<LaneKey, "off">, { num: number; label: string }> = {
   confirm: { num: 1, label: "Xác nhận" },
   approve: { num: 2, label: "Duyệt" },
   fix: { num: 3, label: "Sửa" },
