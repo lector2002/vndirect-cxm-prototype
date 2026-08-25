@@ -2,6 +2,8 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { seed } from "../../data/fixtures/seed.ts";
 import { PRI_KEYS, PRI_LABEL, isRankable, scoreIssues } from "../../data/priority.ts";
+import { isoFromVn } from "../../data/projectSigTrend.ts";
+import { SEV_LABEL } from "./WorkCreateForm.tsx";
 import { getPrimaryAction } from "../../domain/index.ts";
 import { navLabel } from "../../nav.tsx";
 import { WorkPage } from "./WorkPage.tsx";
@@ -75,7 +77,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
 
   /* 25/08 (owner): thanh thiếu khoá KHÔNG in số tổng nữa — điểm thấp GIẢ (§19). Số chỉ hiện khi đủ
      7/7; thanh thiếu chỉ nói "thiếu N/7 khoá". Vẫn không bao giờ có con số trần trụi (§9). */
-  it("thanh đủ khoá in 'Ưu tiên X · đủ 7/7'; thanh thiếu chỉ in 'thiếu N/7 khoá', KHÔNG kèm số tổng", () => {
+  it("thanh đủ khoá in 'Ưu tiên X · đủ 7/7'; thanh thiếu chỉ in 'Thiếu N/7 khoá', KHÔNG kèm số tổng", () => {
     render(<WorkPage />);
     for (const r of allRows) {
       const s = scoreOf(r.issue.id);
@@ -83,7 +85,7 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
       if (s.missing.length === 0) {
         expect(bar.textContent).toContain(`Ưu tiên ${s.total} · đủ ${PRI_KEYS.length}/${PRI_KEYS.length}`);
       } else {
-        expect(bar.textContent).toContain(`thiếu ${s.missing.length}/${PRI_KEYS.length} khoá`);
+        expect(bar.textContent).toContain(`Thiếu ${s.missing.length}/${PRI_KEYS.length} khoá`);
         expect(bar.textContent).not.toContain(`Ưu tiên ${s.total}`);
       }
     }
@@ -110,6 +112,59 @@ describe("WorkPage — danh sách thanh ngang duy nhất (phương án a)", () =
   it(`chip "Đã xong ${closed}" luôn hiện`, () => {
     render(<WorkPage />);
     expect(screen.getByTestId("chip-closed")).toHaveTextContent(`Đã xong ${closed}`);
+  });
+
+  /* ==== 25/08 đợt 2 (owner duyệt cả 4 mục validate đọc-hiểu) — mọi kỳ vọng suy lại từ data ==== */
+
+  it("cụm phải mang nhãn 'xử lý:/duyệt:'; due trước asOf in '⚠ quá hạn', còn hạn in 'hạn' thường", () => {
+    render(<WorkPage />);
+    const asOfIso = isoFromVn(st.data.asOf)!;
+    for (const r of allRows) {
+      const bar = screen.getByTestId(`issue-bar-${r.issue.id}`);
+      expect(bar.textContent).toContain(`xử lý: ${r.action.owner} · duyệt: ${r.action.acc}`);
+      if (isoFromVn(r.action.due)! < asOfIso) {
+        expect(bar.textContent).toContain(`⚠ quá hạn ${r.action.due}`);
+      } else {
+        expect(bar.textContent).toContain(`hạn ${r.action.due}`);
+        expect(bar.textContent).not.toContain(`quá hạn ${r.action.due}`);
+      }
+    }
+    /* Seed phải có CẢ hai trạng thái — không thì vòng trên chỉ đi một nhánh mà vẫn xanh. */
+    const overdueCount = allRows.filter((r) => isoFromVn(r.action.due)! < asOfIso).length;
+    expect(overdueCount).toBeGreaterThan(0);
+    expect(overdueCount).toBeLessThan(allRows.length);
+  });
+
+  it("chấm mức độ hết là màu trần: mang aria-label 'Mức nghiêm trọng: ...' đúng SEV_LABEL", () => {
+    render(<WorkPage />);
+    for (const r of allRows) {
+      const bar = screen.getByTestId(`issue-bar-${r.issue.id}`);
+      within(bar).getByRole("img", { name: `Mức nghiêm trọng: ${SEV_LABEL[r.issue.sev]}` });
+    }
+  });
+
+  it("banner khối-trên-rỗng chỉ còn MỘT câu — vế 'Danh sách bên dưới...' trùng header + chip đã cắt", () => {
+    render(<WorkPage />);
+    const note = screen.getByTestId("work-none-rankable");
+    expect(note.textContent).toContain(`Chưa điểm gãy nào đủ ${PRI_KEYS.length}/${PRI_KEYS.length} khoá để xếp hạng.`);
+    expect(note.textContent).not.toContain("Danh sách bên dưới");
+  });
+
+  it("chip 'Đã xong' bấm xoè danh sách việc đã khép vòng, bấm lại thu về", () => {
+    render(<WorkPage />);
+    const closedActs = st.data.act.filter((a) => a.lc === "closed");
+    expect(closedActs.length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("work-closed")).not.toBeInTheDocument();
+    const chip = screen.getByTestId("chip-closed");
+    expect(chip).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(chip);
+    const sec = screen.getByTestId("work-closed");
+    for (const a of closedActs) {
+      const row = within(sec).getByTestId(`closed-row-${a.id}`);
+      expect(row.textContent).toContain(st.data.iss.find((i) => i.id === a.iss)!.title);
+    }
+    fireEvent.click(screen.getByTestId("chip-closed"));
+    expect(screen.queryByTestId("work-closed")).not.toBeInTheDocument();
   });
 
   it("chip 'chờ khép vòng' KHÔNG hiện khi waitLoop === 0", () => {

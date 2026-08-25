@@ -665,8 +665,12 @@ const seedRaw: CxmData = {
       cust:[] },
   ],
   act: [
+    /* 25/08 đợt 2 (owner duyệt báo quá hạn): #/work in "⚠ quá hạn" khi due TRƯỚC asOf (27/07/2026)
+       — cùng trục thời gian sources.ts đo stale/down, không dùng đồng hồ thật. Hai due dưới đây
+       (CXA-021, CXA-028) CỐ Ý lùi về trước asOf để demo có cả dòng trễ lẫn dòng còn hạn; ngày TĨNH
+       chứ không tính tương đối, vì cả vũ trụ fixture đóng băng tại asOf nên không bao giờ trôi. */
 { id:'CXA-021', iss:'CXI-021', title:'Pilot SDK patch + hướng dẫn theo điều kiện lỗi', owner:'Minh Quân', acc:'Head of Onboarding',
-      due:'02/08/2026', ap:'pending', cf:'confirmed', dl:'backlog', iv:'not-started', lc:'blocked', sm:'m-liveness' },
+      due:'20/07/2026', ap:'pending', cf:'confirmed', dl:'backlog', iv:'not-started', lc:'blocked', sm:'m-liveness' },
     { id:'CXA-017', iss:'CXI-017', title:'Sticky CTA và trạng thái SmartCA theo thời gian thực', owner:'Linh Trần', acc:'Head of Onboarding',
       due:'30/07/2026', ap:'approved', cf:'confirmed', dl:'released', rel:'Mobile 8.12.0 · 16/07/2026 (một phần)', iv:'monitoring', lc:'blocked', sm:'m-contract' },
     /* Action DUY NHẤT đã khép vòng trọn vẹn (owner chốt 02/08/2026, để literal `closed` của ActionLc
@@ -683,8 +687,10 @@ const seedRaw: CxmData = {
       due:'08/08/2026', ap:'pending', cf:'pending', dl:'backlog', iv:'not-started', lc:'blocked', sm:'m-completion' },
     { id:'CXA-026', iss:'CXI-026', title:'Đánh giá phương án hỗ trợ eKYC tại quầy', owner:'Thu Hà', acc:'Head of CX',
       due:'15/08/2026', ap:'pending', cf:'confirmed', dl:'backlog', iv:'not-started', lc:'blocked', sm:'m-liveness' },
+    /* due 24/07 < asOf: webhook gãy từ 18-19/07, việc khôi phục trễ hẹn là dòng "quá hạn" thật của
+       demo (xem ghi chú đầu act). */
     { id:'CXA-028', iss:'CXI-028', title:'Khôi phục webhook Zalo OA và backfill 8 ngày', owner:'Hà Vũ', acc:'Data Platform Lead',
-      due:'29/07/2026', ap:'approved', cf:'confirmed', dl:'in-progress', iv:'not-started', lc:'blocked', sm:'m-repeat' },
+      due:'24/07/2026', ap:'approved', cf:'confirmed', dl:'in-progress', iv:'not-started', lc:'blocked', sm:'m-repeat' },
   ],
   out: [
 { act:'CXA-013', base:{ v:71.0, u:'%', p:'09/07 – 15/07/2026', n:412 }, post:{ v:91.4, u:'%', p:'17/07 – 27/07/2026', n:286 },

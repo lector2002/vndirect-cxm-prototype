@@ -72,6 +72,74 @@ describe("IssueBar", () => {
     expect(root).toHaveTextContent(PRI_LABEL);
   });
 
+  /* 25/08 đợt 2 (owner duyệt validate): cụm phải có nhãn vai — không nhãn thì "Minh Quân · Head of
+     Onboarding" đọc nhầm thành một người kèm chức danh. overdue do container so due với data.asOf. */
+  it("cụm phải in 'xử lý:/duyệt:'; mặc định (không overdue) in 'hạn ...' thường", () => {
+    render(
+      <IssueBar
+        issue={issue021}
+        action={action021}
+        stage={stage021}
+        primary={primary021}
+        blockedReason={blocked021}
+        sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
+        onAdvance={() => {}}
+      />,
+    );
+    const root = screen.getByTestId(`issue-bar-${issue021.id}`);
+    expect(root).toHaveTextContent(`xử lý: ${action021.owner} · duyệt: ${action021.acc}`);
+    expect(root).toHaveTextContent(`hạn ${action021.due}`);
+    expect(root.textContent).not.toContain("quá hạn");
+  });
+
+  it("overdue=true: vế hạn thành '⚠ quá hạn ...' — màu đỏ duy nhất mang nghĩa trạng thái trên thanh", () => {
+    render(
+      <IssueBar
+        issue={issue021}
+        action={action021}
+        stage={stage021}
+        primary={primary021}
+        blockedReason={blocked021}
+        sevColor={SEV_COLOR}
+        overdue
+        priLabel={PRI_LABEL}
+        onAdvance={() => {}}
+      />,
+    );
+    expect(screen.getByTestId(`issue-bar-${issue021.id}`).textContent).toContain(`⚠ quá hạn ${action021.due}`);
+  });
+
+  it("sevLabel: chấm mức độ thành role='img' mang đúng nhãn; không truyền thì ẩn khỏi cây a11y", () => {
+    const { rerender } = render(
+      <IssueBar
+        issue={issue021}
+        action={action021}
+        stage={stage021}
+        primary={primary021}
+        blockedReason={blocked021}
+        sevColor={SEV_COLOR}
+        sevLabel="Mức nghiêm trọng: Cần xử lý ngay"
+        priLabel={PRI_LABEL}
+        onAdvance={() => {}}
+      />,
+    );
+    expect(screen.getByRole("img", { name: "Mức nghiêm trọng: Cần xử lý ngay" })).toBeInTheDocument();
+    rerender(
+      <IssueBar
+        issue={issue021}
+        action={action021}
+        stage={stage021}
+        primary={primary021}
+        blockedReason={blocked021}
+        sevColor={SEV_COLOR}
+        priLabel={PRI_LABEL}
+        onAdvance={() => {}}
+      />,
+    );
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
   /* 25/08 (owner, brainstorm redesign — phương án A "dòng nén"): dải 4 ô chặng thay bằng MỘT chip
      tên chặng hiện tại + vị trí. Ba test dải cũ (aria-current từng ô, 4 ô luôn in nhãn) viết lại
      theo chip: chữ trong chip vẫn là kênh không-phải-màu, aria-current giữ ngữ nghĩa "bước đang ở". */

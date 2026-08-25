@@ -21,7 +21,20 @@ import { btnPrimary, btnSecondary, btnSizeMd } from "./buttons.ts";
      danh sách ra thành chữ (cùng bài học SplitToggle.onLockedClick 05/08: tooltip không tới được
      người bấm/bàn phím/cảm ứng). Hết cảnh dòng "Thiếu: ..." lặp y hệt dưới cả 5 thanh.
    - Lý do chặn vẫn là CHỮ ĐỌC ĐƯỢC NGAY TRÊN THANH (owner chốt, không đổi) — nhưng xuống dòng riêng
-     full-width chỉ khi CÓ chặn, thay vì bóp vào cạnh nút. */
+     full-width chỉ khi CÓ chặn, thay vì bóp vào cạnh nút.
+
+   25/08 đợt 2 (owner duyệt cả 4 mục validate sau redesign):
+   - Chip chặng về TÔNG XÁM viền mảnh: bản đầu tô bg-primary đỏ đặc — cùng độ đậm với CTA nên mỗi
+     dòng có HAI khối đỏ cạnh tranh nhau dù chip không bấm được; và 4 chặng cùng một màu là màu
+     trang trí ("màu mã hoá ý nghĩa, không mã hoá thứ hạng" — chính docblock sevColor của WorkPage).
+     Sau sửa, đỏ đặc duy nhất trên thanh = nút CTA.
+   - Cụm phải thêm nhãn "xử lý: / duyệt:" (đúng chữ label của WorkConfirmForm): "Minh Quân · Head of
+     Onboarding" bị đọc nhầm thành MỘT người kèm chức danh, trong khi là hai vai khác nhau.
+   - `overdue` (container so `due` với `data.asOf` — CÙNG trục thời gian màn Sources đo stale/down,
+     KHÔNG dùng đồng hồ thật vì cả vũ trụ demo đóng băng tại asOf): quá hạn thì vế hạn đổi thành
+     "⚠ quá hạn dd/MM/yyyy" chữ --crit — chỗ duy nhất trên thanh màu đỏ mang nghĩa trạng thái.
+   - `sevLabel`: chấm mức độ hết là màu trần — có nhãn thì thành ảnh có tên (title + aria-label),
+     không có thì giữ aria-hidden như cũ. */
 export type IssueBarProps = {
   issue: Issue;
   action: Action;
@@ -33,6 +46,12 @@ export type IssueBarProps = {
   blockedReason: string | null;
   /** Màu chấm mức độ nghiêm trọng — container truyền vào, design-system KHÔNG tự suy ngữ nghĩa domain. */
   sevColor: string;
+  /** Nhãn chữ của chấm mức độ (vd "Mức độ: nghiêm trọng") — có thì chấm mang title + aria-label,
+      không thì chấm giữ aria-hidden (optional để component dùng được ngoài ngữ cảnh có nhãn). */
+  sevLabel?: string;
+  /** true = đã quá hạn so với data.asOf (container so bằng isoFromVn) → vế hạn in "⚠ quá hạn ..."
+      chữ --crit. Mặc định false. */
+  overdue?: boolean;
   /** Câu điểm ưu tiên, container tính sẵn — vd `Ưu tiên 72 · đủ 7/7` (đủ khoá) hoặc
       `thiếu 3/7 khoá` (chưa đủ — KHÔNG kèm số tổng, xem docblock trên). Luôn mang số khoá,
       không bao giờ chỉ con số trần (ADR-002 §9). Chuỗi chứ không phải object vì tầng này chỉ render. */
@@ -61,7 +80,7 @@ const STAGE_INFO: Record<Exclude<LaneKey, "off">, { num: number; label: string }
 const TITLE_CLASS = "text-[13.5px] font-semibold leading-snug";
 const CHIP_CLASS = "inline-block px-2 py-0.5 rounded-[7px] text-[11px] font-bold border whitespace-nowrap";
 
-export function IssueBar({ issue, action, stage, primary, blockedReason, sevColor, priLabel, priDetail, onAdvance, onOpenIssue, onConfirm }: IssueBarProps) {
+export function IssueBar({ issue, action, stage, primary, blockedReason, sevColor, sevLabel, overdue = false, priLabel, priDetail, onAdvance, onOpenIssue, onConfirm }: IssueBarProps) {
   const [detailOpen, setDetailOpen] = useState(false);
   const blocked = blockedReason !== null;
   const stageInfo = stage === "off" ? null : STAGE_INFO[stage];
@@ -71,7 +90,10 @@ export function IssueBar({ issue, action, stage, primary, blockedReason, sevColo
       {/* Dòng 1 — nhận dạng + trạng thái quy trình: chấm sev · tiêu đề · chip chặng · phụ trách/hạn */}
       <div className="flex items-center gap-2.5">
         <span
-          aria-hidden="true"
+          role={sevLabel ? "img" : undefined}
+          aria-hidden={sevLabel ? undefined : true}
+          aria-label={sevLabel}
+          title={sevLabel}
           className="inline-block w-2.5 h-2.5 rounded-full flex-none"
           style={{ background: sevColor }}
         />
@@ -84,11 +106,12 @@ export function IssueBar({ issue, action, stage, primary, blockedReason, sevColo
         )}
         <span className="ml-auto flex-none flex items-center gap-2">
           {/* Chip chặng: TÊN bước hiện tại + vị trí — chữ là kênh không-phải-màu. aria-current giữ
-              nguyên ngữ nghĩa "đây là bước đang ở" như dải cũ. */}
+              nguyên ngữ nghĩa "đây là bước đang ở" như dải cũ. Tông xám cả hai trạng thái (25/08
+              đợt 2, xem docblock đầu file) — chặng đang ở chỉ đậm chữ hơn chặng đã qua. */}
           <span
             data-testid="stage-chip"
             aria-current={stageInfo ? "step" : undefined}
-            className={`${CHIP_CLASS} ${stageInfo ? "bg-primary text-white border-primary" : "bg-surface-2 border-line text-ink-3"}`}
+            className={`${CHIP_CLASS} bg-surface-2 border-line ${stageInfo ? "text-ink" : "text-ink-3"}`}
           >
             {stageInfo ? `${stageInfo.label} · ${stageInfo.num}/4` : "Đã qua 4/4"}
           </span>
@@ -104,8 +127,16 @@ export function IssueBar({ issue, action, stage, primary, blockedReason, sevColo
               Đã khép vòng
             </span>
           ) : null}
+          {/* Nhãn "xử lý:/duyệt:" đúng chữ label của WorkConfirmForm — không nhãn thì "Minh Quân ·
+              Head of Onboarding" đọc nhầm thành một người kèm chức danh (25/08 đợt 2). Dấu hai chấm
+              để giá trị "Chưa gán" vẫn đọc xuôi. */}
           <span className="text-[12px] text-ink-3 whitespace-nowrap">
-            {`${action.owner} · ${action.acc} · hạn ${action.due}`}
+            {`xử lý: ${action.owner} · duyệt: ${action.acc} · `}
+            {overdue ? (
+              <span className="text-crit font-semibold">{`⚠ quá hạn ${action.due}`}</span>
+            ) : (
+              `hạn ${action.due}`
+            )}
           </span>
         </span>
       </div>

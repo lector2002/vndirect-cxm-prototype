@@ -6,8 +6,9 @@ import { PRI_KEYS, PRI_LABEL, isRankable, scoreIssues } from "../../data/priorit
 import { advanceBlockedReason, getPrimaryAction, laneOf } from "../../domain/index.ts";
 import { IssueBar, Note, btnPrimary, btnSecondary, btnSizeLg, btnSizeSm } from "../../design-system/index.ts";
 import { PageTitle } from "../../nav.tsx";
+import { isoFromVn } from "../../data/projectSigTrend.ts";
 import { useCxmStore } from "../../store/store.ts";
-import { WorkCreateForm } from "./WorkCreateForm.tsx";
+import { SEV_LABEL, WorkCreateForm } from "./WorkCreateForm.tsx";
 import { WorkConfirmForm } from "./WorkConfirmForm.tsx";
 
 /* Banner "vừa tạo/vừa xác nhận" — port ST.sel.mkok/ST.sel.asok (prototype ~dòng 4636-4684); TÊN BIẾN
@@ -34,6 +35,22 @@ function sevColor(sev: Issue["sev"]): string {
   return sev === "critical" ? "var(--crit)" : sev === "high" ? "var(--watch)" : "var(--ink3)";
 }
 
+/* Nhãn chữ cho chấm sev (25/08 đợt 2) — chấm màu trần không tự giải thích được. Dùng lại SEV_LABEL
+   (nguồn duy nhất của 3 chuỗi, WorkCreateForm.tsx:6-12) + tiền tố đúng label field của form. */
+function sevLabelOf(sev: Issue["sev"]): string {
+  return `Mức nghiêm trọng: ${SEV_LABEL[sev]}`;
+}
+
+/* Quá hạn = due TRƯỚC data.asOf — cùng trục thời gian màn Sources đo stale/down (sources.test.ts so
+   `up` với asOf), KHÔNG dùng đồng hồ thật: cả vũ trụ demo đóng băng tại asOf, so với new Date() thì
+   toàn bảng đỏ vĩnh viễn và mỗi tuần một sai thêm. isoFromVn trả null khi sai khuôn → coi như không
+   quá hạn, không đoán. */
+function isOverdue(due: string, asOf: string): boolean {
+  const d = isoFromVn(due);
+  const a = isoFromVn(asOf);
+  return d !== null && a !== null && d < a;
+}
+
 export function WorkPage() {
   const data = useCxmStore((s) => s.data);
   const cfg = useCxmStore((s) => s.cfg);
@@ -45,6 +62,7 @@ export function WorkPage() {
   const approvers = useCxmStore((s) => s.approvers);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [closedOpen, setClosedOpen] = useState(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [mkerr, setMkerr] = useState<string | null>(null);
   const [cferr, setCferr] = useState<string | null>(null);
@@ -149,6 +167,14 @@ export function WorkPage() {
     .map((a) => ({ action: a, issue: data.iss.find((i) => i.id === a.iss) }))
     .filter((r): r is { action: (typeof act)[number]; issue: Issue } => r.issue !== undefined);
 
+  /* Việc đã khép vòng — chỉ render khi bấm xoè chip "Đã xong" (25/08 đợt 2). Dòng TĨNH gọn, KHÔNG
+     dùng IssueBar: getPrimaryAction với việc đã đóng trả CTA "Hoàn tất" — một nút trên việc đã xong
+     là mời bấm vào ngõ cụt. */
+  const closedRows = act
+    .filter((a) => a.lc === "closed")
+    .map((a) => ({ action: a, issue: data.iss.find((i) => i.id === a.iss) }))
+    .filter((r): r is { action: (typeof act)[number]; issue: Issue } => r.issue !== undefined);
+
   /* HAI KHỐI, không một danh sách (ADR-002 §19). Điểm gãy còn thiếu khoá KHÔNG được xếp lẫn: thiếu
      khoá thì điểm thấp GIẢ, nên một điểm gãy nặng mà chưa map điểm đo sẽ tụt xuống đáy và không ai
      thấy. Đẩy nó lên đầu cũng sai theo chiều ngược lại. Cách duy nhất không nói dối là tách ra và
@@ -176,7 +202,7 @@ export function WorkPage() {
     const s = scoreOf(id);
     return s.missing.length === 0
       ? `Ưu tiên ${s.total} · đủ ${PRI_KEYS.length}/${PRI_KEYS.length}`
-      : `thiếu ${s.missing.length}/${PRI_KEYS.length} khoá`;
+      : `Thiếu ${s.missing.length}/${PRI_KEYS.length} khoá`;
   };
   const priDetailOf = (id: string): string | undefined => {
     const s = scoreOf(id);
@@ -229,13 +255,20 @@ export function WorkPage() {
             {`${waitLoop} chờ khép vòng với khách`}
           </span>
         ) : null}
-        {/* Tông trung tính, KHÔNG tô màu trạng thái — prototype để chip này trơn (dòng 2922). */}
-        <span
+        {/* Tông trung tính, KHÔNG tô màu trạng thái — prototype để chip này trơn (dòng 2922).
+            25/08 đợt 2 (owner): chip thành NÚT bấm xoè danh sách việc đã khép vòng cuối trang —
+            trước đó nó đếm những dòng danh sách cố ý giấu (lọc lc!=='closed'), tức một con số
+            không soi được. Bằng 0 thì disable: không có gì để xoè. */}
+        <button
+          type="button"
           data-testid="chip-closed"
-          className="inline-block px-2 py-0.5 rounded-[7px] text-[11px] font-bold border whitespace-nowrap bg-surface-2 border-line text-ink-2"
+          aria-expanded={closedOpen}
+          disabled={closed === 0}
+          className={`inline-block px-2 py-0.5 rounded-[7px] text-[11px] font-bold border whitespace-nowrap bg-surface-2 border-line text-ink-2 ${closed > 0 ? "cursor-pointer hover:text-ink" : ""}`}
+          onClick={() => setClosedOpen((v) => !v)}
         >
-          {`Đã xong ${closed}`}
-        </span>
+          {`Đã xong ${closed}${closed > 0 ? (closedOpen ? " ▴" : " ▾") : ""}`}
+        </button>
       </div>
 
       {/* Banner — Note.tsx hardcode data-testid="note" nên bọc ngoài bằng div mang testid riêng
@@ -303,10 +336,12 @@ export function WorkPage() {
             </div>
           ) : (
             /* Khối trên rỗng KHÔNG được im lặng: một danh sách trống ở chỗ vốn có thứ tự việc phải
-               làm sẽ đọc thành "hết việc rồi", trong khi sự thật là "chưa đủ dữ liệu để xếp". */
+               làm sẽ đọc thành "hết việc rồi", trong khi sự thật là "chưa đủ dữ liệu để xếp".
+               25/08 đợt 2: cắt câu 2 ("Danh sách bên dưới ghi rõ...") — header khối dưới + chip
+               "Thiếu N/7 khoá" trên từng thanh đã nói đúng điều đó, câu này là lớp thứ ba. */
             <div data-testid="work-none-rankable">
               <Note>
-                {`Chưa điểm gãy nào đủ ${PRI_KEYS.length}/${PRI_KEYS.length} khoá để xếp hạng. Danh sách bên dưới ghi rõ từng cái còn thiếu khoá nào.`}
+                {`Chưa điểm gãy nào đủ ${PRI_KEYS.length}/${PRI_KEYS.length} khoá để xếp hạng.`}
               </Note>
             </div>
           )}
@@ -321,6 +356,28 @@ export function WorkPage() {
           ) : null}
         </>
       )}
+
+      {/* Khối "Đã xong" — nằm NGOÀI nhánh allRows.length===0: bảng sạch việc là đúng lúc người ta
+          muốn ngó lại những gì đã khép. Chỉ hiện khi bấm xoè chip đếm ở trên. */}
+      {closedOpen && closedRows.length > 0 ? (
+        <div className="mt-6" data-testid="work-closed">
+          <div className="t-lbl mb-2">{`Đã xong · ${closedRows.length}`}</div>
+          <div className="flex flex-col gap-2">
+            {closedRows.map(({ action, issue }) => (
+              <div
+                key={action.id}
+                data-testid={`closed-row-${action.id}`}
+                className="w-full bg-surface border border-line rounded shadow-card px-3.5 py-2.5 flex items-center gap-2.5 text-[12.5px]"
+              >
+                <span className="font-semibold text-ink-3 min-w-0 truncate">{issue.title}</span>
+                <span className="ml-auto flex-none whitespace-nowrap text-[12px] text-ink-3">
+                  {`xử lý: ${action.owner} · duyệt: ${action.acc} · Đã khép vòng`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 
@@ -338,6 +395,8 @@ export function WorkPage() {
           primary={getPrimaryAction(action, outcome, action.lc === "closed")}
           blockedReason={advanceBlockedReason(action, outcome)}
           sevColor={sevColor(issue.sev)}
+          sevLabel={sevLabelOf(issue.sev)}
+          overdue={isOverdue(action.due, data.asOf)}
           priLabel={priLabelOf(issue.id)}
           priDetail={priDetailOf(issue.id)}
           onAdvance={() => advanceAction(action.id)}
