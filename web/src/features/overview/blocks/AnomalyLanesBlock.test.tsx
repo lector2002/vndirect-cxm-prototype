@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { cfgDefault, seed } from "../../../data/fixtures/seed.ts";
 import type { CxmData } from "../../../data/schema/index.ts";
 import { AnomalyLanesBlock } from "./AnomalyLanesBlock.tsx";
@@ -42,5 +42,14 @@ describe("AnomalyLanesBlock", () => {
     // 25/08: "Top 0 trên 0" trông như màn hỏng — thay bằng câu nói thẳng chưa có cảnh báo.
     expect(screen.getByTestId("anomlanes-empty")).toBeInTheDocument();
     expect(screen.queryByTestId("lane-voice")).not.toBeInTheDocument();
+  });
+
+  /* 26/08 (owner "mở thêm nút bấm"): agents sống ở màn Assistant từ 25/08 — link cuối khối dẫn
+     sang đó thay dòng chỉ đường #/agents đã bỏ 11/08 (đích khi ấy còn là placeholder). */
+  it("có onGo: link 'Hỏi trợ lý về các phát hiện' gọi onGo('assistant')", () => {
+    const onGo = vi.fn();
+    render(<AnomalyLanesBlock data={seed} cfg={cfgDefault} onGo={onGo} />);
+    fireEvent.click(screen.getByTestId("anomlanes-go-assistant"));
+    expect(onGo).toHaveBeenCalledWith("assistant");
   });
 });

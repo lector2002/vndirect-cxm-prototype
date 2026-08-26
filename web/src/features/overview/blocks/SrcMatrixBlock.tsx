@@ -15,11 +15,25 @@ export type SrcMatrixBlockProps = {
   onGo?: (route: string) => void;
 };
 
-export function SrcMatrixBlock({ data, cfg }: SrcMatrixBlockProps) {
+export function SrcMatrixBlock({ data, cfg, onGo }: SrcMatrixBlockProps) {
   return (
     <Card title="Độ toàn vẹn nguồn">
       <SrcMatrix sources={data.sources} metrics={data.metrics} cfg={cfg} asOf={data.asOf} compact />
       <AxisLabel>Nguồn × nền tảng</AxisLabel>
+      {/* 26/08 (owner "mở thêm nút bấm"): nối lại link hồ sơ nguồn của prototype (dòng 2128) —
+          cùng idiom footer với cov-go-atlas. */}
+      {onGo ? (
+        <p className="text-[12px] text-ink-3 mt-2.5 mb-0">
+          <button
+            type="button"
+            data-testid="src-go-sources"
+            onClick={() => onGo("sources")}
+            className="font-semibold text-ink-3 hover:text-ink hover:underline"
+          >
+            Xem hồ sơ từng nguồn
+          </button>
+        </p>
+      ) : null}
     </Card>
   );
 }

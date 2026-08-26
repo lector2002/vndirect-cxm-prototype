@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { cfgDefault, seed } from "../../../data/fixtures/seed.ts";
 import { SrcMatrixBlock } from "./SrcMatrixBlock.tsx";
 
@@ -26,5 +26,13 @@ describe("SrcMatrixBlock", () => {
     render(<SrcMatrixBlock data={seed} cfg={cfgDefault} />);
     expect(screen.getByTestId("src-matrix")).toBeInTheDocument();
     expect(screen.queryByText("Nguồn này sai thì metric nào sai")).not.toBeInTheDocument();
+  });
+
+  /* 26/08 (owner "mở thêm nút bấm"): nối lại link hồ sơ nguồn của prototype (dòng 2128). */
+  it("có onGo: link 'Xem hồ sơ từng nguồn' gọi onGo('sources'); không onGo thì không render", () => {
+    const onGo = vi.fn();
+    render(<SrcMatrixBlock data={seed} cfg={cfgDefault} onGo={onGo} />);
+    fireEvent.click(screen.getByTestId("src-go-sources"));
+    expect(onGo).toHaveBeenCalledWith("sources");
   });
 });

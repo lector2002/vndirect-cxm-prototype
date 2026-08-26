@@ -11,13 +11,14 @@ import { AnomalyLanes, Card } from "../../../design-system/index.ts";
 export type AnomalyLanesBlockProps = {
   data: CxmData;
   /** Giữ trong props theo shape chung 5 block S2.3 (data+cfg+onGo) — AnomalyLanes không cần
-      ngưỡng cfg, và mọi link của nó là tĩnh (#/agents, #/rules) nên component này KHÔNG dùng
-      cfg lẫn onGo bên trong. */
+      ngưỡng cfg bên trong. */
   cfg: Cfg;
+  /** Link cuối khối → màn Assistant: dữ liệu agent (data.ag) sống ở đó từ 25/08 (câu "Agent phát
+      hiện gì mới?"); dòng chỉ đường tĩnh #/agents cũ bị bỏ 11/08 vì đích khi ấy là placeholder. */
   onGo?: (route: string) => void;
 };
 
-export function AnomalyLanesBlock({ data }: AnomalyLanesBlockProps) {
+export function AnomalyLanesBlock({ data, onGo }: AnomalyLanesBlockProps) {
   /* Port `DATA.ag.reduce((a,g) => a + g.f.filter(f=>f.lane).length, 0)` (prototype dòng 2153). */
   const count = data.ag.reduce((a, g) => a + g.f.filter((f) => f.lane !== null).length, 0);
 
@@ -30,6 +31,19 @@ export function AnomalyLanesBlock({ data }: AnomalyLanesBlockProps) {
       ) : (
         <AnomalyLanes agents={data.ag} />
       )}
+      {/* 26/08 (owner "mở thêm nút bấm"): cùng idiom footer với cov-go-atlas. */}
+      {onGo ? (
+        <p className="text-[12px] text-ink-3 mt-2.5 mb-0">
+          <button
+            type="button"
+            data-testid="anomlanes-go-assistant"
+            onClick={() => onGo("assistant")}
+            className="font-semibold text-ink-3 hover:text-ink hover:underline"
+          >
+            Hỏi trợ lý về các phát hiện
+          </button>
+        </p>
+      ) : null}
     </Card>
   );
 }

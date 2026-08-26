@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { cfgDefault, seed } from "../../../data/fixtures/seed.ts";
 import { OutcomesBlock } from "./OutcomesBlock.tsx";
 
@@ -19,4 +19,24 @@ describe("OutcomesBlock", () => {
     expect(screen.queryByText(/Xấu đi/)).not.toBeInTheDocument();
   });
 
+  /* 26/08 (owner "mở thêm nút bấm"): tiêu đề mỗi dòng → hồ sơ điểm gãy của action đó. Cặp
+     outcome↔issue suy từ seed qua join act, không ghim id. */
+  it("có onGo: tiêu đề mỗi dòng bấm được, gọi onGo('issue/<id>') đúng issue của action", () => {
+    const onGo = vi.fn();
+    render(<OutcomesBlock data={seed} cfg={cfgDefault} onGo={onGo} />);
+    for (const o of seed.out) {
+      const issue = seed.iss.find((i) => i.act === o.act)!;
+      fireEvent.click(screen.getByTestId(`outcome-open-${issue.id}`));
+      expect(onGo).toHaveBeenLastCalledWith(`issue/${issue.id}`);
+    }
+    expect(onGo).toHaveBeenCalledTimes(seed.out.length);
+  });
+
+  it("không truyền onGo: tiêu đề là chữ tĩnh, không còn nút bấm", () => {
+    render(<OutcomesBlock data={seed} cfg={cfgDefault} />);
+    for (const o of seed.out) {
+      const issue = seed.iss.find((i) => i.act === o.act)!;
+      expect(screen.queryByTestId(`outcome-open-${issue.id}`)).not.toBeInTheDocument();
+    }
+  });
 });
