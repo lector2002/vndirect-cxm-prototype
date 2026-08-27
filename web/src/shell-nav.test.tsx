@@ -35,10 +35,11 @@ describe("Icon điều hướng — mọi mục nav đều có, không mục nà
   });
 });
 
-/* MVP nhỏ (owner 17/08): chỉ ba màn bấm được, mười màn còn lại làm mờ. Ba điều phải canh, và cả ba
-   đều đếm lại từ `MVP_ROUTES` chứ không ghim tên màn — bật lại một màn thì test đi theo. */
-describe("MVP nhỏ — mười màn ngoài phạm vi làm mờ, không bấm được", () => {
-  it("chỉ màn TRONG MVP còn là link; màn ngoài không có link nào", () => {
+/* 26/08 (owner "tại sao vẫn chưa bấm được vào các tab còn lại") — ĐẢO luật 17/08: mọi mục nav đều
+   bấm được, vì mọi màn nay đã dựng thật (placeholder cuối cùng #/issue/:id xong 25/08). Vẫn đếm lại
+   từ `MVP_ROUTES`/`NAV_ITEMS` chứ không ghim tên màn: thu hẹp lại về sau thì test đi theo. */
+describe("Sidebar — mọi màn đều bấm được", () => {
+  it("mỗi mục nav là MỘT link, đúng bằng tập màn khai bấm được", () => {
     render(<App />);
     const side = screen.getByTestId("sidebar");
     const hrefs = within(side)
@@ -48,17 +49,21 @@ describe("MVP nhỏ — mười màn ngoài phạm vi làm mờ, không bấm đ
     for (const n of OFF_ITEMS) expect(hrefs).not.toContain(`#/${n.r}`);
   });
 
-  it("mục ngoài MVP vẫn CÓ MẶT và vẫn đọc được tên — mờ chứ không biến mất", () => {
+  /* Tiền đề của cả describe này: KHÔNG còn mục nào bị làm mờ. Không có dòng này thì mọi vòng lặp
+     trên OFF_ITEMS bên dưới xanh rỗng — test không còn canh gì. */
+  it("không còn mục nào bị làm mờ: mọi mục trong NAV_ITEMS đều dẫn tới màn của nó", () => {
     render(<App />);
     const side = screen.getByTestId("sidebar");
-    expect(OFF_ITEMS.length).toBeGreaterThan(0);
-    for (const n of OFF_ITEMS) {
-      expect(within(side).getByTestId(`nav-off-${n.r}`)).toBeInTheDocument();
-      expect(within(side).getByText(n.l)).toBeInTheDocument();
+    expect(OFF_ITEMS).toHaveLength(0);
+    expect(within(side).queryAllByTestId(/^nav-off-/)).toHaveLength(0);
+    for (const n of NAV_ITEMS) {
+      expect(within(side).getByText(n.l).closest("a")?.getAttribute("href")).toBe(`#/${n.r}`);
     }
   });
 
-  it("mục ngoài MVP khai aria-disabled, không để trình đọc màn hình đọc thành mục bình thường", () => {
+  /* Cơ chế làm mờ GIỮ trong App.tsx để còn thu hẹp lại được — nhưng đã mờ thì phải khai
+     aria-disabled, không để trình đọc màn hình đọc thành mục bình thường. */
+  it("mục nào bị làm mờ (nếu có) đều khai aria-disabled", () => {
     render(<App />);
     const side = screen.getByTestId("sidebar");
     for (const n of OFF_ITEMS) {
@@ -66,8 +71,9 @@ describe("MVP nhỏ — mười màn ngoài phạm vi làm mờ, không bấm đ
     }
   });
 
-  /* Nút bản giới thiệu tắt theo, vì `seedTour` dẫn qua 7 chặng nằm trên những màn vừa mờ — để nó bấm
-     được là mở một đường vòng vào đúng chỗ vừa tắt. Canh `disabled` THẬT: chỉ làm mờ bằng class thì
+  /* Nút bản giới thiệu vẫn TẮT bằng cờ `TOUR_ENABLED` (nav.tsx). Lý do gốc 17/08 — 7 chặng của
+     `seedTour` nằm trên những màn đang mờ — đã hết từ 26/08; bật lại là một quyết định riêng của
+     owner nên cờ giữ nguyên cho tới khi có chốt. Canh `disabled` THẬT: chỉ làm mờ bằng class thì
      chuột vẫn bấm được và bàn phím vẫn tab tới. */
   it("nút bản giới thiệu bị TẮT ở cả hai trạng thái sidebar, không chỉ mờ", () => {
     render(<App />);
@@ -83,9 +89,9 @@ describe("MVP nhỏ — mười màn ngoài phạm vi làm mờ, không bấm đ
     expect(screen.queryByTestId("tour-pop")).not.toBeInTheDocument();
   });
 
-  /* Mặc định cũ trỏ `cxm` — nay là màn mờ. Không đổi thì app tự mở vào đúng thứ sidebar vừa nói là
-     ngoài phạm vi, tức luật mới tự mâu thuẫn ngay ở lần tải đầu. */
-  it("mở app ở '/' ⇒ rơi vào một màn TRONG MVP", () => {
+  /* Luật giữ nguyên qua cả hai đời: màn chủ phải nằm trong tập màn bấm được — 17/08 nó buộc `cxm`
+     nhường chỗ cho `signals`, 26/08 mở lại thì `cxm` về đúng chỗ mà test không phải sửa. */
+  it("mở app ở '/' ⇒ rơi vào một màn bấm được", () => {
     window.location.hash = "#/";
     render(<App />);
     expect(MVP_ITEMS.some((n) => window.location.hash === `#/${n.r}`)).toBe(true);

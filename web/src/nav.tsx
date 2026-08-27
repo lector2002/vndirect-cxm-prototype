@@ -53,24 +53,21 @@ export const NAV_GROUPS: { g: string; items: { r: string; l: string }[] }[] = [
 
 export const NAV_ITEMS = NAV_GROUPS.flatMap((grp) => grp.items)
 
-/** Ba màn thuộc MVP nhỏ — owner chốt 17/08. Mười mục còn lại vẫn NẰM trong sidebar nhưng làm mờ và
- *  không bấm được.
+/** Tập màn BẤM ĐƯỢC trên sidebar. Route ngoài tập này vẫn nằm trong sidebar nhưng làm mờ và không
+ *  dựng link (App.tsx) — chỉ chặn đường BẤM, không chặn route: gõ thẳng hash vẫn mở được.
  *
- *  Vì sao mờ chứ không gỡ khỏi `NAV_GROUPS`: gỡ đi thì `navLabel`/`navIcon` NÉM cho mọi route đó
- *  (chúng tra ngược từ `NAV_GROUPS`), tức mọi màn kia vỡ ngay khi tới được bằng hash — mà đây là
- *  trạng thái TẠM. Giữ mục lại còn nói đúng sự thật: app có 13 màn, 10 màn đang ngoài phạm vi, chứ
- *  không phải app chỉ có 3 màn.
+ *  17/08 (owner) từng thu về đúng 4 màn vì mười màn kia còn là placeholder — chốt đó HẾT HIỆU LỰC
+ *  ngày 26/08: màn cuối cùng còn placeholder (#/issue/:id) đã dựng thật hôm 25/08, nên mọi mục nav
+ *  giờ đều dẫn tới một màn có thật. Owner: *"tại sao vẫn chưa bấm được vào các tab còn lại"*.
  *
- *  Chỉ chặn đường BẤM, không chặn route (owner: *"user ko bấm vào được thôi"*). Gõ thẳng hash vẫn
- *  mở được — cố ý, để còn đường vào lúc cần đối chiếu.
- *
- *  BẬT LẠI: thêm route vào Set này, không sửa chỗ nào khác.
- *  25/08 (owner duyệt màn Assistant gộp): thêm 'assistant' — màn đã dựng thật, hết placeholder. */
-export const MVP_ROUTES: ReadonlySet<string> = new Set(['signals', 'rules', 'settings', 'assistant'])
+ *  Suy TỪ `NAV_ITEMS` chứ không liệt kê tay: thêm mục nav mới là nó bấm được ngay, không phải nhớ
+ *  khai lần hai. Cơ chế làm mờ GIỮ NGUYÊN trong App.tsx — muốn tạm khoá màn nào về sau thì đổi Set
+ *  này thành danh sách hẹp lại, không sửa chỗ nào khác. */
+export const MVP_ROUTES: ReadonlySet<string> = new Set(NAV_ITEMS.map((n) => n.r))
 
-/** Màn đầu tiên khi vào app. Phải là màn TRONG MVP — mặc định cũ trỏ `cxm`, nay là một màn mờ, nên
- *  để nguyên là app tự mở vào đúng thứ sidebar vừa nói là ngoài phạm vi. */
-export const HOME_ROUTE = 'signals'
+/** Màn đầu tiên khi vào app. Phải là màn TRONG `MVP_ROUTES`. 26/08: trả về `cxm` như mặc định gốc —
+ *  17/08 phải tạm trỏ `signals` chỉ vì `cxm` khi ấy đang mờ. */
+export const HOME_ROUTE = 'cxm'
 
 /** Bản giới thiệu có dẫn — TẮT cùng lúc với mười màn kia (owner 17/08). `seedTour` dẫn qua 7 chặng
  *  thuộc `atlas · cxm · sources · topics · voc · vocjourney · work`, toàn màn đang mờ; để nút sáng
